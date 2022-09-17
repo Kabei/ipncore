@@ -1,0 +1,1 @@
+mix run --no-halt > ippan.log 2>&1 &

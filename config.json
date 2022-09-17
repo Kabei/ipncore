@@ -1,0 +1,30 @@
+{
+    "channel": "IPN-001",
+    "token": "IPN",
+    "gps_device": "/dev/AMC0",
+    "central": "ippan.net",
+    "web": {
+        "host": "0.0.0.0",
+        "http": 80,
+        "https": 443,
+        "acceptors": 100,
+        "max_conn": 16384
+    },
+    "pool": {
+        "host": "pool.ippan.net",
+        "port": 8484,
+        "address": "22dc25WorxjzcBVHZrY914ne391t6",
+        "falcon_file": "cert/falcon.keys",
+        "kem_file": "cert/kem.keys",
+        "node_type": 0
+    },
+    "db": {
+        "hostname": "core.ippan.net",
+        "username": "ippan",
+        "database": "ippancore",
+        "password": "NdgPPUWiSXF1EQbC5Pqm",
+        "ssl": false,
+        "port": 5432,
+        "pool_size": 10
+    }
+}

@@ -25,7 +25,6 @@ defmodule Ipncore.Token do
           updated_at: pos_integer()
         }
 
-  @schema_prefix "sys"
   @primary_key {:id, :binary, []}
   schema "token" do
     field(:name, :string)
@@ -110,12 +109,12 @@ defmodule Ipncore.Token do
 
   def new(_), do: throw(40224)
 
-  def get_pubkey(token_id, _channel) do
+  def get_pubkey(token_id, channel) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled, select: tk.pubkey)
-    |> Repo.one(prefix: @schema_prefix)
+    |> Repo.one(prefix: channel)
   end
 
-  def multi_insert(multi, name, token, _channel) do
+  def multi_insert(multi, name, token, channel) do
     token_struct = new(token)
 
     exists_symbol =
@@ -123,7 +122,7 @@ defmodule Ipncore.Token do
         where:
           fragment("?->>'symbol' = ?", tk.props, ^token_struct.props["symbol"]) and tk.enabled
       )
-      |> Repo.exists?(prefix: @schema_prefix)
+      |> Repo.exists?(prefix: channel)
 
     if exists_symbol do
       throw(40223)
@@ -134,11 +133,11 @@ defmodule Ipncore.Token do
       name,
       token_struct,
       returning: false,
-      prefix: @schema_prefix
+      prefix: channel
     )
   end
 
-  def multi_update(multi, name, token_id, amount, _channel) do
+  def multi_update(multi, name, token_id, amount, channel) do
     time = :erlang.system_time(@unit_time)
 
     query = from(tk in Token, where: tk.id == ^token_id and tk.enabled)
@@ -149,18 +148,18 @@ defmodule Ipncore.Token do
       query,
       [set: [updated_at: time], inc: [supply: amount]],
       returning: false,
-      prefix: @schema_prefix
+      prefix: channel
     )
   end
 
-  def fetch(token_id) do
-    Repo.get(__MODULE__, token_id, prefix: @schema_prefix)
+  def fetch(token_id, channel) do
+    Repo.get(__MODULE__, token_id, prefix: channel)
   end
 
-  def get(token_id) do
+  def get(token_id, channel) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)
     |> filter_select()
-    |> Repo.one(prefix: @schema_prefix)
+    |> Repo.one(prefix: channel)
     |> transform()
   end
 
@@ -173,7 +172,7 @@ defmodule Ipncore.Token do
     |> filter_limit(params, 50, 100)
     |> filter_select()
     |> sort(params)
-    |> Repo.all(prefix: @schema_prefix)
+    |> Repo.all(prefix: filter_channel(params, Default.channel()))
     |> filter_map()
   end
 

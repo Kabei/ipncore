@@ -126,7 +126,7 @@ defmodule Ipncore.Chain do
         |> Tx.set_status_complete(:txs, b.index, channel_id)
         |> Tx.cancel_all_pending(:pending, b.index, channel_id)
         |> Channel.multi_put_genesis_time(:gen_time, channel_id, b.time, is_genesis_block)
-        |> Channel.multi_update(:channel, channel_id, b.amount, 1, b.tx_count)
+        |> Channel.multi_update(:channel, channel_id, b.height, b.hash, b.amount, 1, b.tx_count)
         |> Repo.transaction()
         |> case do
           {:ok, _} ->

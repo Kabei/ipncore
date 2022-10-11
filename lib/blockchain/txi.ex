@@ -3,23 +3,20 @@ defmodule Ipncore.Txi do
   alias Ipncore.{Token, Tx, Txo, Repo}
 
   import Ecto.Query
-  # ,    only: [from: 1, from: 2, where: 3, order_by: 3, join: 5, select: 3, subquery: 1]
-
   import Ipnutils.Filters
   alias __MODULE__
 
   @type t :: %__MODULE__{
           oid: binary(),
-          txid: binary()
+          txid: binary(),
+          key: binary()
         }
-
-  # @channel Application.get_env(:ipncore, :channel)
 
   @primary_key false
   schema "txi" do
     field(:oid, :binary)
     field(:txid, :binary)
-    # belongs_to(:tx, Tx, foreign_key: :txid, references: :index, type: :binary)
+    field(:key, :binary)
   end
 
   def decode_references(refs) do
@@ -66,17 +63,6 @@ defmodule Ipncore.Txi do
       acc + byte_size(x.oid) + index_size
     end)
   end
-
-  # def get_all(txid, channel_id) do
-  #   from(txi in Txi, where: txi.txid == ^txid)
-  #   |> Repo.all(prefix: channel_id)
-  # end
-
-  # def refund(old_tx_outputs) do
-  #   Enum.map(old_tx_outputs, fn x ->
-
-  #   end)
-  # end
 
   def all(params) do
     from(Txi)

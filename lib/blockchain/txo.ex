@@ -11,36 +11,41 @@ defmodule Ipncore.Txo do
           tid: binary,
           value: pos_integer(),
           address: binary(),
+          type: binary(),
           avail: boolean()
-          # used: boolean()
         }
 
-  # @channel Application.get_env(:ipncore, :channel)
-  # @token Application.get_env(:ipncore, :token)
+  @output_type_default "S"
 
+  @doc """
+  Avail:
+  null -> is pending
+  true -> is approved (Ready to use)
+  false -> output is used
+  """
   @primary_key false
-  # @derive Jason.Encoder
   schema "txo" do
     field(:id, :binary)
     field(:tid, :string)
     field(:address, :binary)
+    field(:type, :binary)
     field(:value, :integer)
-    field(:avail, :boolean, default: false)
-    # belongs_to(:tx, Tx, foreign_key: :txid, references: :index, type: :binary)
+    field(:avail, :boolean, default: nil)
   end
 
-  @spec create(binary, binary, integer, binary, integer) :: t
-  def create(token_id, address, value, tx_index, index \\ 0)
+  @spec create(binary, binary, integer, binary, binary, integer) :: t
+  def create(token_id, address, value, type, tx_index, index \\ 0)
 
-  def create(_token_id, _address, value, _tx_index, index)
+  def create(_token_id, _address, value, _type, _tx_index, index)
       when value <= 0 or index < 0,
       do: throw("outputs does not have zero or negative value or negative index")
 
-  def create(token_id, address, value, tx_index, index) do
+  def create(token_id, address, value, type, tx_index, index) do
     %Txo{
       id: generate_index(tx_index, index),
       tid: token_id,
       address: address,
+      type: type,
       value: value
     }
   end
@@ -55,29 +60,13 @@ defmodule Ipncore.Txo do
         id: generate_index(tx_index, index),
         tid: output.tid,
         address: output.address,
+        type: output.type,
         value: output.value,
         avail: output.avail
       }
     ] ++
       order(rest, tx_index, index + 1)
   end
-
-  # @spec order([t], integer) :: [t]
-  # def coinbase_order(outputs, tx_index, index \\ 0)
-  # def coinbase_order([], _tx_index, _index), do: []
-
-  # def coinbase_order([output | rest], tx_index, index) do
-  #   [
-  #     %{
-  #       id: generate_index(tx_index, index),
-  #       tid: output.tid,
-  #       address: output.address,
-  #       value: output.value,
-  #       avail: true
-  #     }
-  #   ] ++
-  #     coinbase_order(rest, tx_index, index + 1)
-  # end
 
   @spec compute_sum([Txo.t()]) :: integer
   def compute_sum([]), do: 0
@@ -98,29 +87,6 @@ defmodule Ipncore.Txo do
 
     {tokens |> Enum.uniq() |> Enum.sort(), Enum.uniq(address), token_value, value}
   end
-
-  # def get_all(txid, channel_id) do
-  #   txlen = byte_size(txid)
-
-  #   from(txo in Txo,
-  #     where: fragment("substring(?::bytea from 1 for ?) = ?", txo.id, ^txlen, ^txid)
-  #   )
-  #   |> Repo.all(prefix: channel_id)
-  # end
-
-  # @spec valid?(t | [t]) :: :ok | {:error, atom()}
-  # def valid?([]), do: true
-
-  # def valid?([output | rest]), do: if(valid?(output), do: valid?(rest), else: false)
-
-  # def valid?(output) do
-  #   with :ok <- valid_amount?(output),
-  #        :ok <- valid_index?(output) do
-  #     :ok
-  #   else
-  #     err -> err
-  #   end
-  # end
 
   @spec valid_amount?(Txo) :: :ok | {:error, atom()}
   def valid_amount?(output) do
@@ -145,7 +111,17 @@ defmodule Ipncore.Txo do
       address: Base58Check.decode(address),
       tid: token,
       value: value,
-      avail: false
+      type: @output_type_default
+    }
+  end
+
+  def from_request(%{"address" => address, "tid" => token, "type" => type, "value" => value})
+      when value > 0 do
+    %Txo{
+      address: Base58Check.decode(address),
+      tid: token,
+      type: type,
+      value: value
     }
   end
 
@@ -223,17 +199,28 @@ defmodule Ipncore.Txo do
     end)
   end
 
-  def update_avail(txid, channel_id) do
+  @spec update_avail([binary], binary, boolean) :: {integer, List.t() | nil}
+  def update_avail(oids, channel_id, value) when is_list(oids) do
+    from(txo in Txo,
+      where: txo.id in ^oids,
+      update: [set: [avail: ^value]]
+    )
+    |> Repo.update_all([], prefix: channel_id)
+  end
+
+  @spec update_avail(binary, binary, boolean) :: {integer, List.t() | nil}
+  def update_avail(txid, channel_id, value) do
     from(txo in Txo,
       where: fragment("substring(?::bytea from 1 for ?)", txo.id, ^byte_size(txid)) == ^txid,
-      update: [set: [avail: true]]
+      update: [set: [avail: ^value]]
     )
     |> Repo.update_all([], prefix: channel_id)
   end
 
   def all(params) do
     from(Txo)
-    |> where([o], o.avail == true)
+    |> where([o], !is_nil(o.avail))
+    |> filter_used(params)
     |> filter_index(params)
     |> filter_address(params)
     |> filter_token(params)
@@ -270,6 +257,12 @@ defmodule Ipncore.Txo do
 
   defp filter_index(query, _params), do: query
 
+  defp filter_used(query, %{"used" => _}) do
+    where(query, [txo], txo.avail == false)
+  end
+
+  defp filter_used(query, _params), do: query
+
   defp filter_address(query, %{"address" => address}) do
     bin_address = Base58Check.decode(address)
     where(query, [txo], txo.address == ^bin_address)
@@ -289,6 +282,7 @@ defmodule Ipncore.Txo do
     |> select([o, tk], %{
       id: o.id,
       token: o.tid,
+      type: type,
       value: o.value,
       address: o.address,
       meta: tk.meta
@@ -307,10 +301,10 @@ defmodule Ipncore.Txo do
   defp sort(query, params) do
     case Map.get(params, "sort") do
       "newest" ->
-        order_by(query, [txo], desc: txo.id)
+        order_by(query, [txo], desc: fragment("length(?)", txo.id), desc: txo.id)
 
       _ ->
-        order_by(query, [txo], asc: txo.id)
+        order_by(query, [txo], asc: fragment("length(?)", txo.id), asc: txo.id)
     end
   end
 

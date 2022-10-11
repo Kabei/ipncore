@@ -44,6 +44,14 @@ defmodule Ipncore.Tx do
 
   @token PlatformOwner.token()
 
+  # output types
+  # output send
+  @output_type_send "S"
+  # output fees
+  @output_type_fee "%"
+  # output retuned money
+  @output_type_return "R"
+
   @type tx_type :: 0 | 1 | 2 | 3 | 4 | 5 | 100 | 101 | 102 | 103 | 200 | 201 | 300 | 301 | 1000
   @type tx_status :: 100 | 200 | 201 | 400
 
@@ -149,7 +157,6 @@ defmodule Ipncore.Tx do
     field(:total_input, :integer, default: 0)
     field(:time, :integer)
     field(:block_index, :integer)
-    field(:ifees, {:array, :binary})
     field(:outputs, {:array, :map}, virtual: true)
     field(:inputs, {:array, :map}, virtual: true)
 
@@ -384,11 +391,11 @@ defmodule Ipncore.Tx do
     %{tx | size: tx_size}
   end
 
-  defp put_fees(tx, utxo_address, core_address, pool_address) do
-    {amount, fees_amount, ifees} =
-      extract_fees!(tx.outputs, utxo_address, core_address, pool_address)
+  defp put_fees(tx, utxo_address, pool_address, pool_fees_value) do
+    {send_amount, fees_amount, _retuned_amount} =
+      extract_amounts!(tx.outputs, utxo_address, pool_address)
 
-    fees = calc_fees(amount, tx.size)
+    fees = calc_fees(send_amount, pool_fees_value, tx.size)
 
     IO.inspect("tx_size: #{tx.size}")
     IO.inspect("fees #{fees}")
@@ -397,7 +404,7 @@ defmodule Ipncore.Tx do
 
     if fees_amount != fees, do: throw(40209)
 
-    %{tx | fees: fees, amount: amount, ifees: ifees}
+    %{tx | fees: fees, amount: amount}
   end
 
   defp put_signatures(tx, sigs, utxo_address) do
@@ -769,7 +776,6 @@ defmodule Ipncore.Tx do
         "outputs" => outputs,
         "sigs" => sigs,
         "time" => time,
-        "to" => core_address58,
         "type" => type_name,
         "version" => version
       })
@@ -812,7 +818,7 @@ defmodule Ipncore.Tx do
       utxo = Utxo.get(input_references, channel_id)
 
       #
-      if check_limit_by_block(input_references, next_index, channel_id), do: throw(40229)
+      # if check_limit_by_block(input_references, next_index, channel_id), do: throw(40229)
 
       IO.inspect(utxo)
       IO.puts("in_count: #{in_count} - #{length(utxo)}")
@@ -844,7 +850,6 @@ defmodule Ipncore.Tx do
       if Enum.sort(utxo_address) == Enum.sort(txo_address),
         do: throw(40235)
 
-      core_address = Base58Check.decode(core_address58)
       pool_address = Chain.pool_address()
       genesis_time = Chain.genesis_time()
 
@@ -874,7 +879,7 @@ defmodule Ipncore.Tx do
         |> put_index(genesis_time)
         |> put_outputs_index()
         |> put_inputs_index()
-        |> put_fees(utxo_address, core_address, pool_address)
+        |> put_fees(utxo_address, pool_address, pool_fees)
 
       Ecto.Multi.new()
       |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
@@ -898,7 +903,7 @@ defmodule Ipncore.Tx do
 
           # set available txos
           if !is_nil(tx.outputs) and length(tx.outputs) > 0 do
-            Txo.update_avail(tx.index, channel_id)
+            Txo.update_avail(tx.index, channel_id, true)
           end
 
           {:ok, tx}
@@ -1069,57 +1074,43 @@ defmodule Ipncore.Tx do
     @base_size + sig_size + byte_size(tx_data)
   end
 
-  def calc_fees(amount, _size) do
-    # x = :math.sqrt(amount)
-    # y = :math.log10(size * 10) - 2
+  @spec calc_fees(integer, float, boolean, integer) :: integer
+  def calc_fees(amount, pool_fees, true, _size),
+    do: :math.ceil(amount * (pool_fees / 100)) |> trunc()
 
-    # ((x + size) * x * 0.01 * y)
-    # |> trunc()
-    r = :math.sqrt(amount) |> trunc()
+  def calc_fees(amount, pool_fees, false, _size), do: pool_fees |> trunc()
 
-    cond do
-      r == 1 ->
-        r + 1
-
-      true ->
-        r
-    end
-  end
-
-  @spec extract_fees!(List.t(), List.t(), binary, binary) ::
-          {tx_amount :: pos_integer(), fees_amount :: pos_integer(), index_fees :: list()}
-  defp extract_fees!(outputs, utxo_addresses, core_address, pool_address) do
+  @spec extract_amounts!(List.t(), List.t(), integer(), binary, binary) ::
+          {pos_integer(), pos_integer(), pos_integer()}
+  defp extract_amounts!(outputs, utxo_addresses, pool_address) do
     IO.inspect("utxo_addresses")
     IO.inspect(utxo_addresses)
 
     r =
-      {tx_amount, core_amount, pool_amount, index_fees, _} =
-      Enum.reduce(outputs, {0, 0, 0, [], false}, fn x,
-                                                    {acc_amount, acc_fees, acc_pool_fees,
-                                                     index_fees, flag} ->
+      {tx_amount, fees_amount, returned_amount} =
+      Enum.reduce(outputs, {0, 0, 0}, fn x, {acc_amount, acc_fees, acc_returned} ->
         cond do
-          x.tid == "IPN" and x.address == pool_address and flag == true ->
+          x.tid == @token and
+            x.address == pool_address and
+              x.type == @output_type_fee ->
             IO.inspect("pool_address amount: #{x.value}")
-            {acc_amount, acc_fees, acc_pool_fees + x.value, index_fees ++ [x.id], flag}
-
-          x.tid == "IPN" and x.address == core_address and flag == false ->
-            IO.inspect("core_address amount: #{x.value}")
-            {acc_amount, acc_fees + x.value, acc_pool_fees, index_fees ++ [x.id], true}
+            {acc_amount, acc_fees + x.value}
 
           x.address in utxo_addresses ->
-            {acc_amount, acc_fees, acc_pool_fees, index_fees, flag}
+            if x.type != @output_type_return, do: throw(40220)
+
+            {acc_amount, acc_fees, acc_returned + x.value}
 
           true ->
-            {acc_amount + x.value, acc_fees, acc_pool_fees, index_fees, flag}
+            {acc_amount + x.value, acc_fees, acc_returned}
         end
       end)
 
     IO.inspect(r)
 
-    fees_amount = core_amount + pool_amount
-    if pool_amount != ceil(fees_amount * 0.01), do: throw(40220)
+    # if pool_amount != ceil(fees_amount * (pool_amount / 100)), do: throw(40220)
 
-    {tx_amount, fees_amount, index_fees}
+    {tx_amount, fees_amount, returned_amount}
   end
 
   defp check_date_last_coinbase(channel, type_name, type, timestamp)
@@ -1127,7 +1118,7 @@ defmodule Ipncore.Tx do
     from(tx in Tx,
       where: tx.status == @status_complete and tx.type == ^type,
       select: tx.time,
-      order_by: [desc: tx.index]
+      order_by: [desc: fragment("length(?)", tx.index), desc: tx.index]
     )
     |> Repo.one(prefix: channel)
     |> case do
@@ -1147,7 +1138,7 @@ defmodule Ipncore.Tx do
     from(tx in Tx,
       where: tx.status == @status_complete and tx.type == ^type,
       select: tx.time,
-      order_by: [desc: tx.index]
+      order_by: [desc: fragment("length(?)", tx.index), desc: tx.index]
     )
     |> Repo.one(prefix: channel)
     |> case do
@@ -1168,7 +1159,7 @@ defmodule Ipncore.Tx do
     from(tx in Tx,
       where: tx.status == @status_pending,
       select: %{index: tx.index, hash: tx.hash, amount: tx.amount, type: tx.type},
-      order_by: [asc: tx.index]
+      order_by: [asc: fragment("length(?)", tx.index), asc: tx.index]
     )
     |> Repo.all(prefix: channel)
   end
@@ -1183,7 +1174,7 @@ defmodule Ipncore.Tx do
         type: tx.type,
         block_index: tx.block_index
       },
-      order_by: [asc: tx.index]
+      order_by: [asc: fragment("length(?)", tx.index), asc: tx.index]
     )
     |> Repo.all(prefix: channel)
   end
@@ -1192,7 +1183,7 @@ defmodule Ipncore.Tx do
     from(tx in Tx,
       where: tx.status == @status_approved and tx.block_index == ^next_index,
       select: %{index: tx.index, hash: tx.hash, amount: tx.amount, type: tx.type},
-      order_by: [asc: tx.index]
+      order_by: [asc: fragment("length(?)", tx.index), asc: tx.index]
     )
     |> Repo.all(prefix: channel)
   end
@@ -1201,7 +1192,7 @@ defmodule Ipncore.Tx do
   #   from(tx in Tx,
   #     where: tx.status == @status_approved and tx.block_index == ^block_index,
   #     select: %{index: tx.index, hash: tx.hash, amount: tx.amount, type: tx.type},
-  #     order_by: [asc: tx.index]
+  #     order_by: [asc: fragment("length(?)", tx.index), asc: tx.index]
   #   )
   #   |> Repo.all(prefix: channel)
   # end
@@ -1256,7 +1247,7 @@ defmodule Ipncore.Tx do
       join: txo in Txo,
       on: txi.oid == txo.id,
       where: txi.txid == ^txid,
-      order_by: [asc: txo.oid]
+      order_by: [asc: fragment("length(?)", txo.oid), asc: txo.oid]
     )
     |> Repo.all(prefix: channel_id)
   end
@@ -1265,7 +1256,7 @@ defmodule Ipncore.Tx do
   def fetch_outputs(txid, channel_id) do
     from(txo in Txo,
       where: fragment("substring(?::bytea from 1 for ?) = ?", txo.id, ^byte_size(txid), ^txid),
-      order_by: [asc: txo.oid]
+      order_by: [asc: fragment("length(?)", txo.oid), asc: txo.oid]
     )
     |> Repo.all(prefix: channel_id)
   end
@@ -1350,7 +1341,7 @@ defmodule Ipncore.Tx do
   defp sort(query, params) do
     case Map.get(params, "sort") do
       "oldest" ->
-        order_by(query, [tx], asc: tx.index)
+        order_by(query, [tx], asc: fragment("length(?)", tx.index), asc: tx.index)
 
       "most_value" ->
         order_by(query, [tx], desc: tx.amount)
@@ -1359,7 +1350,7 @@ defmodule Ipncore.Tx do
         order_by(query, [tx], asc: tx.amount)
 
       _ ->
-        order_by(query, [tx], desc: tx.index)
+        order_by(query, [tx], desc: fragment("length(?)", tx.index), desc: tx.index)
     end
   end
 

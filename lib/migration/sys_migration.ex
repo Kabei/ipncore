@@ -24,7 +24,8 @@ defmodule Ipncore.Migration.System do
         pubkey bytea NOT NULL,
         enabled boolean DEFAULT TRUE,
         genesis_time bigint NOT NULL,
-        last_index bigint NOT NULL,
+        last_height bigint NOT NULL,
+        last_hash bytea NOT NULL,
         block_count bigint NOT NULL,
         coins numeric,
         tx_count bigint NOT NULL,
@@ -32,48 +33,6 @@ defmodule Ipncore.Migration.System do
         created_at bigint NOT NULL,
         updated_at bigint,
         CONSTRAINT chain_pkey PRIMARY KEY (id)
-      )
-      """,
-      """
-      CREATE TABLE IF NOT EXISTS sys.token(
-        id bytea NOT NULL,
-        name character varying,
-        type smallint,
-        group bytea,
-        decimals integer DEFAULT 0,
-        enabled boolean DEFAULT TRUE,
-        creator bytea NOT NULL,
-        supply bigint DEFAULT 0,
-        destroyed bigint DEFAULT 0,
-        props jsonb,
-        created_at bigint NOT NULL,
-        updated_at bigint,
-        CONSTRAINT token_pkey PRIMARY KEY (id)
-      )
-      """,
-      """
-      CREATE TABLE IF NOT EXISTS sys.balances(
-        address bytea NOT NULL,
-        tid bytea NOT NULL,
-        amount numeric(36,0) DEFAULT 0 NOT NULL,
-        out_count numeric(36,0) DEFAULT 0,
-        in_count numeric(36,0) DEFAULT 0,
-        tx_count numeric(36,0) DEFAULT 0,
-        created_at bigint NOT NULL,
-        update bigint,
-        CONSTRAINT balances_pkey PRIMARY KEY (address, tid)
-      )
-      """,
-      """
-      CREATE TABLE IF NOT EXISTS sys.account(
-        id bytea NOT NULL,
-        name character varying(50),
-        address bytea,
-        props jsonb,
-        created_at bigint NOT NULL,
-        update bigint,
-        CONSTRAINT account_pkey PRIMARY KEY (id),
-        CONSTRAINT block_height UNIQUE (name)
       )
       """,
       "INSERT INTO sys.env(key, value, added, update) VALUES('version', #{version}, #{time}, #{time})",

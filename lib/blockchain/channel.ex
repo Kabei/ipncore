@@ -10,7 +10,8 @@ defmodule Ipncore.Channel do
           pubkey: binary(),
           enabled: boolean(),
           genesis_time: pos_integer(),
-          last_index: pos_integer(),
+          last_height: pos_integer(),
+          last_hash: binary(),
           block_count: pos_integer(),
           coins: pos_integer(),
           tx_count: pos_integer(),
@@ -27,7 +28,8 @@ defmodule Ipncore.Channel do
     field(:pubkey, :binary)
     field(:enabled, :boolean, default: true)
     field(:genesis_time, :integer, default: 0)
-    field(:last_index, :integer, default: 0)
+    field(:last_height, :integer, default: 0)
+    field(:last_hash, :binary)
     field(:block_count, :integer, default: 0)
     field(:coins, Ecto.Amount, default: 0)
     field(:tx_count, :integer, default: 0)
@@ -43,12 +45,16 @@ defmodule Ipncore.Channel do
         "pubkey" => pubkey,
         "time" => time
       }) do
-    %Channel{
-      id: id,
-      pubkey: pubkey,
-      created_at: time,
-      updated_at: time
-    }
+    if channel_name?(id) do
+      %Channel{
+        id: id,
+        pubkey: pubkey,
+        created_at: time,
+        updated_at: time
+      }
+    else
+      throw(40230)
+    end
   end
 
   def new(_), do: throw(40230)
@@ -76,7 +82,16 @@ defmodule Ipncore.Channel do
     )
   end
 
-  def multi_update(multi, name, channel_id, total, block_inc \\ 1, tx_inc \\ 1) do
+  def multi_update(
+        multi,
+        name,
+        last_height,
+        last_hash,
+        channel_id,
+        total_coinbase,
+        block_inc \\ 1,
+        tx_inc \\ 1
+      ) do
     time = :erlang.system_time(@unit_time)
 
     query = from(c in Channel, where: c.id == ^channel_id)
@@ -85,7 +100,10 @@ defmodule Ipncore.Channel do
       multi,
       name,
       query,
-      [set: [updated_at: time], inc: [block_count: block_inc, tx_count: tx_inc, coins: total]],
+      [
+        set: [last_height: last_height, last_hash: last_hash, updated_at: time],
+        inc: [block_count: block_inc, tx_count: tx_inc, coins: total_coinbase]
+      ],
       returning: false,
       prefix: "sys"
     )
@@ -110,7 +128,8 @@ defmodule Ipncore.Channel do
         created_at: c.created_at,
         genesis_time: c.genesis_time,
         coins: c.coins,
-        last_index: c.last_index,
+        last_height: c.last_height,
+        last_hash: c.last_hash,
         pubkey: fragment("encode(?, 'base64')", c.pubkey),
         tx_count: c.tx_count,
         vsn: c.vsn

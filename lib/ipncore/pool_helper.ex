@@ -29,11 +29,11 @@ defmodule PoolHelper do
             Application.put_env(:ipncore, :pool, kw_info)
 
             # # put address in imp_client
-            # Application.put_env(
-            #   :ipncore,
-            #   :imp_client,
-            #   Keyword.put(imp_client, :address, kw_info[:address])
-            # )
+            Application.put_env(
+              :ipncore,
+              :imp_client,
+              Keyword.put(imp_client, :address, kw_info[:address])
+            )
 
             kw_info
 

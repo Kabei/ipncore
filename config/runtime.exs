@@ -11,7 +11,6 @@ config :ipncore, :imp_client,
   port: 8484,
   falcon_file: "priv/cert/falcon.keys",
   kem_file: "priv/cert/kem.keys",
-  address: "22dc25WorxjzcBVHZrY914ne391t6",
   node_type: 0
 
 # database

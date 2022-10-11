@@ -9,6 +9,7 @@ defmodule Ipncore.Migration.System do
     time = :erlang.system_time(:millisecond)
 
     [
+      "CREATE SCHEMA IF NOT EXISTS sys",
       """
       CREATE TABLE IF NOT EXISTS sys.env(
         key character varying NOT NULL,

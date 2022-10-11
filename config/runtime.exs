@@ -14,7 +14,7 @@ config :ipncore, :imp_client,
 
 # database
 config :ipncore, Ipncore.Repo,
-  hostname: "127.0.0.1",
+  hostname: "core.ippan.net",
   username: "ippan",
   database: "ippancore",
   password: "NdgPPUWiSXF1EQbC5Pqm",

@@ -12,15 +12,21 @@ defmodule Ipncore.Application do
   @impl true
   def start(_type, _args) do
     try do
-      Ipncore.ConfigProvider.read()
+      # Ipncore.ConfigProvider.read()
+      central = Application.get_env(:ipncore, :central)
+      pool = PoolHelper.info!()
+
+      if pool.central != central, do: throw("Pool has different central")
+
+      imp_client = Application.get_env(@otp_app, :imp_client)
 
       {falcon_pk, _sk} =
         :ipncore
-        |> Application.app_dir("priv/cert/falcon.keys")
+        |> Application.app_dir(imp_client[:falcon_file])
         |> Falcon.read_file!()
 
       address = Address.to_internal_address(falcon_pk)
-      pool = Application.get_env(@otp_app, :pool)
+
       web = Application.get_env(@otp_app, :web)
       Application.put_env(@otp_app, :address, address)
       Application.put_env(@otp_app, :address58, Base58Check.encode(address))
@@ -33,12 +39,13 @@ defmodule Ipncore.Application do
       Application.put_env(@otp_app, :post_path, post_path)
 
       opts_cubdb = Application.get_env(@otp_app, :cubdb)
-      before_init()
+
+      migration_start()
 
       children =
         [
           Repo,
-          {Ipncore.IMP.Client, pool},
+          {Ipncore.IMP.Client, imp_client},
           Chain,
           http_server(web)
         ] ++ Ipnutils.CubDB.children(opts_cubdb)
@@ -50,7 +57,7 @@ defmodule Ipncore.Application do
     end
   end
 
-  defp before_init do
+  defp migration_start do
     {:ok, supervisor} = Supervisor.start_link([Repo, Chain], @opts)
 
     version = Application.get_env(@otp_app, :migration_version)

@@ -17,7 +17,6 @@ defmodule Ipncore.ConfigProvider do
       config,
       [
         {:channel, json[:channel]},
-        {:token, json[:token]},
         {:gps_device, json[:gps_device]},
         {:central, json[:central]},
         {:pool, json[:pool]},

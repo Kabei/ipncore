@@ -4,7 +4,7 @@ defmodule Default do
   def unit_time, do: :millisecond
   def server_name, do: "IPPAN"
   def channel, do: Application.get_env(:ipncore, :channel)
-  def token, do: Application.get_env(:ipncore, :token)
+  def token, do: "IPN"
   # def address, do: Application.get_env(:ipncore, :address)
 
   # # types range

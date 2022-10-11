@@ -391,11 +391,11 @@ defmodule Ipncore.Tx do
     %{tx | size: tx_size}
   end
 
-  defp put_fees(tx, utxo_address, pool_address, pool_fees_value) do
+  defp put_fees(tx, utxo_address, pool_address, pool_fee_percent, pool_fee) do
     {send_amount, fees_amount, _retuned_amount} =
       extract_amounts!(tx.outputs, utxo_address, pool_address)
 
-    fees = calc_fees(send_amount, pool_fees_value, tx.size)
+    fees = calc_fees(send_amount, pool_fee, pool_fee_percent, tx.size)
 
     IO.inspect("tx_size: #{tx.size}")
     IO.inspect("fees #{fees}")
@@ -850,7 +850,11 @@ defmodule Ipncore.Tx do
       if Enum.sort(utxo_address) == Enum.sort(txo_address),
         do: throw(40235)
 
-      pool_address = Chain.pool_address()
+      pool = PoolHelper.info!()
+      pool_address = pool[:address]
+      pool_fee_percent = pool[:fee_percent]
+      pool_fee = pool[:fee]
+
       genesis_time = Chain.genesis_time()
 
       {outgoings, incomes} = extract_balances(utxo, txo)
@@ -879,7 +883,7 @@ defmodule Ipncore.Tx do
         |> put_index(genesis_time)
         |> put_outputs_index()
         |> put_inputs_index()
-        |> put_fees(utxo_address, pool_address, pool_fees)
+        |> put_fees(utxo_address, pool_address, pool_fee_percent, pool_fee)
 
       Ecto.Multi.new()
       |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
@@ -1075,10 +1079,10 @@ defmodule Ipncore.Tx do
   end
 
   @spec calc_fees(integer, float, boolean, integer) :: integer
-  def calc_fees(amount, pool_fees, true, _size),
-    do: :math.ceil(amount * (pool_fees / 100)) |> trunc()
+  def calc_fees(amount, pool_fee, true, _size),
+    do: :math.ceil(amount * (pool_fee / 100)) |> trunc()
 
-  def calc_fees(amount, pool_fees, false, _size), do: pool_fees |> trunc()
+  def calc_fees(amount, pool_fee, _false, _size), do: pool_fee |> trunc()
 
   @spec extract_amounts!(List.t(), List.t(), integer(), binary, binary) ::
           {pos_integer(), pos_integer(), pos_integer()}

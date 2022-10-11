@@ -1,6 +1,5 @@
 {
     "channel": "IPN-003",
-    "token": "IPN",
     "gps_device": "/dev/AMC0",
     "central": "ippan.net",
     "web": {

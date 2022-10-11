@@ -2,6 +2,16 @@ import Config
 
 # prod = config_env() == :prod
 
+config :ipncore, :channel, "IPN-003"
+config :ipncore, :central, "ippan.net"
+
+config :ipncore, :imp_client,
+  host: "pool.ippan.net",
+  port: 8484,
+  falcon_file: "priv/cert/falcon.keys",
+  kem_file: "priv/cert/falcon.keys",
+  node_type: 0
+
 # database
 config :ipncore, Ipncore.Repo,
   hostname: "127.0.0.1",

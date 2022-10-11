@@ -392,19 +392,19 @@ defmodule Ipncore.Tx do
   end
 
   defp put_fees(tx, utxo_address, pool_address, pool_fee_percent, pool_fee) do
-    {send_amount, fees_amount, _retuned_amount} =
+    {tx_amount, fees_amount, _retuned_amount} =
       extract_amounts!(tx.outputs, utxo_address, pool_address)
 
-    fees = calc_fees(send_amount, pool_fee, pool_fee_percent, tx.size)
+    fees = calc_fees(tx_amount, pool_fee, pool_fee_percent, tx.size)
 
     IO.inspect("tx_size: #{tx.size}")
     IO.inspect("fees #{fees}")
-    IO.inspect("amount #{amount}")
+    IO.inspect("amount #{tx_amount}")
     IO.inspect("fees_amount #{fees_amount}")
 
     if fees_amount != fees, do: throw(40209)
 
-    %{tx | fees: fees, amount: amount}
+    %{tx | fees: fees, amount: tx_amount}
   end
 
   defp put_signatures(tx, sigs, utxo_address) do

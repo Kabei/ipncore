@@ -1084,7 +1084,7 @@ defmodule Ipncore.Tx do
 
   def calc_fees(amount, pool_fee, _false, _size), do: pool_fee |> trunc()
 
-  @spec extract_amounts!(List.t(), List.t(), integer(), binary, binary) ::
+  @spec extract_amounts!(List.t(), List.t(), binary) ::
           {pos_integer(), pos_integer(), pos_integer()}
   defp extract_amounts!(outputs, utxo_addresses, pool_address) do
     IO.inspect("utxo_addresses")

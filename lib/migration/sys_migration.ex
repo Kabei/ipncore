@@ -14,7 +14,7 @@ defmodule Ipncore.Migration.System do
       CREATE TABLE IF NOT EXISTS sys.env(
         key character varying NOT NULL,
         value character varying,
-        time bigint NOT NULL,
+        added bigint NOT NULL,
         update bigint,
         CONSTRAINT env_pkey PRIMARY KEY (key)
       )

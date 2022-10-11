@@ -826,8 +826,8 @@ defmodule Ipncore.Tx do
       if length(utxo) != in_count, do: throw(40206)
       IO.puts("Tx Here aqui 3")
 
-      {utxo_tokens, utxo_address, utxo_token_values, utxo_total} = Txo.extract(utxo)
-      {txo_tokens, txo_address, txo_token_values, txo_total} = Txo.extract(txo)
+      {utxo_ids, utxo_tokens, utxo_address, utxo_token_values, utxo_total} = Txo.extract(utxo)
+      {txo_ids, txo_tokens, txo_address, txo_token_values, txo_total} = Txo.extract(txo)
       # IO.puts("#{utxo_total} #{txo_total}")
 
       IO.inspect("token_values")
@@ -906,9 +906,8 @@ defmodule Ipncore.Tx do
           # TxPool.put(tx.index, tx_pool)
 
           # set available txos
-          if !is_nil(tx.outputs) and length(tx.outputs) > 0 do
-            Txo.update_avail(tx.index, channel_id, true)
-          end
+          Txo.update_utxo_avail(utxo_ids, channel_id, false)
+          Txo.update_txo_avail(tx.index, channel_id, true)
 
           {:ok, tx}
 

@@ -75,17 +75,17 @@ defmodule Ipncore.Txo do
     o.value + compute_sum(rest)
   end
 
-  @spec extract([t]) :: {List.t(), List.t(), Map.t(), integer}
+  @spec extract([t]) :: {List.t(), List.t(), List.t(), Map.t(), integer}
   def extract(outputs) do
-    {tokens, address, token_value, value} =
-      Enum.reduce(outputs, {[], [], %{}, 0}, fn x, {t, a, tv, v} ->
+    {ids, tokens, address, token_value, value} =
+      Enum.reduce(outputs, {[], [], [], %{}, 0}, fn x, {t, a, tv, v} ->
         value = Map.get(tv, x.tid, 0) + x.value
         token_value = Map.put(tv, x.tid, value)
 
-        {t ++ [x.tid], a ++ [x.address], token_value, v + x.value}
+        {id ++ [x.id], t ++ [x.tid], a ++ [x.address], token_value, v + x.value}
       end)
 
-    {tokens |> Enum.uniq() |> Enum.sort(), Enum.uniq(address), token_value, value}
+    {ids, tokens |> Enum.uniq() |> Enum.sort(), Enum.uniq(address), token_value, value}
   end
 
   @spec valid_amount?(Txo) :: :ok | {:error, atom()}
@@ -199,8 +199,8 @@ defmodule Ipncore.Txo do
     end)
   end
 
-  @spec update_avail([binary], binary, boolean) :: {integer, List.t() | nil}
-  def update_avail(oids, channel_id, value) when is_list(oids) do
+  @spec update_utxo_avail([binary], binary, boolean) :: {integer, List.t() | nil}
+  def update_utxo_avail(oids, channel_id, value) when is_list(oids) do
     from(txo in Txo,
       where: txo.id in ^oids,
       update: [set: [avail: ^value]]
@@ -208,8 +208,8 @@ defmodule Ipncore.Txo do
     |> Repo.update_all([], prefix: channel_id)
   end
 
-  @spec update_avail(binary, binary, boolean) :: {integer, List.t() | nil}
-  def update_avail(txid, channel_id, value) do
+  @spec update_txo_avail(binary, binary, boolean) :: {integer, List.t() | nil}
+  def update_txo_avail(txid, channel_id, value) do
     from(txo in Txo,
       where: fragment("substring(?::bytea from 1 for ?)", txo.id, ^byte_size(txid)) == ^txid,
       update: [set: [avail: ^value]]

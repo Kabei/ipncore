@@ -24,7 +24,6 @@ defmodule PoolHelper do
               |> Map.take(@info_fields)
               # |> Map.put(:timestamp, :erlang.system_time(:millisecond))
               |> Enum.map(fn {k, v} -> {String.to_atom(k), v} end)
-              |> Map.to_list()
 
             # put pool info
             Application.put_env(:ipncore, :pool, kw_info)

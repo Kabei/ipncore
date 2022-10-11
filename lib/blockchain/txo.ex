@@ -78,11 +78,11 @@ defmodule Ipncore.Txo do
   @spec extract([t]) :: {List.t(), List.t(), List.t(), Map.t(), integer}
   def extract(outputs) do
     {ids, tokens, address, token_value, value} =
-      Enum.reduce(outputs, {[], [], [], %{}, 0}, fn x, {t, a, tv, v} ->
+      Enum.reduce(outputs, {[], [], [], %{}, 0}, fn x, {ids, t, a, tv, v} ->
         value = Map.get(tv, x.tid, 0) + x.value
         token_value = Map.put(tv, x.tid, value)
 
-        {id ++ [x.id], t ++ [x.tid], a ++ [x.address], token_value, v + x.value}
+        {ids ++ [x.id], t ++ [x.tid], a ++ [x.address], token_value, v + x.value}
       end)
 
     {ids, tokens |> Enum.uniq() |> Enum.sort(), Enum.uniq(address), token_value, value}

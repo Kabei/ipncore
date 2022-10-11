@@ -20,6 +20,13 @@ defmodule Ipncore.Application do
 
       imp_client = Application.get_env(@otp_app, :imp_client)
 
+      # put address in imp_client
+      # Application.put_env(
+      #   :ipncore,
+      #   :imp_client,
+      #   Keyword.put(imp_client, :address, kw_info[:address])
+      # )
+
       {falcon_pk, _sk} =
         :ipncore
         |> Application.app_dir(imp_client[:falcon_file])

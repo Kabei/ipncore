@@ -4,12 +4,14 @@ import Config
 
 config :ipncore, :channel, "IPN-003"
 config :ipncore, :central, "ippan.net"
+config :ipncore, :gps_device, "/dev/AMC0"
 
 config :ipncore, :imp_client,
   host: "us2.ippan.net",
   port: 8484,
   falcon_file: "priv/cert/falcon.keys",
   kem_file: "priv/cert/falcon.keys",
+  address: "22dc25WorxjzcBVHZrY914ne391t6",
   node_type: 0
 
 # database

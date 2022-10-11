@@ -6,7 +6,7 @@ config :ipncore, :channel, "IPN-003"
 config :ipncore, :central, "ippan.net"
 
 config :ipncore, :imp_client,
-  host: "pool.ippan.net",
+  host: "us2.ippan.net",
   port: 8484,
   falcon_file: "priv/cert/falcon.keys",
   kem_file: "priv/cert/falcon.keys",

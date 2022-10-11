@@ -39,10 +39,10 @@ defmodule PoolHelper do
             kw_info
 
           {:ok, %HTTPoison.Response{status_code: _}} ->
-            throw("info pool")
+            throw("Error catch info pool")
 
           {:error, %HTTPoison.Error{reason: reason}} ->
-            throw("info pool")
+            throw("Fatal error catch info pool")
         end
     end
   end

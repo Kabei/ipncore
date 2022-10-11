@@ -219,7 +219,7 @@ defmodule Ipncore.Txo do
 
   def all(params) do
     from(Txo)
-    |> where([o], !is_nil(o.avail))
+    |> where([o], not is_nil(o.avail))
     |> filter_used(params)
     |> filter_index(params)
     |> filter_address(params)

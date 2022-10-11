@@ -16,7 +16,7 @@ defmodule Ipncore.Application do
       central = Application.get_env(:ipncore, :central)
       pool = PoolHelper.info!()
 
-      if pool.central != central, do: throw("Pool has different central")
+      if pool[:central] != central, do: throw("Pool has different central")
 
       imp_client = Application.get_env(@otp_app, :imp_client)
 

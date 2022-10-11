@@ -282,7 +282,7 @@ defmodule Ipncore.Txo do
     |> select([o, tk], %{
       id: o.id,
       token: o.tid,
-      type: type,
+      type: o.type,
       value: o.value,
       address: o.address,
       meta: tk.meta

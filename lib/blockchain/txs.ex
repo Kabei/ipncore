@@ -631,13 +631,14 @@ defmodule Ipncore.Tx do
       if next_index == 0, do: throw(40205)
 
       genesis_time = Chain.genesis_time()
-      owner_pubkey = PlatformOwner.pubkey()
 
       creator = Base58Check.decode(creator58)
       owner = Base58Check.decode(owner58)
 
       token_pubkey = Base.decode64!(token_pubkey64)
       signature = Base.decode64!(sig)
+
+      if owner != Address.to_internal_address(token_pubkey), do: throw(40225)
 
       token = %{
         "id" => token_id,
@@ -673,7 +674,7 @@ defmodule Ipncore.Tx do
         |> put_index(genesis_time)
         |> put_size(token_data)
 
-      if Falcon.verify(tx.hash, signature, owner_pubkey) == :error, do: throw(40212)
+      if Falcon.verify(tx.hash, signature, token_pubkey) == :error, do: throw(40212)
 
       Ecto.Multi.new()
       |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
@@ -1397,7 +1398,7 @@ defmodule Ipncore.Tx do
       transform(x)
     end)
   end
-  
+
   defp transform(nil), do: nil
 
   defp transform(x) do
@@ -1411,7 +1412,6 @@ defmodule Ipncore.Tx do
       fees: x.fees,
       hash: x.hash,
       in_count: x.in_count,
-      index: x.index,
       out_count: x.out_count,
       size: x.size,
       sig_count: x.sig_count,

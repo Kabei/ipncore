@@ -16,6 +16,8 @@ defmodule Ipncore.Balance do
           update: pos_integer()
         }
 
+  @output_type_fee "%"
+
   @primary_key {:address, :binary, []}
   schema "balances" do
     field(:tid, :binary)
@@ -92,7 +94,7 @@ defmodule Ipncore.Balance do
         join: tx in Tx,
         on: fragment("substring(?::bytea from 1 for length(?)) = ?", txo.id, tx.index, tx.index),
         left_join: txd in TxData,
-        on: tx.memo and txo.txid == txd.txid,
+        on: tx.memo and tx.index == txd.txid,
         left_join: txi in Txi,
         on: txi.txid == tx.index,
         left_join: otxi in Txo,

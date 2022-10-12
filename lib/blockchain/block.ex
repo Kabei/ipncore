@@ -15,8 +15,8 @@ defmodule Ipncore.Block do
   @type block_type :: 0 | 100 | 200 | 201 | 300 | 400 | 401
 
   @type t :: %__MODULE__{
+          index: pos_integer(),
           height: pos_integer(),
-          index: binary(),
           prev: binary | nil,
           hash: binary,
           mk: binary,

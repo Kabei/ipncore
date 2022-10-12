@@ -6,11 +6,12 @@ defmodule Ipncore.Utxo do
     %{rows: rows} =
       Ecto.Adapters.SQL.query!(Repo, "SELECT * FROM sys.utxo($1, $2)", [oids, "\"#{channel}\""])
 
-    Enum.map(rows, fn [id, tid, value, address] ->
+    Enum.map(rows, fn [id, tid, type, value, address] ->
       %Txo{
         id: id,
         tid: tid,
         value: value,
+        type: type
         address: address,
         avail: true
       }
@@ -33,13 +34,14 @@ defmodule Ipncore.Utxo do
 
       num_rows ->
         {outptus_ids, balance} =
-          Enum.reduce(rows, {[], 0}, fn [id, address, tid, value, balance], {acc, _} ->
+          Enum.reduce(rows, {[], 0}, fn [id, address, tid, type, value, balance], {acc, _} ->
             {acc ++
                [
                  %{
                    address: address,
                    id: id,
                    tid: tid,
+                   type: type,
                    value: value
                  }
                ], balance}
@@ -75,7 +77,7 @@ defmodule Ipncore.Utxo do
 
       num_rows ->
         {outptus_ids, balance} =
-          Enum.reduce(rows, {[], 0}, fn [id, address, tid, value, balance], {acc, _} ->
+          Enum.reduce(rows, {[], 0}, fn [id, address, tid, type, value, balance], {acc, _} ->
             {acc ++
                [
                  %{
@@ -110,7 +112,7 @@ defmodule Ipncore.Utxo do
 
       num_rows ->
         {outptus_ids, balance} =
-          Enum.reduce(rows, {[], 0}, fn [id, address, tid, value, channel, balance], {acc, _} ->
+          Enum.reduce(rows, {[], 0}, fn [id, address, tid, type, value, channel, balance], {acc, _} ->
             {acc ++
                [
                  %{

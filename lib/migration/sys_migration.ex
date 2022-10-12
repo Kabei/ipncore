@@ -101,7 +101,7 @@ defmodule Ipncore.Migration.System do
       BEGIN
 
       execute ('SET search_path to ' || _schema);
-      return query SELECT a.id, a.tid, a.value, a.address
+      return query SELECT a.id, a.tid, a.type, a.value, a.address
       FROM txo as a
       WHERE a.id = ANY (_indexes::bytea[]) and a.avail=TRUE ORDER BY a.id ASC;
 
@@ -126,7 +126,7 @@ defmodule Ipncore.Migration.System do
 
       execute ('SET search_path to ' || _schema);
       FOR id, address, tid, val, bal IN
-      (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."value" AS "value",
+      (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."type" AS "type", t0."value" AS "value",
       SUM(t0."value") OVER (
       ORDER BY t0."id" ASC rows between unbounded preceding and current row) AS "bal"
       FROM txo AS t0
@@ -169,7 +169,7 @@ defmodule Ipncore.Migration.System do
 
       # execute ('SET search_path to ' ||'"'|| _schema ||'"');
       # FOR id, address, tid, val, channel, bal IN
-      # (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."value" AS "value",
+      # (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."type" AS "type", t0."value" AS "value",
       # _schema as "channel",SUM(t0."value") OVER (
       # ORDER BY t0."id" ASC rows between unbounded preceding and current row) AS "bal"
       # FROM txo AS t0

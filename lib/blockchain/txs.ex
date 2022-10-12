@@ -875,7 +875,7 @@ defmodule Ipncore.Tx do
 
       memo = Map.get(params, "memo")
       length_memo = String.length(memo)
-      has_memo = if(not is_nil(memo) and length_memo > 0)
+      has_memo = not is_nil(memo) and length_memo > 0
 
       if has_memo and length_memo > @max_memo_size, do: throw(40238)
 

@@ -36,12 +36,10 @@ defmodule Ipncore.Migration.System do
         CONSTRAINT chain_pkey PRIMARY KEY (id)
       )
       """,
-      "INSERT INTO sys.env(key, value, added, update) VALUES('version', #{version}, #{time}, #{time})",
-      trigger_approved(),
+      "INSERT INTO sys.env(key, value, added, update) VALUES('version', #{version}, #{time}, #{time})"
+    ] ++
+      trigger_approved() ++
       create_functions()
-    ]
-
-    # base_function()
   end
 
   def down(_) do
@@ -49,40 +47,42 @@ defmodule Ipncore.Migration.System do
   end
 
   def trigger_approved do
-    """
-    CREATE OR REPLACE FUNCTION sys.cancel_approve_txs()
-    RETURNS trigger
-    LANGUAGE 'plpgsql'
-    VOLATILE
-    COST 100
-    AS $BODY$
-    declare _schema character varying;
-    BEGIN
-    _schema := TG_ARGV[0];
-    execute ('SET search_path to ' || '"' ||_schema ||'"' );
-    if TG_OP='UPDATE' THEN ---CHECK IF IT IS AN UPDATE
-    ----Verify that Status is not updated to NULL
-    IF NEW.status IS NULL THEN
-    RAISE EXCEPTION 'ERR_STAT_001';
-    END IF;
-    ----Verify that a transaction with status 201 cannot be canceled
-    IF OLD.status=201 OR (OLD.status>=400 AND OLD.status<500) THEN
-    RAISE EXCEPTION 'ERR_STAT_002';
-    END IF;
-    ---Perform the cancel operation
-    IF (NEW.status>=400 AND NEW.status<500) THEN
-    delete from txi where txid=NEW.index;
-    delete from txo where OLD.index=substring(id::bytea from 1 for length (NEW.index));
-    END IF;
-    ----Carry out the approval process
-    IF (NEW.status=200 OR NEW.status=201) THEN
-    update txo set avail=TRUE where OLD.index=substring(id::bytea from 1 for length (NEW.index));
-    END IF;
-    END IF;
-    RETURN NEW;
-    END;
-    $BODY$;
-    """
+    [
+      """
+      CREATE OR REPLACE FUNCTION sys.cancel_approve_txs()
+      RETURNS trigger
+      LANGUAGE 'plpgsql'
+      VOLATILE
+      COST 100
+      AS $BODY$
+      declare _schema character varying;
+      BEGIN
+      _schema := TG_ARGV[0];
+      execute ('SET search_path to ' || '"' ||_schema ||'"' );
+      if TG_OP='UPDATE' THEN ---CHECK IF IT IS AN UPDATE
+      ----Verify that Status is not updated to NULL
+      IF NEW.status IS NULL THEN
+      RAISE EXCEPTION 'ERR_STAT_001';
+      END IF;
+      ----Verify that a transaction with status 201 cannot be canceled
+      IF OLD.status=201 OR (OLD.status>=400 AND OLD.status<500) THEN
+      RAISE EXCEPTION 'ERR_STAT_002';
+      END IF;
+      ---Perform the cancel operation
+      IF (NEW.status>=400 AND NEW.status<500) THEN
+      delete from txi where txid=NEW.index;
+      delete from txo where OLD.index=substring(id::bytea from 1 for length (NEW.index));
+      END IF;
+      ----Carry out the approval process
+      IF (NEW.status=200 OR NEW.status=201) THEN
+      update txo set avail=TRUE where OLD.index=substring(id::bytea from 1 for length (NEW.index));
+      END IF;
+      END IF;
+      RETURN NEW;
+      END;
+      $BODY$;
+      """
+    ]
   end
 
   defp create_functions do

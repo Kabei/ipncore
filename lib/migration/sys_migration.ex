@@ -91,7 +91,7 @@ defmodule Ipncore.Migration.System do
       CREATE OR REPLACE FUNCTION sys.utxo(
       _indexes bytea[],
       _schema character varying)
-      RETURNS TABLE(id bytea, tid sys.tid, value bigint, address sys.address) 
+      RETURNS TABLE(id bytea, tid bytea, value bigint, address bytea) 
       LANGUAGE 'plpgsql'
       COST 100
       VOLATILE PARALLEL UNSAFE
@@ -114,7 +114,7 @@ defmodule Ipncore.Migration.System do
       _tid bytea,
       _total bigint,
       _schema character varying)
-      RETURNS TABLE(id bytea, address sys.address, tid sys.tid, val bigint, bal bigint) 
+      RETURNS TABLE(id bytea, address bytea, tid bytea, val bigint, bal bigint) 
       LANGUAGE 'plpgsql'
       COST 100
       VOLATILE PARALLEL UNSAFE

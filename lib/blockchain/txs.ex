@@ -886,10 +886,9 @@ defmodule Ipncore.Tx do
       IO.inspect(incomes)
 
       memo = Map.get(params, "memo")
-      length_memo = String.length(memo)
-      has_memo = not is_nil(memo) and length_memo > 0
+      has_memo = not is_nil(memo) and memo != ""
 
-      if has_memo and length_memo > @max_memo_size, do: throw(40238)
+      if has_memo and String.length(memo) > @max_memo_size, do: throw(40238)
 
       tx =
         %Tx{

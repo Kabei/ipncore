@@ -87,7 +87,7 @@ defmodule Ipncore.Migration.Blockchain do
         id bytea NOT NULL,
         name character varying,
         type smallint,
-        group bytea,
+        "group" bytea,
         enabled boolean DEFAULT TRUE,
         decimals integer DEFAULT 0,
         creator bytea NOT NULL,

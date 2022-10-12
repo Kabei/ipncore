@@ -91,7 +91,7 @@ defmodule Ipncore.Migration.System do
       CREATE OR REPLACE FUNCTION sys.utxo(
       _indexes bytea[],
       _schema character varying)
-      RETURNS TABLE(id bytea, tid bytea, value bigint, address bytea) 
+      RETURNS TABLE(id bytea, tid bytea, type TEXT, value bigint, address bytea) 
       LANGUAGE 'plpgsql'
       COST 100
       VOLATILE PARALLEL UNSAFE
@@ -114,7 +114,7 @@ defmodule Ipncore.Migration.System do
       _tid bytea,
       _total bigint,
       _schema character varying)
-      RETURNS TABLE(id bytea, address bytea, tid bytea, val bigint, bal bigint) 
+      RETURNS TABLE(id bytea, address bytea, tid bytea, type TEXT, val bigint, bal bigint) 
       LANGUAGE 'plpgsql'
       COST 100
       VOLATILE PARALLEL UNSAFE
@@ -125,7 +125,7 @@ defmodule Ipncore.Migration.System do
       bal := 0;
 
       execute ('SET search_path to ' || _schema);
-      FOR id, address, tid, val, bal IN
+      FOR id, address, tid, type, val, bal IN
       (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."type" AS "type", t0."value" AS "value",
       SUM(t0."value") OVER (
       ORDER BY t0."id" ASC rows between unbounded preceding and current row) AS "bal"
@@ -147,7 +147,7 @@ defmodule Ipncore.Migration.System do
       #   _tid bytea,
       #   _total bigint,
       #   _prefix character varying)
-      #   RETURNS TABLE(id bytea, address bytea, tid bytea, val bigint, channel character varying, bal bigint)
+      #   RETURNS TABLE(id bytea, address bytea, tid bytea, type TEXT, val bigint, channel character varying, bal bigint)
       #   LANGUAGE 'plpgsql'
       #   COST 100
       #   VOLATILE PARALLEL UNSAFE

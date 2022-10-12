@@ -106,8 +106,8 @@ defmodule Ipncore.Balance do
           value: txo.value,
           time: tx.time,
           oid: txo.id,
-          fees: false,
           status: tx.status,
+          fees: false,
           received: true
         },
         union: ^iquery

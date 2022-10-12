@@ -126,7 +126,7 @@ defmodule Ipncore.Explorer.Router do
 
   get "/balance/:address58/:token" do
     address = Base58Check.decode(address58)
-    resp = Balance.fetch_balance(address, token)
+    resp = Balance.fetch_balance(address, token, Default.channel())
     send_result(conn, resp)
   end
 

@@ -85,9 +85,9 @@ defmodule Ipncore.Channel do
   def multi_update(
         multi,
         name,
+        channel_id,
         last_height,
         last_hash,
-        channel_id,
         total_coinbase,
         block_inc \\ 1,
         tx_inc \\ 1

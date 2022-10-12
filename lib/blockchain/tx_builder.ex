@@ -481,15 +481,16 @@ defmodule Ipncore.TxBuilder do
     next_index = Block.next_index(time)
     type = Tx.type_index("token register")
 
-    owner = Base58Check.encode(token_pubkey)
+    address = Address.to_internal_address(token_pubkey)
+    address58 = Base58Check.encode(address)
 
     token_data =
       %{
         "id" => token_id,
         "name" => token_name,
         "decimals" => decimals,
-        "creator" => creator,
-        "owner" => owner,
+        "creator" => address,
+        "owner" => address,
         "props" => token_props,
         "time" => time
       }
@@ -515,8 +516,8 @@ defmodule Ipncore.TxBuilder do
       id: token_id,
       channel: channel,
       decimals: decimals,
-      creator: creator,
-      owner: owner,
+      creator: address58,
+      owner: address58,
       name: token_name,
       sig: Base.encode64(signature),
       pubkey: Base.encode64(token_pubkey),

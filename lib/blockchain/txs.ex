@@ -600,8 +600,8 @@ defmodule Ipncore.Tx do
         "id" => token_id,
         "name" => token_name,
         "decimals" => decimals,
-        "creator" => creator,
-        "owner" => owner,
+        "creator" => creator58,
+        "owner" => owner58,
         "pubkey" => token_pubkey64,
         "sig" => sig,
         "porps" =>
@@ -632,6 +632,9 @@ defmodule Ipncore.Tx do
       genesis_time = Chain.genesis_time()
       owner_pubkey = PlatformOwner.pubkey()
 
+      creator = Base58Check.decode(creator58)
+      owner = Base58Check.decode(owner58)
+
       token_pubkey = Base.decode64!(token_pubkey64)
       signature = Base.decode64!(sig)
 
@@ -639,8 +642,8 @@ defmodule Ipncore.Tx do
         "id" => token_id,
         "name" => token_name,
         "creator" => creator,
-        "decimals" => decimals,
         "owner" => owner,
+        "decimals" => decimals,
         "props" => props,
         "time" => time
       }

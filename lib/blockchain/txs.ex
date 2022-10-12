@@ -700,7 +700,8 @@ defmodule Ipncore.Tx do
   def processing(%{
         "channel" => channel_id,
         "outputs" => outputs,
-        "sig" => sig,
+        "sig" => sig64,
+        "pubkey" => pubkey64,
         "time" => time,
         "token" => token_id,
         "type" => type_name,
@@ -730,7 +731,7 @@ defmodule Ipncore.Tx do
       if out_count == 0, do: throw(40204)
       if out_count > @max_outputs, do: throw(40217)
 
-      signature = Base.decode64!(sig)
+      signature = Base.decode64!(sig64)
 
       {txo, uTokens, unique_addresses, total} = Txo.from_request_coinbase!(outputs)
 
@@ -757,9 +758,11 @@ defmodule Ipncore.Tx do
         |> put_outputs_index()
         |> put_size()
 
-      token_pubkey = Token.get_pubkey(token_id, channel_id)
+      token_pubkey = Base.decode64!(pubkey64)
 
-      unless token_pubkey, do: throw(40225)
+      token = Token.get(token_id, channel_id)
+
+      if token.owner != Address.to_internal_address(token_pubkey), do: throw(40225)
 
       if Falcon.verify(tx.hash, signature, token_pubkey) == :error, do: throw(40212)
 

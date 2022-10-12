@@ -109,8 +109,8 @@ defmodule Ipncore.Token do
 
   def new(_), do: throw(40224)
 
-  def get_pubkey(token_id, channel) do
-    from(tk in Token, where: tk.id == ^token_id and tk.enabled, select: tk.pubkey)
+  def get(token_id, channel) do
+    from(tk in Token, where: tk.id == ^token_id and tk.enabled)
     |> Repo.one(prefix: channel)
   end
 

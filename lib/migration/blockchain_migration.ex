@@ -50,6 +50,7 @@ defmodule Ipncore.Migration.Blockchain do
         id bytea NOT NULL,
         address bytea,
         tid bytea NOT NULL,
+        type TEXT,
         value bigint,
         avail bool NOT NULL DEFAULT FALSE,
         CONSTRAINT txo_pkey PRIMARY KEY (id)

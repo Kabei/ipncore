@@ -597,7 +597,6 @@ defmodule Ipncore.TxBuilder do
           binary(),
           binary(),
           binary(),
-          binary(),
           pos_integer(),
           binary(),
           pos_integer(),

@@ -84,6 +84,7 @@ defmodule Ipncore.Utxo do
                    address: Base58Check.encode(address),
                    id: Base62.encode(id),
                    tid: tid,
+                   type: type,
                    value: value
                  }
                ], balance}
@@ -121,6 +122,7 @@ defmodule Ipncore.Utxo do
                    channel: channel,
                    id: Base62.encode(id),
                    tid: tid,
+                   type: type,
                    value: value
                  }
                ], balance}

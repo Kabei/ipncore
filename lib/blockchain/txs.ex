@@ -1363,7 +1363,7 @@ defmodule Ipncore.Tx do
 
   def filter_date(query, _), do: query
 
-  defp filter_select(query, _), do: select(query, [tx], map_select())
+  defp filter_select(query, _), do: select(query, [tx, txd], map_select())
 
   defp sort(query, params) do
     case Map.get(params, "sort") do

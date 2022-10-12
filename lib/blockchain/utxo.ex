@@ -11,7 +11,7 @@ defmodule Ipncore.Utxo do
         id: id,
         tid: tid,
         value: value,
-        type: type
+        type: type,
         address: address,
         avail: true
       }
@@ -112,7 +112,8 @@ defmodule Ipncore.Utxo do
 
       num_rows ->
         {outptus_ids, balance} =
-          Enum.reduce(rows, {[], 0}, fn [id, address, tid, type, value, channel, balance], {acc, _} ->
+          Enum.reduce(rows, {[], 0}, fn [id, address, tid, type, value, channel, balance],
+                                        {acc, _} ->
             {acc ++
                [
                  %{

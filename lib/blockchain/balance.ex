@@ -121,8 +121,8 @@ defmodule Ipncore.Balance do
         otype: s.otype,
         address: s.address,
         token: s.token,
-        status: s.status,
         value: s.value,
+        status: s.status,
         time: s.time,
         fees: s.fees,
         received: s.received
@@ -139,12 +139,12 @@ defmodule Ipncore.Balance do
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
     |> Enum.map(fn x ->
       %{
+        id: Base62.encode(x.id),
         address:
           if(is_nil(x.address),
             do: String.capitalize(Tx.type_name(x.type)),
             else: Base58Check.encode(x.address)
           ),
-        id: Base62.encode(x.id),
         status: Tx.status_name(x.status),
         type: Tx.type_name(x.type),
         token: x.token,
@@ -242,9 +242,8 @@ defmodule Ipncore.Balance do
           address: ^address,
           amount: fragment("0::NUMERIC"),
           token: tk.id,
-          decimal: tk.meta["decimal"],
-          symbol: tk.meta["symbol"],
-          minimum: fragment("coalesce(?, '0')", tk.meta["minimum"]),
+          decimal: tk.decimals,
+          symbol: tk.props["symbol"],
           out_count: fragment("0::NUMERIC"),
           in_count: fragment("0::NUMERIC"),
           tx_count: fragment("0::NUMERIC"),

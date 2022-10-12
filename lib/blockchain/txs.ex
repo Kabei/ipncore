@@ -2,7 +2,7 @@ defmodule Ipncore.Tx do
   use Ecto.Schema
   require Logger
   import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
-  import Ecto.Query, only: [from: 1, from: 2, where: 3, select: 3, order_by: 3]
+  import Ecto.Query, only: [from: 1, from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
 
   alias Ipncore.{

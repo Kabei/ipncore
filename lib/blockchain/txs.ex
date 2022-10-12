@@ -872,7 +872,7 @@ defmodule Ipncore.Tx do
         do: throw(40235)
 
       pool = PoolHelper.info!()
-      pool_address = pool[:address]
+      pool_address = pool[:address] |> Base58Check.decode()
       pool_fee_percent = pool[:fee_percent]
       pool_fee = pool[:fee]
 

@@ -1,5 +1,6 @@
 defmodule Ipncore.TxBuilder do
   alias Ipncore.{Block, Chain, Tx, Utxo}
+  alias Ipnutils.Address
 
   @pk_alice <<9, 163, 124, 216, 164, 40, 1, 157, 19, 22, 68, 203, 171, 88, 34, 172, 230, 146, 16,
               135, 31, 210, 139, 144, 70, 231, 26, 175, 129, 162, 188, 208, 245, 46, 86, 169, 93,
@@ -462,7 +463,7 @@ defmodule Ipncore.TxBuilder do
 
   @doc """
   USAGE:
-  Ipncore.TxBuilder.token_create("IPN-001", "IPN", "IPPAN", 9, %{"symbol" => "Þ"}, :raw) |> Ipncore.Tx.processing
+  Ipncore.TxBuilder.token_create("IPN-003", "IPN", "IPPAN", 9, %{"symbol" => "Þ"}, :raw) |> Ipncore.Tx.processing
   Ipncore.TxBuilder.token_create("IPN-001", "GBP", "Pound", 2, %{"symbol" => "£"}, :raw) |> Ipncore.Tx.processing
   Ipncore.TxBuilder.token_create("IPN-001", "USD", "Dollar", 2, %{"symbol" => "$"}, :raw) |> Ipncore.Tx.processing
   Ipncore.TxBuilder.token_create("IPN-001", "EUR", "Euro", 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing

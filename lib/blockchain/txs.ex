@@ -604,7 +604,7 @@ defmodule Ipncore.Tx do
         "owner" => owner58,
         "pubkey" => token_pubkey64,
         "sig" => sig,
-        "porps" =>
+        "props" =>
           %{
             "symbol" => token_symbol
           } = props,

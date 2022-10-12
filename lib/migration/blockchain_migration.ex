@@ -31,6 +31,7 @@ defmodule Ipncore.Migration.Blockchain do
         block_index bigint,
         type smallint NOT NULL,
         status smallint NOT NULL,
+        memo boolean DEFAULT FALSE,
         sigs bytea[],
         amount bigint NOT NULL,
         total_input bigint NOT NULL,
@@ -111,7 +112,7 @@ defmodule Ipncore.Migration.Blockchain do
         update bigint,
         CONSTRAINT balances_pkey PRIMARY KEY (address, tid)
       )
-      """,
+      """
       # """
       # CREATE TABLE IF NOT EXISTS "#{channel}".account(
       #   id bytea NOT NULL,

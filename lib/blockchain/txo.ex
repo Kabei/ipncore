@@ -15,7 +15,8 @@ defmodule Ipncore.Txo do
           avail: boolean()
         }
 
-  @output_type_default "S"
+  @output_type_send "S"
+  @output_type_coinbase "C"
 
   @doc """
   Avail:
@@ -111,7 +112,7 @@ defmodule Ipncore.Txo do
       address: Base58Check.decode(address),
       tid: token,
       value: value,
-      type: @output_type_default
+      type: @output_type_send
     }
   end
 
@@ -149,7 +150,8 @@ defmodule Ipncore.Txo do
             output = %Txo{
               address: addr,
               tid: tid,
-              value: value
+              value: value,
+              type: @output_type_coinbase
               # avail: true
             }
 

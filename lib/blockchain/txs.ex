@@ -42,6 +42,8 @@ defmodule Ipncore.Tx do
   @max_inputs 1024
   @max_outputs 16_000_000
 
+  @max_memo_size 255
+
   @token PlatformOwner.token()
 
   # output types
@@ -62,6 +64,7 @@ defmodule Ipncore.Tx do
           sigs: [binary],
           type: tx_type(),
           status: tx_status(),
+          memo: boolean(),
           amount: pos_integer(),
           total_input: pos_integer(),
           fees: pos_integer(),
@@ -149,6 +152,7 @@ defmodule Ipncore.Tx do
     field(:status, :integer, default: @status_pending)
     field(:sigs, {:array, :binary})
     field(:amount, :integer)
+    field(:memo, :boolean, default: false)
     field(:vsn, :integer, default: @version)
     field(:fees, :integer, default: 0)
     field(:size, :integer, default: 0)
@@ -175,6 +179,7 @@ defmodule Ipncore.Tx do
         amount: tx.amount,
         block_index: tx.block_index,
         fees: tx.fees,
+        memo: txd.data,
         hash: fragment("encode(?, 'hex')", tx.hash),
         in_count: tx.in_count,
         index: tx.index,
@@ -544,6 +549,7 @@ defmodule Ipncore.Tx do
           type: type,
           status: @status_approved,
           vsn: version,
+          memo: true,
           inputs: [],
           outputs: []
         }
@@ -651,6 +657,7 @@ defmodule Ipncore.Tx do
           type: type,
           status: @status_approved,
           vsn: version,
+          memo: true,
           inputs: [],
           outputs: []
         }
@@ -770,15 +777,17 @@ defmodule Ipncore.Tx do
     end
   end
 
-  def processing(%{
-        "channel" => channel_id,
-        "inputs" => inputs,
-        "outputs" => outputs,
-        "sigs" => sigs,
-        "time" => time,
-        "type" => type_name,
-        "version" => version
-      })
+  def processing(
+        %{
+          "channel" => channel_id,
+          "inputs" => inputs,
+          "outputs" => outputs,
+          "sigs" => sigs,
+          "time" => time,
+          "type" => type_name,
+          "version" => version
+        } = params
+      )
       when type_name in ["regular", "from request", "non refundable", "gift"] do
     try do
       # check version
@@ -864,6 +873,12 @@ defmodule Ipncore.Tx do
       IO.inspect("incomes")
       IO.inspect(incomes)
 
+      memo = Map.get(params, "memo")
+      length_memo = String.length(memo)
+      has_memo = if(not is_nil(memo) and length_memo > 0)
+
+      if has_memo and length_memo > @max_memo_size, throw(40238)
+
       tx =
         %Tx{
           inputs: Txi.create(utxo),
@@ -874,6 +889,7 @@ defmodule Ipncore.Tx do
           total_input: txo_total,
           time: time,
           type: type,
+          memo: has_memo,
           vsn: version,
           status: @status_approved
         }
@@ -890,6 +906,7 @@ defmodule Ipncore.Tx do
         prefix: channel_id,
         returning: false
       )
+      |> TxData.multi_insert(:txdata, tx.index, memo, "TEXT", channel_id)
       |> Ecto.Multi.insert_all(:txi, Txi, tx.inputs, prefix: channel_id, returning: false)
       |> Ecto.Multi.insert_all(:txo, Txo, tx.outputs, prefix: channel_id, returning: false)
       |> Balance.multi_upsert_outgoings(:outgoings, outgoings, tx.time, channel_id)
@@ -1279,6 +1296,7 @@ defmodule Ipncore.Tx do
   def all(params) do
     from(Tx)
     |> where([tx], tx.status == @status_complete)
+    |> join(:left, [tx], txd in TxData, on: tx.memo and tx.index == txd.txid)
     |> filter_index(params)
     |> filter_select(params)
     |> filter_offset(params)

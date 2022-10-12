@@ -58,6 +58,7 @@ defmodule Ipncore.Balance do
 
   def activity(address58, params) do
     address = Base58Check.decode(address58)
+
     # veces que he pagado
     iquery =
       from(txi in Txi,
@@ -72,14 +73,14 @@ defmodule Ipncore.Balance do
         select: %{
           id: tx.index,
           type: tx.type,
+          otype: txo2.type,
           address: txo2.address,
           token: txo2.tid,
           value: txo2.value,
           time: tx.time,
           oid: txo2.id,
-          fees:
-            fragment("SELECT ? = ANY(coalesce(?::bytea[], ?::bytea[]))", txo2.id, tx.ifees, []),
           status: tx.status,
+          fees: false,
           received: false
         }
       )
@@ -101,13 +102,13 @@ defmodule Ipncore.Balance do
         select: %{
           id: tx.index,
           type: tx.type,
+          otype: txo.type,
           address: otxi.address,
           token: txo.tid,
           value: txo.value,
           time: tx.time,
           oid: txo.id,
-          fees:
-            fragment("SELECT ? = ANY(coalesce(?::bytea[], ?::bytea[]))", txo.id, tx.ifees, []),
+          fees: false,
           status: tx.status,
           received: true
         },
@@ -118,6 +119,7 @@ defmodule Ipncore.Balance do
       select: %{
         id: s.id,
         type: s.type,
+        otype: s.otype,
         address: s.address,
         token: s.token,
         status: s.status,
@@ -138,15 +140,19 @@ defmodule Ipncore.Balance do
     |> Repo.all(prefix: Default.channel())
     |> Enum.map(fn x ->
       %{
-        x
-        | address:
-            if(is_nil(x.address),
-              do: String.capitalize(Tx.type_name(x.type)),
-              else: Base58Check.encode(x.address)
-            ),
-          id: Base62.encode(x.id),
-          status: Tx.status_name(x.status),
-          type: Tx.type_name(x.type)
+        address:
+          if(is_nil(x.address),
+            do: String.capitalize(Tx.type_name(x.type)),
+            else: Base58Check.encode(x.address)
+          ),
+        id: Base62.encode(x.id),
+        status: Tx.status_name(x.status),
+        type: Tx.type_name(x.type),
+        token: x.token,
+        value: x.value,
+        time: x.time,
+        fees: x.otype == @output_type_fee,
+        received: x.received
       }
     end)
   end

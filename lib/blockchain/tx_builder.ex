@@ -375,6 +375,11 @@ defmodule Ipncore.TxBuilder do
   @channel "IPN-001"
   @token PlatformOwner.token()
 
+  @output_type_send "S"
+  @output_type_fee "%"
+  @output_type_return "R"
+  @output_type_coinbase "C"
+
   def test_coinbase(data_type \\ "json") do
     send_coinbase(
       "IPN",
@@ -608,7 +613,6 @@ defmodule Ipncore.TxBuilder do
          secret_key,
          from_address,
          to_address,
-         core_address,
          pool_address,
          timestamp,
          token,
@@ -668,7 +672,6 @@ defmodule Ipncore.TxBuilder do
   def pre_build!(
         from_address,
         to_address,
-        core_address,
         pool_address,
         token,
         amount,
@@ -683,16 +686,13 @@ defmodule Ipncore.TxBuilder do
       %{
         address: to_address,
         tid: token,
+        type: @output_type_send,
         value: amount
-      },
-      %{
-        address: core_address,
-        tid: @token,
-        value: core_fees
       },
       %{
         address: pool_address,
         tid: @token,
+        type: @output_type_fee,
         value: pool_fees
       }
     ]
@@ -711,7 +711,6 @@ defmodule Ipncore.TxBuilder do
   def pre_build!(
         from_address,
         to_address,
-        core_address,
         pool_address,
         token,
         amount,
@@ -725,16 +724,13 @@ defmodule Ipncore.TxBuilder do
       %{
         address: to_address,
         tid: token,
+        type: @output_type_send,
         value: amount
-      },
-      %{
-        address: core_address,
-        tid: @token,
-        value: core_fees
       },
       %{
         address: pool_address,
         tid: @token,
+        type: @output_type_fee,
         value: pool_fees
       }
     ]
@@ -796,6 +792,7 @@ defmodule Ipncore.TxBuilder do
               %{
                 address: from_address,
                 tid: x.tid,
+                type: @output_type_return,
                 value: total - req_amount
               }, total}}
 
@@ -811,7 +808,6 @@ defmodule Ipncore.TxBuilder do
   defp tx_calc_size(
          next_index,
          from_address,
-         core_address,
          pool_address,
          token,
          inputs,
@@ -826,10 +822,9 @@ defmodule Ipncore.TxBuilder do
 
     base_size = 96 + 625 + inputs_size + outputs_size
     returned_size = output_index_size + token_size + 8 + byte_size(from_address)
-    core_fees_size = output_index_size + token_size + 8 + byte_size(core_address)
     pool_fees_size = output_index_size + token_size + 8 + byte_size(pool_address)
 
-    fees_size = core_fees_size + pool_fees_size
+    fees_size = pool_fees_size
 
     IO.inspect("tx_index_size #{tx_index_size}")
     IO.inspect("inputs_size #{inputs_size}")
@@ -875,29 +870,25 @@ defmodule Ipncore.TxBuilder do
     result
   end
 
-  defp build_output_fees(_core_address, _pool_address, _token, 0), do: []
+  defp build_output_fees(_pool_address, _token, 0), do: []
 
-  defp build_output_fees(core_address, pool_address, token, value) do
+  defp build_output_fees(pool_address, token, value) do
     pool_value = trunc(value * 0.01)
     core_value = value - pool_value
 
     [
       %{
-        address: core_address,
-        tid: token,
-        value: core_value
-      },
-      %{
         address: pool_address,
         tid: token,
+        type: @output_type_fee,
         value: pool_value
       }
     ]
   end
 
   defp output_base58(x) do
-    Enum.map(x, fn %{address: address, tid: tid, value: value} ->
-      %{address: Base58Check.encode(address), tid: tid, value: value}
+    Enum.map(x, fn %{address: address, tid: tid, value: value, type: type} ->
+      %{address: Base58Check.encode(address), tid: tid, type: type, value: value}
     end)
   end
 

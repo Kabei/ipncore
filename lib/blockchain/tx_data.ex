@@ -15,26 +15,17 @@ defmodule Ipncore.TxData do
     |> Repo.one()
   end
 
-  def get_data(txid, "json") do
-    case get(txid) do
-      {"CBOR", data} ->
-        CBOR.decode(data)
-        |> elem(1)
-        |> Jason.encode!()
-
-      {"JSON", data} ->
-        data
-
-      {"TEXT", data} ->
-        data
-
-      {_, data} ->
-        data
-
-      nil ->
-        ""
-    end
+  @spec decode!(binary, String.t()) :: any()
+  def decode!(data, "CBOR") do
+    CBOR.decode(data)
+    |> elem(1)
   end
+
+  def decode!(data, "JSON") do
+    Jason.decode!(data)
+  end
+
+  def decode!(data, _type), do: data
 
   def multi_insert(multi, _name, _index, nil, _mime, _channel) do
     multi

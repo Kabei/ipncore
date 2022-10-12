@@ -130,7 +130,7 @@ defmodule Ipncore.Migration.System do
       SUM(t0."value") OVER (
       ORDER BY t0."id" ASC rows between unbounded preceding and current row) AS "bal"
       FROM txo AS t0
-      WHERE (t0.avail = true) AND (t0."tid" = _tid) AND (t0."address" = ANY(_address::bytea[])) AND (t0."used" = false) AND bal < _total
+      WHERE (t0.avail = true) AND (t0."tid" = _tid) AND (t0."address" = ANY(_address::bytea[])) AND bal < _total
       GROUP BY t0.id, t0.tid, t0.value, t0.address
       ORDER BY t0."id" ASC)
       LOOP

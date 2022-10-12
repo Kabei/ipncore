@@ -222,7 +222,7 @@ defmodule Ipncore.Txo do
   def all(params) do
     from(Txo)
     |> where([o], not is_nil(o.avail))
-    |> filter_used(params)
+    |> filter_available(params)
     |> filter_index(params)
     |> filter_address(params)
     |> filter_token(params)
@@ -259,11 +259,11 @@ defmodule Ipncore.Txo do
 
   defp filter_index(query, _params), do: query
 
-  defp filter_used(query, %{"used" => _}) do
+  defp filter_available(query, %{"used" => _}) do
     where(query, [txo], txo.avail == false)
   end
 
-  defp filter_used(query, _params), do: query
+  defp filter_available(query, _params), do: query
 
   defp filter_address(query, %{"address" => address}) do
     bin_address = Base58Check.decode(address)

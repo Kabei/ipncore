@@ -180,6 +180,7 @@ defmodule Ipncore.Tx do
         block_index: tx.block_index,
         fees: tx.fees,
         memo: txd.data,
+        mime: txd.mime,
         hash: fragment("encode(?, 'hex')", tx.hash),
         in_count: tx.in_count,
         index: tx.index,
@@ -1393,14 +1394,31 @@ defmodule Ipncore.Tx do
 
   defp transform(data) when is_list(data) do
     Enum.map(data, fn x ->
-      %{x | index: encode_index(x.index), status: status_name(x.status), type: type_name(x.type)}
+      transform(x)
     end)
   end
-
+  
   defp transform(nil), do: nil
 
   defp transform(x) do
-    %{x | index: encode_index(x.index), status: status_name(x.status), type: type_name(x.type)}
+    %{
+      index: encode_index(x.index),
+      status: status_name(x.status),
+      type: type_name(x.type),
+      memo: TxData.decode!(x.memo, x.mime),
+      amount: x.amount,
+      block_index: x.block_index,
+      fees: x.fees,
+      hash: x.hash,
+      in_count: x.in_count,
+      index: x.index,
+      out_count: x.out_count,
+      size: x.size,
+      sig_count: x.sig_count,
+      time: x.time,
+      total_input: x.total_input,
+      vsn: x.vsn
+    }
   end
 
   def from_struct(tx) do

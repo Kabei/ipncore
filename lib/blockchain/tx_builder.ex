@@ -416,6 +416,7 @@ defmodule Ipncore.TxBuilder do
   @doc """
   USAGE:
   Ipncore.TxBuilder.channel_create("IPN-001", :raw) |> Ipncore.Tx.processing
+  Ipncore.TxBuilder.channel_create("IPN-003", :raw) |> Ipncore.Tx.processing
   """
   def channel_create(channel_id, data_type \\ "json") do
     time = :erlang.system_time(:millisecond)
@@ -461,16 +462,17 @@ defmodule Ipncore.TxBuilder do
 
   @doc """
   USAGE:
-  Ipncore.TxBuilder.token_create("IPN-001", "IPN", "IPPAN", %{"symbol" => "Þ", "decimal" => 9, "minimum" => 1000}, :raw) |> Ipncore.Tx.processing
-  Ipncore.TxBuilder.token_create("IPN-001", "GBP", "Pound", %{"symbol" => "£", "decimal" => 2}, :raw) |> Ipncore.Tx.processing
-  Ipncore.TxBuilder.token_create("IPN-001", "USD", "Dollar", %{"symbol" => "$", "decimal" => 2}, :raw) |> Ipncore.Tx.processing
-  Ipncore.TxBuilder.token_create("IPN-001", "EUR", "Euro", %{"symbol" => "€", "decimal" => 2}, :raw) |> Ipncore.Tx.processing
+  Ipncore.TxBuilder.token_create("IPN-001", "IPN", "IPPAN", 9, %{"symbol" => "Þ"}, :raw) |> Ipncore.Tx.processing
+  Ipncore.TxBuilder.token_create("IPN-001", "GBP", "Pound", 2, %{"symbol" => "£"}, :raw) |> Ipncore.Tx.processing
+  Ipncore.TxBuilder.token_create("IPN-001", "USD", "Dollar", 2, %{"symbol" => "$"}, :raw) |> Ipncore.Tx.processing
+  Ipncore.TxBuilder.token_create("IPN-001", "EUR", "Euro", 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
   """
   def token_create(
         channel,
         token_id,
         token_name,
-        %{"symbol" => _token_symbol, "decimal" => _token_decimal} = token_meta,
+        decimals,
+        %{"symbol" => _token_symbol} = token_props,
         data_type \\ "json"
       ) do
     time = :erlang.system_time(:millisecond)
@@ -479,13 +481,17 @@ defmodule Ipncore.TxBuilder do
     next_index = Block.next_index(time)
     type = Tx.type_index("token register")
 
+    owner = Base58Check.encode(token_pubkey)
+
     token_data =
       %{
         "id" => token_id,
         "name" => token_name,
-        "time" => time,
-        "pubkey" => token_pubkey,
-        "meta" => token_meta
+        "decimals" => decimals,
+        "creator" => creator,
+        "owner" => owner,
+        "props" => token_props,
+        "time" => time
       }
       |> CBOR.encode()
 
@@ -508,12 +514,14 @@ defmodule Ipncore.TxBuilder do
     %{
       id: token_id,
       channel: channel,
+      decimals: decimals,
+      creator: creator,
+      owner: owner,
       name: token_name,
       sig: Base.encode64(signature),
       pubkey: Base.encode64(token_pubkey),
-      meta: token_meta,
       type: "token register",
-      meta: token_meta,
+      props: token_props,
       time: time,
       version: 0
     }

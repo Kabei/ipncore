@@ -599,13 +599,15 @@ defmodule Ipncore.Tx do
         "channel" => channel_id,
         "id" => token_id,
         "name" => token_name,
+        "decimals" => decimals,
+        "creator" => creator,
+        "owner" => owner,
         "pubkey" => token_pubkey64,
         "sig" => sig,
-        "meta" =>
+        "porps" =>
           %{
-            "symbol" => token_symbol,
-            "decimal" => token_decimal
-          } = meta,
+            "symbol" => token_symbol
+          } = props,
         "time" => time,
         "type" => "token register" = type_name,
         "version" => version
@@ -636,8 +638,10 @@ defmodule Ipncore.Tx do
       token = %{
         "id" => token_id,
         "name" => token_name,
-        "pubkey" => token_pubkey,
-        "meta" => meta,
+        "creator" => creator,
+        "decimals" => decimals,
+        "owner" => owner,
+        "props" => props,
         "time" => time
       }
 

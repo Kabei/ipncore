@@ -103,7 +103,7 @@ defmodule Ipncore.Migration.System do
       execute ('SET search_path to ' || _schema);
       return query SELECT a.id, a.tid, a.value, a.address
       FROM txo as a
-      WHERE a.id = ANY (_indexes::bytea[]) and a.avail=true and c.used=false ORDER BY a.id ASC;
+      WHERE a.id = ANY (_indexes::bytea[]) and a.avail=TRUE ORDER BY a.id ASC;
 
       END
       $BODY$;

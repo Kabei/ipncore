@@ -11,7 +11,7 @@ defmodule Ipncore.Txo do
           tid: binary,
           value: pos_integer(),
           address: binary(),
-          type: binary(),
+          type: String.t(),
           avail: boolean()
         }
 
@@ -29,7 +29,7 @@ defmodule Ipncore.Txo do
     field(:id, :binary)
     field(:tid, :string)
     field(:address, :binary)
-    field(:type, :binary)
+    field(:type, :string)
     field(:value, :integer)
     field(:avail, :boolean, default: nil)
   end

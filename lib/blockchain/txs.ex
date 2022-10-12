@@ -1098,7 +1098,7 @@ defmodule Ipncore.Tx do
   def calc_fees(amount, pool_fee, true, _size),
     do: :math.ceil(amount * (pool_fee / 100)) |> trunc()
 
-  def calc_fees(amount, pool_fee, _false, _size), do: pool_fee |> trunc()
+  def calc_fees(_amount, pool_fee, _false, _size), do: pool_fee |> trunc()
 
   @spec extract_amounts!(List.t(), List.t(), binary) ::
           {pos_integer(), pos_integer(), pos_integer()}

@@ -151,6 +151,7 @@ defmodule Ipncore.Balance do
             do: String.capitalize(Tx.type_name(x.type)),
             else: Base58Check.encode(x.address)
           ),
+        memo: x.memo,
         status: Tx.status_name(x.status),
         type: Tx.type_name(x.type),
         token: x.token,

@@ -1125,7 +1125,7 @@ defmodule Ipncore.Tx do
             x.address == pool_address and
               x.type == @output_type_fee ->
             IO.inspect("pool_address amount: #{x.value}")
-            {acc_amount, acc_fees + x.value}
+            {acc_amount, acc_fees + x.value, acc_returned}
 
           x.address in utxo_addresses ->
             if x.type != @output_type_return, do: throw(40220)

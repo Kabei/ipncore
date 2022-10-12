@@ -143,7 +143,6 @@ defmodule Ipncore.Txo do
               tid: tid,
               value: value,
               type: @output_type_coinbase
-              # avail: true
             }
 
             {o ++ [output], t ++ [tid], a ++ [address], v + value}

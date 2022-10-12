@@ -52,7 +52,7 @@ defmodule Ipncore.Migration.Blockchain do
         tid bytea NOT NULL,
         type TEXT,
         value bigint,
-        avail bool NOT NULL DEFAULT FALSE,
+        avail bool DEFAULT FALSE,
         CONSTRAINT txo_pkey PRIMARY KEY (id)
       )
       TABLESPACE #{tablespace};

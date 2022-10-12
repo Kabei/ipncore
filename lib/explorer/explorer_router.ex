@@ -93,7 +93,7 @@ defmodule Ipncore.Explorer.Router do
             Regex.match?(Const.Regex.address(), query) ->
               address = Base58Check.decode(query)
 
-              case Balance.fetch_balance(address, Default.token()) do
+              case Balance.fetch_balance(address, Default.token(), Default.channel()) do
                 nil ->
                   index = Tx.decode_index(query)
                   Tx.get_by_index(index, params)

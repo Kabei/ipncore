@@ -16,7 +16,6 @@ defmodule Ipncore.Balance do
           update: pos_integer()
         }
 
-  @schema_prefix "sys"
   @primary_key {:address, :binary, []}
   schema "balances" do
     field(:tid, :binary)
@@ -137,7 +136,7 @@ defmodule Ipncore.Balance do
     |> filter_limit(params, 50, 100)
     |> filter_offset(params)
     |> activity_sort(params)
-    |> Repo.all(prefix: Default.channel())
+    |> Repo.all(prefix: filter_channel(params, Default.channel()))
     |> Enum.map(fn x ->
       %{
         address:
@@ -199,14 +198,14 @@ defmodule Ipncore.Balance do
     %{x | address: Base58Check.encode(x.address)}
   end
 
-  def fetch_balance(address, token) do
+  def fetch_balance(address, token, channel) do
     from(b in Balance,
       join: tk in Token,
       on: tk.id == b.tid,
       where: b.address == ^address and b.tid == ^token,
       select: balance_select()
     )
-    |> Repo.one()
+    |> Repo.one(prefix: channel)
     |> transform()
   end
 
@@ -222,7 +221,7 @@ defmodule Ipncore.Balance do
     |> filter_offset(params)
     |> balance_select(params)
     |> balance_sort(params)
-    |> Repo.all()
+    |> Repo.all(prefix: filter_channel(params, Default.channel()))
     |> balance_transform()
   end
 
@@ -333,7 +332,7 @@ defmodule Ipncore.Balance do
     |> Map.delete(:created_at)
   end
 
-  def multi_upsert_outgoings(multi, name, utxos, time, _channel) do
+  def multi_upsert_outgoings(multi, name, utxos, time, channel) do
     structs =
       utxos
       |> Enum.map(fn x ->
@@ -367,11 +366,12 @@ defmodule Ipncore.Balance do
     Ecto.Multi.insert_all(multi, name, Balance, structs,
       on_conflict: upsert_query,
       conflict_target: [:address, :tid],
+      prefix: channel,
       returning: false
     )
   end
 
-  def multi_upsert_incomes(multi, name, txos, time, _channel) do
+  def multi_upsert_incomes(multi, name, txos, time, channel) do
     structs =
       txos
       |> Enum.map(fn x ->
@@ -408,6 +408,7 @@ defmodule Ipncore.Balance do
       on_conflict: upsert_query,
       conflict_target: [:address, :tid],
       # stale_error_field: :address,
+      prefix: channel,
       returning: false
     )
   end

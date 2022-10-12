@@ -599,7 +599,7 @@ defmodule Ipncore.Tx do
         "channel" => channel_id,
         "id" => token_id,
         "name" => token_name,
-        "decimals" => decimals,
+        "decimals" => token_decimal,
         "creator" => creator58,
         "owner" => owner58,
         "pubkey" => token_pubkey64,
@@ -643,7 +643,7 @@ defmodule Ipncore.Tx do
         "name" => token_name,
         "creator" => creator,
         "owner" => owner,
-        "decimals" => decimals,
+        "decimals" => token_decimal,
         "props" => props,
         "time" => time
       }

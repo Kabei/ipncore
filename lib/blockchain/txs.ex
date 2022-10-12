@@ -1250,13 +1250,23 @@ defmodule Ipncore.Tx do
 
   def get(hash, params) do
     # from(tx in Tx, where: tx.status == @status_complete and tx.hash == ^hash)
-    from(tx in Tx, where: tx.hash == ^hash, select: map_select())
+    from(tx in Tx,
+      left_join: txd in TxData,
+      on: tx.memo and tx.index == txd.txid,
+      where: tx.hash == ^hash,
+      select: map_select()
+    )
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
     |> transform()
   end
 
   def get_by_index(txid, params) do
-    from(tx in Tx, where: tx.index == ^txid, select: map_select())
+    from(tx in Tx,
+      left_join: txd in TxData,
+      on: tx.memo and tx.index == txd.txid,
+      where: tx.index == ^txid,
+      select: map_select()
+    )
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
     |> transform()
   end
@@ -1352,10 +1362,6 @@ defmodule Ipncore.Tx do
   end
 
   def filter_date(query, _), do: query
-
-  # defp filter_select(query, %{"format" => "json"}) do
-  #   select(query, [tx], map_select())
-  # end
 
   defp filter_select(query, _), do: select(query, [tx], map_select())
 

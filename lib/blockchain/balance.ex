@@ -2,7 +2,7 @@ defmodule Ipncore.Balance do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Repo, Token, Tx, Txi, Txo}
+  alias Ipncore.{Repo, Token, Tx, Txi, Txo, TxData}
   alias __MODULE__
 
   @type t :: %__MODULE__{

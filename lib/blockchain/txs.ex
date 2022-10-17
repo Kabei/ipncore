@@ -101,9 +101,9 @@ defmodule Ipncore.Tx do
       {1100, "dns registry"},
       {1101, "dns update"},
       {1102, "dns delete"},
-      {1110, "new_pool"},
-      {1111, "update_pool"},
-      {1112, "delete_pool"}
+      {1110, "pool_new"},
+      {1111, "pool_update"},
+      {1112, "pool_delete"}
       # {1200, "contract"},
       # {1200, "contract finish"},
       # {1300, "public registry"},

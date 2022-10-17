@@ -31,8 +31,6 @@ defmodule Ipncore.Migration do
         if Repo.schema_exists?(channel.id) do
           if migration_version > channel.vsn do
             Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
-          else
-            throw("Migration versions are differents")
           end
         else
           Blockchain.build(%{"channel" => channel.id, "version" => migration_version})

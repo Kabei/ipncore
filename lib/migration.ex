@@ -13,7 +13,7 @@ defmodule Ipncore.Migration do
     migration_version = Application.get_env(@otp_app, :migration_version)
     # channel_version = Application.get_env(@otp_app, :channel_version)
 
-    if Repo.schema_exists?("sys") do
+    if not Repo.schema_exists?("sys") do
       System.build(%{"version" => migration_version})
     else
       current_version =

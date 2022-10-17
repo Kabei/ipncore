@@ -8,6 +8,7 @@ defmodule Ipncore.Token do
 
   @unit_time :millisecond
   @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
+  @edit_fields ~w(enabled name owner props)
 
   @type t :: %Token{
           id: binary(),
@@ -138,16 +139,22 @@ defmodule Ipncore.Token do
     )
   end
 
-  def multi_update(multi, name, token_id, amount, channel) do
+  def multi_update(multi, name, token_id, params, amount, channel) do
     time = :erlang.system_time(@unit_time)
 
-    query = from(tk in Token, where: tk.id == ^token_id and tk.updated_at + @delay_edit < time)
+    query = from(tk in Token, where: tk.id == ^token_id and tk.updated_at + @delay_edit < ^time)
+
+    params =
+      params
+      |> Map.take(@edit_fields)
+      |> Enum.map(fn {k, v} -> {String.to_atom(k), v} end)
+      |> Keyword.put(:updated_at, time)
 
     Ecto.Multi.update_all(
       multi,
       name,
       query,
-      [set: [updated_at: time], inc: [supply: amount]],
+      [set: edit_params, inc: [supply: amount]],
       returning: false,
       prefix: channel
     )

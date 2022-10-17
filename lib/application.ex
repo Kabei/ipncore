@@ -38,6 +38,7 @@ defmodule Ipncore.Application do
 
       migration_start()
 
+      IO.inspect("imp_client")
       IO.inspect(imp_client)
 
       children =

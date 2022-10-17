@@ -29,7 +29,7 @@ defmodule Ipncore.Pool do
         },
         time
       ) do
-    %Pools{
+    %Pool{
       hostname: hostname,
       name: name,
       address: address,
@@ -43,18 +43,18 @@ defmodule Ipncore.Pool do
   def new(_), do: throw(0)
 
   def fetch!(hostname, channel) do
-    from(p in Pools, where: p.hostname == ^hostname and p.enabled)
+    from(p in Pool, where: p.hostname == ^hostname and p.enabled)
     |> Repo.one!(prefix: channel)
   end
 
   def get(hostname, channel) do
-    from(p in Pools, where: p.hostname == ^hostname and p.enabled)
+    from(p in Pool, where: p.hostname == ^hostname and p.enabled)
     |> Repo.one(prefix: channel)
     |> transform()
   end
 
   def exists?(hostname, channel) do
-    from(p in Pools, where: p.address == ^address and p.enabled)
+    from(p in Pool, where: p.address == ^address and p.enabled)
     |> Repo.exists?(prefix: channel)
   end
 

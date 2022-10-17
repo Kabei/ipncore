@@ -535,14 +535,13 @@ defmodule Ipncore.Tx do
         "token" =>
           %{
             "id" => token_id,
-            "name" => token_name,
+            "name" => _token_name,
             "decimals" => token_decimal,
             "creator" => creator58,
             "owner" => owner58,
-            "props" =>
-              %{
-                "symbol" => token_symbol
-              } = props
+            "props" => %{
+              "symbol" => token_symbol
+            }
           } = token,
         "time" => time,
         "type" => "token_new" = type_name,
@@ -640,7 +639,7 @@ defmodule Ipncore.Tx do
         "sig" => sig64,
         "version" => version
       })
-      when is_boolean(percent) do
+      when is_boolean(percent) and is_float(fee) do
     try do
       type = type_index(type_name)
       unless type, do: throw(40201)
@@ -688,7 +687,7 @@ defmodule Ipncore.Tx do
         prefix: channel_id
       )
       |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, time, channel_id)
-      |> Pool.multi_insert(:pool, pool, channel_id)
+      |> Pool.multi_insert(:pool, pool, time, channel_id)
       |> Repo.transaction()
       |> case do
         {:ok, _} ->
@@ -728,6 +727,7 @@ defmodule Ipncore.Tx do
       pubkey = Base.decode64!(pubkey64)
       signature = Base.decode64!(sig64)
       genesis_time = Chain.genesis_time()
+      next_index = Block.next_index(time)
       pool = Pool.get(hostname, channel_id)
 
       if is_nil(pool), do: throw(0)
@@ -736,9 +736,6 @@ defmodule Ipncore.Tx do
       data =
         pool_params
         |> CBOR.encode()
-
-      next_index = Block.next_index(time)
-      genesis_time = Chain.genesis_time()
 
       tx =
         %Tx{
@@ -806,6 +803,7 @@ defmodule Ipncore.Tx do
       pubkey = Base.decode64!(pubkey64)
       signature = Base.decode64!(sig64)
       genesis_time = Chain.genesis_time()
+      next_index = Block.next_index(time)
       pool = Pool.get(hostname, channel_id)
 
       if is_nil(pool), do: throw(0)
@@ -814,9 +812,6 @@ defmodule Ipncore.Tx do
       data =
         pool_params
         |> CBOR.encode()
-
-      next_index = Block.next_index(time)
-      genesis_time = Chain.genesis_time()
 
       tx =
         %Tx{

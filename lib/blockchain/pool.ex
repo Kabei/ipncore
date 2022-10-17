@@ -71,9 +71,9 @@ defmodule Ipncore.Pool do
   end
 
   def multi_update(multi, name, hostname, params, time, channel) do
-    query = from(p in Pool, where: p.hostname == ^hostname and p.updated_at + @delay < ^time)
+    query = from(p in Pool, where: p.hostname == ^hostname and p.updated_at + @delay_edit < ^time)
 
-    edit_params =
+    params =
       params
       |> Map.take(@edit_fields)
       |> Enum.map(fn {k, v} -> {String.to_atom(k), v} end)

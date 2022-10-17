@@ -28,13 +28,13 @@ defmodule Ipncore.Migration do
 
       for channel <- channels do
         if Repo.schema_exists?(channel.id) do
-          if channel_version > channel.vsn do
-            Blockchain.build(%{"channel" => channel.id, "version" => channel_version})
+          if migration_version > channel.vsn do
+            Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
           else
             throw("Migration versions are differents")
           end
         else
-          Blockchain.build(%{"channel" => channel.id, "version" => channel_version})
+          Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
         end
       end
     end

@@ -42,6 +42,11 @@ defmodule Ipncore.Pool do
 
   def new(_), do: throw(0)
 
+  def fetch!(hostname, channel) do
+    from(p in Pools, where: p.hostname == ^hostname and p.enabled)
+    |> Repo.one!(prefix: channel)
+  end
+
   def get(hostname, channel) do
     from(p in Pools, where: p.hostname == ^hostname and p.enabled)
     |> Repo.one(prefix: channel)
@@ -96,7 +101,7 @@ defmodule Ipncore.Pool do
   end
 
   def all(params) do
-    from(__MODULE__)
+    from(__MODULE__, where: p.enabled)
     |> filter_hostname(params)
     |> filter_limit(params)
     |> filter_offset(params)

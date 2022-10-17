@@ -111,9 +111,9 @@ defmodule Ipncore.Token do
 
   def new(_), do: throw(40224)
 
-  def get(token_id, channel) do
+  def fetch!(token_id, channel) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)
-    |> Repo.one(prefix: channel)
+    |> Repo.one!(prefix: channel)
   end
 
   def multi_insert(multi, name, token, time, channel) do

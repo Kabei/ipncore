@@ -912,7 +912,7 @@ defmodule Ipncore.Tx do
 
       token_pubkey = Base.decode64!(pubkey64)
 
-      token = Token.get(token_id, channel_id)
+      token = Token.fetch!(token_id, channel_id)
 
       if token.owner != Address.to_internal_address(token_pubkey), do: throw(40225)
 

@@ -8,7 +8,7 @@ defmodule Ipncore.Mined do
   Returns an address from the list of participants (validators),
   winner the coinbase of the next block.
   """
-  @spec proof_of_remainder(Block.t()) :: binary
+  @spec proof_of_remainder(Block.t(), binary) :: binary
   def proof_of_remainder(%Block{} = prev_block, channel) do
     bindex = :binary.encode_unsigned(prev_block.index)
 

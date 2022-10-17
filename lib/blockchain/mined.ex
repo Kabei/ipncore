@@ -16,7 +16,7 @@ defmodule Ipncore.Mined do
       from(txo in Txo,
         where:
           txo.type == @output_type_fee and
-            fragment("substring(?::bytea from 1 for ?)", txo.id, byte_size(x)) == ^bindex,
+            fragment("substring(?::bytea from 1 for ?)", txo.id, ^byte_size(bindex)) == ^bindex,
         select: txo.address,
         distinct: true,
         order_by: [asc: fragment("length(?)", txo.address), asc: txo.address]

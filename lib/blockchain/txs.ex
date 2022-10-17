@@ -628,12 +628,13 @@ defmodule Ipncore.Tx do
         "channel" => channel_id,
         "outputs" => outputs,
         "time" => time,
-        "pool" => %{
-          "hostname" => hostname,
-          "address" => address,
-          "fee" => fee,
-          "percent" => percent
-        },
+        "pool" =>
+          %{
+            "hostname" => hostname,
+            "address" => address,
+            "fee" => fee,
+            "percent" => percent
+          } = pool,
         "type" => "pool_new" = type_name,
         "sig" => sig64,
         "version" => version

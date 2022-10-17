@@ -154,7 +154,7 @@ defmodule Ipncore.Token do
       multi,
       name,
       query,
-      [set: edit_params, inc: [supply: amount]],
+      [set: params, inc: [supply: amount]],
       returning: false,
       prefix: channel
     )

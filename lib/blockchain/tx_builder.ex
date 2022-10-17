@@ -548,7 +548,7 @@ defmodule Ipncore.TxBuilder do
     secret_key = PlatformOwner.secret_key()
     pubkey = PlatformOwner.pubkey()
     next_index = Block.next_index(time)
-    type = Tx.type_index("token_new")
+    type = Tx.type_index("pool_new")
 
     address = Base58Check.decode(address58)
 

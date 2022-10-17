@@ -759,7 +759,7 @@ defmodule Ipncore.Tx do
         prefix: channel_id
       )
       |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, channel_id)
-      |> Pool.multi_update(:pool, hostname, pool_data, time, channel_id)
+      |> Pool.multi_update(:pool, hostname, pool_params, time, channel_id)
       |> Repo.transaction()
       |> case do
         {:ok, _} ->

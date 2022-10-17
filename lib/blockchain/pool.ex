@@ -54,7 +54,7 @@ defmodule Ipncore.Pool do
   end
 
   def exists?(hostname, channel) do
-    from(p in Pool, where: p.address == ^address and p.enabled)
+    from(p in Pool, where: p.hostname == ^hostname and p.enabled)
     |> Repo.exists?(prefix: channel)
   end
 

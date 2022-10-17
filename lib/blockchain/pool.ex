@@ -102,7 +102,7 @@ defmodule Ipncore.Pool do
   end
 
   def all(params) do
-    from(p in Pools, where: p.enabled)
+    from(p in Pool, where: p.enabled)
     |> filter_hostname(params)
     |> filter_limit(params)
     |> filter_offset(params)

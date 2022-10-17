@@ -115,7 +115,7 @@ defmodule Ipncore.Token do
     |> Repo.one(prefix: channel)
   end
 
-  def multi_insert(multi, name, token, token, channel) do
+  def multi_insert(multi, name, token, time, channel) do
     token_struct = new(token, time)
 
     exists_symbol =

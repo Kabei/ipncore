@@ -2,8 +2,8 @@ import Config
 
 # prod = config_env() == :prod
 
-config :ipncore, :channel, "IPN-003"
 config :ipncore, :central, "ippan.net"
+config :ipncore, :channel, "IPN-003"
 config :ipncore, :gps_device, "/dev/AMC0"
 
 config :ipncore, :imp_client,

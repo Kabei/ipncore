@@ -13,7 +13,7 @@ defmodule Ipncore.Application do
   def start(_type, _args) do
     try do
       # Ipncore.ConfigProvider.read()
-      central = Application.get_env(:ipncore, :central)
+      # central = Application.get_env(:ipncore, :central)
       imp_client = Application.get_env(@otp_app, :imp_client)
 
       {falcon_pk, _sk} =

@@ -533,13 +533,13 @@ defmodule Ipncore.TxBuilder do
   end
 
   @doc """
-  Ipncore.TxBuilder.pool_create("IPN-001", "pool.ippan.net", "My pool", "Euro", 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
+  Ipncore.TxBuilder.pool_create("IPN-003", "pool.ippan.net", "My pool", "22dc25WorxjzcBVHZrY914ne391t6", 0.05, true, :raw) |> Ipncore.Tx.processing
   """
   def pool_create(
         channel,
         hostname,
         name,
-        address,
+        address58,
         fee,
         percent,
         data_type \\ "json"
@@ -550,11 +550,11 @@ defmodule Ipncore.TxBuilder do
     next_index = Block.next_index(time)
     type = Tx.type_index("token_new")
 
-    address58 = Base58Check.encode(address)
+    address = Base58Check.decode(address58)
 
     token_data =
       %{
-        "address" => address58,
+        "address" => address,
         "hostname" => hostname,
         "fee" => fee,
         "name" => name,
@@ -581,7 +581,7 @@ defmodule Ipncore.TxBuilder do
     %{
       channel: channel,
       pool: %{
-        address: address,
+        address: address58,
         hostname: hostname,
         fee: fee,
         name: name,

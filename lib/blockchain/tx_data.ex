@@ -35,7 +35,7 @@ defmodule Ipncore.TxData do
     multi
   end
 
-  def multi_insert(multi, name, index, bin_data, mime, channel) when byte_size(mime) in 1..5 do
+  def multi_insert(multi, name, index, bin_data, mime, channel) when is_binary(bin_data) and byte_size(mime) in 1..5 do
     Ecto.Multi.insert(
       multi,
       name,
@@ -47,5 +47,9 @@ defmodule Ipncore.TxData do
       returning: false,
       prefix: channel
     )
+  end
+
+  def multi_insert(multi, _name, _index, _data, _mime, _channel) do
+    multi
   end
 end

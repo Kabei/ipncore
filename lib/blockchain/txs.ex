@@ -47,6 +47,7 @@ defmodule Ipncore.Tx do
 
   # mime type
   @mime_cbor "CBOR"
+  @mime_text "TEXT"
 
   # output types
   # output send
@@ -626,7 +627,6 @@ defmodule Ipncore.Tx do
   # create pool
   def processing(%{
         "channel" => channel_id,
-        "outputs" => outputs,
         "time" => time,
         "pool" =>
           %{
@@ -686,7 +686,7 @@ defmodule Ipncore.Tx do
         returning: false,
         prefix: channel_id
       )
-      |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, time, channel_id)
+      |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, channel_id)
       |> Pool.multi_insert(:pool, pool, time, channel_id)
       |> Repo.transaction()
       |> case do
@@ -1072,7 +1072,7 @@ defmodule Ipncore.Tx do
         prefix: channel_id,
         returning: false
       )
-      |> TxData.multi_insert(:txdata, tx.index, memo, "TEXT", channel_id)
+      |> TxData.multi_insert(:txdata, tx.index, memo, @mime_text, channel_id)
       |> Ecto.Multi.insert_all(:txi, Txi, tx.inputs, prefix: channel_id, returning: false)
       |> Ecto.Multi.insert_all(:txo, Txo, tx.outputs, prefix: channel_id, returning: false)
       |> Balance.multi_upsert_outgoings(:outgoings, outgoings, tx.time, channel_id)

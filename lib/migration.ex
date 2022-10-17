@@ -18,7 +18,8 @@ defmodule Ipncore.Migration do
     else
       current_version =
         from(env in "env", where: env.name == "version", select: env.value, limit: 1)
-        |> Repo.one(prefix: "sys") || 0
+        |> Repo.one(prefix: "sys")
+        |> String.to_integer()
 
       if migration_version > current_version do
         System.build(%{"version" => migration_version})

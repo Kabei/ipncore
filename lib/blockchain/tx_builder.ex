@@ -480,7 +480,7 @@ defmodule Ipncore.TxBuilder do
     owner_secret_key = PlatformOwner.secret_key()
     token_pubkey = PlatformOwner.pubkey()
     next_index = Block.next_index(time)
-    type = Tx.type_index("token register")
+    type = Tx.type_index("token_new")
 
     address = Address.to_internal_address(token_pubkey)
     address58 = Base58Check.encode(address)
@@ -525,7 +525,7 @@ defmodule Ipncore.TxBuilder do
       },
       sig: Base.encode64(signature),
       pubkey: Base.encode64(token_pubkey),
-      type: "token register",
+      type: "token_new",
       time: time,
       version: 0
     }
@@ -548,7 +548,7 @@ defmodule Ipncore.TxBuilder do
     secret_key = PlatformOwner.secret_key()
     pubkey = PlatformOwner.pubkey()
     next_index = Block.next_index(time)
-    type = Tx.type_index("token register")
+    type = Tx.type_index("token_new")
 
     address58 = Base58Check.encode(address)
 

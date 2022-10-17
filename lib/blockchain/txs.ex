@@ -96,17 +96,15 @@ defmodule Ipncore.Tx do
       {1000, "info"},
       {1001, "channel register"},
       {1002, "channel update"},
-      {1011, "token register"},
-      {1012, "token update"},
+      {1011, "token_new"},
+      {1012, "token_update"},
+      {1013, "token_delete"},
       {1100, "dns registry"},
       {1101, "dns update"},
       {1102, "dns delete"},
       {1110, "pool_new"},
       {1111, "pool_update"},
       {1112, "pool_delete"}
-      # {1200, "contract"},
-      # {1200, "contract finish"},
-      # {1300, "public registry"},
     ]
   else
     # {100, "regular"}
@@ -360,11 +358,11 @@ defmodule Ipncore.Tx do
     %{tx | size: tx_size}
   end
 
-  defp put_fees(tx, utxo_address, pool_address, pool_fee_percent, pool_fee) do
+  defp put_fees(tx, utxo_address, pool_address, pool_fee, pool_percent) do
     {tx_amount, fees_amount, _retuned_amount} =
       extract_amounts!(tx.outputs, utxo_address, pool_address)
 
-    fees = calc_fees(tx_amount, pool_fee, pool_fee_percent, tx.size)
+    fees = calc_fees(tx_amount, pool_fee, pool_percent, tx.size)
 
     IO.inspect("tx_size: #{tx.size}")
     IO.inspect("fees #{fees}")
@@ -530,11 +528,11 @@ defmodule Ipncore.Tx do
   end
 
   # new token
-  def processing(
-        %{
-          "channel" => channel_id,
-          "sig" => sig,
-          "token" => %{
+  def processing(%{
+        "channel" => channel_id,
+        "sig" => sig,
+        "token" =>
+          %{
             "id" => token_id,
             "name" => token_name,
             "decimals" => token_decimal,
@@ -544,12 +542,11 @@ defmodule Ipncore.Tx do
               %{
                 "symbol" => token_symbol
               } = props
-          },
-          "time" => time,
-          "type" => "token register" = type_name,
-          "version" => version
-        } = params
-      ) do
+          } = token,
+        "time" => time,
+        "type" => "token_new" = type_name,
+        "version" => version
+      }) do
     try do
       type = type_index(type_name)
       unless type, do: throw(40201)
@@ -573,7 +570,7 @@ defmodule Ipncore.Tx do
       signature = Base.decode64!(sig)
 
       token =
-        Map.get(params, "token")
+        token
         |> Map.put("creator", creator)
         |> Map.put("owner", owner)
 
@@ -633,15 +630,16 @@ defmodule Ipncore.Tx do
         "time" => time,
         "pool" =>
           %{
-            "hostname" => hostname,
-            "address" => address,
+            "hostname" => _hostname,
+            "address" => address58,
             "fee" => fee,
             "percent" => percent
           } = pool,
         "type" => "pool_new" = type_name,
         "sig" => sig64,
         "version" => version
-      }) do
+      })
+      when is_boolean(percent) do
     try do
       type = type_index(type_name)
       unless type, do: throw(40201)
@@ -653,6 +651,11 @@ defmodule Ipncore.Tx do
       next_index = Block.next_index(time)
       genesis_time = Chain.genesis_time()
       signature = Base.decode64!(sig64)
+      address = Base58Check.decode(address58)
+
+      pool =
+        pool
+        |> Map.put("address", address)
 
       data =
         pool
@@ -733,6 +736,9 @@ defmodule Ipncore.Tx do
         pool_params
         |> CBOR.encode()
 
+      next_index = Block.next_index(time)
+      genesis_time = Chain.genesis_time()
+
       tx =
         %Tx{
           block_index: next_index,
@@ -807,6 +813,9 @@ defmodule Ipncore.Tx do
       data =
         pool_params
         |> CBOR.encode()
+
+      next_index = Block.next_index(time)
+      genesis_time = Chain.genesis_time()
 
       tx =
         %Tx{
@@ -950,6 +959,7 @@ defmodule Ipncore.Tx do
           "sigs" => sigs,
           "time" => time,
           "type" => type_name,
+          "pool" => pool_hostname,
           "version" => version
         } = params
       )
@@ -1024,11 +1034,7 @@ defmodule Ipncore.Tx do
       if Enum.sort(utxo_address) == Enum.sort(txo_address),
         do: throw(40235)
 
-      pool = PoolHelper.info!()
-      pool_address = pool[:address] |> Base58Check.decode()
-      pool_fee_percent = pool[:fee_percent]
-      pool_fee = pool[:fee]
-
+      pool = Pool.fetch!(pool_hostname, channel_id)
       genesis_time = Chain.genesis_time()
 
       {outgoings, incomes} = extract_balances(utxo, txo)
@@ -1063,7 +1069,7 @@ defmodule Ipncore.Tx do
         |> put_index(genesis_time)
         |> put_outputs_index()
         |> put_inputs_index()
-        |> put_fees(utxo_address, pool_address, pool_fee_percent, pool_fee)
+        |> put_fees(utxo_address, pool.address, pool.fee, pool.percent)
 
       Ecto.Multi.new()
       |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),

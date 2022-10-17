@@ -1,5 +1,5 @@
 defmodule Ipncore.Mined do
-  alias Ipncore.{Block, Chain, Repo, Txo}
+  alias Ipncore.{Block, Repo, Txo}
   import Ecto.Query, only: [from: 2]
 
   @output_type_fee "%"

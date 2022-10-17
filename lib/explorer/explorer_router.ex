@@ -3,7 +3,7 @@ defmodule Ipncore.Explorer.Router do
 
   import Ipncore.WebTools, only: [json: 2, send_error: 2, send_result: 2]
   import Ipncore.StreamDeliver, only: [serve_video: 3]
-  alias Ipncore.{Block, Channel, Tx, Txo, Txi, Utxo, Token, Balance, Chain}
+  alias Ipncore.{Block, Channel, Tx, Txo, Txi, Utxo, Token, Balance, Chain, Pool}
 
   if Mix.env() == :dev do
     use Plug.Debugger
@@ -54,6 +54,17 @@ defmodule Ipncore.Explorer.Router do
 
   get "/token/:token/:channel" do
     resp = Token.get(token, channel)
+    send_result(conn, resp)
+  end
+
+  get "/pools" do
+    params = conn.params
+    resp = Pool.all(params)
+    send_result(conn, resp)
+  end
+
+  get "/token/:hostname/:channel" do
+    resp = Pool.get(hostname, channel)
     send_result(conn, resp)
   end
 

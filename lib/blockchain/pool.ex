@@ -29,7 +29,7 @@ defmodule Ipncore.Pool do
         time
       ) do
     %Pools{
-      id: token_id,
+      hostname: hostname,
       name: name,
       address: address,
       fee: fee,
@@ -46,7 +46,7 @@ defmodule Ipncore.Pool do
     |> Repo.one(prefix: channel)
   end
 
-  def get(hostname, channel) do
+  def exists?(hostname, channel) do
     from(p in Pools, where: p.address == ^address and p.enabled)
     |> Repo.exists?(prefix: channel)
   end

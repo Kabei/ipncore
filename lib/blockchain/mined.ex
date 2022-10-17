@@ -1,5 +1,6 @@
 defmodule Ipncore.Mined do
   alias Ipncore.{Block, Chain, Repo, Txo}
+  import Ecto.Query, only: [from: 2]
 
   @output_type_fee "%"
 
@@ -15,7 +16,7 @@ defmodule Ipncore.Mined do
       from(txo in Txo,
         where:
           txo.type == @output_type_fee and
-            ^bindex == fragment("substring(?::bytea from 1 for ?)", txo.id, byte_size(x)),
+            fragment("substring(?::bytea from 1 for ?)", txo.id, byte_size(x)) == ^bindex,
         select: txo.address,
         distinct: true,
         order_by: [asc: fragment("length(?)", txo.address), asc: txo.address]

@@ -532,31 +532,33 @@ defmodule Ipncore.TxBuilder do
     |> io_puts(data_type)
   end
 
+  @doc """
+  Ipncore.TxBuilder.pool_create("IPN-001", "pool.ippan.net", "My pool", "Euro", 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
+  """
   def pool_create(
         channel,
-        token_id,
-        token_name,
-        decimals,
+        hostname,
+        name,
+        address,
+        fee,
+        percent,
         data_type \\ "json"
       ) do
     time = :erlang.system_time(:millisecond)
-    owner_secret_key = PlatformOwner.secret_key()
-    token_pubkey = PlatformOwner.pubkey()
+    secret_key = PlatformOwner.secret_key()
+    pubkey = PlatformOwner.pubkey()
     next_index = Block.next_index(time)
     type = Tx.type_index("token register")
 
-    address = Address.to_internal_address(token_pubkey)
     address58 = Base58Check.encode(address)
 
     token_data =
       %{
-        "id" => token_id,
-        "name" => token_name,
-        "decimals" => decimals,
-        "creator" => address,
-        "owner" => address,
-        "props" => token_props,
-        "time" => time
+        "address" => address58,
+        "hostname" => hostname,
+        "fee" => fee,
+        "name" => name,
+        "percent" => percent
       }
       |> CBOR.encode()
 
@@ -574,19 +576,20 @@ defmodule Ipncore.TxBuilder do
       }
       |> Tx.put_hash(token_data)
 
-    {:ok, signature} = Falcon.sign(owner_secret_key, tx.hash)
+    {:ok, signature} = Falcon.sign(secret_key, tx.hash)
 
     %{
-      id: token_id,
       channel: channel,
-      decimals: decimals,
-      creator: address58,
-      owner: address58,
-      name: token_name,
+      pool: %{
+        address: address,
+        hostname: hostname,
+        fee: fee,
+        name: name,
+        percent: percent
+      },
       sig: Base.encode64(signature),
-      pubkey: Base.encode64(token_pubkey),
-      type: "token register",
-      props: token_props,
+      pubkey: Base.encode64(pubkey),
+      type: "pool_new",
       time: time,
       version: 0
     }

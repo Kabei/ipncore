@@ -724,7 +724,7 @@ defmodule Ipncore.Tx do
       pool = Pool.get(hostname, channel_id)
 
       if is_nil(pool), do: throw(0)
-      if pool.address != Address.to_internal_address(pubkey), do: throw()
+      if pool.address != Address.to_internal_address(pubkey), do: throw(0)
 
       data =
         pool_params

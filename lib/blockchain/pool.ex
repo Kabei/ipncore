@@ -21,6 +21,7 @@ defmodule Ipncore.Pool do
 
   def new(
         %{
+          "hostname" => hostname,
           "name" => name,
           "address" => address,
           "fee" => fee,

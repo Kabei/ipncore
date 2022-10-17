@@ -15,7 +15,7 @@ defmodule Ipncore.Migration.System do
         key character varying NOT NULL,
         value character varying,
         added bigint NOT NULL,
-        update bigint,
+        updated_at bigint,
         CONSTRAINT env_pkey PRIMARY KEY (key)
       )
       """,
@@ -36,7 +36,7 @@ defmodule Ipncore.Migration.System do
         CONSTRAINT chain_pkey PRIMARY KEY (id)
       )
       """,
-      "INSERT INTO sys.env(key, value, added, update) VALUES('version', #{version}, #{time}, #{time})"
+      "INSERT INTO sys.env(key, value, added, updated_at) VALUES('version', #{version}, #{time}, #{time})"
     ] ++
       trigger_approved() ++
       create_functions()

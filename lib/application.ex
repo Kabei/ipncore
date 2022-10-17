@@ -62,10 +62,9 @@ defmodule Ipncore.Application do
   defp migration_start do
     {:ok, supervisor} = Supervisor.start_link([Repo, Chain], @opts)
 
-    version = Application.get_env(@otp_app, :migration_version)
     channel = Application.get_env(@otp_app, :channel)
     # migration
-    Migration.start(%{"version" => version})
+    Migration.start()
 
     iit = IIT.sync()
     Chain.put_iit(iit)

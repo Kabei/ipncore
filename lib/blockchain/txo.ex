@@ -108,7 +108,8 @@ defmodule Ipncore.Txo do
   end
 
   def from_request(%{"address" => address, "tid" => token, "type" => type, "value" => value})
-      when value > 0 do
+      when value > 0 and
+             type in [@output_type_send, @output_type_fee, @output_type_return] do
     %Txo{
       address: Base58Check.decode(address),
       tid: token,
@@ -122,7 +123,7 @@ defmodule Ipncore.Txo do
   end
 
   @spec from_request_coinbase!([t]) :: {List.t(), List.t(), List.t(), pos_integer()}
-  def from_request_coinbase!(outputs) do
+  def from_request_coinbase!(outputs, type \\ @output_type_coinbase) do
     {outputs, tokens, address, total} =
       Enum.reduce(outputs, {[], [], [], 0}, fn %{
                                                  "address" => address,
@@ -142,7 +143,7 @@ defmodule Ipncore.Txo do
               address: addr,
               tid: tid,
               value: value,
-              type: @output_type_coinbase
+              type: type
             }
 
             {o ++ [output], t ++ [tid], a ++ [address], v + value}

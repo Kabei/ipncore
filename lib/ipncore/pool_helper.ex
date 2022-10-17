@@ -14,10 +14,10 @@ defmodule PoolHelper do
       true ->
         imp_client = Application.get_env(:ipncore, :imp_client)
         hostname = imp_client[:host]
-        path = @schema <> hostname <> "/info"
+        url = @schema <> hostname <> "/info"
         HTTPoison.start()
 
-        case HTTPoison.get(path) do
+        case HTTPoison.get(url) do
           {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
             kw_info =
               Jason.decode!(body)

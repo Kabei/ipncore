@@ -17,8 +17,11 @@ end
 config :ipnutils, :jsonlib, Jason
 config :ipnutils, :repo, Ipncore.Repo
 
-config :ipncore, :block_version, 0
+# blcokchain config
 config :ipncore, :migration_version, 0
-config :ipncore, :block_interval, 60_000
+config :ipncore, :block_version, 0
+config :ipncore, :block_interval, :timer.seconds(60)
 config :ipncore, :tx_version, 0
-config :ipncore, :tx_timeout, 60_000
+config :ipncore, :tx_timeout, :timer.seconds(30)
+config :ipncore, :tx_timeout_refund, :timer.hours(72)
+config :ipncore, :tx_edit_delay, :timer.hours(1)

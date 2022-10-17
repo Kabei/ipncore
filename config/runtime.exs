@@ -47,6 +47,24 @@ config :ipncore, :cubdb,
     }
   ]
 
+config :ipncore, :ntp_servers, [
+  '0.north-america.pool.ntp.org',
+  '1.north-america.pool.ntp.org',
+  '2.north-america.pool.ntp.org',
+  '0.europe.pool.ntp.org',
+  '1.europe.pool.ntp.org',
+  '2.europe.pool.ntp.org',
+  '0.asia.pool.ntp.org',
+  '1.asia.pool.ntp.org',
+  '2.asia.pool.ntp.org',
+  '0.oceania.pool.ntp.org',
+  '0.africa.pool.ntp.org',
+  'hora.roa.es',
+  'time.google.com',
+  'time.cloudflare.com',
+  'time.windows.com'
+]
+
 # deliver max file size
 config :ipncore, :max_file_size, 1_000_000_000
 

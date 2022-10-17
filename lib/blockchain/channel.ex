@@ -38,14 +38,14 @@ defmodule Ipncore.Channel do
     field(:updated_at, :integer)
   end
 
-  def channel_name?(channel_id), do: Regex.match?(@regex, channel_id)
+  def check_name?(channel_id), do: Regex.match?(@regex, channel_id)
 
   def new(%{
         "id" => id,
         "pubkey" => pubkey,
         "time" => time
       }) do
-    if channel_name?(id) do
+    if check_name?(id) do
       %Channel{
         id: id,
         pubkey: pubkey,
@@ -58,6 +58,12 @@ defmodule Ipncore.Channel do
   end
 
   def new(_), do: throw(40230)
+
+  def get_group(channel_id) do
+    channel_id
+    |> String.split("-")
+    |> List.first()
+  end
 
   def put_genesis_time(channel_id, time) do
     now = :erlang.system_time(:millisecond)

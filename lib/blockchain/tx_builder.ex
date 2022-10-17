@@ -490,6 +490,69 @@ defmodule Ipncore.TxBuilder do
         "id" => token_id,
         "name" => token_name,
         "decimals" => decimals,
+        "creator" => address58,
+        "owner" => address58,
+        "props" => token_props,
+        "time" => time
+      }
+      |> CBOR.encode()
+
+    tx =
+      %Tx{
+        block_index: next_index,
+        out_count: 0,
+        amount: 0,
+        time: time,
+        type: type,
+        status: 200,
+        vsn: 0,
+        inputs: [],
+        outputs: []
+      }
+      |> Tx.put_hash(token_data)
+
+    {:ok, signature} = Falcon.sign(owner_secret_key, tx.hash)
+
+    %{
+      channel: channel,
+      token: %{
+        id: token_id,
+        creator: address58,
+        decimals: decimals,
+        name: token_name,
+        owner: address58,
+        props: token_props
+      },
+      sig: Base.encode64(signature),
+      pubkey: Base.encode64(token_pubkey),
+      type: "token register",
+      time: time,
+      version: 0
+    }
+    |> io_puts(data_type)
+  end
+
+  def pool_create(
+        channel,
+        token_id,
+        token_name,
+        decimals,
+        data_type \\ "json"
+      ) do
+    time = :erlang.system_time(:millisecond)
+    owner_secret_key = PlatformOwner.secret_key()
+    token_pubkey = PlatformOwner.pubkey()
+    next_index = Block.next_index(time)
+    type = Tx.type_index("token register")
+
+    address = Address.to_internal_address(token_pubkey)
+    address58 = Base58Check.encode(address)
+
+    token_data =
+      %{
+        "id" => token_id,
+        "name" => token_name,
+        "decimals" => decimals,
         "creator" => address,
         "owner" => address,
         "props" => token_props,

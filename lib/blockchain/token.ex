@@ -7,7 +7,7 @@ defmodule Ipncore.Token do
   alias __MODULE__
 
   @unit_time :millisecond
-  # @channel Application.get_env(:ipncore, :channel)
+  @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
 
   @type t :: %Token{
           id: binary(),
@@ -84,16 +84,17 @@ defmodule Ipncore.Token do
     type_match(token_id) in 1..4
   end
 
-  def new(%{
-        "id" => token_id,
-        "name" => name,
-        "decimals" => decimals,
-        "props" => %{"symbol" => _symbol} = props,
-        "creator" => creator_address,
-        "owner" => owner_address,
-        "time" => time
-      })
-      when is_integer(decimals) do
+  def new(
+        %{
+          "id" => token_id,
+          "name" => name,
+          "decimals" => decimals,
+          "props" => %{"symbol" => _symbol} = props,
+          "creator" => creator_address,
+          "owner" => owner_address
+        },
+        time
+      ) do
     %Token{
       id: token_id,
       name: name,
@@ -114,8 +115,8 @@ defmodule Ipncore.Token do
     |> Repo.one(prefix: channel)
   end
 
-  def multi_insert(multi, name, token, channel) do
-    token_struct = new(token)
+  def multi_insert(multi, name, token, token, channel) do
+    token_struct = new(token, time)
 
     exists_symbol =
       from(tk in Token,
@@ -140,7 +141,7 @@ defmodule Ipncore.Token do
   def multi_update(multi, name, token_id, amount, channel) do
     time = :erlang.system_time(@unit_time)
 
-    query = from(tk in Token, where: tk.id == ^token_id and tk.enabled)
+    query = from(tk in Token, where: tk.id == ^token_id and tk.updated_at + @delay_edit < time)
 
     Ecto.Multi.update_all(
       multi,

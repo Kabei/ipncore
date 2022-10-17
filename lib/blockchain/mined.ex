@@ -1,15 +1,28 @@
 defmodule Ipncore.Mined do
-  alias Ipncore.{Block, Chain}
+  alias Ipncore.{Block, Chain, Repo, Txo}
+
+  @output_type_fee "%"
 
   @doc """
   Returns an address from the list of participants (validators),
   winner the coinbase of the next block.
   """
   @spec proof_of_remainder(Block.t()) :: binary
-  def proof_of_remainder(%Block{} = prev_block) do
-    addresses = Chain.participants()
-    total = Chain.total_participants()
-    # check_control = Chain.hash_participants()
+  def proof_of_remainder(%Block{} = prev_block, channel) do
+    bindex = :binary.encode_unsigned(prev_block.index)
+
+    addresses =
+      from(txo in Txo,
+        where:
+          txo.type == @output_type_fee and
+            ^bindex == fragment("substring(?::bytea from 1 for ?)", txo.id, byte_size(x)),
+        select: txo.address,
+        distinct: true,
+        order_by: [asc: fragment("length(?)", txo.address), asc: txo.address]
+      )
+      |> Repo.all(prefix: channel)
+
+    total = length(addresses)
 
     xhash = prev_block.hash |> :binary.decode_unsigned()
 

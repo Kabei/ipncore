@@ -110,8 +110,21 @@ defmodule Ipncore.Migration.Blockchain do
         in_count numeric(36,0) DEFAULT 0,
         tx_count numeric(36,0) DEFAULT 0,
         created_at bigint NOT NULL,
-        update bigint,
+        updated_at bigint,
         CONSTRAINT balances_pkey PRIMARY KEY (address, tid)
+      )
+      """,
+      """
+      CREATE TABLE IF NOT EXISTS #{channel}.pools(
+          name character varying NOT NULL,
+          hostname character varying NOT NULL,
+          address bytea NOT NULL,
+          enabled boolean DEFAULT TRUE,
+          fee double precision NOT NULL,
+          feepercent boolean NOT NULL,
+          created_at bigint NOT NULL,
+          updated_at bigint NOT NULL,
+          CONSTRAINT pools_pkey PRIMARY KEY (hostname)
       )
       """
       # """
@@ -121,7 +134,7 @@ defmodule Ipncore.Migration.Blockchain do
       #   address bytea,
       #   props jsonb,
       #   created_at bigint NOT NULL,
-      #   update bigint,
+      #   updated_at bigint,
       #   CONSTRAINT account_pkey PRIMARY KEY (id),
       #   CONSTRAINT block_height UNIQUE (name)
       # )

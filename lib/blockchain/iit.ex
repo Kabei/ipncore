@@ -1,24 +1,6 @@
 defmodule Ipncore.IIT do
   require Logger
 
-  @ntp_servers [
-    '0.north-america.pool.ntp.org',
-    '1.north-america.pool.ntp.org',
-    '2.north-america.pool.ntp.org',
-    '0.europe.pool.ntp.org',
-    '1.europe.pool.ntp.org',
-    '2.europe.pool.ntp.org',
-    '0.asia.pool.ntp.org',
-    '1.asia.pool.ntp.org',
-    '2.asia.pool.ntp.org',
-    '0.oceania.pool.ntp.org',
-    '0.africa.pool.ntp.org',
-    'hora.roa.es',
-    'time.google.com',
-    'time.cloudflare.com',
-    'time.windows.com'
-  ]
-
   def sync do
     Logger.info("Sync time")
 
@@ -34,7 +16,8 @@ defmodule Ipncore.IIT do
           DateTime.to_unix(datetime)
       end
     else
-      Enum.reduce_while(@ntp_servers, nil, fn domain, _acc ->
+      Application.get_env(:ipncore, :ntp_servers)
+      |> Enum.reduce_while(nil, fn domain, _acc ->
         SNTP.time(host: domain, timeout: 1000)
         |> case do
           {:ok, data} ->

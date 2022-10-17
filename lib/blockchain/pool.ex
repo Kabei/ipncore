@@ -50,6 +50,7 @@ defmodule Ipncore.Pool do
   def get(hostname, channel) do
     from(p in Pools, where: p.hostname == ^hostname and p.enabled)
     |> Repo.one(prefix: channel)
+    |> transform()
   end
 
   def exists?(hostname, channel) do
@@ -106,6 +107,7 @@ defmodule Ipncore.Pool do
     |> filter_limit(params)
     |> filter_offset(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
+    |> filter_map()
   end
 
   defp filter_hostname(query, %{"q" => q}) do
@@ -114,4 +116,10 @@ defmodule Ipncore.Pool do
   end
 
   defp filter_hostname(query, _), do: query
+
+  defp filter_map(data) do
+    Enum.map(data, fn x -> transform(x) end)
+  end
+
+  defp transform(x), do: %{x | address: Base58Check.encode(x.address)}
 end

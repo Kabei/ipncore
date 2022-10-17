@@ -160,10 +160,6 @@ defmodule Ipncore.Token do
     )
   end
 
-  def fetch(token_id, channel) do
-    Repo.get(__MODULE__, token_id, prefix: channel)
-  end
-
   def get(token_id, channel) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)
     |> filter_select()
@@ -227,5 +223,11 @@ defmodule Ipncore.Token do
     Enum.map(data, fn x -> transform(x) end)
   end
 
-  defp transform(x), do: %{x | type: type_name(x.type)}
+  defp transform(x),
+    do: %{
+      x
+      | type: type_name(x.type),
+        creator: Base58Check.encode(x.creator),
+        owner: Base58Check.encode(x.owner)
+    }
 end

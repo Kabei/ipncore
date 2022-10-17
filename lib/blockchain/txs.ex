@@ -572,7 +572,10 @@ defmodule Ipncore.Tx do
 
       signature = Base.decode64!(sig)
 
-      token = Map.get(params, "token")
+      token =
+        Map.get(params, "token")
+        |> Map.put("creator", creator)
+        |> Map.put("owner", owner)
 
       token_data =
         token

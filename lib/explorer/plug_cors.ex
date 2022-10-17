@@ -5,7 +5,7 @@ defmodule Plug.Cors do
     opts
   end
 
-  def call(conn = %{method: "OPTIONS"}, options) do
+  def call(conn = %{method: "OPTIONS"}, _options) do
     conn
     |> merge_resp_headers([
       {"access-control-allow-headers",

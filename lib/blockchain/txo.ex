@@ -16,6 +16,8 @@ defmodule Ipncore.Txo do
         }
 
   @output_type_send "S"
+  @output_type_fee "%"
+  @output_type_return "R"
   @output_type_coinbase "C"
 
   @doc """

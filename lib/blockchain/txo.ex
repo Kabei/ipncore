@@ -118,7 +118,19 @@ defmodule Ipncore.Txo do
     }
   end
 
-  def from_request(_) do
+  def from_request(%{"address" => address, "tid" => token, "value" => value})
+      when value > 0 do
+    %Txo{
+      address: Base58Check.decode(address),
+      tid: token,
+      type: @output_type_send,
+      value: value
+    }
+  end
+
+  def from_request(x) do
+    IO.inspect("until error")
+    IO.inspect(x)
     throw(40207)
   end
 

@@ -621,8 +621,6 @@ defmodule Ipncore.TxBuilder do
     next_index = Block.next_index(time)
     type = Tx.type_index("pool_update")
 
-    address = Base58Check.decode(address58)
-
     data =
       params
       |> CBOR.encode()

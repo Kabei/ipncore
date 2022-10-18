@@ -63,8 +63,8 @@ defmodule Ipncore.Pool do
         address: p.address,
         fee: p.fee,
         percent: p.percent,
-        created_at: p.time,
-        updated_at: p.time
+        created_at: p.created_at,
+        updated_at: p.updated_at
       }
     )
     |> Repo.one(prefix: channel)
@@ -143,8 +143,8 @@ defmodule Ipncore.Pool do
       address: p.address,
       fee: p.fee,
       percent: p.percent,
-      created_at: p.time,
-      updated_at: p.time
+      created_at: p.created_at,
+      updated_at: p.updated_at
     })
   end
 

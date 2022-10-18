@@ -47,8 +47,26 @@ defmodule Ipncore.Pool do
     |> Repo.one!(prefix: channel)
   end
 
+  def fetch_and_check_delay(hostname, channel) do
+    from(p in Pool,
+      where: p.hostname == ^hostname and p.enabled and p.updated_at + @delay_edit < ^time
+    )
+    |> Repo.one(prefix: channel)
+  end
+
   def get(hostname, channel) do
-    from(p in Pool, where: p.hostname == ^hostname and p.enabled)
+    from(p in Pool,
+      where: p.hostname == ^hostname and p.enabled,
+      select: %{
+        hostname: p.hostname,
+        name: p.name,
+        address: p.address,
+        fee: p.fee,
+        percent: p.percent,
+        created_at: p.time,
+        updated_at: p.time
+      }
+    )
     |> Repo.one(prefix: channel)
     |> transform()
   end
@@ -71,8 +89,7 @@ defmodule Ipncore.Pool do
   end
 
   def multi_update(multi, name, hostname, params, time, channel) do
-    query = from(p in Pool, where: p.hostname == ^hostname) 
-    #and p.updated_at + @delay_edit < ^time)
+    query = from(p in Pool, where: p.hostname == ^hostname)
 
     params =
       params
@@ -105,6 +122,7 @@ defmodule Ipncore.Pool do
   def all(params) do
     from(p in Pool, where: p.enabled)
     |> filter_hostname(params)
+    |> filter_select()
     |> filter_limit(params)
     |> filter_offset(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
@@ -117,6 +135,18 @@ defmodule Ipncore.Pool do
   end
 
   defp filter_hostname(query, _), do: query
+
+  defp filter_select(query) do
+    select(query, [p], %{
+      hostname: p.hostname,
+      name: p.name,
+      address: p.address,
+      fee: p.fee,
+      percent: p.percent,
+      created_at: p.time,
+      updated_at: p.time
+    })
+  end
 
   defp filter_map(data) do
     Enum.map(data, fn x -> transform(x) end)

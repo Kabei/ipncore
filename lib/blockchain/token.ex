@@ -116,6 +116,13 @@ defmodule Ipncore.Token do
     |> Repo.one!(prefix: channel)
   end
 
+  def fetch_and_check_delay(token_id, channel) do
+    from(tk in Token,
+      where: tk.id == ^token_id and tk.enabled and tk.updated_at + @delay_edit < ^time
+    )
+    |> Repo.one(prefix: channel)
+  end
+
   def multi_insert(multi, name, token, time, channel) do
     token_struct = new(token, time)
 
@@ -141,7 +148,7 @@ defmodule Ipncore.Token do
 
   def multi_update(multi, name, token_id, params, amount, time, channel) do
     query = from(tk in Token, where: tk.id == ^token_id)
-    #and tk.updated_at + @delay_edit < ^time)
+    # and tk.updated_at + @delay_edit < ^time)
 
     params =
       params

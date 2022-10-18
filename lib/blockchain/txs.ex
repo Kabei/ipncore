@@ -803,7 +803,7 @@ defmodule Ipncore.Tx do
       signature = Base.decode64!(sig64)
       genesis_time = Chain.genesis_time()
       next_index = Block.next_index(time)
-      pool = Pool.get(hostname, channel_id)
+      pool = Pool.fetch!(hostname, channel_id)
 
       if is_nil(pool), do: throw(0)
       if pool.address != Address.to_internal_address(pubkey), do: throw(0)

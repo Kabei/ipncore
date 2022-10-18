@@ -17,9 +17,7 @@ defmodule Ipncore.Application do
       imp_client = Application.get_env(@otp_app, :imp_client)
 
       {falcon_pk, _sk} =
-        :ipncore
-        |> Application.app_dir(imp_client[:falcon_file])
-        |> Falcon.read_file!()
+        :ipncore |> Application.app_dir(imp_client[:falcon_file]) |> Falcon.read_file!()
 
       address = Address.to_internal_address(falcon_pk)
 

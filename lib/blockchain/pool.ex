@@ -11,7 +11,7 @@ defmodule Ipncore.Pool do
   @primary_key {:hostname, :string, []}
   schema "pools" do
     field(:name, :string)
-    field(:address, :string)
+    field(:address, :binary)
     field(:fee, :float)
     field(:percent, :boolean)
     field(:enabled, :boolean, default: true)

@@ -638,8 +638,7 @@ defmodule Ipncore.Tx do
         "type" => "pool_new" = type_name,
         "sig" => sig64,
         "version" => version
-      })
-      when is_boolean(percent) and is_float(fee) do
+      }) do
     try do
       type = type_index(type_name)
       unless type, do: throw(40201)

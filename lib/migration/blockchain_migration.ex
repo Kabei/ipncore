@@ -121,7 +121,7 @@ defmodule Ipncore.Migration.Blockchain do
           address bytea NOT NULL,
           enabled boolean DEFAULT TRUE,
           fee double precision NOT NULL,
-          feepercent boolean NOT NULL,
+          percent boolean NOT NULL,
           created_at bigint NOT NULL,
           updated_at bigint NOT NULL,
           CONSTRAINT pools_pkey PRIMARY KEY (hostname)

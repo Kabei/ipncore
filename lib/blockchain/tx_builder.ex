@@ -588,7 +588,6 @@ defmodule Ipncore.TxBuilder do
         percent: percent
       },
       sig: Base.encode64(signature),
-      pubkey: Base.encode64(pubkey),
       type: "pool_new",
       time: time,
       version: 0

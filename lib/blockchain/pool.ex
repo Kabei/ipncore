@@ -71,7 +71,8 @@ defmodule Ipncore.Pool do
   end
 
   def multi_update(multi, name, hostname, params, time, channel) do
-    query = from(p in Pool, where: p.hostname == ^hostname and p.updated_at + @delay_edit < ^time)
+    query = from(p in Pool, where: p.hostname == ^hostname 
+    #and p.updated_at + @delay_edit < ^time)
 
     params =
       params

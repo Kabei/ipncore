@@ -381,6 +381,11 @@ defmodule Ipncore.TxBuilder do
   @output_type_return "R"
   @output_type_coinbase "C"
 
+  def alice_pk, do: @pk_alice
+  def alice_sk, do: @sk_alice
+  def alice_address, do: @address_alice_i
+  def alice_address58, do: Base58Check.encode(@address_alice_i)
+
   def test_coinbase(data_type \\ "json") do
     send_coinbase(
       "IPN",
@@ -485,7 +490,7 @@ defmodule Ipncore.TxBuilder do
     address = Address.to_internal_address(token_pubkey)
     address58 = Base58Check.encode(address)
 
-    token_data =
+    data =
       %{
         "id" => token_id,
         "name" => token_name,
@@ -509,7 +514,7 @@ defmodule Ipncore.TxBuilder do
         inputs: [],
         outputs: []
       }
-      |> Tx.put_hash(token_data)
+      |> Tx.put_hash(data)
 
     {:ok, signature} = Falcon.sign(owner_secret_key, tx.hash)
 
@@ -590,6 +595,62 @@ defmodule Ipncore.TxBuilder do
       "sig" => Base.encode64(signature),
       "type" => "pool_new",
       "time" => time,
+      "version" => 0
+    }
+    |> io_puts(data_type)
+  end
+
+  @doc """
+  alias Ipncore.TxBuilder
+  TxBuilder.pool_update("IPN-003", 
+  "pool.ippan.net", 
+  TxBuilder.alice_pk(), 
+  TxBuilder.sk_alice(),
+
+  )
+  """
+  def pool_update(
+        channel,
+        hostname,
+        params,
+        pubkey,
+        secret_key,
+        data_type \\ "json"
+      ) do
+    time = :erlang.system_time(:millisecond)
+    next_index = Block.next_index(time)
+    type = Tx.type_index("pool_update")
+
+    address = Base58Check.decode(address58)
+
+    data =
+      params
+      |> CBOR.encode()
+
+    tx =
+      %Tx{
+        block_index: next_index,
+        out_count: 0,
+        amount: 0,
+        time: time,
+        type: type,
+        status: 200,
+        vsn: 0,
+        inputs: [],
+        outputs: []
+      }
+      |> Tx.put_hash(data)
+
+    {:ok, signature} = Falcon.sign(secret_key, tx.hash)
+
+    %{
+      "channel" => channel,
+      "sig" => Base.encode64(signature),
+      "hostname" => hostname,
+      "pool" => params,
+      "pubkey" => Base.encode64(pubkey),
+      "time" => time,
+      "type" => "pool_update",
       "version" => 0
     }
     |> io_puts(data_type)

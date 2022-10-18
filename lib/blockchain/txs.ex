@@ -929,7 +929,7 @@ defmodule Ipncore.Tx do
       |> Ecto.Multi.insert(:tx, tx, prefix: channel_id, returning: false)
       |> Ecto.Multi.insert_all(:txo, Txo, tx.outputs, prefix: channel_id, returning: false)
       |> Balance.multi_upsert_incomes(:incomes, txo, tx.time, channel_id)
-      |> Token.multi_update(:token, token_id, total, time, channel_id)
+      |> Token.multi_update(:token, token_id, %{}, total, time, channel_id)
       |> Repo.transaction()
       |> case do
         {:ok, _} ->

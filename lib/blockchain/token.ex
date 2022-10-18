@@ -116,7 +116,7 @@ defmodule Ipncore.Token do
     |> Repo.one!(prefix: channel)
   end
 
-  def fetch_and_check_delay(token_id, channel) do
+  def fetch_and_check_delay(token_id, time, channel) do
     from(tk in Token,
       where: tk.id == ^token_id and tk.enabled and tk.updated_at + @delay_edit < ^time
     )

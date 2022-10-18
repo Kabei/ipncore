@@ -47,7 +47,7 @@ defmodule Ipncore.Pool do
     |> Repo.one!(prefix: channel)
   end
 
-  def fetch_and_check_delay(hostname, channel) do
+  def fetch_and_check_delay(hostname, time, channel) do
     from(p in Pool,
       where: p.hostname == ^hostname and p.enabled and p.updated_at + @delay_edit < ^time
     )

@@ -514,20 +514,20 @@ defmodule Ipncore.TxBuilder do
     {:ok, signature} = Falcon.sign(owner_secret_key, tx.hash)
 
     %{
-      channel: channel,
-      token: %{
-        id: token_id,
-        creator: address58,
-        decimals: decimals,
-        name: token_name,
-        owner: address58,
-        props: token_props
+      "channel" => channel,
+      "token" => %{
+        "id" => token_id,
+        "creator" => address58,
+        "decimals" => decimals,
+        "name" => token_name,
+        "owner" => address58,
+        "props" => token_props
       },
-      sig: Base.encode64(signature),
-      pubkey: Base.encode64(token_pubkey),
-      type: "token_new",
-      time: time,
-      version: 0
+      "sig" => Base.encode64(signature),
+      "pubkey" => Base.encode64(token_pubkey),
+      "type" => "token_new",
+      "time" => time,
+      "version" => 0
     }
     |> io_puts(data_type)
   end
@@ -552,7 +552,7 @@ defmodule Ipncore.TxBuilder do
 
     address = Base58Check.decode(address58)
 
-    token_data =
+    data =
       %{
         "address" => address,
         "hostname" => hostname,
@@ -574,23 +574,23 @@ defmodule Ipncore.TxBuilder do
         inputs: [],
         outputs: []
       }
-      |> Tx.put_hash(token_data)
+      |> Tx.put_hash(data)
 
     {:ok, signature} = Falcon.sign(secret_key, tx.hash)
 
     %{
-      channel: channel,
-      pool: %{
-        address: address58,
-        hostname: hostname,
-        fee: fee,
-        name: name,
-        percent: percent
+      "channel" => channel,
+      "pool" => %{
+        "address" => address58,
+        "hostname" => hostname,
+        "fee" => fee,
+        "name" => name,
+        "percent" => percent
       },
-      sig: Base.encode64(signature),
-      type: "pool_new",
-      time: time,
-      version: 0
+      "sig" => Base.encode64(signature),
+      "type" => "pool_new",
+      "time" => time,
+      "version" => 0
     }
     |> io_puts(data_type)
   end

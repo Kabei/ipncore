@@ -63,7 +63,7 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/token/:hostname/:channel" do
+  get "/pool/:hostname/:channel" do
     resp = Pool.get(hostname, channel)
     send_result(conn, resp)
   end

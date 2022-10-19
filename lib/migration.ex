@@ -8,10 +8,10 @@ defmodule Ipncore.Migration do
 
   @prefix "sys"
   @otp_app :ipncore
-  @channel Application.get_env(@otp_app, :channel)
 
   def start do
     migration_version = Application.get_env(@otp_app, :migration_version)
+    channel = Default.channel()
 
     if not Repo.schema_exists?(@prefix) do
       System.build(%{"version" => migration_version})
@@ -21,14 +21,14 @@ defmodule Ipncore.Migration do
     |> case do
       [] ->
         Channel.new(%{
-          "id" => @channel,
+          "id" => channel,
           "pubkey" => PlatformOwner.pubkey(),
           "time" => :erlang.system_time(:millisecond)
         })
         |> Repo.insert(prefix: @prefix)
 
-        if not Repo.schema_exists?(@channel) do
-          Blockchain.build(%{"channel" => @channel, "version" => migration_version})
+        if not Repo.schema_exists?(channel) do
+          Blockchain.build(%{"channel" => channel, "version" => migration_version})
         end
 
       channels ->

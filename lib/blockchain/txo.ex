@@ -133,9 +133,8 @@ defmodule Ipncore.Txo do
     }
   end
 
-  def from_request(x) do
-    IO.inspect("until error")
-    IO.inspect(x)
+  def from_request(_, _) do
+    IO.inspect("from_request Bad format")
     throw(40207)
   end
 

@@ -373,7 +373,6 @@ defmodule Ipncore.TxBuilder do
   @pool_address <<1, 117, 20, 20, 174, 95, 18, 250, 81, 169, 7, 70, 118, 152, 241, 76, 243, 101,
                   67, 3, 211>>
 
-  @channel "IPN-001"
   @token PlatformOwner.token()
 
   @output_type_send "S"
@@ -381,19 +380,12 @@ defmodule Ipncore.TxBuilder do
   @output_type_return "R"
   @output_type_coinbase "C"
 
+  @version 0
+
   def alice_pk, do: @pk_alice
   def alice_sk, do: @sk_alice
   def alice_address, do: @address_alice_i
   def alice_address58, do: Base58Check.encode(@address_alice_i)
-
-  def test_coinbase(data_type \\ "json") do
-    send_coinbase(
-      "IPN",
-      200_000,
-      [{@address_alice_i, 150_000}, {@address_bob_i, 50_000}],
-      data_type
-    )
-  end
 
   @doc """
   USAGE:
@@ -601,8 +593,8 @@ defmodule Ipncore.TxBuilder do
   Ipncore.TxBuilder.send_coinbase("IPN-003", "USD", 1_500_000, [{user3, 1_500_000}], :raw) |> Ipncore.Tx.processing
   """
   def send_coinbase(channel, token, amount, outputs, data_type \\ "json") do
-    owner_secret_key = PlatformOwner.secret_key()
     timestamp = Chain.get_time()
+    secret_key = PlatformOwner.secret_key()
 
     {txo, txo_amount} =
       Enum.reduce(outputs, {[], 0}, fn {address, value}, {acc_outputs, acc_total} ->
@@ -625,7 +617,7 @@ defmodule Ipncore.TxBuilder do
       time: timestamp,
       token: token,
       type: "coinbase",
-      version: 0
+      version: @version
     }
 
     hash = Tx.compute_hash(pre_tx)

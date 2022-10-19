@@ -1424,7 +1424,7 @@ defmodule Ipncore.Tx do
       select: map_select()
     )
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
-    |> transform()
+    |> transform_one()
   end
 
   def get_by_index(txid, params) do
@@ -1435,7 +1435,7 @@ defmodule Ipncore.Tx do
       select: map_select()
     )
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
-    |> transform()
+    |> transform_one()
   end
 
   @spec fetch_inputs(binary, binary) :: [Txo.t()]

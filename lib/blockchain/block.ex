@@ -335,6 +335,9 @@ defmodule Ipncore.Block do
     select(query, [b], map_select())
   end
 
+  defp transform(nil), do: []
+  defp transform([]), do: []
+
   defp transform(blocks) do
     Enum.map(blocks, &transform_one(&1))
   end

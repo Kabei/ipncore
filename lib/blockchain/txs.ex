@@ -1548,15 +1548,16 @@ defmodule Ipncore.Tx do
     end
   end
 
-  defp transform(data) when is_list(data) do
+  defp transform(nil), do: []
+  defp transform([]), do: []
+
+  defp transform(data) do
     Enum.map(data, fn x ->
-      transform(x)
+      transform_one(x)
     end)
   end
 
-  defp transform(nil), do: nil
-
-  defp transform(x) do
+  defp transform_one(x) do
     %{
       index: encode_index(x.index),
       status: status_name(x.status),
@@ -1565,7 +1566,7 @@ defmodule Ipncore.Tx do
       amount: x.amount,
       block_index: x.block_index,
       fees: x.fees,
-      hash: x.hash,
+      hash: Base.encode16(x.hash),
       in_count: x.in_count,
       out_count: x.out_count,
       size: x.size,

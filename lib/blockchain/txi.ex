@@ -75,7 +75,7 @@ defmodule Ipncore.Txi do
     |> filter_select(params)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
-    |> transform()
+    |> transform(params)
   end
 
   defp filter_index(query, %{"hash" => hash16}) do
@@ -117,6 +117,15 @@ defmodule Ipncore.Txi do
     })
   end
 
+  defp filter_select(query, %{"format" => "array"}) do
+    select(query, [txi, o], [
+      txi.oid,
+      o.address,
+      o.tid,
+      o.value
+    ])
+  end
+
   defp filter_select(query, _params) do
     select(query, [txi, o], %{
       id: txi.oid,
@@ -136,7 +145,13 @@ defmodule Ipncore.Txi do
     end
   end
 
-  defp transform(txis) do
+  defp transform(txis, %{"format" => "array"}) do
+    Enum.map(txis, fn [id, address, token, value] ->
+      [Base62.encode(id), Base58Check.encode(address), token, value]
+    end)
+  end
+
+  defp transform(txis, _) do
     Enum.map(txis, fn x ->
       %{x | id: Base62.encode(x.id), address: Base58Check.encode(x.address)}
     end)

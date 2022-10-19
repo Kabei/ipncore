@@ -282,7 +282,7 @@ defmodule Ipncore.Txo do
     })
   end
 
-  defp filter_select(query, %{"show" => "array"}) do
+  defp filter_select(query, %{"format" => "array"}) do
     select(query, [o], [
       o.id,
       o.address,
@@ -314,7 +314,7 @@ defmodule Ipncore.Txo do
     end
   end
 
-  defp transform(txos, %{"show" => "array"}) do
+  defp transform(txos, %{"format" => "array"}) do
     Enum.map(txos, fn [id, address, token, type, value, avail] ->
       [
         Base62.encode(id),

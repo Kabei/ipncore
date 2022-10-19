@@ -113,7 +113,8 @@ defmodule Ipncore.Txi do
       token: o.tid,
       value: o.value,
       address: o.address,
-      props: tk.props
+      decimals: tk.decimals,
+      symbol: tk.props["symbol"]
     })
   end
 

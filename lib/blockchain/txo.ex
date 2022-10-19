@@ -278,7 +278,8 @@ defmodule Ipncore.Txo do
       value: o.value,
       address: o.address,
       available: o.avail,
-      props: tk.props
+      decimals: tk.decimals,
+      symbol: tk.props["symbol"]
     })
   end
 

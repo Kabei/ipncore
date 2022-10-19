@@ -105,8 +105,8 @@ defmodule Ipncore.Txo do
 
   def from_request([o | rest], def_type \\ @output_type_send) do
     [
-      from_request(o)
-    ] ++ from_request(rest)
+      from_request(o, def_type)
+    ] ++ from_request(rest, def_type)
   end
 
   def from_request(

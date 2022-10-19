@@ -51,11 +51,7 @@ defmodule Ipncore.Tx do
   @mime_text "TEXT"
 
   # output types
-  # output send
-  @output_type_send "S"
-  # output fees
   @output_type_fee "%"
-  # output retuned money
   @output_type_return "R"
 
   @type tx_type :: 0 | 1 | 2 | 3 | 4 | 5 | 100 | 101 | 102 | 103 | 200 | 201 | 300 | 301 | 1000
@@ -634,8 +630,8 @@ defmodule Ipncore.Tx do
           %{
             "hostname" => _hostname,
             "address" => address58,
-            "fee" => fee,
-            "percent" => percent
+            "fee" => _fee,
+            "percent" => _percent
           } = pool,
         "type" => "pool_new" = type_name,
         "sig" => sig64,

@@ -1,6 +1,5 @@
 defmodule Ipncore.TxBuilder do
   alias Ipncore.{Block, Chain, Tx, Utxo}
-  alias Ipnutils.Address
 
   @pk_alice <<9, 163, 124, 216, 164, 40, 1, 157, 19, 22, 68, 203, 171, 88, 34, 172, 230, 146, 16,
               135, 31, 210, 139, 144, 70, 231, 26, 175, 129, 162, 188, 208, 245, 46, 86, 169, 93,
@@ -471,7 +470,6 @@ defmodule Ipncore.TxBuilder do
       ) do
     time = :erlang.system_time(:millisecond)
     secret_key = PlatformOwner.secret_key()
-    pubkey = PlatformOwner.pubkey()
     next_index = Block.next_index(time)
     type = Tx.type_index("pool_new")
 

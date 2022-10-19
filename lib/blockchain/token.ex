@@ -6,7 +6,6 @@ defmodule Ipncore.Token do
   alias Ipncore.Repo
   alias __MODULE__
 
-  @unit_time :millisecond
   @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
   @data_fields ~w(id name creator decimals owner props)
   @edit_fields ~w(enabled name owner props)

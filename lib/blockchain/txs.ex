@@ -1495,7 +1495,7 @@ defmodule Ipncore.Tx do
 
   defp filter_index(query, %{"block_height" => block_height}) do
     query
-    |> join(:inner, [b], b in Block, on: b.index == tx.block_index)
+    |> join(:inner, [tx], b in Block, on: b.index == tx.block_index)
     |> where([_tx, _txd, b], b.height == ^block_height)
   end
 

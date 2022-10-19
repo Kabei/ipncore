@@ -624,7 +624,7 @@ defmodule Ipncore.TxBuilder do
       outputs: txo,
       time: timestamp,
       token: token,
-      type: type,
+      type: "coinbase",
       version: 0
     }
 

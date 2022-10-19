@@ -197,7 +197,7 @@ defmodule Ipncore.Txo do
   end
 
   @spec update_txid_avail(binary, binary, boolean) :: {integer, List.t() | nil}
-  def update_txid_avail(txid, channel_id, if_value, value) do
+  def update_txid_avail(txid, channel_id, value) do
     from(txo in Txo,
       where: fragment("substring(?::bytea from 1 for ?)", txo.id, ^byte_size(txid)) == ^txid,
       update: [set: [avail: ^value]]

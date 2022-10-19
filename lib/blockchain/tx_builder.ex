@@ -525,10 +525,10 @@ defmodule Ipncore.TxBuilder do
       "channel" => channel,
       "token" => %{
         "id" => token_id,
-        "creator" => address58,
+        "creator" => creator58,
         "decimals" => decimals,
         "name" => token_name,
-        "owner" => address58,
+        "owner" => owner58,
         "props" => token_props
       },
       "sig" => Base.encode64(signature),

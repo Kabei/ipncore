@@ -1493,6 +1493,12 @@ defmodule Ipncore.Tx do
     where(query, [tx], tx.block_index == ^block_index)
   end
 
+  defp filter_index(query, %{"block_height" => block_height}) do
+    query
+    |> join(:inner, [b], b in Block, on: b.index == tx.block_index)
+    |> where([_tx, _txd, b], b.height == ^block_height)
+  end
+
   defp filter_index(query, %{"q" => q}) do
     binq = Utils.decode16(q)
 

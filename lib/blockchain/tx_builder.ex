@@ -639,10 +639,11 @@ defmodule Ipncore.TxBuilder do
 
   247iw1qPaL9j1JgrEedcmVVPESX9X
 
-  Ipncore.TxBuilder.send("IPN-003", pk, sk, from_address, to_address, "USD", 58)
+  Ipncore.TxBuilder.send("IPN-003", "regular", pk, sk, from_address, to_address, "USD", 58)
   """
   def send(
         channel,
+        type,
         pubkey,
         secret_key,
         from_address,

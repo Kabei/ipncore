@@ -17,8 +17,9 @@ defmodule Ipncore.TxData do
 
   @spec decode!(binary, String.t()) :: any()
   def decode!(data, "CBOR") do
-    CBOR.decode(data)
-    |> elem(1)
+    "binary data"
+    # CBOR.decode(data)
+    # |> elem(1)
   end
 
   def decode!(data, "JSON") do

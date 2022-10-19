@@ -935,6 +935,7 @@ defmodule Ipncore.Tx do
       |> Repo.transaction()
       |> case do
         {:ok, _} ->
+          Txo.update_txid_avail(tx.index, channel_id, true)
           {:ok, tx}
 
         err ->
@@ -1090,8 +1091,8 @@ defmodule Ipncore.Tx do
           # TxPool.put(tx.index, tx_pool)
 
           # set available txos
-          Txo.update_utxo_avail(utxo_ids, channel_id, false)
-          Txo.update_txo_avail(tx.index, channel_id, true)
+          Txo.update_txo_avail(utxo_ids, channel_id, false)
+          Txo.update_txo_avail(txo_ids, channel_id, true)
 
           {:ok, tx}
 

@@ -187,8 +187,8 @@ defmodule Ipncore.Txo do
     end)
   end
 
-  @spec update_utxo_avail([binary], binary, boolean) :: {integer, List.t() | nil}
-  def update_utxo_avail(oids, channel_id, value) when is_list(oids) do
+  @spec update_txo_avail([binary], binary, boolean) :: {integer, List.t() | nil}
+  def update_txo_avail(oids, channel_id, value) when is_list(oids) do
     from(txo in Txo,
       where: txo.id in ^oids,
       update: [set: [avail: ^value]]
@@ -196,8 +196,8 @@ defmodule Ipncore.Txo do
     |> Repo.update_all([], prefix: channel_id)
   end
 
-  @spec update_txo_avail(binary, binary, boolean) :: {integer, List.t() | nil}
-  def update_txo_avail(txid, channel_id, value) do
+  @spec update_txid_avail(binary, binary, boolean) :: {integer, List.t() | nil}
+  def update_txid_avail(txid, channel_id, if_value, value) do
     from(txo in Txo,
       where: fragment("substring(?::bytea from 1 for ?)", txo.id, ^byte_size(txid)) == ^txid,
       update: [set: [avail: ^value]]

@@ -672,7 +672,7 @@ defmodule Ipncore.TxBuilder do
       }
     ]
 
-    {inputs, outputs} =
+    {txi, txo} =
       if diff_ipn do
         {inputs, ret_output, _total_value} = get_inputs!(from_address, token, amount, channel)
 
@@ -699,6 +699,7 @@ defmodule Ipncore.TxBuilder do
     {:ok, signature} = Falcon.sign(secret_key, hash)
 
     pre_tx
+    |> Map.put(:inputs, inputs_base62(txi))
     |> Map.put(:outputs, outputs_base58(txo))
     |> Map.put(:sigs, [
       %{

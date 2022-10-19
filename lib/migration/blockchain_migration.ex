@@ -115,7 +115,7 @@ defmodule Ipncore.Migration.Blockchain do
       )
       """,
       """
-      CREATE TABLE IF NOT EXISTS #{channel}.pools(
+      CREATE TABLE IF NOT EXISTS "#{channel}".pools(
           name character varying NOT NULL,
           hostname character varying NOT NULL,
           address bytea NOT NULL,

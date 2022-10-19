@@ -28,11 +28,15 @@ defmodule Ipncore.Migration do
         })
         |> Repo.insert(prefix: @prefix)
 
-        Blockchain.build(%{"channel" => @channel, "version" => migration_version})
+        if not Repo.schema_exists?(@channel) do
+          Blockchain.build(%{"channel" => @channel, "version" => migration_version})
+        end
 
       channels ->
         for channel <- channels do
-          Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
+          if not Repo.schema_exists?(channel.id) do
+            Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
+          end
         end
     end
   end

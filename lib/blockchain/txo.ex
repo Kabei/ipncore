@@ -105,16 +105,16 @@ defmodule Ipncore.Txo do
 
   def from_request([o | rest], def_type \\ @output_type_send) do
     [
-      from_request(o, def_type)
+      from_request_one(o, def_type)
     ] ++ from_request(rest, def_type)
   end
 
-  def from_request(
-        %{"address" => address, "tid" => token, "type" => type, "value" => value},
-        def_type
-      )
-      when value > 0 and
-             type in [@output_type_send, @output_type_fee, @output_type_return] do
+  defp from_request_one(
+         %{"address" => address, "tid" => token, "type" => type, "value" => value},
+         _def_type
+       )
+       when value > 0 and
+              type in [@output_type_send, @output_type_fee, @output_type_return] do
     %Txo{
       address: Base58Check.decode(address),
       tid: token,
@@ -123,8 +123,8 @@ defmodule Ipncore.Txo do
     }
   end
 
-  def from_request(%{"address" => address, "tid" => token, "value" => value}, def_type)
-      when value > 0 do
+  defp from_request_one(%{"address" => address, "tid" => token, "value" => value}, def_type)
+       when value > 0 do
     %Txo{
       address: Base58Check.decode(address),
       tid: token,
@@ -133,7 +133,7 @@ defmodule Ipncore.Txo do
     }
   end
 
-  def from_request(_, _) do
+  defp from_request_one(_, _) do
     IO.inspect("from_request Bad format")
     throw(40207)
   end

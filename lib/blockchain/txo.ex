@@ -101,6 +101,7 @@ defmodule Ipncore.Txo do
     if output.index > 0, do: :ok, else: {:error, :invalid_output_index}
   end
 
+  def from_request(txos, def_type \\ @output_type_send)
   def from_request([], _def_type), do: []
 
   def from_request([o | rest], def_type \\ @output_type_send) do
@@ -153,20 +154,14 @@ defmodule Ipncore.Txo do
           throw(40207)
         end
 
-        case Address.internal_address?(addr) do
-          true ->
-            output = %Txo{
-              address: addr,
-              tid: tid,
-              value: value,
-              type: type
-            }
+        output = %Txo{
+          address: addr,
+          tid: tid,
+          value: value,
+          type: type
+        }
 
-            {o ++ [output], t ++ [tid], a ++ [address], v + value}
-
-          false ->
-            throw(40216)
-        end
+        {o ++ [output], t ++ [tid], a ++ [address], v + value}
       end)
 
     {outputs, Enum.uniq(tokens), Enum.uniq(address), total}

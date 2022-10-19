@@ -268,7 +268,7 @@ defmodule Ipncore.Txo do
 
   defp filter_token(query, _params), do: query
 
-  defp filter_select(query, %{"show" => "token_meta"}) do
+  defp filter_select(query, %{"show" => "props"}) do
     query
     |> join(:inner, [o], tk in Token, on: tk.id == o.tid)
     |> select([o, tk], %{
@@ -278,7 +278,7 @@ defmodule Ipncore.Txo do
       value: o.value,
       address: o.address,
       available: o.avail,
-      meta: tk.meta
+      props: tk.props
     })
   end
 

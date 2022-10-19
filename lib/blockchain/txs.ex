@@ -44,6 +44,7 @@ defmodule Ipncore.Tx do
   @max_inputs 1024
   @max_outputs 16_000_000
   @max_memo_size 255
+  @max_data_size 4096
 
   # mime type
   @mime_cbor "CBOR"
@@ -471,7 +472,7 @@ defmodule Ipncore.Tx do
         channel
         |> CBOR.encode()
 
-      if byte_size(channel_data) > 4096, do: throw(40232)
+      if byte_size(channel_data) > @max_data_size, do: throw(40232)
 
       tx =
         %Tx{
@@ -575,11 +576,12 @@ defmodule Ipncore.Tx do
         |> Map.put("creator", creator)
         |> Map.put("owner", owner)
 
-      token_data =
+      data =
         token
+        |> Token.filter_data()
         |> CBOR.encode()
 
-      if byte_size(token_data) > 4096, do: throw(40232)
+      if byte_size(data) > @max_data_size, do: throw(40232)
 
       tx =
         %Tx{
@@ -595,9 +597,9 @@ defmodule Ipncore.Tx do
           inputs: [],
           outputs: []
         }
-        |> put_hash(token_data)
+        |> put_hash(data)
         |> put_index(genesis_time)
-        |> put_size(token_data)
+        |> put_size(data)
 
       if Falcon.verify(tx.hash, signature, PlatformOwner.pubkey()) == :error, do: throw(40212)
 
@@ -606,7 +608,7 @@ defmodule Ipncore.Tx do
         returning: false,
         prefix: channel_id
       )
-      |> TxData.multi_insert(:txdata, tx.index, token_data, @mime_cbor, channel_id)
+      |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, channel_id)
       |> Token.multi_insert(:token, token, time, channel_id)
       |> Repo.transaction()
       |> case do
@@ -658,7 +660,10 @@ defmodule Ipncore.Tx do
 
       data =
         pool
+        |> Pool.filter_data()
         |> CBOR.encode()
+
+      if byte_size(data) > @max_data_size, do: throw(40232)
 
       tx =
         %Tx{

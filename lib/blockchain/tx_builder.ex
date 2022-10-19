@@ -471,34 +471,37 @@ defmodule Ipncore.TxBuilder do
   Ipncore.TxBuilder.token_create("IPN-003", "IPN", "IPPAN", 9, %{"symbol" => "Þ"}, :raw) |> Ipncore.Tx.processing
   Ipncore.TxBuilder.token_create("IPN-001", "GBP", "Pound", 2, %{"symbol" => "£"}, :raw) |> Ipncore.Tx.processing
   Ipncore.TxBuilder.token_create("IPN-001", "USD", "Dollar", 2, %{"symbol" => "$"}, :raw) |> Ipncore.Tx.processing
-  Ipncore.TxBuilder.token_create("IPN-001", "EUR", "Euro", 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
+  
+  alias Ipncore.TxBuilder
+  TxBuilder.token_create("IPN-003", "EUR", "Euro", Txbuilder.alice_address58(), Txbuilder.alice_address58(), 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
   """
   def token_create(
         channel,
         token_id,
         token_name,
+        creator58,
+        owner58,
         decimals,
         %{"symbol" => _token_symbol} = token_props,
         data_type \\ "json"
       ) do
     time = :erlang.system_time(:millisecond)
-    owner_secret_key = PlatformOwner.secret_key()
+    secret_key = PlatformOwner.secret_key()
     token_pubkey = PlatformOwner.pubkey()
     next_index = Block.next_index(time)
     type = Tx.type_index("token_new")
 
-    address = Address.to_internal_address(token_pubkey)
-    address58 = Base58Check.encode(address)
+    owner = Base58Check.decode(owner58)
+    creator = Base58Check.decode(creator58)
 
     data =
       %{
         "id" => token_id,
         "name" => token_name,
         "decimals" => decimals,
-        "creator" => address58,
-        "owner" => address58,
-        "props" => token_props,
-        "time" => time
+        "creator" => creator,
+        "owner" => owner,
+        "props" => token_props
       }
       |> CBOR.encode()
 
@@ -516,7 +519,7 @@ defmodule Ipncore.TxBuilder do
       }
       |> Tx.put_hash(data)
 
-    {:ok, signature} = Falcon.sign(owner_secret_key, tx.hash)
+    {:ok, signature} = Falcon.sign(secret_key, tx.hash)
 
     %{
       "channel" => channel,

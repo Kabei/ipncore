@@ -8,6 +8,7 @@ defmodule Ipncore.Token do
 
   @unit_time :millisecond
   @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
+  @data_fields ~w(id name creator decimals owner props)
   @edit_fields ~w(enabled name owner props)
 
   @type t :: %Token{
@@ -110,6 +111,8 @@ defmodule Ipncore.Token do
   end
 
   def new(_), do: throw(40224)
+
+  def filter_data(params), do: Map.take(params, @data_fields)
 
   def fetch!(token_id, channel) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)

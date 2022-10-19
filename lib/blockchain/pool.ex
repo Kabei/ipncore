@@ -6,6 +6,7 @@ defmodule Ipncore.Pool do
   alias __MODULE__
 
   @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
+  @data_fields ~w(address hostname name fee percent)
   @edit_fields ~w(address hostname name fee percent)
 
   @primary_key {:hostname, :string, []}
@@ -41,6 +42,8 @@ defmodule Ipncore.Pool do
   end
 
   def new(_), do: throw(0)
+
+  def filter_data(params), do: Map.take(params, @data_fields)
 
   def fetch!(hostname, channel) do
     from(p in Pool, where: p.hostname == ^hostname and p.enabled)

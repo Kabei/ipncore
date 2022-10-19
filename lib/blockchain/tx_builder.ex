@@ -397,82 +397,6 @@ defmodule Ipncore.TxBuilder do
 
   @doc """
   USAGE:
-  Ipncore.TxBuilder.test(5000)
-  """
-  def test(amount, data_type \\ "json") do
-    timestamp = Chain.get_time()
-
-    build!(
-      "regular",
-      Block.next_index(timestamp),
-      @pk_alice,
-      @sk_alice,
-      @address_alice_i,
-      @address_bob_i,
-      @pool_address,
-      timestamp,
-      @token,
-      amount,
-      0,
-      @channel
-    )
-    |> io_puts(data_type)
-  end
-
-  @doc """
-  USAGE:
-  Ipncore.TxBuilder.channel_create("IPN-001", :raw) |> Ipncore.Tx.processing
-  Ipncore.TxBuilder.channel_create("IPN-003", :raw) |> Ipncore.Tx.processing
-  """
-
-  # def channel_create(channel_id, data_type \\ "json") do
-  #   time = :erlang.system_time(:millisecond)
-  #   owner_secret_key = PlatformOwner.secret_key()
-  #   channel_pubkey = PlatformOwner.pubkey()
-  #   next_index = Block.next_index(time)
-  #   type = Tx.type_index("channel register")
-
-  #   channel_data =
-  #     %{
-  #       "id" => channel_id,
-  #       "pubkey" => channel_pubkey,
-  #       "time" => time
-  #     }
-  #     |> CBOR.encode()
-
-  #   tx =
-  #     %Tx{
-  #       block_index: next_index,
-  #       out_count: 0,
-  #       amount: 0,
-  #       time: time,
-  #       type: type,
-  #       status: 200,
-  #       vsn: 0,
-  #       inputs: [],
-  #       outputs: []
-  #     }
-  #     |> Tx.put_hash(channel_data)
-
-  #   {:ok, signature} = Falcon.sign(owner_secret_key, tx.hash)
-
-  #   %{
-  #     id: channel_id,
-  #     sig: Base.encode64(signature),
-  #     pubkey: Base.encode64(channel_pubkey),
-  #     type: "channel register",
-  #     time: time,
-  #     version: 0
-  #   }
-  #   |> io_puts(data_type)
-  # end
-
-  @doc """
-  USAGE:
-  Ipncore.TxBuilder.token_create("IPN-003", "IPN", "IPPAN", 9, %{"symbol" => "Þ"}, :raw) |> Ipncore.Tx.processing
-  Ipncore.TxBuilder.token_create("IPN-001", "GBP", "Pound", 2, %{"symbol" => "£"}, :raw) |> Ipncore.Tx.processing
-  Ipncore.TxBuilder.token_create("IPN-001", "USD", "Dollar", 2, %{"symbol" => "$"}, :raw) |> Ipncore.Tx.processing
-
   alias Ipncore.TxBuilder
   TxBuilder.token_create("IPN-003", "EUR", "Euro", TxBuilder.alice_address58(), TxBuilder.alice_address58(), 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
   """
@@ -674,7 +598,7 @@ defmodule Ipncore.TxBuilder do
   Ipncore.TxBuilder.send_coinbase("USD", 1_500_000, [{user2, 1_500_000}])
   Ipncore.TxBuilder.send_coinbase("EUR", 7_500_000, [{user2, 7_500_000}])
 
-  Ipncore.TxBuilder.send_coinbase("USD", 1_500_000, [{user3, 1_500_000}], :raw) |> Ipncore.Tx.processing
+  Ipncore.TxBuilder.send_coinbase("IPN-003", "USD", 1_500_000, [{user3, 1_500_000}], :raw) |> Ipncore.Tx.processing
   """
   def send_coinbase(channel, token, amount, outputs, data_type \\ "json") do
     owner_secret_key = PlatformOwner.secret_key()
@@ -859,47 +783,6 @@ defmodule Ipncore.TxBuilder do
     {inputs, ret_output, total_value}
   end
 
-  defp tx_calc_size(
-         next_index,
-         from_address,
-         pool_address,
-         token,
-         inputs,
-         base_outputs
-       ) do
-    next_index_size = byte_size(:binary.encode_unsigned(next_index))
-    tx_index_size = next_index_size + 8
-    output_index_size = next_index_size + 8 + 3
-    outputs_size = outputs_calc_size(output_index_size, base_outputs)
-    inputs_size = inputs_calc_size(inputs, tx_index_size)
-    token_size = byte_size(token)
-
-    base_size = 96 + 625 + inputs_size + outputs_size
-    returned_size = output_index_size + token_size + 8 + byte_size(from_address)
-    pool_fees_size = output_index_size + token_size + 8 + byte_size(pool_address)
-
-    fees_size = pool_fees_size
-
-    IO.inspect("tx_index_size #{tx_index_size}")
-    IO.inspect("inputs_size #{inputs_size}")
-    IO.inspect("outputs_size #{outputs_size}")
-    IO.inspect("base_size #{fees_size}")
-    IO.inspect("fees_size #{fees_size}")
-    IO.inspect("returned_size #{returned_size}")
-
-    {base_size, returned_size, fees_size}
-  end
-
-  defp inputs_calc_size(list_inputs, tx_index_size) do
-    Enum.reduce(list_inputs, 0, &(byte_size(&1) + tx_index_size + &2))
-  end
-
-  defp outputs_calc_size(index_size, outputs) do
-    Enum.reduce(outputs, 0, fn x, acc ->
-      index_size + byte_size(x.tid) + 8 + byte_size(x.address) + acc
-    end)
-  end
-
   defp get_utxo!(addresses, token, req_amount, channel) do
     IO.inspect("get_utxo")
     IO.inspect(addresses)
@@ -922,22 +805,6 @@ defmodule Ipncore.TxBuilder do
     end
 
     result
-  end
-
-  defp build_output_fees(_pool_address, _token, 0), do: []
-
-  defp build_output_fees(pool_address, token, value) do
-    pool_value = trunc(value * 0.01)
-    core_value = value - pool_value
-
-    [
-      %{
-        address: pool_address,
-        tid: token,
-        type: @output_type_fee,
-        value: pool_value
-      }
-    ]
   end
 
   defp outputs_base58(x) do

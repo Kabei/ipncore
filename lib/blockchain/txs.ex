@@ -1573,7 +1573,6 @@ defmodule Ipncore.Tx do
       sig_count: x.sig_count,
       time: x.time,
       total_input: x.total_input,
-      total_output: x.total_output,
       vsn: x.vsn
     }
   end

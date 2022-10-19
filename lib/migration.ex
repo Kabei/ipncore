@@ -1,6 +1,5 @@
 defmodule Ipncore.Migration do
   alias Ipncore.{Channel, Repo}
-  import Ecto.Query
 
   alias Ipncore.Migration.{
     Blockchain,

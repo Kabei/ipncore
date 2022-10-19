@@ -217,7 +217,7 @@ defmodule Ipncore.Txo do
     |> filter_select(params)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
-    |> transform()
+    |> transform(params)
   end
 
   defp filter_index(query, %{"hash" => hash16}) do
@@ -277,16 +277,30 @@ defmodule Ipncore.Txo do
       type: o.type,
       value: o.value,
       address: o.address,
+      available: o.avail,
       meta: tk.meta
     })
+  end
+
+  defp filter_select(query, %{"show" => "array"}) do
+    select(query, [o], [
+      o.id,
+      o.address,
+      o.tid,
+      o.type,
+      o.value,
+      o.avail
+    ])
   end
 
   defp filter_select(query, _params) do
     select(query, [o], %{
       id: o.id,
       token: o.tid,
+      type: o.type,
       value: o.value,
-      address: o.address
+      address: o.address,
+      available: o.avail
     })
   end
 
@@ -300,7 +314,20 @@ defmodule Ipncore.Txo do
     end
   end
 
-  defp transform(txos) do
+  defp transform(txos, %{"show" => "array"}) do
+    Enum.map(txos, fn [id, address, token, type, value, avail] ->
+      [
+        Base62.encode(id),
+        Base58Check.encode(address),
+        token,
+        type,
+        value,
+        avail
+      ]
+    end)
+  end
+
+  defp transform(txos, _) do
     Enum.map(txos, fn x ->
       %{x | id: Base62.encode(x.id), address: Base58Check.encode(x.address)}
     end)

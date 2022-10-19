@@ -149,9 +149,8 @@ defmodule Ipncore.Token do
     )
   end
 
-  def multi_update(multi, name, token_id, params, amount, time, channel) do
-    query = from(tk in Token, where: tk.id == ^token_id)
-    # and tk.updated_at + @delay_edit < ^time)
+  def multi_update(multi, name, token_id, params, time, channel) do
+    query = from(tk in Token, where: tk.id == ^token_id and tk.updated_at + @delay_edit < ^time)
 
     params =
       params
@@ -163,7 +162,20 @@ defmodule Ipncore.Token do
       multi,
       name,
       query,
-      [set: params, inc: [supply: amount]],
+      [set: params],
+      returning: false,
+      prefix: channel
+    )
+  end
+
+  def multi_update_stats(multi, name, token_id, amount, time, channel) do
+    query = from(tk in Token, where: tk.id == ^token_id)
+
+    Ecto.Multi.update_all(
+      multi,
+      name,
+      query,
+      [set: [updated_at: time], inc: [supply: amount]],
       returning: false,
       prefix: channel
     )

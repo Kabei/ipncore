@@ -424,56 +424,57 @@ defmodule Ipncore.TxBuilder do
   Ipncore.TxBuilder.channel_create("IPN-001", :raw) |> Ipncore.Tx.processing
   Ipncore.TxBuilder.channel_create("IPN-003", :raw) |> Ipncore.Tx.processing
   """
-  def channel_create(channel_id, data_type \\ "json") do
-    time = :erlang.system_time(:millisecond)
-    owner_secret_key = PlatformOwner.secret_key()
-    channel_pubkey = PlatformOwner.pubkey()
-    next_index = Block.next_index(time)
-    type = Tx.type_index("channel register")
 
-    channel_data =
-      %{
-        "id" => channel_id,
-        "pubkey" => channel_pubkey,
-        "time" => time
-      }
-      |> CBOR.encode()
+  # def channel_create(channel_id, data_type \\ "json") do
+  #   time = :erlang.system_time(:millisecond)
+  #   owner_secret_key = PlatformOwner.secret_key()
+  #   channel_pubkey = PlatformOwner.pubkey()
+  #   next_index = Block.next_index(time)
+  #   type = Tx.type_index("channel register")
 
-    tx =
-      %Tx{
-        block_index: next_index,
-        out_count: 0,
-        amount: 0,
-        time: time,
-        type: type,
-        status: 200,
-        vsn: 0,
-        inputs: [],
-        outputs: []
-      }
-      |> Tx.put_hash(channel_data)
+  #   channel_data =
+  #     %{
+  #       "id" => channel_id,
+  #       "pubkey" => channel_pubkey,
+  #       "time" => time
+  #     }
+  #     |> CBOR.encode()
 
-    {:ok, signature} = Falcon.sign(owner_secret_key, tx.hash)
+  #   tx =
+  #     %Tx{
+  #       block_index: next_index,
+  #       out_count: 0,
+  #       amount: 0,
+  #       time: time,
+  #       type: type,
+  #       status: 200,
+  #       vsn: 0,
+  #       inputs: [],
+  #       outputs: []
+  #     }
+  #     |> Tx.put_hash(channel_data)
 
-    %{
-      id: channel_id,
-      sig: Base.encode64(signature),
-      pubkey: Base.encode64(channel_pubkey),
-      type: "channel register",
-      time: time,
-      version: 0
-    }
-    |> io_puts(data_type)
-  end
+  #   {:ok, signature} = Falcon.sign(owner_secret_key, tx.hash)
+
+  #   %{
+  #     id: channel_id,
+  #     sig: Base.encode64(signature),
+  #     pubkey: Base.encode64(channel_pubkey),
+  #     type: "channel register",
+  #     time: time,
+  #     version: 0
+  #   }
+  #   |> io_puts(data_type)
+  # end
 
   @doc """
   USAGE:
   Ipncore.TxBuilder.token_create("IPN-003", "IPN", "IPPAN", 9, %{"symbol" => "Þ"}, :raw) |> Ipncore.Tx.processing
   Ipncore.TxBuilder.token_create("IPN-001", "GBP", "Pound", 2, %{"symbol" => "£"}, :raw) |> Ipncore.Tx.processing
   Ipncore.TxBuilder.token_create("IPN-001", "USD", "Dollar", 2, %{"symbol" => "$"}, :raw) |> Ipncore.Tx.processing
-  
+
   alias Ipncore.TxBuilder
-  TxBuilder.token_create("IPN-003", "EUR", "Euro", Txbuilder.alice_address58(), Txbuilder.alice_address58(), 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
+  TxBuilder.token_create("IPN-003", "EUR", "Euro", TxBuilder.alice_address58(), TxBuilder.alice_address58(), 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
   """
   def token_create(
         channel,
@@ -675,98 +676,10 @@ defmodule Ipncore.TxBuilder do
 
   Ipncore.TxBuilder.send_coinbase("USD", 1_500_000, [{user3, 1_500_000}], :raw) |> Ipncore.Tx.processing
   """
-  def send_coinbase(token, amount, outputs, data_type \\ "json") do
+  def send_coinbase(channel, token, amount, outputs, data_type \\ "json") do
     owner_secret_key = PlatformOwner.secret_key()
     timestamp = Chain.get_time()
 
-    build_coinbase!(
-      "coinbase",
-      amount,
-      token,
-      owner_secret_key,
-      timestamp,
-      outputs
-    )
-    |> io_puts(data_type)
-  end
-
-  @doc """
-  USAGE:
-  seed = Base.decode16!("3da174abfda25b008749c6b5b0a5294ece6769a7ee55b76afa8fc7365cb6c31fb14dcbcabb892f2965d0ad2d542cbb7f", case: :lower)
-  post_seed = Crypto.hash3(seed, :sha3_384)
-  {:ok, pk, sk} = Falcon.gen_keys_from_seed(post_seed)
-  to_address = Base58Check.decode("23hfxYiRDcmDAPwJwsgiF2pXuxejw")
-  from_address = pk |> Ipnutils.Address.to_internal_address()
-
-  247iw1qPaL9j1JgrEedcmVVPESX9X
-
-  Ipncore.TxBuilder.send(pk, sk, from_address, to_address, "USD", 58)
-  """
-  def send(pubkey, secret_key, from_address, to_address, token, amount, data_type \\ "json") do
-    timestamp = Chain.get_time()
-
-    build!(
-      "regular",
-      Block.next_index(timestamp),
-      pubkey,
-      secret_key,
-      from_address,
-      to_address,
-      @pool_address,
-      timestamp,
-      token,
-      amount,
-      0,
-      @channel
-    )
-    |> io_puts(data_type)
-  end
-
-  @spec build!(
-          binary(),
-          pos_integer(),
-          binary(),
-          binary(),
-          binary(),
-          binary(),
-          binary(),
-          pos_integer(),
-          binary(),
-          pos_integer(),
-          pos_integer(),
-          binary()
-        ) :: :ok
-  defp build!(
-         type,
-         current_block_index,
-         public_key,
-         secret_key,
-         from_address,
-         to_address,
-         pool_address,
-         timestamp,
-         token,
-         amount,
-         amount_init_fees,
-         channel
-       ) do
-    base_outputs = [
-      %{
-        address: to_address,
-        tid: token,
-        value: amount
-      }
-    ]
-  end
-
-  defp build_coinbase!(
-         type,
-         amount,
-         token,
-         secret_key,
-         timestamp,
-         outputs
-       ) do
     {txo, txo_amount} =
       Enum.reduce(outputs, {[], 0}, fn {address, value}, {acc_outputs, acc_total} ->
         {acc_outputs ++
@@ -783,6 +696,7 @@ defmodule Ipncore.TxBuilder do
     if txo_amount != amount, do: throw(:invalid_amount)
 
     pre_tx = %{
+      channel: channel,
       outputs: txo,
       time: timestamp,
       token: token,
@@ -795,61 +709,37 @@ defmodule Ipncore.TxBuilder do
     {:ok, signature} = Falcon.sign(secret_key, hash)
 
     pre_tx
-    |> Map.put(:channel, @channel)
-    |> Map.put(:outputs, output_base58(txo))
+    |> Map.put(:outputs, outputs_base58(outputs))
     |> Map.put(:sig, Base.encode64(signature))
   end
 
-  def pre_build!(
+  @doc """
+  USAGE:
+  seed = Base.decode16!("3da174abfda25b008749c6b5b0a5294ece6769a7ee55b76afa8fc7365cb6c31fb14dcbcabb892f2965d0ad2d542cbb7f", case: :lower)
+  post_seed = Crypto.hash3(seed, :sha3_384)
+  {:ok, pk, sk} = Falcon.gen_keys_from_seed(post_seed)
+  to_address = Base58Check.decode("23hfxYiRDcmDAPwJwsgiF2pXuxejw")
+  from_address = pk |> Ipnutils.Address.to_internal_address()
+
+  247iw1qPaL9j1JgrEedcmVVPESX9X
+
+  Ipncore.TxBuilder.send("IPN-003", pk, sk, from_address, to_address, "USD", 58)
+  """
+  def send(
+        channel,
+        pubkey,
+        secret_key,
         from_address,
         to_address,
-        pool_address,
         token,
         amount,
-        channel
-      )
-      when token != @token do
-    fees = :math.sqrt(amount) |> trunc()
-    pool_fees = ceil(fees * 0.01)
-    core_fees = fees - pool_fees
-
-    base_outputs = [
-      %{
-        address: to_address,
-        tid: token,
-        type: @output_type_send,
-        value: amount
-      },
-      %{
-        address: pool_address,
-        tid: @token,
-        type: @output_type_fee,
-        value: pool_fees
-      }
-    ]
-
-    {inputs, ret_output, _total_value} = get_inputs!(from_address, token, amount, channel)
-
-    {inputs2, ret_output2, _total_value2} = get_inputs!(from_address, @token, fees, channel)
-
-    %{
-      inputs: inputs ++ inputs2,
-      fees: fees,
-      outputs: base_outputs ++ [ret_output] ++ [ret_output2]
-    }
-  end
-
-  def pre_build!(
-        from_address,
-        to_address,
-        pool_address,
-        token,
-        amount,
-        channel
+        pool,
+        data_type \\ "json"
       ) do
-    fees = :math.sqrt(amount) |> trunc()
-    pool_fees = ceil(fees * 0.01)
-    core_fees = fees - pool_fees
+    timestamp = Chain.get_time()
+    diff_ipn = @token != token
+
+    fee = Tx.calc_fees(amount, pool.fee, pool.percent, 0)
 
     base_outputs = [
       %{
@@ -859,16 +749,49 @@ defmodule Ipncore.TxBuilder do
         value: amount
       },
       %{
-        address: pool_address,
+        address: pool.address,
         tid: @token,
         type: @output_type_fee,
-        value: pool_fees
+        value: fee
       }
     ]
 
-    {inputs, ret_output, _total_value} = get_inputs!(from_address, token, amount + fees, channel)
+    {inputs, outputs} =
+      if diff_ipn do
+        {inputs, ret_output, _total_value} = get_inputs!(from_address, token, amount, channel)
 
-    %{inputs: inputs, fees: fees, outputs: base_outputs ++ [ret_output]}
+        {inputs2, ret_output2, _total_value} = get_inputs!(from_address, @token, amount, channel)
+
+        {inputs ++ inputs2, base_outputs ++ ret_output ++ ret_output2}
+      else
+        {inputs, ret_output, _total_value} = get_inputs!(from_address, token, amount, channel)
+
+        {inputs, base_outputs ++ ret_output}
+      end
+
+    pre_tx = %{
+      channel: channel,
+      outputs: txo,
+      time: timestamp,
+      token: token,
+      type: type,
+      version: 0
+    }
+
+    hash = Tx.compute_hash(pre_tx)
+    IO.inspect("hash #{Base.encode16(hash)}")
+    {:ok, signature} = Falcon.sign(secret_key, hash)
+
+    pre_tx
+    |> Map.put(:outputs, outputs_base58(txo))
+    |> Map.put(:sigs, [
+      %{
+        address: [Base58Check.encode(from_address)],
+        pubkey: Base.encode64(pubkey),
+        sig: Base.encode64(signature)
+      }
+    ])
+    |> io_puts(data_type)
   end
 
   defp io_puts(tx_struct, data_type) do
@@ -1017,13 +940,13 @@ defmodule Ipncore.TxBuilder do
     ]
   end
 
-  defp output_base58(x) do
+  defp outputs_base58(x) do
     Enum.map(x, fn %{address: address, tid: tid, value: value, type: type} ->
       %{address: Base58Check.encode(address), tid: tid, type: type, value: value}
     end)
   end
 
-  defp input_base62(x) do
+  defp inputs_base62(x) do
     Enum.map(x, &Base62.encode(&1))
   end
 end

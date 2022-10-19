@@ -101,15 +101,18 @@ defmodule Ipncore.Txo do
     if output.index > 0, do: :ok, else: {:error, :invalid_output_index}
   end
 
-  def from_request([]), do: []
+  def from_request([], _def_type), do: []
 
-  def from_request([o | rest]) do
+  def from_request([o | rest], def_type \\ @output_type_send) do
     [
       from_request(o)
     ] ++ from_request(rest)
   end
 
-  def from_request(%{"address" => address, "tid" => token, "type" => type, "value" => value})
+  def from_request(
+        %{"address" => address, "tid" => token, "type" => type, "value" => value},
+        def_type
+      )
       when value > 0 and
              type in [@output_type_send, @output_type_fee, @output_type_return] do
     %Txo{
@@ -120,12 +123,12 @@ defmodule Ipncore.Txo do
     }
   end
 
-  def from_request(%{"address" => address, "tid" => token, "value" => value})
+  def from_request(%{"address" => address, "tid" => token, "value" => value}, def_type)
       when value > 0 do
     %Txo{
       address: Base58Check.decode(address),
       tid: token,
-      type: @output_type_send,
+      type: def_type,
       value: value
     }
   end
@@ -165,21 +168,6 @@ defmodule Ipncore.Txo do
           false ->
             throw(40216)
         end
-      end)
-
-    {outputs, Enum.uniq(tokens), Enum.uniq(address), total}
-  end
-
-  @spec from_request_extract([t]) :: {List.t(), List.t(), List.t(), pos_integer()}
-  def from_request_extract(outputs) do
-    {outputs, tokens, address, total} =
-      Enum.reduce(outputs, {[], [], [], 0}, fn %{
-                                                 "address" => address,
-                                                 "tid" => tid,
-                                                 "value" => value
-                                               } = x,
-                                               {o, t, a, v} ->
-        {o ++ [from_request(x)], t ++ [tid], a ++ [address], v + value}
       end)
 
     {outputs, Enum.uniq(tokens), Enum.uniq(address), total}
@@ -264,8 +252,12 @@ defmodule Ipncore.Txo do
 
   defp filter_index(query, _params), do: query
 
-  defp filter_available(query, %{"used" => _}) do
+  defp filter_available(query, %{"used" => "0"}) do
     where(query, [txo], txo.avail == false)
+  end
+
+  defp filter_available(query, %{"used" => "1"}) do
+    where(query, [txo], txo.avail == true)
   end
 
   defp filter_available(query, _params), do: query

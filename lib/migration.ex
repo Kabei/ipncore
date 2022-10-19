@@ -19,7 +19,7 @@ defmodule Ipncore.Migration do
     end
 
     Channel.all()
-    |> cond do
+    |> case do
       [] ->
         Channel.new(%{
           "id" => @channel,

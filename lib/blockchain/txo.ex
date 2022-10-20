@@ -206,11 +206,7 @@ defmodule Ipncore.Txo do
   end
 
   def multi_update_avail(multi, name, oids, channel, value) do
-    query =
-      from(txo in Txo,
-        where: txo.id in ^oids,
-        update: [set: [avail: ^value]]
-      )
+    query = from(txo in Txo, where: txo.id in ^oids)
 
     Ecto.Multi.update_all(
       multi,

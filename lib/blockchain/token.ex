@@ -184,7 +184,7 @@ defmodule Ipncore.Token do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)
     |> filter_select()
     |> Repo.one(prefix: channel)
-    |> transform()
+    |> transform_one()
   end
 
   def all(params) do
@@ -194,7 +194,7 @@ defmodule Ipncore.Token do
     |> filter_group(params)
     |> filter_offset(params)
     |> filter_limit(params, 50, 100)
-    |> filter_select()
+    |> filter_select(params)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
     |> filter_map()
@@ -218,10 +218,25 @@ defmodule Ipncore.Token do
 
   defp filter_group(query, _params), do: query
 
-  defp filter_select(query) do
+  defp filter_select(query, %{"format" => "array"}) do
+    select(query, [tk], [
+      tk.id,
+      tk.name,
+      tk.type,
+      tk.creator,
+      tk.owner,
+      tk.decimals,
+      tk.supply,
+      tk.props
+    ])
+  end
+
+  defp filter_select(query, _params) do
     select(query, [tk], %{
       id: tk.id,
       name: tk.name,
+      creator: tk.creator,
+      owner: tk.owner,
       decimals: tk.decimals,
       props: tk.props,
       type: tk.type,
@@ -240,10 +255,22 @@ defmodule Ipncore.Token do
   end
 
   defp filter_map(data) do
-    Enum.map(data, fn x -> transform(x) end)
+    Enum.map(data, fn x -> transform_one(x) end)
   end
 
-  defp transform(x),
+  defp transform_one([id, name, type, creator, owner, decimals, supply, props]),
+    do: [
+      id,
+      name,
+      type_name(type),
+      Base58Check.encode(creator),
+      Base58Check.encode(owner),
+      decimals,
+      supply,
+      props
+    ]
+
+  defp transform_one(x),
     do: %{
       x
       | type: type_name(x.type),

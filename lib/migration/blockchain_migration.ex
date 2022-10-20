@@ -173,8 +173,8 @@ defmodule Ipncore.Migration.Blockchain do
       # TABLESPACE #{tablespace};
       # """
     ] ++
-      create_functions() ++
-      create_triggers(channel)
+      create_functions()
+      # ++ create_triggers(channel)
   end
 
   def down(%{"channel" => channel}) do

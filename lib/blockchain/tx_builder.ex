@@ -389,9 +389,11 @@ defmodule Ipncore.TxBuilder do
   @doc """
   USAGE:
   alias Ipncore.TxBuilder
-  TxBuilder.token_create(channel, "GBP", "Pound", TxBuilder.alice_address58(), TxBuilder.alice_address58(), 2, %{"symbol" => "£"}, :raw) |> Ipncore.Tx.processing
-  TxBuilder.token_create("IPN-003", "EUR", "Euro", TxBuilder.alice_address58(), TxBuilder.alice_address58(), 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
-  TxBuilder.token_create("IPN-003", "USD", "US Dollar", TxBuilder.alice_address58(), TxBuilder.alice_address58(), 2, %{"symbol" => "$"}, :raw) |> Ipncore.Tx.processing
+  address = Ipnutils.Address.to_internal_address(PlatformOwner.pubkey()) |> Base58Check.encode()
+  TxBuilder.token_create(Default.channel(), Default.token(), Default.token_name(), address, address, Default.token_decimals(), %{"symbol" => Default.token_symbol()}, :raw) |> Ipncore.Tx.processing()
+  TxBuilder.token_create(Default.channel(), "GBP", "Pound", address, address, 2, %{"symbol" => "£"}, :raw) |> Ipncore.Tx.processing
+  TxBuilder.token_create(Default.channel(), "EUR", "Euro", address, address, 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
+  TxBuilder.token_create(Default.channel(), "USD", "Dollar", address, address, 2, %{"symbol" => "$"}, :raw) |> Ipncore.Tx.processing
   """
   def token_create(
         channel,

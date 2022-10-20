@@ -1092,7 +1092,7 @@ defmodule Ipncore.Tx do
 
           # set available txos
           Txo.update_txo_avail(utxo_ids, channel_id, false)
-          Txo.update_txo_avail(txo_ids, channel_id, true)
+          Txo.update_txid_avail(tx.index, channel_id, true)
 
           {:ok, tx}
 

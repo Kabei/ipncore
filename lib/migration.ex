@@ -42,7 +42,7 @@ defmodule Ipncore.Migration do
 
   # test
   # def create_default_token do
-  #   address = Address.to_internal_address(PlatformOwner.pubkey()) |> Base58Check.encode()
+  #   address = Ipnutils.Address.to_internal_address(PlatformOwner.pubkey()) |> Base58Check.encode()
   #   TxBuilder.token_create(Default.channel(), Default.token(), Default.token_name(), address, address, Default.token_decimals(), %{"symbol" => Default.token_symbol()}, :raw) |> Ipncore.Tx.processing()
   # end
 

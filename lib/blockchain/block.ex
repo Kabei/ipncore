@@ -178,7 +178,7 @@ defmodule Ipncore.Block do
       }) do
     [
       :binary.encode_unsigned(version),
-      channel(),
+      Default.channel(),
       :binary.encode_unsigned(height),
       :binary.encode_unsigned(index),
       Utils.normalize(prev),

@@ -205,7 +205,7 @@ defmodule Ipncore.Txo do
     |> Repo.update_all([], prefix: channel_id)
   end
 
-  def multi_update_avail(multi, name, ids, channel, value) do
+  def multi_update_avail(multi, name, oids, channel, value) do
     query =
       from(txo in Txo,
         where: txo.id in ^oids,

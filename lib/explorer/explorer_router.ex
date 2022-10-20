@@ -53,7 +53,7 @@ defmodule Ipncore.Explorer.Router do
   end
 
   get "/token/:token/:channel" do
-    resp = Token.get(token, channel)
+    resp = Token.get(token, channel, conn.params)
     send_result(conn, resp)
   end
 

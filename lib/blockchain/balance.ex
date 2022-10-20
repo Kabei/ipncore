@@ -13,7 +13,7 @@ defmodule Ipncore.Balance do
           in_count: pos_integer(),
           tx_count: pos_integer(),
           created_at: pos_integer(),
-          update: pos_integer()
+          updated_at: pos_integer()
         }
 
   @output_type_fee "%"
@@ -26,7 +26,7 @@ defmodule Ipncore.Balance do
     field(:in_count, Ecto.Amount, default: 0)
     field(:tx_count, Ecto.Amount, default: 0)
     field(:created_at, :integer, default: 0)
-    field(:update, :integer, default: 0)
+    field(:updated_at, :integer, default: 0)
   end
 
   defmacrop balance_select() do
@@ -313,7 +313,7 @@ defmodule Ipncore.Balance do
         order_by(query, [_b, tk], asc: tk.created_at)
 
       "recent" ->
-        order_by(query, [b, _tk], desc: b.update)
+        order_by(query, [b, _tk], desc: b.updated_at)
 
       "most_value" ->
         order_by(query, [b], desc: b.amount)
@@ -352,7 +352,7 @@ defmodule Ipncore.Balance do
           tx_count: 1,
           out_count: abs(x.value),
           created_at: time,
-          update: time
+          updated_at: time
         }
       end)
 
@@ -366,7 +366,7 @@ defmodule Ipncore.Balance do
             out_count: fragment("EXCLUDED.out_count")
           ],
           set: [
-            update: ^time
+            updated_at: ^time
           ]
         ]
       )
@@ -391,7 +391,7 @@ defmodule Ipncore.Balance do
           tx_count: 1,
           out_count: 0,
           created_at: time,
-          update: time
+          updated_at: time
         }
       end)
 
@@ -407,7 +407,7 @@ defmodule Ipncore.Balance do
             in_count: fragment("EXCLUDED.in_count")
           ],
           set: [
-            update: ^time
+            updated_at: ^time
           ]
         ]
       )

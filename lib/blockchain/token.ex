@@ -182,7 +182,7 @@ defmodule Ipncore.Token do
 
   def get(token_id, channel) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)
-    |> filter_select()
+    |> filter_select(nil)
     |> Repo.one(prefix: channel)
     |> transform_one()
   end

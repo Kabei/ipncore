@@ -29,7 +29,7 @@ defmodule Ipncore.Pool do
           "percent" => percent
         },
         time
-      ) do
+      ) when fee > 0 do
     %Pool{
       hostname: hostname,
       name: name,

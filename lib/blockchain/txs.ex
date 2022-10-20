@@ -894,7 +894,7 @@ defmodule Ipncore.Tx do
       signature = Base.decode64!(sig64)
 
       {txo, uTokens, unique_addresses, total} =
-        Txo.from_request_coinbase!(outputs, @output_type_coinbase)
+        Txo.from_request_coinbase!(outputs)
 
       if [token_id] != uTokens, do: throw(40213)
       if length(unique_addresses) != out_count, do: throw(40214)

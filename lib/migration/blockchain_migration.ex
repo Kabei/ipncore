@@ -174,7 +174,8 @@ defmodule Ipncore.Migration.Blockchain do
       # """
     ] ++
       create_functions()
-      # ++ create_triggers(channel)
+
+    # ++ create_triggers(channel)
   end
 
   def down(%{"channel" => channel}) do

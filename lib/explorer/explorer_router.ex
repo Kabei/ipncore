@@ -169,12 +169,13 @@ defmodule Ipncore.Explorer.Router do
   get "/status/:channel_id" do
     genesis_time = Chain.genesis_time()
     channel = Channel.get(channel_id)
+    token = Token.get(Default.token())
 
     resp = %{
       blocks: channel.block_count,
       genesis_time: genesis_time,
       iit: Chain.get_time(),
-      coins: channel.coins,
+      coins: token.supply,
       tx_count: channel.tx_count,
       next_index: Block.next_index()
     }

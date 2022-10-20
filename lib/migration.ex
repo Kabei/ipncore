@@ -39,26 +39,25 @@ defmodule Ipncore.Migration do
             Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
           end
         end
-
-        create_default_token()
     end
   end
 
-  def create_default_token do
-    address = Address.to_internal_adress(PlatformOwner.pubkey())
+  # test
+  # def create_default_token do
+  #   address = Address.to_internal_adress(PlatformOwner.pubkey())
 
-    TxBuilder.token_create(
-      channel,
-      Default.token(),
-      Default.token_name(),
-      address,
-      address,
-      Default.token_decimals(),
-      %{"symbol" => Default.token_symbol()},
-      :raw
-    )
-    |> Ipncore.Tx.processing()
-  end
+  #   TxBuilder.token_create(
+  #     channel,
+  #     Default.token(),
+  #     Default.token_name(),
+  #     address,
+  #     address,
+  #     Default.token_decimals(),
+  #     %{"symbol" => Default.token_symbol()},
+  #     :raw
+  #   )
+  #   |> Ipncore.Tx.processing()
+  # end
 
   # def start do
   #   migration_version = Application.get_env(@otp_app, :migration_version)

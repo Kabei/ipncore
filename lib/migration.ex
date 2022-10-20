@@ -6,8 +6,6 @@ defmodule Ipncore.Migration do
     System
   }
 
-  alias Ipncore.TxBuilder
-
   @prefix "sys"
   @otp_app :ipncore
 

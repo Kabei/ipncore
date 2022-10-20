@@ -7,7 +7,7 @@ defmodule Ipncore.Block do
   alias __MODULE__
 
   @version Default.version()
-  @interval Dafault.interval()
+  @interval Default.interval()
 
   @block_type_genesis 0
   @block_type_regular 100

@@ -218,7 +218,7 @@ defmodule Ipncore.Token do
 
   defp filter_group(query, _params), do: query
 
-  defp filter_select(query, %{"format" => "array"}) do
+  defp filter_select(query, %{"fmt" => "array"}) do
     select(query, [tk], [
       tk.id,
       tk.name,

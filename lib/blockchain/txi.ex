@@ -118,7 +118,7 @@ defmodule Ipncore.Txi do
     })
   end
 
-  defp filter_select(query, %{"format" => "array"}) do
+  defp filter_select(query, %{"fmt" => "array"}) do
     select(query, [txi, o], [
       txi.oid,
       o.address,
@@ -146,7 +146,7 @@ defmodule Ipncore.Txi do
     end
   end
 
-  defp transform(txis, %{"format" => "array"}) do
+  defp transform(txis, %{"fmt" => "array"}) do
     Enum.map(txis, fn [id, address, token, value] ->
       [Base62.encode(id), Base58Check.encode(address), token, value]
     end)

@@ -205,6 +205,23 @@ defmodule Ipncore.Txo do
     |> Repo.update_all([], prefix: channel_id)
   end
 
+  def multi_update_avail(multi, name, ids, channel, value) do
+    query =
+      from(txo in Txo,
+        where: fragment("substring(?::bytea from 1 for ?)", txo.id, ^byte_size(txid)) == ^txid,
+        update: [set: [avail: ^value]]
+      )
+
+    Ecto.Multi.update_all(
+      multi,
+      name,
+      query,
+      [set: [avail: value]],
+      returning: false,
+      prefix: channel
+    )
+  end
+
   def all(params) do
     from(Txo)
     |> where([o], not is_nil(o.avail))

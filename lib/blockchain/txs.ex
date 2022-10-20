@@ -1077,6 +1077,7 @@ defmodule Ipncore.Tx do
       |> TxData.multi_insert(:txdata, tx.index, memo, @mime_text, channel_id)
       |> Ecto.Multi.insert_all(:txi, Txi, tx.inputs, prefix: channel_id, returning: false)
       |> Ecto.Multi.insert_all(:txo, Txo, tx.outputs, prefix: channel_id, returning: false)
+      |> Txo.multi_update_avail(:utxo, utxo_ids, channel_id, false)
       |> Balance.multi_upsert_outgoings(:outgoings, outgoings, tx.time, channel_id)
       |> Balance.multi_upsert_incomes(:incomes, incomes, tx.time, channel_id)
       |> Repo.transaction()
@@ -1091,7 +1092,6 @@ defmodule Ipncore.Tx do
           # TxPool.put(tx.index, tx_pool)
 
           # set available txos
-          Txo.update_txo_avail(utxo_ids, channel_id, false)
           Txo.update_txid_avail(tx.index, channel_id, true)
 
           {:ok, tx}

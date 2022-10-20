@@ -23,7 +23,7 @@ defmodule Ipncore.Chain do
 
     genesis_time = genesis_time()
     iit = get_time()
-    cycle = PlatformOwner.interval()
+    cycle = Default.interval()
 
     calc_time = cycle - rem(iit - genesis_time, cycle)
 

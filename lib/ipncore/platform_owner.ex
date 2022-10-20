@@ -6,8 +6,6 @@ defmodule PlatformOwner do
   # 176, 175, 248, 195, 13, 161, 180, 81, 91, 204, 239, 39, 45, 64>>
 
   def name, do: "IPPAN LTD"
-  def origin, do: ~r/coins.ippan.com/
-  def interval, do: 60_000
   def token, do: "IPN"
 
   def pubkey do

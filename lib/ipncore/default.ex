@@ -5,6 +5,11 @@ defmodule Default do
   def server_name, do: "IPPAN"
   def channel, do: Application.get_env(:ipncore, :channel)
   def token, do: "IPN"
+  def token_name, do: "Instant Personal Network"
+  def token_symbol, do: "Þ"
+  def token_decimals, do: 9
+  def interval, do: Application.get_env(:ipncore, :block_interval)
+
   # def address, do: Application.get_env(:ipncore, :address)
 
   # # types range

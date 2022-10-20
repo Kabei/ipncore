@@ -372,7 +372,7 @@ defmodule Ipncore.TxBuilder do
   # @pool_address <<1, 117, 20, 20, 174, 95, 18, 250, 81, 169, 7, 70, 118, 152, 241, 76, 243, 101,
   #                 67, 3, 211>>
 
-  @token PlatformOwner.token()
+  @token Default.token()
 
   @output_type_send "S"
   @output_type_fee "%"
@@ -389,7 +389,9 @@ defmodule Ipncore.TxBuilder do
   @doc """
   USAGE:
   alias Ipncore.TxBuilder
+  TxBuilder.token_create(channel, "GBP", "Pound", TxBuilder.alice_address58(), TxBuilder.alice_address58(), 2, %{"symbol" => "£"}, :raw) |> Ipncore.Tx.processing
   TxBuilder.token_create("IPN-003", "EUR", "Euro", TxBuilder.alice_address58(), TxBuilder.alice_address58(), 2, %{"symbol" => "€"}, :raw) |> Ipncore.Tx.processing
+  TxBuilder.token_create("IPN-003", "USD", "US Dollar", TxBuilder.alice_address58(), TxBuilder.alice_address58(), 2, %{"symbol" => "$"}, :raw) |> Ipncore.Tx.processing
   """
   def token_create(
         channel,

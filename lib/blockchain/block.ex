@@ -7,7 +7,7 @@ defmodule Ipncore.Block do
   alias __MODULE__
 
   @version Default.version()
-  @interval PlatformOwner.interval()
+  @interval Dafault.interval()
 
   @block_type_genesis 0
   @block_type_regular 100
@@ -39,8 +39,6 @@ defmodule Ipncore.Block do
   end
 
   def version, do: @version
-  def interval_time, do: @interval
-  def channel, do: Application.get_env(:ipncore, :channel)
 
   @primary_key {:index, :integer, []}
   # @foreign_key_type :integer

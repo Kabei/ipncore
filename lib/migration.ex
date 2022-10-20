@@ -6,6 +6,8 @@ defmodule Ipncore.Migration do
     System
   }
 
+  alias Ipncore.TxBuilder
+
   @prefix "sys"
   @otp_app :ipncore
 
@@ -38,6 +40,22 @@ defmodule Ipncore.Migration do
           end
         end
     end
+  end
+
+  def create_default_token do
+    address = Address.to_internal_adress(PlatformOwner.pubkey())
+
+    TxBuilder.token_create(
+      channel,
+      Default.token(),
+      Default.token_name(),
+      address,
+      address,
+      Default.token_decimals(),
+      %{"symbol" => Default.token_symbol()},
+      :raw
+    )
+    |> Ipncore.Tx.processing()
   end
 
   # def start do

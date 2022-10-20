@@ -208,7 +208,7 @@ defmodule Ipncore.Txo do
   def multi_update_avail(multi, name, ids, channel, value) do
     query =
       from(txo in Txo,
-        where: fragment("substring(?::bytea from 1 for ?)", txo.id, ^byte_size(txid)) == ^txid,
+        where: txo.id in ^oids,
         update: [set: [avail: ^value]]
       )
 

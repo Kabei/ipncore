@@ -1009,7 +1009,7 @@ defmodule Ipncore.Tx do
       IO.puts("Tx Here aqui 3")
 
       {utxo_ids, utxo_tokens, utxo_address, utxo_token_values, utxo_total} = Txo.extract(utxo)
-      {txo_ids, txo_tokens, txo_address, txo_token_values, txo_total} = Txo.extract(txo)
+      {_txo_ids, txo_tokens, txo_address, txo_token_values, txo_total} = Txo.extract(txo)
       # IO.puts("#{utxo_total} #{txo_total}")
 
       IO.inspect("token_values")

@@ -181,17 +181,17 @@ defmodule Ipncore.Migration.Blockchain do
     "DROP SCHEMA \"#{channel}\" CASCADE"
   end
 
-  defp create_triggers(channel) do
-    [
-      """
-      CREATE TRIGGER "tg_cancel_approve_txs"
-      BEFORE UPDATE
-      ON "#{channel}".txs
-      FOR EACH ROW
-      EXECUTE PROCEDURE sys.cancel_approve_txs('#{channel}');
-      """
-    ]
-  end
+  # defp create_triggers(channel) do
+  #   [
+  #     """
+  #     CREATE TRIGGER "tg_cancel_approve_txs"
+  #     BEFORE UPDATE
+  #     ON "#{channel}".txs
+  #     FOR EACH ROW
+  #     EXECUTE PROCEDURE sys.cancel_approve_txs('#{channel}');
+  #     """
+  #   ]
+  # end
 
   defp create_functions do
     []

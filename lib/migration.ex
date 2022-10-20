@@ -39,6 +39,8 @@ defmodule Ipncore.Migration do
             Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
           end
         end
+
+        create_default_token()
     end
   end
 

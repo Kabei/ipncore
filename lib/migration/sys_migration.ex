@@ -8,6 +8,7 @@ defmodule Ipncore.Migration.System do
   def up(%{"version" => version}) do
     time = :erlang.system_time(:millisecond)
 
+    # trigger_approved()
     [
       "CREATE SCHEMA IF NOT EXISTS sys",
       """
@@ -38,8 +39,9 @@ defmodule Ipncore.Migration.System do
       """,
       "INSERT INTO sys.env(key, value, added, updated_at) VALUES('version', #{version}, #{time}, #{time})"
     ] ++
-      trigger_approved() ++
       create_functions()
+
+    # ++ trigger_approved()
   end
 
   def down(_) do

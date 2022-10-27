@@ -443,7 +443,7 @@ defmodule Ipncore.TxBuilder do
 
     %{
       "channel" => channel,
-      "token" => %{
+      "data" => %{
         "id" => token_id,
         "creator" => creator58,
         "decimals" => decimals,

@@ -77,17 +77,34 @@ defmodule Ipncore.Txo do
     o.value + compute_sum(rest)
   end
 
-  @spec extract([t]) :: {List.t(), List.t(), List.t(), Map.t(), integer}
-  def extract(outputs) do
-    {ids, tokens, address, token_value, value} =
-      Enum.reduce(outputs, {[], [], [], %{}, 0}, fn x, {ids, t, a, tv, v} ->
+  @spec extract!([t]) :: {[Txo.t()], List.t(), List.t(), List.t(), Map.t(), integer}
+  def extract!(outputs) do
+    {outputs, ids, tokens, address, token_value, value} =
+      Enum.reduce(outputs, {[], [], [], [], %{}, 0}, fn x, {outputs, ids, t, a, tv, v} ->
+        # convert address base58 to binary
+        addr = Base58Check.decode(x.address)
+
+        # check output value major than zero
+        if x.value <= 0, do: throw(40207)
+
+        # check output types
+        if x.type not in [@output_type_send, @output_type_fee, @output_type_return],
+          do: throw(40207)
+
+        output = %Txo{
+          address: addr,
+          tid: x.tid,
+          value: x.value,
+          type: x[:type] || @output_type_send
+        }
+
         value = Map.get(tv, x.tid, 0) + x.value
         token_value = Map.put(tv, x.tid, value)
 
-        {ids ++ [x.id], t ++ [x.tid], a ++ [x.address], token_value, v + x.value}
+        {output ++ outputs, ids ++ [x.id], t ++ [x.tid], a ++ [addr], token_value, v + x.value}
       end)
 
-    {ids, tokens |> Enum.uniq() |> Enum.sort(), Enum.uniq(address), token_value, value}
+    {ids, Enum.uniq(tokens) |> Enum.sort(), Enum.uniq(address), token_value, value}
   end
 
   @spec valid_amount?(Txo) :: :ok | {:error, atom()}
@@ -100,46 +117,8 @@ defmodule Ipncore.Txo do
     if output.index > 0, do: :ok, else: {:error, :invalid_output_index}
   end
 
-  def from_request(txos, def_type \\ @output_type_send)
-  def from_request([], _def_type), do: []
-
-  def from_request([o | rest], def_type) do
-    [
-      from_request_one(o, def_type)
-    ] ++ from_request(rest, def_type)
-  end
-
-  defp from_request_one(
-         %{"address" => address, "tid" => token, "type" => type, "value" => value},
-         _def_type
-       )
-       when value > 0 and
-              type in [@output_type_send, @output_type_fee, @output_type_return] do
-    %Txo{
-      address: Base58Check.decode(address),
-      tid: token,
-      type: type,
-      value: value
-    }
-  end
-
-  defp from_request_one(%{"address" => address, "tid" => token, "value" => value}, def_type)
-       when value > 0 do
-    %Txo{
-      address: Base58Check.decode(address),
-      tid: token,
-      type: def_type,
-      value: value
-    }
-  end
-
-  defp from_request_one(_, _) do
-    IO.inspect("from_request Bad format")
-    throw(40207)
-  end
-
-  @spec from_request_coinbase!([t]) :: {List.t(), List.t(), List.t(), pos_integer()}
-  def from_request_coinbase!(outputs, type \\ @output_type_coinbase) do
+  @spec extract_coinbase!([t]) :: {List.t(), List.t(), List.t(), pos_integer()}
+  def extract_coinbase!(outputs, type \\ @output_type_coinbase) do
     {outputs, tokens, address, total} =
       Enum.reduce(outputs, {[], [], [], 0}, fn %{
                                                  "address" => address,
@@ -187,6 +166,13 @@ defmodule Ipncore.Txo do
     end)
   end
 
+  def multi_insert_all(multi, _name, nil, _channel), do: multi
+  def multi_insert_all(multi, _name, [], _channel), do: multi
+
+  def multi_insert_all(multi, name, outputs, channel) do
+    Ecto.Multi.insert_all(multi, name, Txo, outputs, prefix: channel, returning: false)
+  end
+
   @spec update_txo_avail([binary], binary, boolean) :: {integer, List.t() | nil}
   def update_txo_avail(oids, channel_id, value) when is_list(oids) do
     from(txo in Txo,
@@ -204,6 +190,9 @@ defmodule Ipncore.Txo do
     )
     |> Repo.update_all([], prefix: channel_id)
   end
+
+  def multi_update_avail(multi, _name, nil, _channel, _value), do: multi
+  def multi_update_avail(multi, _name, [], _channel, _value), do: multi
 
   def multi_update_avail(multi, name, oids, channel, value) do
     query = from(txo in Txo, where: txo.id in ^oids)

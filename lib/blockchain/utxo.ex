@@ -135,4 +135,30 @@ defmodule Ipncore.Utxo do
         }
     end
   end
+
+  def extract!(utxos) do
+    {inputs, ids, tokens, address, token_value, value} =
+      Enum.reduce(utxos, {[], [], [], [], %{}, 0}, fn x,
+                                                      {inputs, ids, tokens, addresses, tv, values} ->
+        # convert address base58 to binary
+        # addr = Base58Check.decode(x.address)
+
+        # check output value major than zero
+        if x.value <= 0, do: throw(40207)
+
+        # check output types
+        if x.type not in [@output_type_send, @output_type_fee, @output_type_return],
+          do: throw(40207)
+
+        input = Txi.create(x)
+
+        value = Map.get(tv, x.tid, 0) + x.value
+        token_value = Map.put(tv, x.tid, value)
+
+        {inputs ++ [input], ids ++ [x.id], tokens ++ [x.tid], addresses ++ [x.address],
+         token_value, values + x.value}
+      end)
+
+    {inputs, ids, Enum.uniq(tokens) |> Enum.sort(), Enum.uniq(address), token_value, value}
+  end
 end

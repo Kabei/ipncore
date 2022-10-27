@@ -64,6 +64,13 @@ defmodule Ipncore.Txi do
     end)
   end
 
+  def multi_insert_all(multi, _name, nil, _channel), do: multi
+  def multi_insert_all(multi, _name, [], _channel), do: multi
+
+  def multi_insert_all(multi, name, inputs, channel) do
+    Ecto.Multi.insert_all(multi, name, Txo, inputs, prefix: channel, returning: false)
+  end
+
   def all(params) do
     from(Txi)
     |> join(:inner, [txi], o in Txo, on: o.id == txi.oid)

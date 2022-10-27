@@ -121,4 +121,6 @@ defmodule PlatformOwner do
       247, 9, 244, 240, 200, 242, 252, 197, 30, 249, 11, 19, 21, 222, 42, 3, 11, 7, 20, 28, 44,
       249, 244, 249, 226, 222, 244, 8, 20, 13>>
   end
+
+  def address, do: Address.to_internal_address(pubkey())
 end

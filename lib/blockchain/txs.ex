@@ -46,10 +46,6 @@ defmodule Ipncore.Tx do
   @max_memo_size 255
   @max_data_size 4096
 
-  # mime type
-  @mime_cbor "CBOR"
-  @mime_text "TEXT"
-
   # output types
   @output_type_fee "%"
   @output_type_return "R"
@@ -79,11 +75,13 @@ defmodule Ipncore.Tx do
 
   deftypes do
     [
+      # coinbase
       {0, "coinbase"},
       {1, "jackpot"},
       {2, "greate jackpot"},
       {3, "payconnect"},
       {4, "paystream"},
+      # regular
       {100, "regular"},
       {101, "from request"},
       {102, "non refundable"},
@@ -92,18 +90,26 @@ defmodule Ipncore.Tx do
       {201, "refund"},
       {300, "burned"},
       {301, "withdrawal"},
+      # info
       {1000, "info"},
-      {1001, "channel register"},
-      {1002, "channel update"},
-      {1011, "token_new"},
-      {1012, "token_update"},
-      {1013, "token_delete"},
-      {1100, "dns registry"},
-      {1101, "dns update"},
-      {1102, "dns delete"},
-      {1110, "pool_new"},
-      {1111, "pool_update"},
-      {1112, "pool_delete"}
+      # {1001, "channel register"},
+      # {1002, "channel update"},
+      # token / currency
+      {1100, "token_new"},
+      {1101, "token_update"},
+      {1102, "token_delete"},
+      # dns
+      {1200, "dns_register"},
+      {1201, "dns_update"},
+      {1202, "dns_renew"},
+      {1203, "dns_delete"},
+      {1210, "dns_record_new"},
+      {1211, "dns_record_update"},
+      {1212, "dns_record_delete"},
+      # pool
+      {1300, "pool_new"},
+      {1301, "pool_update"},
+      {1302, "pool_delete"}
     ]
   else
     # {100, "regular"}
@@ -151,6 +157,8 @@ defmodule Ipncore.Tx do
 
   def version, do: @version
   def timeout, do: @timeout
+  def max_data_size, do: @max_data_size
+  def status_approved, do: @status_approved
 
   defmacro map_select do
     quote do
@@ -175,113 +183,8 @@ defmodule Ipncore.Tx do
     end
   end
 
-  @spec new(tx_type(), [Txo.t()], pos_integer()) :: {t, [Txo.t()]}
-  def new(type, outputs, amount) when type in 0..5 do
-    time = Chain.get_time()
-    genesis_time = Chain.genesis_time()
-    block_index = Block.next_index(time, genesis_time)
-
-    tx =
-      %Tx{
-        type: type,
-        status: @status_complete,
-        outputs: outputs,
-        block_index: block_index,
-        inputs: [],
-        out_count: length(outputs),
-        amount: amount,
-        time: time
-      }
-      |> put_hash()
-      |> put_index(genesis_time)
-      |> from_struct()
-
-    {tx, Txo.order(outputs, tx.index)}
-  end
-
-  @spec new(tx_type(), List.t(), List.t(), pos_integer(), pos_integer()) :: t
-  def new(type, inputs, outputs, amount, fees)
-      when length(inputs) > 0 and length(outputs) > 0 do
-    time = Chain.get_time()
-    genesis_time = Chain.genesis_time()
-    block_index = Block.next_index(time, genesis_time)
-
-    %Tx{
-      type: type,
-      inputs: inputs,
-      outputs: outputs,
-      block_index: block_index,
-      in_count: length(inputs),
-      out_count: length(outputs),
-      amount: amount,
-      fees: fees,
-      total_input: Txo.compute_sum(inputs),
-      time: time
-    }
-    |> put_hash()
-    |> put_index(genesis_time)
-    |> put_outputs_index()
-  end
-
-  @spec put_hash(Tx.t()) :: t
-  def put_hash(tx) do
-    Map.put(tx, :hash, compute_hash(tx))
-  end
-
-  @spec put_hash(Tx.t()) :: t
-  def put_hash(tx, data) do
-    Map.put(tx, :hash, compute_hash(tx, data))
-  end
-
-  @spec compute_hash(t, binary) :: binary()
-  def compute_hash(tx, tx_data \\ <<>>) do
-    r =
-      [
-        tx_data,
-        Enum.reduce(Utils.array_normalize(Map.get(tx, :inputs, [])) ++ tx.outputs, "", fn x,
-                                                                                          acc ->
-          case x do
-            %{address: address, tid: token, value: value} ->
-              [
-                acc,
-                address,
-                token,
-                :binary.encode_unsigned(value)
-              ]
-              |> IO.iodata_to_binary()
-
-            %{oid: oid} ->
-              [
-                acc,
-                oid
-              ]
-              |> IO.iodata_to_binary()
-
-            # used by tx builder
-            oid when is_binary(oid) ->
-              [
-                acc,
-                oid
-              ]
-              |> IO.iodata_to_binary()
-          end
-        end),
-        :binary.encode_unsigned(tx.time)
-      ]
-      |> IO.iodata_to_binary()
-
-    IO.inspect("pre hash msg")
-    IO.inspect(r, limit: :infinity)
-    IO.inspect(Base.encode16(r, case: :lower))
-
-    r
-    |> Crypto.hash3()
-  end
-
-  @spec is_coinbase?(t) :: boolean()
-  def is_coinbase?(tx) do
-    tx.type in 0..5
-  end
+  @spec is_coinbase?(integer) :: boolean()
+  def is_coinbase?(type), do: type in 0..5
 
   def encode_index(index) do
     Base62.encode(index)
@@ -343,21 +246,122 @@ defmodule Ipncore.Tx do
     Map.put(tx, :inputs, Enum.map(tx.inputs, &Map.put(&1, :txid, tx.index)))
   end
 
-  defp put_size(tx) do
+  @spec put_hash(Tx.t()) :: t
+  def put_hash(%{data: data} = tx) when not is_nil(data) and is_binary(data) do
+    # check data does not exceed max size
+    if byte_size(data) > 4096, do: throw(40232)
+
+    Map.merge(tx, %{memo: true, hash: compute_hash(tx, data)})
+  end
+
+  def put_hash(tx) do
+    Map.put(tx, :hash, compute_hash(tx))
+  end
+
+  @spec put_hash(Tx.t(), binary) :: t
+  def put_hash(tx, data) do
+    # check data does not exceed max size
+    if byte_size(data) > 4096, do: throw(40232)
+
+    Map.merge(tx, %{memo: true, hash: compute_hash(tx, data)})
+  end
+
+  def verify_sign(tx, signature, pubkey) do
+    if Falcon.verify(tx.hash, signature, pubkey) == :error, do: throw(40212), else: tx
+  end
+
+  @spec compute_hash(t, binary) :: binary()
+  def compute_hash(tx, tx_data \\ <<>>) do
+    r =
+      [
+        tx_data,
+        Enum.reduce(Utils.array_normalize(Map.get(tx, :inputs, [])) ++ tx.outputs, "", fn x,
+                                                                                          acc ->
+          case x do
+            %{address: address, tid: token, value: value} ->
+              [
+                acc,
+                address,
+                token,
+                :binary.encode_unsigned(value)
+              ]
+              |> IO.iodata_to_binary()
+
+            %{oid: oid} ->
+              [
+                acc,
+                oid
+              ]
+              |> IO.iodata_to_binary()
+
+            # used by tx builder
+            oid when is_binary(oid) ->
+              [
+                acc,
+                oid
+              ]
+              |> IO.iodata_to_binary()
+          end
+        end),
+        :binary.encode_unsigned(tx.time)
+      ]
+      |> IO.iodata_to_binary()
+
+    IO.inspect("pre hash msg")
+    IO.inspect(r, limit: :infinity)
+    IO.inspect(Base.encode16(r, case: :lower))
+
+    Crypto.hash3(r)
+  end
+
+  def multi_insert(multi, %{time: time} = params, channel) do
+    tx =
+      struct(Tx, params)
+      |> Map.drop([:outputs, inputs])
+
+    multi
+    |> Ecto.Multi.insert(:tx, tx, returning: false, prefix: channel)
+    |> TxData.multi_insert(:txdata, tx.index, tx.data, TxData.cbor_mime(), channel)
+    |> Txi.insert_all(:txi, tx[:inputs], channel)
+    |> Txo.insert_all(:txo, tx[:outputs], channel)
+    |> Txo.multi_update_avail(:utxo, params[:utxo], channel, false)
+    |> Balance.multi_upsert_outgoings(:outgoings, params[:outgoings], time, channel)
+    |> Balance.multi_upsert_incomes(:incomes, params[:incomes], time, channel)
+  end
+
+  def multi_insert_coinbase(
+        multi,
+        %{outputs: outputs, time: time} = params,
+        token_id,
+        total,
+        channel
+      ) do
+    tx =
+      struct(Tx, params)
+      |> Map.drop([:outputs])
+
+    multi
+    |> Ecto.Multi.insert(:tx, tx, prefix: channel, returning: false)
+    |> Ecto.Multi.insert_all(:txo, Txo, outputs, prefix: channel, returning: false)
+    |> Balance.multi_upsert_incomes(:incomes, outputs, tx.time, channel)
+    |> Token.multi_update_stats(:token, token_id, total, time, channel)
+  end
+
+  def put_size(tx) do
     tx_size = calc_size(tx.type, tx)
     unless valid_size?(tx.type, tx_size), do: throw(40208)
 
     %{tx | size: tx_size}
   end
 
-  defp put_size(tx, data) do
+  def put_size(tx, data) do
     tx_size = calc_size(tx.type, tx, data)
     unless valid_size?(tx.type, tx_size), do: throw(40208)
 
     %{tx | size: tx_size}
   end
 
-  defp put_fees(tx, utxo_address, pool_address, pool_fee, pool_percent) do
+  def put_fees(tx, utxo_address, pool_address, pool_fee, pool_percent) do
     {tx_amount, fees_amount, _retuned_amount} =
       extract_amounts!(tx.outputs, utxo_address, pool_address)
 
@@ -373,7 +377,25 @@ defmodule Ipncore.Tx do
     %{tx | fees: fees, amount: tx_amount}
   end
 
-  defp put_signatures(tx, sigs, utxo_address) do
+  def put_fees_data(tx, utxo_address, pool_address, pool_fee, pool_percent, data) do
+    data_amount = Jason.encode!(data) |> byte_size()
+
+    {tx_amount, fees_amount, _retuned_amount} =
+      extract_amounts!(tx.outputs, utxo_address, pool_address)
+
+    fees = calc_fees(data_amount, pool_fee, pool_percent, tx.size)
+
+    IO.inspect("tx_size: #{tx.size}")
+    IO.inspect("fees #{fees}")
+    IO.inspect("amount #{tx_amount}")
+    IO.inspect("fees_amount #{fees_amount}")
+
+    if fees_amount != fees, do: throw(40209)
+
+    %{tx | fees: fees, amount: tx_amount}
+  end
+
+  def put_signatures(tx, sigs, utxo_address) do
     IO.inspect(tx)
     IO.inspect("hash: #{Base.encode16(tx.hash, case: :lower)}")
     signatures = extract_sigs_b64!(tx.hash, sigs, utxo_address)
@@ -381,571 +403,207 @@ defmodule Ipncore.Tx do
     %{tx | sigs: signatures}
   end
 
-  # def put_outputs_index(tx_index, outputs) do
-  #   Txo.order(outputs, tx_index)
+  # @spec put_bft(binary, list, binary) :: :ok | :error
+  # def put_bft(txid, "timeout", channel) do
+  #   try do
+  #     {1, _} =
+  #       from(tx in Tx, where: tx.index == ^txid)
+  #       |> Repo.update_all([set: [status: @status_timeout]], prefix: channel)
+
+  #     :ok
+  #   rescue
+  #     [Postgrex.Error, MatchError, CaseClauseError] ->
+  #       :error
+  #   end
   # end
 
-  @spec put_bft(binary, list, binary) :: :ok | :error
-  def put_bft(txid, "timeout", channel) do
-    try do
-      {1, _} =
-        from(tx in Tx, where: tx.index == ^txid)
-        |> Repo.update_all([set: [status: @status_timeout]], prefix: channel)
+  # def put_bft(txid, votes, channel) do
+  #   try do
+  #     Repo.transaction(fn ->
+  #       status =
+  #         case TxVote.build(votes) do
+  #           :ok ->
+  #             @status_approved
 
-      :ok
-    rescue
-      [Postgrex.Error, MatchError, CaseClauseError] ->
-        :error
-    end
-  end
+  #           _ ->
+  #             @status_cancelled
+  #         end
 
-  def put_bft(txid, votes, channel) do
-    try do
-      Repo.transaction(fn ->
-        status =
-          case TxVote.build(votes) do
-            :ok ->
-              @status_approved
+  #       # set tx status
+  #       {1, _} =
+  #         from(tx in Tx, where: tx.index == ^txid)
+  #         |> Repo.update_all([set: [status: status]], prefix: channel)
+  #     end)
+  #     |> case do
+  #       :ok ->
+  #         :ok
 
-            _ ->
-              @status_cancelled
-          end
+  #       _ ->
+  #         :error
+  #     end
+  #   rescue
+  #     [Postgrex.Error, MatchError, CaseClauseError] ->
+  #       :error
+  #   catch
+  #     x ->
+  #       IO.inspect(x)
+  #       :error
+  #   end
+  # end
 
-        # set tx status
-        {1, _} =
-          from(tx in Tx, where: tx.index == ^txid)
-          |> Repo.update_all([set: [status: status]], prefix: channel)
-      end)
-      |> case do
-        :ok ->
-          :ok
+  # @spec processing(Map.t()) :: {:ok, t} | {:error, atom()}
+  # def processing(%{
+  #       "id" => channel_id,
+  #       "pubkey" => channel_pubkey64,
+  #       "sig" => sig,
+  #       "time" => time,
+  #       "type" => "channel register" = type_name,
+  #       "version" => version
+  #     }) do
+  #   try do
+  #     type = type_index(type_name)
+  #     unless type, do: throw(40201)
+  #     if @version != version, do: throw(40200)
+  #     diff_time = abs(Chain.get_time() - time)
+  #     if diff_time > @timeout, do: throw(40202)
+  #     unless Channel.check_name?(channel_id), do: throw(40230)
+  #     if Channel.exists?(channel_id), do: throw(40231)
 
-        _ ->
-          :error
-      end
-    rescue
-      [Postgrex.Error, MatchError, CaseClauseError] ->
-        :error
-    catch
-      x ->
-        IO.inspect(x)
-        :error
-    end
-  end
+  #     next_index = Block.next_index(time)
+  #     genesis_time = Chain.genesis_time()
+  #     owner_pubkey = PlatformOwner.pubkey()
 
-  @spec processing(Map.t()) :: {:ok, t} | {:error, atom()}
-  def processing(%{
-        "id" => channel_id,
-        "pubkey" => channel_pubkey64,
-        "sig" => sig,
-        "time" => time,
-        "type" => "channel register" = type_name,
-        "version" => version
-      }) do
-    try do
-      type = type_index(type_name)
-      unless type, do: throw(40201)
-      if @version != version, do: throw(40200)
-      diff_time = abs(Chain.get_time() - time)
-      if diff_time > @timeout, do: throw(40202)
-      unless Channel.check_name?(channel_id), do: throw(40230)
-      if Channel.exists?(channel_id), do: throw(40231)
+  #     channel_pubkey = Base.decode64!(channel_pubkey64)
+  #     signature = Base.decode64!(sig)
 
-      next_index = Block.next_index(time)
-      genesis_time = Chain.genesis_time()
-      owner_pubkey = PlatformOwner.pubkey()
+  #     channel = %{
+  #       "id" => channel_id,
+  #       "pubkey" => channel_pubkey,
+  #       "time" => time
+  #     }
 
-      channel_pubkey = Base.decode64!(channel_pubkey64)
-      signature = Base.decode64!(sig)
+  #     channel_data =
+  #       channel
+  #       |> CBOR.encode()
 
-      channel = %{
-        "id" => channel_id,
-        "pubkey" => channel_pubkey,
-        "time" => time
-      }
+  #     if byte_size(channel_data) > @max_data_size, do: throw(40232)
 
-      channel_data =
-        channel
-        |> CBOR.encode()
+  #     tx =
+  #       %Tx{
+  #         block_index: next_index,
+  #         out_count: 0,
+  #         amount: 0,
+  #         sigs: [signature],
+  #         time: time,
+  #         type: type,
+  #         status: @status_approved,
+  #         vsn: version,
+  #         memo: true,
+  #         inputs: [],
+  #         outputs: []
+  #       }
+  #       |> put_hash(channel_data)
+  #       |> put_index(genesis_time)
+  #       |> put_size(channel_data)
 
-      if byte_size(channel_data) > @max_data_size, do: throw(40232)
+  #     if Falcon.verify(tx.hash, signature, owner_pubkey) != :ok, do: throw(40212)
 
-      tx =
-        %Tx{
-          block_index: next_index,
-          out_count: 0,
-          amount: 0,
-          sigs: [signature],
-          time: time,
-          type: type,
-          status: @status_approved,
-          vsn: version,
-          memo: true,
-          inputs: [],
-          outputs: []
-        }
-        |> put_hash(channel_data)
-        |> put_index(genesis_time)
-        |> put_size(channel_data)
+  #     Ecto.Multi.new()
+  #     |> Channel.multi_insert(:channel, channel)
+  #     |> Ecto.Multi.run(:schema, fn _repo, _ ->
+  #       unless Repo.schema_exists?(channel_id) do
+  #         Migration.Blockchain.build(%{"channel" => channel_id, "version" => version})
+  #         Chain.initialize(channel_id)
+  #       end
+  #       |> case do
+  #         :ok ->
+  #           {:ok, nil}
 
-      if Falcon.verify(tx.hash, signature, owner_pubkey) != :ok, do: throw(40212)
+  #         _ ->
+  #           {:error, nil}
+  #       end
+  #     end)
+  #     |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
+  #       returning: false,
+  #       prefix: channel_id
+  #     )
+  #     |> TxData.multi_insert(:txdata, tx.index, channel_data, TxData.mime_cbor(), Default.channel())
+  #     |> Repo.transaction()
+  #     |> case do
+  #       {:ok, _} ->
+  #         {:ok, tx}
 
-      Ecto.Multi.new()
-      |> Channel.multi_insert(:channel, channel)
-      |> Ecto.Multi.run(:schema, fn _repo, _ ->
-        unless Repo.schema_exists?(channel_id) do
-          Migration.Blockchain.build(%{"channel" => channel_id, "version" => version})
-          Chain.initialize(channel_id)
-        end
-        |> case do
-          :ok ->
-            {:ok, nil}
-
-          _ ->
-            {:error, nil}
-        end
-      end)
-      |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
-        returning: false,
-        prefix: channel_id
-      )
-      |> TxData.multi_insert(:txdata, tx.index, channel_data, @mime_cbor, Default.channel())
-      |> Repo.transaction()
-      |> case do
-        {:ok, _} ->
-          {:ok, tx}
-
-        err ->
-          IO.inspect(err)
-          {:error, 500}
-      end
-    catch
-      err ->
-        IO.puts(inspect(err))
-        {:error, err}
-    end
-  end
-
-  # new token
-  def processing(%{
-        "channel" => channel_id,
-        "sig" => sig,
-        "token" =>
-          %{
-            "id" => token_id,
-            "name" => _token_name,
-            "decimals" => token_decimal,
-            "creator" => creator58,
-            "owner" => owner58,
-            "props" => %{
-              "symbol" => token_symbol
-            }
-          } = token,
-        "time" => time,
-        "type" => "token_new" = type_name,
-        "version" => version
-      }) do
-    try do
-      type = type_index(type_name)
-      unless type, do: throw(40201)
-      if @version != version, do: throw(40200)
-      diff_time = abs(Chain.get_time() - time)
-      if diff_time > @timeout, do: throw(40202)
-      unless Token.coin?(token_id), do: throw(40222)
-      unless Channel.check_name?(channel_id), do: throw(40230)
-      unless String.valid?(token_symbol), do: throw(40233)
-
-      unless is_integer(token_decimal) or token_decimal > 10 or token_decimal < 0,
-        do: throw(40234)
-
-      next_index = Block.next_index(time)
-
-      genesis_time = Chain.genesis_time()
-
-      creator = Base58Check.decode(creator58)
-      owner = Base58Check.decode(owner58)
-
-      signature = Base.decode64!(sig)
-
-      token =
-        token
-        |> Map.put("creator", creator)
-        |> Map.put("owner", owner)
-
-      data =
-        token
-        |> Token.filter_data()
-        |> CBOR.encode()
-
-      if byte_size(data) > @max_data_size, do: throw(40232)
-
-      tx =
-        %Tx{
-          block_index: next_index,
-          out_count: 0,
-          amount: 0,
-          sigs: [signature],
-          time: time,
-          type: type,
-          status: @status_approved,
-          vsn: version,
-          memo: true,
-          inputs: [],
-          outputs: []
-        }
-        |> put_hash(data)
-        |> put_index(genesis_time)
-        |> put_size(data)
-
-      if Falcon.verify(tx.hash, signature, PlatformOwner.pubkey()) == :error, do: throw(40212)
-
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
-        returning: false,
-        prefix: channel_id
-      )
-      |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, channel_id)
-      |> Token.multi_insert(:token, token, time, channel_id)
-      |> Repo.transaction()
-      |> case do
-        {:ok, _} ->
-          {:ok, tx}
-
-        err ->
-          IO.inspect(err)
-          {:error, 500}
-      end
-    catch
-      err ->
-        IO.puts(inspect(err))
-        {:error, err}
-    end
-  end
-
-  # create pool
-  def processing(%{
-        "channel" => channel_id,
-        "time" => time,
-        "pool" =>
-          %{
-            "hostname" => _hostname,
-            "address" => address58,
-            "fee" => _fee,
-            "percent" => _percent
-          } = pool,
-        "type" => "pool_new" = type_name,
-        "sig" => sig64,
-        "version" => version
-      }) do
-    try do
-      type = type_index(type_name)
-      unless type, do: throw(40201)
-      if @version != version, do: throw(40200)
-      diff_time = abs(Chain.get_time() - time)
-      if diff_time > @timeout, do: throw(40202)
-      unless Channel.check_name?(channel_id), do: throw(40230)
-
-      next_index = Block.next_index(time)
-      genesis_time = Chain.genesis_time()
-      signature = Base.decode64!(sig64)
-      address = Base58Check.decode(address58)
-
-      pool =
-        pool
-        |> Map.put("address", address)
-
-      data =
-        pool
-        |> Pool.filter_data()
-        |> CBOR.encode()
-
-      if byte_size(data) > @max_data_size, do: throw(40232)
-
-      tx =
-        %Tx{
-          block_index: next_index,
-          out_count: 0,
-          amount: 0,
-          sigs: [signature],
-          time: time,
-          type: type,
-          status: @status_approved,
-          vsn: version,
-          memo: true,
-          inputs: [],
-          outputs: []
-        }
-        |> put_hash(data)
-        |> put_index(genesis_time)
-        |> put_size(data)
-
-      if Falcon.verify(tx.hash, signature, PlatformOwner.pubkey()) == :error, do: throw(40212)
-
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
-        returning: false,
-        prefix: channel_id
-      )
-      |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, channel_id)
-      |> Pool.multi_insert(:pool, pool, time, channel_id)
-      |> Repo.transaction()
-      |> case do
-        {:ok, _} ->
-          {:ok, tx}
-
-        err ->
-          IO.inspect(err)
-          {:error, 500}
-      end
-    catch
-      err ->
-        IO.puts(inspect(err))
-        {:error, err}
-    end
-  end
-
-  # update pool
-  def processing(%{
-        "channel" => channel_id,
-        "sig" => sig64,
-        "hostname" => hostname,
-        "pool" => pool_params,
-        "pubkey" => pubkey64,
-        "time" => time,
-        "type" => "pool_update" = type_name,
-        "version" => version
-      }) do
-    try do
-      type = type_index(type_name)
-      unless type, do: throw(40201)
-      if @version != version, do: throw(40200)
-
-      diff_time = abs(Chain.get_time() - time)
-      if diff_time > @timeout, do: throw(40202)
-      unless Channel.check_name?(channel_id), do: throw(40230)
-
-      pubkey = Base.decode64!(pubkey64)
-      signature = Base.decode64!(sig64)
-      genesis_time = Chain.genesis_time()
-      next_index = Block.next_index(time)
-      pool = Pool.fetch_and_check_delay(hostname, time, channel_id)
-
-      if is_nil(pool), do: throw(0)
-      if pool.address != Address.to_internal_address(pubkey), do: throw(0)
-
-      data =
-        pool_params
-        |> CBOR.encode()
-
-      tx =
-        %Tx{
-          block_index: next_index,
-          out_count: 0,
-          amount: 0,
-          sigs: [signature],
-          time: time,
-          type: type,
-          status: @status_approved,
-          vsn: version,
-          memo: true,
-          inputs: [],
-          outputs: []
-        }
-        |> put_hash(data)
-        |> put_index(genesis_time)
-        |> put_size(data)
-
-      if Falcon.verify(tx.hash, signature, pubkey) == :error, do: throw(40212)
-
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
-        returning: false,
-        prefix: channel_id
-      )
-      |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, channel_id)
-      |> Pool.multi_update(:pool, hostname, pool_params, time, channel_id)
-      |> Repo.transaction()
-      |> case do
-        {:ok, _} ->
-          {:ok, tx}
-
-        err ->
-          IO.inspect(err)
-          {:error, 500}
-      end
-    catch
-      err ->
-        IO.puts(inspect(err))
-        {:error, err}
-    end
-  end
+  #       err ->
+  #         IO.inspect(err)
+  #         {:error, 500}
+  #     end
+  #   catch
+  #     err ->
+  #       IO.puts(inspect(err))
+  #       {:error, err}
+  #   end
+  # end
 
   # delete pool
-  def processing(%{
-        "channel" => channel_id,
-        "sig" => sig64,
-        "hostname" => hostname,
-        "pool" => pool_params,
-        "pubkey" => pubkey64,
-        "time" => time,
-        "type" => "pool_delete" = type_name,
-        "version" => version
-      }) do
-    try do
-      type = type_index(type_name)
-      unless type, do: throw(40201)
-      if @version != version, do: throw(40200)
-
-      diff_time = abs(Chain.get_time() - time)
-      if diff_time > @timeout, do: throw(40202)
-      unless Channel.check_name?(channel_id), do: throw(40230)
-
-      pubkey = Base.decode64!(pubkey64)
-      signature = Base.decode64!(sig64)
-      genesis_time = Chain.genesis_time()
-      next_index = Block.next_index(time)
-      pool = Pool.fetch!(hostname, channel_id)
-
-      if is_nil(pool), do: throw(0)
-      if pool.address != Address.to_internal_address(pubkey), do: throw(0)
-
-      data =
-        pool_params
-        |> CBOR.encode()
-
-      tx =
-        %Tx{
-          block_index: next_index,
-          out_count: 0,
-          amount: 0,
-          sigs: [signature],
-          time: time,
-          type: type,
-          status: @status_approved,
-          vsn: version,
-          memo: true,
-          inputs: [],
-          outputs: []
-        }
-        |> put_hash(data)
-        |> put_index(genesis_time)
-        |> put_size(data)
-
-      if Falcon.verify(tx.hash, signature, pubkey) == :error, do: throw(40212)
-
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
-        returning: false,
-        prefix: channel_id
-      )
-      |> TxData.multi_insert(:txdata, tx.index, data, @mime_cbor, channel_id)
-      |> Pool.multi_delete(:pool, hostname, channel_id)
-      |> Repo.transaction()
-      |> case do
-        {:ok, _} ->
-          {:ok, tx}
-
-        err ->
-          IO.inspect(err)
-          {:error, 500}
-      end
-    catch
-      err ->
-        IO.puts(inspect(err))
-        {:error, err}
-    end
-  end
 
   # coinbase
-  def processing(%{
-        "channel" => channel_id,
+  def coinbase_processing(%{
+        "channel" => channel,
         "outputs" => outputs,
         "sig" => sig64,
         "pubkey" => pubkey64,
         "time" => time,
         "token" => token_id,
-        "type" => type_name,
+        "type" => type,
         "version" => version
-      })
-      when type_name in [
-             "coinbase",
-             "jackpot",
-             "greate jackpot",
-             "payconnect",
-             "paystream"
-           ] do
-    try do
-      type = type_index(type_name)
-      unless type, do: throw(40201)
-      unless Channel.check_name?(channel_id), do: throw(40230)
-      unless Token.coin?(token_id), do: throw(40222)
+      }) do
+    unless Token.coin?(token_id), do: throw(40222)
 
-      if @version != version, do: throw(40200)
+    out_count = length(outputs)
+    if out_count == 0 or out_count > @max_outputs, do: throw(40204)
 
-      diff_time = abs(Chain.get_time() - time)
-      if diff_time > @timeout, do: throw(40202)
+    {txo, uTokens, unique_addresses, total} = Txo.extract_coinbase!(outputs)
 
-      # if check_date_last_coinbase(channel_id, type_name, type, time), do: throw(40237)
+    if [token_id] != uTokens, do: throw(40213)
+    if length(unique_addresses) != out_count, do: throw(40214)
 
-      out_count = length(outputs)
-      if out_count == 0, do: throw(40204)
-      if out_count > @max_outputs, do: throw(40217)
+    signature = Base.decode64!(sig64)
+    token_pubkey = Base.decode64!(pubkey64)
+    next_index = Block.next_index(time)
+    genesis_time = Chain.genesis_time()
 
-      signature = Base.decode64!(sig64)
+    token = Token.fetch!(token_id, channel)
+    if token.owner != Address.to_internal_address(token_pubkey), do: throw(40225)
 
-      {txo, uTokens, unique_addresses, total} =
-        Txo.from_request_coinbase!(outputs)
+    tx =
+      %{
+        amount: total,
+        block_index: next_index,
+        out_count: out_count,
+        outputs: txo,
+        sigs: [signature],
+        time: time,
+        type: type,
+        vsn: version,
+        status: @status_approved
+      }
+      |> put_hash()
+      |> put_index(genesis_time)
+      |> put_outputs_index()
+      |> put_size()
+      |> verify_sign(signature, token_pubkey)
 
-      if [token_id] != uTokens, do: throw(40213)
-      if length(unique_addresses) != out_count, do: throw(40214)
+    Ecto.Multi.new()
+    |> multi_insert_coinbase(tx, token_id, total, channel)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _} ->
+        Txo.update_txid_avail(tx.index, channel, true)
+        {:ok, tx}
 
-      next_index = Block.next_index(time)
-      genesis_time = Chain.genesis_time()
-
-      tx =
-        %Tx{
-          amount: total,
-          block_index: next_index,
-          out_count: out_count,
-          outputs: txo,
-          sigs: [signature],
-          time: time,
-          type: type,
-          vsn: version,
-          status: @status_approved
-        }
-        |> put_hash()
-        |> put_index(genesis_time)
-        |> put_outputs_index()
-        |> put_size()
-
-      token_pubkey = Base.decode64!(pubkey64)
-
-      token = Token.fetch!(token_id, channel_id)
-
-      if token.owner != Address.to_internal_address(token_pubkey), do: throw(40225)
-
-      if Falcon.verify(tx.hash, signature, token_pubkey) == :error, do: throw(40212)
-
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(:tx, tx, prefix: channel_id, returning: false)
-      |> Ecto.Multi.insert_all(:txo, Txo, tx.outputs, prefix: channel_id, returning: false)
-      |> Balance.multi_upsert_incomes(:incomes, txo, tx.time, channel_id)
-      |> Token.multi_update_stats(:token, token_id, total, time, channel_id)
-      |> Repo.transaction()
-      |> case do
-        {:ok, _} ->
-          Txo.update_txid_avail(tx.index, channel_id, true)
-          {:ok, tx}
-
-        err ->
-          IO.inspect(err)
-          {:error, 500}
-      end
-    catch
       err ->
-        IO.puts(inspect(err))
-        {:error, err}
+        IO.inspect(err)
+        {:error, 500}
     end
   end
 
@@ -956,150 +614,139 @@ defmodule Ipncore.Tx do
           "outputs" => outputs,
           "sigs" => sigs,
           "time" => time,
-          "type" => type_name,
+          "type" => type,
           "pool" => pool_hostname,
           "version" => version
         } = params
-      )
-      when type_name in ["regular", "from request", "non refundable", "gift"] do
+      ) do
+    # check size inputs
+    in_count = length(inputs)
+    if in_count == 0 or in_count > @max_inputs, do: throw(40203)
+
+    # check size outputs
+    out_count = length(outputs)
+    if out_count == 0 or out_count > @max_outputs, do: throw(40204)
+
+    # get utxo
+    input_references = Txi.decode_references(inputs)
+    utxo = Utxo.get(input_references, channel_id)
+    if length(utxo) != in_count, do: throw(40206)
+    IO.inspect(utxo)
+
+    {txo, _txo_ids, txo_tokens, txo_address, txo_token_values, txo_total} = Txo.extract!(outputs)
+
+    {txi, utxo_ids, utxo_tokens, utxo_address, utxo_token_values, utxo_total} =
+      Utxo.extract!(utxo)
+
+    # check utxo and outputs totals
+    if utxo_total != txo_total, do: throw(40207)
+    # check utxo and outputs token-values
+    if utxo_token_values != txo_token_values, do: throw(40207)
+    # check default token exists
+    if @token not in utxo_tokens, do: throw(40213)
+    # check utxo and outputs token list 
+    if utxo_tokens != txo_tokens, do: throw(40213)
+    # check utxo and outputs address list
+    if Enum.sort(utxo_address) == Enum.sort(txo_address), do: throw(40235)
+
+    # fetch pool data from hostname
+    pool = Pool.fetch!(pool_hostname, channel_id)
+
+    next_index = Block.next_index(time)
+    genesis_time = Chain.genesis_time()
+
+    # extract outgoings and incomes
+    {outgoings, incomes} = extract_balances(utxo, txo)
+
+    tx =
+      %{
+        inputs: txi,
+        outputs: txo,
+        block_index: next_index,
+        in_count: in_count,
+        out_count: out_count,
+        total_input: txo_total,
+        time: time,
+        type: type,
+        data: params["memo"],
+        vsn: version,
+        status: @status_approved,
+        outgoings: outgoings,
+        incomes: incomes
+      }
+      |> put_hash()
+      |> put_signatures(sigs, utxo_address)
+      |> put_size()
+      |> put_index(genesis_time)
+      |> put_outputs_index()
+      |> put_inputs_index()
+      |> put_fees(utxo_address, pool.address, pool.fee, pool.percent)
+
+    Ecto.Multi.new()
+    |> multi_insert(tx, channel)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _} ->
+        # tx_pool =
+        #   Map.new()
+        #   |> Map.take([:block_index, :time, :type])
+        #   |> Map.put(:incomes, incomes)
+        #   |> Map.put(:outgoings, outgoings)
+
+        # TxPool.put(tx.index, tx_pool)
+
+        # set available txos
+        Txo.update_txid_avail(tx.index, channel_id, true)
+
+        {:ok, tx}
+
+      err ->
+        Logger.error("Tx error database")
+        IO.inspect(err)
+        {:error, 500}
+    end
+  end
+
+  def begin_processing(
+        %{"channel" => channel, "type" => type_name, "time" => time, "version" => version} =
+          params
+      ) do
     try do
       # check version
       if @version != version, do: throw(40200)
-      unless Channel.check_name?(channel_id), do: throw(40230)
 
-      # check tx type
+      # check channel name
+      unless Channel.check_name?(channel), do: throw(40230)
+
+      # check type
       type = type_index(type_name)
       unless type, do: throw(40201)
 
-      # check timeout
+      # check time range
       diff_time = abs(Chain.get_time() - time)
       if diff_time > @timeout, do: throw(40202)
 
-      # check size inputs
-      in_count = length(inputs)
-      if in_count == 0, do: throw(40203)
-      if in_count > @max_inputs, do: throw(40218)
+      # change type
+      parmas = Map.put(params, "type", type)
 
-      # check size outputs
-      out_count = length(outputs)
-      if out_count == 0, do: throw(40204)
-      if out_count > @max_outputs, do: throw(40217)
-      IO.puts("Tx Here aqui")
+      case type do
+        is_coinbase?(type) ->
+          coinbase_processing(params)
 
-      # check index and prev block
-      next_index = Block.next_index(time)
-      prev_block = Chain.prev_block()
-      if prev_block == nil, do: throw(40221)
-      if prev_block.index > next_index, do: throw(40205)
-      IO.puts("Tx Here aqui 2")
+        # regular
+        100..103 ->
+          processing(params)
 
-      # get utxo
-      input_references = Txi.decode_references(inputs)
-      IO.inspect("input_references")
-      IO.inspect(input_references)
-      utxo = Utxo.get(input_references, channel_id)
+        # coinbase
+        1100..1199 ->
+          Domain.processing(params)
 
-      #
-      # if check_limit_by_block(input_references, next_index, channel_id), do: throw(40229)
+        # pool
+        1200..1299 ->
+          Pool.processing(params)
 
-      IO.inspect(utxo)
-      IO.puts("in_count: #{in_count} - #{length(utxo)}")
-      txo = Txo.from_request(outputs)
-      if length(utxo) != in_count, do: throw(40206)
-      IO.puts("Tx Here aqui 3")
-
-      {utxo_ids, utxo_tokens, utxo_address, utxo_token_values, utxo_total} = Txo.extract(utxo)
-      {_txo_ids, txo_tokens, txo_address, txo_token_values, txo_total} = Txo.extract(txo)
-      # IO.puts("#{utxo_total} #{txo_total}")
-
-      IO.inspect("token_values")
-      IO.inspect(utxo_token_values)
-      IO.inspect(txo_token_values)
-
-      if utxo_total != txo_total, do: throw(40207)
-      if utxo_token_values != txo_token_values, do: throw(40207)
-      IO.puts("Tx Here aqui 4")
-      IO.inspect(utxo_tokens)
-      IO.inspect(txo_tokens)
-      IO.inspect(@token)
-      IO.inspect([@token] not in utxo_tokens)
-
-      if @token not in utxo_tokens, do: throw(40213)
-
-      if utxo_tokens != txo_tokens,
-        do: throw(40213)
-
-      if Enum.sort(utxo_address) == Enum.sort(txo_address),
-        do: throw(40235)
-
-      pool = Pool.fetch!(pool_hostname, channel_id)
-      genesis_time = Chain.genesis_time()
-
-      {outgoings, incomes} = extract_balances(utxo, txo)
-
-      IO.inspect("outgoings")
-      IO.inspect(outgoings)
-      IO.inspect("incomes")
-      IO.inspect(incomes)
-
-      memo = Map.get(params, "memo")
-      has_memo = not is_nil(memo) and memo != ""
-
-      if has_memo and String.length(memo) > @max_memo_size, do: throw(40238)
-
-      tx =
-        %Tx{
-          inputs: Txi.create(utxo),
-          outputs: txo,
-          block_index: next_index,
-          in_count: in_count,
-          out_count: out_count,
-          total_input: txo_total,
-          time: time,
-          type: type,
-          memo: has_memo,
-          vsn: version,
-          status: @status_approved
-        }
-        |> put_hash()
-        |> put_signatures(sigs, utxo_address)
-        |> put_size()
-        |> put_index(genesis_time)
-        |> put_outputs_index()
-        |> put_inputs_index()
-        |> put_fees(utxo_address, pool.address, pool.fee, pool.percent)
-
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(:tx, Map.drop(tx, [:outputs, :inputs]),
-        prefix: channel_id,
-        returning: false
-      )
-      |> TxData.multi_insert(:txdata, tx.index, memo, @mime_text, channel_id)
-      |> Ecto.Multi.insert_all(:txi, Txi, tx.inputs, prefix: channel_id, returning: false)
-      |> Ecto.Multi.insert_all(:txo, Txo, tx.outputs, prefix: channel_id, returning: false)
-      |> Txo.multi_update_avail(:utxo, utxo_ids, channel_id, false)
-      |> Balance.multi_upsert_outgoings(:outgoings, outgoings, tx.time, channel_id)
-      |> Balance.multi_upsert_incomes(:incomes, incomes, tx.time, channel_id)
-      |> Repo.transaction()
-      |> case do
-        {:ok, _} ->
-          # tx_pool =
-          #   Map.new()
-          #   |> Map.take([:block_index, :time, :type])
-          #   |> Map.put(:incomes, incomes)
-          #   |> Map.put(:outgoings, outgoings)
-
-          # TxPool.put(tx.index, tx_pool)
-
-          # set available txos
-          Txo.update_txid_avail(tx.index, channel_id, true)
-
-          {:ok, tx}
-
-        err ->
-          Logger.error("Tx error database")
-          IO.inspect(err)
-          {:error, 500}
+        true ->
+          {:error, 40000}
       end
 
       # rescue
@@ -1108,53 +755,27 @@ defmodule Ipncore.Tx do
       #   {:error, 400}
     catch
       err ->
-        Logger.error("Tx error code #{err}")
+        IO.puts(inspect(err))
         {:error, err}
     end
   end
 
-  def processing(_), do: {:error, 40000}
+  def begin_processing(_), do: {:error, 40000}
 
-  # def after_process(txid, time, type, channel_id) do
-  #   outputs_outgoings =
-  #   from(txo in Txo,
-  #   join: tx in Tx,
-  #   on: fragment("? = substring(?::bytea from 1 for length(?))", txid, txo.id, txid),
-  #   where: tx.id == ^txid,
-  #   select: count()
-  # )
-
-  # outputs_incomes =
-  #   from(txo in Txo,
-  #     join: tx in Tx,
-  #     on: fragment("? = substring(?::bytea from 1 for length(?))", txid, txo.id, txid),
-  #     where: tx.id == ^txid,
-  #     select: count()
-  #   )
-
-  #   from(txo in Txo, where: )
-
-  #   Ecto.Multi.new()
-  #   |> Balance.multi_update_outgoings(outputs_outgoings, time, channel_id)
-  #   |> Balance.multi_upsert_incomes(:incomes, outputs_incomes, tx.time, channel_id)
-  #   |> Repo.transaction()
-
+  # def exists?(index, channel_id) do
+  #   from(tx in Tx, where: tx.index == ^index)
+  #   |> Repo.exists?(prefix: channel_id)
   # end
 
-  def exists?(index, channel_id) do
-    from(tx in Tx, where: tx.index == ^index)
-    |> Repo.exists?(prefix: channel_id)
-  end
-
-  def check_limit_by_block(input_addresses, current_block, channel_id) do
-    from(txo in Txo,
-      join: tx in Tx,
-      on: fragment("? = substring(?::bytea from 1 for length(?))", tx.index, txo.id, tx.index),
-      where: txo.address in ^input_addresses and tx.block_index == ^current_block,
-      select: count()
-    )
-    |> Repo.one(prefix: channel_id) > 0
-  end
+  # def check_limit_by_block(input_addresses, current_block, channel_id) do
+  #   from(txo in Txo,
+  #     join: tx in Tx,
+  #     on: fragment("? = substring(?::bytea from 1 for length(?))", tx.index, txo.id, tx.index),
+  #     where: txo.address in ^input_addresses and tx.block_index == ^current_block,
+  #     select: count()
+  #   )
+  #   |> Repo.one(prefix: channel_id) > 0
+  # end
 
   # compute tuple {outgoings, incomes}
   defp extract_balances(utxos, txos) do

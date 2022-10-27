@@ -10,8 +10,8 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".block(
         index bigint NOT NULL,
         height bigint NOT NULL,
-        prev bytea,
         hash bytea NOT NULL,
+        prev bytea,
         mk bytea NOT NULL,
         type smallint,
         "time" bigint,
@@ -21,6 +21,21 @@ defmodule Ipncore.Migration.Blockchain do
         txvol numeric,
         CONSTRAINT block_pkey PRIMARY KEY (index),
         CONSTRAINT block_height UNIQUE (height)
+      )
+      TABLESPACE #{tablespace};
+      """,
+      """
+      CREATE TABLE IF NOT EXISTS "#{channel}".event(
+        id bytea NOT NULL,
+        hash bytea NOT NULL,
+        type smallint NOT NULL,
+        block_index bigint,
+        payload TEXT,
+        size integer DEFAULT 0,
+        status smallint NOT NULL,
+        sigs bytea[],
+        "time" bigint NOT NULL,
+        version integer NOT NULL
       )
       TABLESPACE #{tablespace};
       """,
@@ -49,8 +64,8 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".txo(
         id bytea NOT NULL,
         address bytea,
-        tid bytea NOT NULL,
-        type TEXT,
+        tid VARCHAR(64) NOT NULL,
+        type VARCHAR,
         value bigint,
         avail boolean DEFAULT FALSE,
         CONSTRAINT txo_pkey PRIMARY KEY (id)
@@ -85,12 +100,12 @@ defmodule Ipncore.Migration.Blockchain do
       """,
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".token(
-        id bytea NOT NULL,
-        name character varying,
+        id VARCHAR(64) NOT NULL,
+        name VARCHAR,
         type smallint,
-        "group" bytea,
         enabled boolean DEFAULT TRUE,
         decimals integer DEFAULT 0,
+        symbol VARCHAR(5),
         creator bytea NOT NULL,
         owner bytea NOT NULL,
         supply bigint DEFAULT 0,
@@ -104,7 +119,7 @@ defmodule Ipncore.Migration.Blockchain do
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".balances(
         address bytea NOT NULL,
-        tid bytea NOT NULL,
+        tid VARCHAR(64) NOT NULL,
         amount numeric(36,0) DEFAULT 0 NOT NULL,
         out_count numeric(36,0) DEFAULT 0,
         in_count numeric(36,0) DEFAULT 0,
@@ -116,8 +131,8 @@ defmodule Ipncore.Migration.Blockchain do
       """,
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".pools(
-          name character varying NOT NULL,
-          hostname character varying NOT NULL,
+          name VARCHAR NOT NULL,
+          hostname VARCHAR NOT NULL,
           address bytea NOT NULL,
           enabled boolean DEFAULT TRUE,
           fee double precision NOT NULL,
@@ -126,19 +141,49 @@ defmodule Ipncore.Migration.Blockchain do
           updated_at bigint NOT NULL,
           CONSTRAINT pools_pkey PRIMARY KEY (hostname)
       )
+      """,
+      """
+      CREATE TABLE IF NOT EXISTS "#{channel}".domain(
+          name VARCHAR NOT NULL,
+          address bytea NOT NULL,
+          email VARCHAR(64),
+          avatar VARCHAR,
+          enabled boolean DEFAULT TRUE,
+          records integer DEFAULT 0,
+          created_at bigint NOT NULL,
+          renewed_at bigint NOT NULL,
+          updated_at bigint NOT NULL,
+          CONSTRAINT pools_pkey PRIMARY KEY (name)
+      )
+      """,
+      """
+      CREATE TABLE IF NOT EXISTS "#{channel}".dns_record(
+        domain VARCHAR NOT NULL,
+        name VARCHAR(64) NOT NULL,
+        type VARCHAR(5) NOT NULL,
+        value VARCHAR() NOT NULL,
+        ttl integer NOT NULL,
+        CONSTRAINT fk_dns_record FOREIGN KEY (domain)
+          REFERENCES "#{channel}".domain (name) MATCH SIMPLE
+          ON UPDATE NO ACTION
+          ON DELETE CASCADE
+      )
       """
       # """
       # CREATE TABLE IF NOT EXISTS "#{channel}".account(
-      #   id bytea NOT NULL,
-      #   name character varying(50),
-      #   address bytea,
-      #   props jsonb,
-      #   created_at bigint NOT NULL,
-      #   updated_at bigint,
-      #   CONSTRAINT account_pkey PRIMARY KEY (id),
-      #   CONSTRAINT block_height UNIQUE (name)
+      #     username TEXT NOT NULL,
+      #     address bytea NOT NULL,
+      #     name TEXT,
+      #     avatar TEXT,
+      #     email TEXT,
+      #     phone TEXT,
+      #     enabled boolean DEFAULT TRUE,
+      #     props jsonb,
+      #     created_at bigint NOT NULL,
+      #     updated_at bigint NOT NULL,
+      #     CONSTRAINT pools_pkey PRIMARY KEY (username)
       # )
-      # """,
+      # """
       # """
       # CREATE TABLE IF NOT EXISTS "#{channel}".tx_votes(
       #   id bytea NOT NULL,

@@ -3,18 +3,18 @@ defmodule Ipncore.Token do
   import Ecto.Query, only: [from: 2, where: 3, order_by: 3, select: 3]
   import Ipnutils.Filters
   import Ipnutils.Macros, only: [deftypes: 1]
-  alias Ipncore.Repo
+  alias Ipncore.{Block, Chain, Tx, TxData, Repo}
   alias __MODULE__
 
   @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
-  @data_fields ~w(id name creator decimals owner props)
+  @fields ~w(id name creator decimals symbol owner props)
   @edit_fields ~w(enabled name owner props)
 
   @type t :: %Token{
           id: binary(),
           name: binary(),
           type: integer(),
-          group: binary(),
+          symbol: binary(),
           decimals: integer(),
           enabled: boolean(),
           creator: binary(),
@@ -30,9 +30,9 @@ defmodule Ipncore.Token do
   schema "token" do
     field(:name, :string)
     field(:type, :integer)
-    field(:group, :string)
     field(:enabled, :boolean, default: true)
     field(:decimals, :integer)
+    field(:symbol, :string)
     field(:creator, :binary)
     field(:owner, :binary)
     field(:supply, :integer, default: 0)
@@ -90,17 +90,18 @@ defmodule Ipncore.Token do
           "id" => token_id,
           "name" => name,
           "decimals" => decimals,
-          "props" => %{"symbol" => _symbol} = props,
+          "symbol" => symbol,
           "creator" => creator_address,
           "owner" => owner_address
-        },
+        } = params,
         time
       ) do
     %Token{
       id: token_id,
       name: name,
-      props: props,
+      props: params["props"],
       decimals: decimals,
+      symbol: symbol,
       type: type_match(token_id),
       creator: creator_address,
       owner: owner_address,
@@ -111,7 +112,7 @@ defmodule Ipncore.Token do
 
   def new(_), do: throw(40224)
 
-  def filter_data(params), do: Map.take(params, @data_fields)
+  def filter_data(params), do: Map.take(params, @fields)
 
   def fetch!(token_id, channel) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)
@@ -129,10 +130,7 @@ defmodule Ipncore.Token do
     token_struct = new(token, time)
 
     exists_symbol =
-      from(tk in Token,
-        where:
-          fragment("?->>'symbol' = ?", tk.props, ^token_struct.props["symbol"]) and tk.enabled
-      )
+      from(tk in Token, where: tk.symbol == ^token_struct.symbol)
       |> Repo.exists?(prefix: channel)
 
     if exists_symbol do
@@ -154,7 +152,7 @@ defmodule Ipncore.Token do
     params =
       params
       |> Map.take(@edit_fields)
-      |> Enum.map(fn {k, v} -> {String.to_atom(k), v} end)
+      |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
       |> Keyword.put(:updated_at, time)
 
     Ecto.Multi.update_all(
@@ -277,4 +275,78 @@ defmodule Ipncore.Token do
         creator: Base58Check.encode(x.creator),
         owner: Base58Check.encode(x.owner)
     }
+
+  def processing(%{
+        "channel" => channel_id,
+        "sig" => sig64,
+        "data" =>
+          %{
+            "id" => token_id,
+            "name" => _token_name,
+            "decimals" => token_decimal,
+            "creator" => creator58,
+            "owner" => owner58,
+            "props" => %{
+              "symbol" => token_symbol
+            }
+          } = token,
+        "time" => time,
+        "type" => "token_new" = type_name,
+        "version" => version
+      }) do
+    # check token ID format
+    unless coin?(token_id), do: throw(40222)
+
+    # check token-symbol is string valid
+    unless String.valid?(token_symbol), do: throw(40233)
+
+    # check token-decimal no max 10
+    unless is_integer(token_decimal) or token_decimal > 10 or token_decimal < 0,
+      do: throw(40234)
+
+    next_index = Block.next_index(time)
+    genesis_time = Chain.genesis_time()
+    creator = Base58Check.decode(creator58)
+    owner = Base58Check.decode(owner58)
+    signature = Base.decode64!(sig64)
+
+    token =
+      token
+      |> Map.put("creator", creator)
+      |> Map.put("owner", owner)
+
+    data =
+      token
+      |> filter_data()
+      |> CBOR.encode()
+
+    tx =
+      %{
+        block_index: next_index,
+        data: data,
+        sigs: [signature],
+        time: time,
+        type: type,
+        status: @status_approved,
+        vsn: version
+      }
+      |> Tx.put_hash(data)
+      |> Tx.put_index(genesis_time)
+      |> Tx.put_size(data)
+      |> Tx.verify_sign(signature, PlatformOwner.pubkey())
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:tx, tx, returning: false, prefix: channel_id)
+    |> TxData.multi_insert(:txdata, tx.index, data, TxData.cbor_mime(), channel_id)
+    |> multi_insert(:token, token, time, channel_id)
+    |> Repo.transaction()
+    |> case do
+      {:ok, _} ->
+        {:ok, tx}
+
+      err ->
+        IO.inspect(err)
+        {:error, 500}
+    end
+  end
 end

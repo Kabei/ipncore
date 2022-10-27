@@ -257,7 +257,7 @@ defmodule Ipncore.Explorer.Router do
     params = conn.params
     IO.inspect(params)
 
-    case Tx.processing(params) do
+    case Tx.begin_processing(params) do
       {:ok, tx} ->
         # Ipncore.IMP.Client.publish("tx:" <> tx.index, params)
         json(conn, %{"index" => Tx.encode_index(tx.index)})

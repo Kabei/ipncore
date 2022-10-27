@@ -36,7 +36,7 @@ defmodule Ipncore.Balance do
         amount: b.amount,
         token: b.tid,
         decimal: tk.decimals,
-        symbol: tk.props["symbol"],
+        symbol: tk.symbol,
         out_count: b.out_count,
         in_count: b.in_count,
         tx_count: b.tx_count,
@@ -252,7 +252,7 @@ defmodule Ipncore.Balance do
           amount: fragment("0::NUMERIC"),
           token: tk.id,
           decimal: tk.decimals,
-          symbol: tk.props["symbol"],
+          symbol: tk.symbol,
           out_count: fragment("0::NUMERIC"),
           in_count: fragment("0::NUMERIC"),
           tx_count: fragment("0::NUMERIC"),
@@ -340,6 +340,9 @@ defmodule Ipncore.Balance do
     |> Map.delete(:created_at)
   end
 
+  def multi_upsert_outgoings(multi, _name, nil, _time, _channel), do: multi
+  def multi_upsert_outgoings(multi, _name, [], _time, _channel), do: multi
+
   def multi_upsert_outgoings(multi, name, utxos, time, channel) do
     structs =
       utxos
@@ -378,6 +381,9 @@ defmodule Ipncore.Balance do
       returning: false
     )
   end
+
+  def multi_upsert_incomes(multi, _name, nil, _time, _channel), do: multi
+  def multi_upsert_incomes(multi, _name, [], _time, _channel), do: multi
 
   def multi_upsert_incomes(multi, name, txos, time, channel) do
     structs =

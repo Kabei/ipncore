@@ -35,7 +35,7 @@ defmodule Ipncore.ConfigProvider do
 
   defp to_key_atom(x) when is_map(x) do
     for {k, v} <- x do
-      {String.to_atom(k), to_key_atom(v)}
+      {String.to_existing_atom(k), to_key_atom(v)}
     end
   end
 

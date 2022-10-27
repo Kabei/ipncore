@@ -23,7 +23,7 @@ defmodule PoolHelper do
               Jason.decode!(body)
               |> Map.take(@info_fields)
               # |> Map.put(:timestamp, :erlang.system_time(:millisecond))
-              |> Enum.map(fn {k, v} -> {String.to_atom(k), v} end)
+              |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
 
             # put pool info
             Application.put_env(:ipncore, :pool, kw_info)

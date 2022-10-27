@@ -4,11 +4,18 @@ defmodule Ipncore.TxData do
   alias Ipncore.Repo
   alias __MODULE__
 
+  # mime type
+  @mime_cbor "CBOR"
+  @mime_text "TEXT"
+
   @primary_key {:txid, :binary, []}
   schema "txd" do
     field(:data, :binary)
     field(:mime, :string)
   end
+
+  def cbor_mime, do: @mime_cbor
+  def text_mime, do: @mime_text
 
   def get(txid) do
     from(txd in TxData, where: txd.txid == ^txid, select: {txd.mime, txd.data})
@@ -36,7 +43,8 @@ defmodule Ipncore.TxData do
     multi
   end
 
-  def multi_insert(multi, name, index, bin_data, mime, channel) when is_binary(bin_data) and byte_size(mime) in 1..5 do
+  def multi_insert(multi, name, index, bin_data, mime, channel)
+      when is_binary(bin_data) and byte_size(mime) in 1..5 do
     Ecto.Multi.insert(
       multi,
       name,

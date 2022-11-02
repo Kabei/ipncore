@@ -1,4 +1,4 @@
-defmodule Ipncore.Pool do
+defmodule Ipncore.Validator do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
@@ -6,10 +6,13 @@ defmodule Ipncore.Pool do
   alias __MODULE__
 
   @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
-  @fields ~w(address hostname name fee percent)
-  @edit_fields ~w(address hostname name fee percent)
+  @fields ~w(address host name fee percent)
+  @edit_fields ~w(address host name fee percent)
 
-  @primary_key {:hostname, :string, []}
+  @db :validator
+  @db_opts [auto_save: 60_000]
+
+  @primary_key {:host, :string, []}
   schema "pools" do
     field(:name, :string)
     field(:address, :binary)
@@ -22,7 +25,7 @@ defmodule Ipncore.Pool do
 
   def new(
         %{
-          "hostname" => hostname,
+          "host" => host,
           "name" => name,
           "address" => address,
           "fee" => fee,
@@ -32,7 +35,7 @@ defmodule Ipncore.Pool do
       )
       when fee > 0 do
     %Pool{
-      hostname: hostname,
+      host: host,
       name: name,
       address: address,
       fee: fee,
@@ -46,23 +49,23 @@ defmodule Ipncore.Pool do
 
   def filter_data(params), do: Map.take(params, @fields)
 
-  def fetch!(hostname, channel) do
-    from(p in Pool, where: p.hostname == ^hostname and p.enabled)
+  def fetch!(host, channel) do
+    from(p in Pool, where: p.host == ^host and p.enabled)
     |> Repo.one!(prefix: channel)
   end
 
-  def fetch_and_check_delay(hostname, time, channel) do
+  def fetch_and_check_delay(host, time, channel) do
     from(p in Pool,
-      where: p.hostname == ^hostname and p.enabled and p.updated_at + @delay_edit < ^time
+      where: p.host == ^host and p.enabled and p.updated_at + @delay_edit < ^time
     )
     |> Repo.one(prefix: channel)
   end
 
-  def get(hostname, channel) do
+  def get(host, channel) do
     from(p in Pool,
-      where: p.hostname == ^hostname and p.enabled,
+      where: p.host == ^host and p.enabled,
       select: %{
-        hostname: p.hostname,
+        host: p.host,
         name: p.name,
         address: p.address,
         fee: p.fee,
@@ -75,8 +78,8 @@ defmodule Ipncore.Pool do
     |> transform()
   end
 
-  def exists?(hostname, channel) do
-    from(p in Pool, where: p.hostname == ^hostname and p.enabled)
+  def exists?(host, channel) do
+    from(p in Pool, where: p.host == ^host and p.enabled)
     |> Repo.exists?(prefix: channel)
   end
 
@@ -92,8 +95,8 @@ defmodule Ipncore.Pool do
     )
   end
 
-  def multi_update(multi, name, hostname, params, time, channel) do
-    query = from(p in Pool, where: p.hostname == ^hostname)
+  def multi_update(multi, name, host, params, time, channel) do
+    query = from(p in Pool, where: p.host == ^host)
 
     params =
       params
@@ -111,8 +114,8 @@ defmodule Ipncore.Pool do
     )
   end
 
-  def multi_delete(multi, name, hostname, channel) do
-    query = from(p in Pool, where: p.hostname == ^hostname)
+  def multi_delete(multi, name, host, channel) do
+    query = from(p in Pool, where: p.host == ^host)
 
     Ecto.Multi.delete_all(
       multi,
@@ -125,7 +128,7 @@ defmodule Ipncore.Pool do
 
   def all(params) do
     from(p in Pool, where: p.enabled)
-    |> filter_hostname(params)
+    |> filter_host(params)
     |> filter_select()
     |> filter_limit(params)
     |> filter_offset(params)
@@ -133,16 +136,16 @@ defmodule Ipncore.Pool do
     |> filter_map()
   end
 
-  defp filter_hostname(query, %{"q" => q}) do
+  defp filter_host(query, %{"q" => q}) do
     q = "%#{q}%"
-    where(query, [pool], ilike(pool.hostname, ^q) or ilike(pool.name, ^q))
+    where(query, [pool], ilike(pool.host, ^q) or ilike(pool.name, ^q))
   end
 
-  defp filter_hostname(query, _), do: query
+  defp filter_host(query, _), do: query
 
   defp filter_select(query) do
     select(query, [p], %{
-      hostname: p.hostname,
+      host: p.host,
       name: p.name,
       address: p.address,
       fee: p.fee,
@@ -164,7 +167,7 @@ defmodule Ipncore.Pool do
         "time" => time,
         "data" =>
           %{
-            "hostname" => _hostname,
+            "host" => _host,
             "address" => address58,
             "fee" => _fee,
             "percent" => _percent
@@ -217,7 +220,7 @@ defmodule Ipncore.Pool do
   def processing(%{
         "channel" => channel,
         "sig" => sig64,
-        "hostname" => hostname,
+        "host" => host,
         "data" => pool_params,
         "pubkey" => pubkey64,
         "time" => time,
@@ -228,7 +231,7 @@ defmodule Ipncore.Pool do
     signature = Base.decode64!(sig64)
     genesis_time = Chain.genesis_time()
     next_index = Block.next_index(time)
-    pool = fetch_and_check_delay(hostname, time, channel)
+    pool = fetch_and_check_delay(host, time, channel)
 
     if is_nil(pool), do: throw(0)
     if pool.address != Address.to_internal_address(pubkey), do: throw(0)
@@ -253,7 +256,7 @@ defmodule Ipncore.Pool do
 
     Ecto.Multi.new()
     |> Tx.multi_insert(tx, channel)
-    |> multi_update(:pool, hostname, pool_params, time, channel)
+    |> multi_update(:pool, host, pool_params, time, channel)
     |> Repo.transaction()
     |> case do
       {:ok, _} ->
@@ -268,7 +271,7 @@ defmodule Ipncore.Pool do
   def processing(%{
         "channel" => channel,
         "sig" => sig64,
-        "id" => hostname,
+        "id" => host,
         "pubkey" => pubkey64,
         "time" => time,
         "type" => 1302 = type,
@@ -280,12 +283,12 @@ defmodule Ipncore.Pool do
     next_index = Block.next_index(time)
 
     # fetch data and check owner
-    pool = Pool.fetch!(hostname, channel_id)
+    pool = Pool.fetch!(host, channel_id)
     if is_nil(pool), do: throw(0)
     if pool.address != Address.to_internal_address(pubkey), do: throw(0)
 
     data =
-      %{"id" => hostname}
+      %{"id" => host}
       |> CBOR.encode()
 
     tx =
@@ -304,7 +307,7 @@ defmodule Ipncore.Pool do
 
     Ecto.Multi.new()
     |> Tx.multi_insert(tx, channel)
-    |> multi_delete(:pool, hostname, channel)
+    |> multi_delete(:pool, host, channel)
     |> Repo.transaction()
     |> case do
       {:ok, _} ->

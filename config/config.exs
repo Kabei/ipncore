@@ -21,7 +21,10 @@ config :ipnutils, :repo, Ipncore.Repo
 config :ipncore, :migration_version, 0
 config :ipncore, :block_version, 0
 config :ipncore, :block_interval, :timer.seconds(60)
-config :ipncore, :tx_version, 0
-config :ipncore, :tx_timeout, :timer.seconds(30)
+
+config :ipncore, :event_version, 0
+config :ipncore, :event_timeout, :timer.seconds(10)
+config :ipncore, :event_max_size, 8192
+
 config :ipncore, :tx_timeout_refund, :timer.hours(72)
 config :ipncore, :tx_edit_delay, :timer.hours(1)

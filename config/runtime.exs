@@ -20,7 +20,7 @@ config :ipncore, Ipncore.Repo,
   database: "ippancore_beta",
   password: "NdgPPUWiSXF1EQbC5Pqm",
   port: 5432,
-  pool_size: 10,
+  pool_size: 20,
   show_sensitive_data_on_connection_error: true,
   ssl: false,
   ssl_opts: [

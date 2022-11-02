@@ -46,6 +46,8 @@ defmodule Ipncore.MixProject do
       {:benchee, "~> 1.0", only: :dev},
       {:download, "~> 0.0.0"},
       {:httpoison, "~> 1.7"},
+      {:dets_plus, "~> 2.1"},
+
       {:ntrukem, path: "../ntrukem"},
       {:falcon, path: "../falcon"},
       {:ipnutils, path: "../ipnutils"},

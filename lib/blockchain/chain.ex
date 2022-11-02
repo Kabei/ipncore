@@ -119,7 +119,7 @@ defmodule Ipncore.Chain do
   def add_block(prev_block, %Block{} = b, channel_id) do
     is_genesis_block = b.index == 0
 
-    case Validator.valid_block?(prev_block, b) do
+    case BlockValidator.valid_block?(prev_block, b) do
       :ok ->
         Ecto.Multi.new()
         |> Ecto.Multi.insert(:block, Map.put(b, :txs, []), prefix: channel_id, returning: false)

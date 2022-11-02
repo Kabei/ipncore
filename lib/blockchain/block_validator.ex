@@ -1,4 +1,4 @@
-defmodule Ipncore.Validator do
+defmodule Ipncore.BlockValidator do
   alias Ipncore.{Block, Chain, Tx}
 
   @type validation_type :: :ok | {:error, atom}

@@ -3,14 +3,14 @@ defmodule Ipncore.Block do
   import Ipnutils.Macros, only: [deftypes: 1]
   import Ecto.Query, only: [from: 1, from: 2, order_by: 3, select: 3]
   import Ipnutils.Filters
-  alias Ipncore.{Chain, Repo, Tx}
+  alias Ipncore.{Chain, Event, Repo, Tx}
   alias __MODULE__
 
   @version Default.version()
   @interval Default.interval()
 
   @block_type_genesis 0
-  @block_type_regular 100
+  @block_type_regular 1
 
   @type block_type :: 0 | 100 | 200 | 201 | 300 | 400 | 401
 
@@ -23,16 +23,15 @@ defmodule Ipncore.Block do
           type: block_type(),
           time: pos_integer(),
           vsn: pos_integer(),
-          tx_count: pos_integer(),
-          amount: pos_integer(),
+          ev_count: pos_integer(),
           txvol: pos_integer(),
-          txs: [Tx.t()] | [] | nil
+          events: [Event.t()] | [] | nil
         }
 
   deftypes do
     [
       {0, "genesis"},
-      {100, "regular"}
+      {1, "regular"}
     ]
   else
     {false, false}
@@ -41,8 +40,6 @@ defmodule Ipncore.Block do
   def version, do: @version
 
   @primary_key {:index, :integer, []}
-  # @foreign_key_type :integer
-  # @derive {Jason.Encoder, except: [:__meta__, :txs]}
   schema "block" do
     field(:height, :integer)
     field(:hash, :binary)
@@ -51,10 +48,9 @@ defmodule Ipncore.Block do
     field(:mk, :binary)
     field(:time, :integer)
     field(:vsn, :integer, default: @version)
-    field(:tx_count, :integer, default: 0)
-    field(:amount, :integer, default: 0)
+    field(:ev_count, :integer, default: 0)
     field(:txvol, Ecto.Amount, default: 0)
-    has_many(:txs, Tx, foreign_key: :block_index, references: :index)
+    has_many(:events, Event, foreign_key: :block_index, references: :slot)
   end
 
   defmacro map_select do
@@ -67,8 +63,7 @@ defmodule Ipncore.Block do
         type: b.type,
         prev: b.prev,
         time: b.time,
-        tx_count: b.tx_count,
-        amount: b.amount,
+        ev_count: b.ev_count,
         txvol: b.txvol,
         vsn: b.vsn
       }
@@ -89,9 +84,8 @@ defmodule Ipncore.Block do
       height: 0,
       prev: nil,
       time: time,
-      tx_count: length(txs),
+      ev_count: length(txs),
       type: @block_type_genesis,
-      amount: coinbase_amount,
       txs: txs
     }
     |> put_merkle_root()
@@ -120,7 +114,7 @@ defmodule Ipncore.Block do
       height: prev_block.height + 1,
       index: next_index(time, genesis_time),
       prev: prev_block.hash,
-      tx_count: length(txs),
+      ev_count: length(txs),
       txvol: txvol,
       amount: coinbase_amount,
       time: time,
@@ -142,8 +136,8 @@ defmodule Ipncore.Block do
   def new(_prev_block, _index, []), do: nil
   def new(nil, 0, txs), do: first(txs)
 
-  def new(%Block{} = prev_block, index, txs) do
-    {coinbase_amount, txvol} = Block.sum_amounts(txs)
+  def new(%Block{} = prev_block, index, events) do
+    {coinbase_amount, txvol} = Block.sum_amounts(events)
 
     time =
       Chain.get_time()
@@ -153,11 +147,11 @@ defmodule Ipncore.Block do
       index: index,
       height: prev_block.height + 1,
       prev: prev_block.hash,
-      tx_count: length(txs),
+      ev_count: length(events),
       txvol: txvol,
       amount: coinbase_amount,
       time: time,
-      txs: txs
+      events: events
     }
     |> put_merkle_root()
     |> put_hash()
@@ -177,14 +171,14 @@ defmodule Ipncore.Block do
         mk: mk
       }) do
     [
-      :binary.encode_unsigned(version),
+      to_string(version),
       Default.channel(),
-      :binary.encode_unsigned(height),
-      :binary.encode_unsigned(index),
+      to_string(height),
+      to_string(index),
       Utils.normalize(prev),
       mk
     ]
-    |> Crypto.hash3()
+    |> Crypto.hash()
   end
 
   @spec put_merkle_root(Block.t()) :: Block.t()

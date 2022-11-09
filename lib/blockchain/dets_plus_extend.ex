@@ -35,9 +35,9 @@ defmodule DetsPlus.Ext do
   def all?(pid, items) do
     get_handle(pid)
     |> Enum.reduce_while([], fn {k, _v}, keys ->
-      case k in list do
+      case k in items do
         true ->
-          keys = keys ++ [x]
+          keys = keys ++ [k]
 
           if keys == items do
             {:halt, true}

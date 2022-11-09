@@ -50,7 +50,7 @@ defmodule Ipncore.Block do
     field(:vsn, :integer, default: @version)
     field(:ev_count, :integer, default: 0)
     field(:txvol, Ecto.Amount, default: 0)
-    has_many(:events, Event, foreign_key: :block_index, references: :slot)
+    has_many(:events, Event, foreign_key: :block_index, references: :index)
   end
 
   defmacro map_select do

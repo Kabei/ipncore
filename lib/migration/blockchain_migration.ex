@@ -56,11 +56,14 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".tx(
         id bytea NOT NULL,
         time bigint,
+        from bytea[],
         token_value jsonb,
+        amount bigint NOT NULL,
         fee bigint NOT NULL,
         validator bytea,
         in_count integer NOT NULL,
         out_count integer NOT NULL,
+        refundable bool DEFAULT FALSE,
         memo varchar(100)
       )
       TABLESPACE #{tablespace};

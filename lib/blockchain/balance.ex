@@ -40,6 +40,7 @@ defmodule Ipncore.Balance do
   end
 
   @doc """
+  keys = [{address, token}, ...]
   keys_values = %{{address, token} => integer_postive_or_negative, ...}
   """
   def update!(keys, keys_values) do
@@ -62,7 +63,7 @@ defmodule Ipncore.Balance do
     iquery =
       from(txi in Txi,
         join: tx in Tx,
-        on: tx.id == txo.txid,
+        on: tx.id == txi.txid,
         join: ev in Event,
         on: ev.id == tx.id,
         where: txi.address == ^address,
@@ -386,8 +387,6 @@ defmodule Ipncore.Balance do
           updated_at: time
         }
       end)
-
-    IO.inspect(structs)
 
     upsert_query =
       from(w in Balance,

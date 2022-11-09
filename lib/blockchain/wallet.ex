@@ -2,7 +2,7 @@ defmodule Ipncore.Wallet do
   @db :wallet
   @filename "wallet.db"
 
-  def open(channel) do
+  def open(_channel) do
     folder_path = Application.get_env(:ipncore, :blockchain_path)
     path = Path.join(folder_path, @filename)
     DetsPlus.open_file(@db, name: path, auto_save: :infinity)

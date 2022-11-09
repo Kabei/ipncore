@@ -12,12 +12,20 @@ defmodule Ipncore.Event do
       {101, "tx.send"},
       {102, "tx.refund"},
       {103, "tx.reward"},
-      {104, "tx.jacpot"},
+      {104, "tx.jackpot"},
       {105, "tx.burned"},
       {106, "tx.withdrawal"},
       {200, "token.new"},
       {201, "token.update"},
-      {202, "token.delete"}
+      {202, "token.delete"},
+      {300, "validator.new"},
+      {301, "validator.update"},
+      {302, "validator.delete"},
+      {400, "domain.new"},
+      {401, "domain.update"},
+      {402, "domain.delete"},
+      {410, "dns.new"},
+      {411, "dns.delete"}
     ]
   else
     {false, false}
@@ -66,12 +74,12 @@ defmodule Ipncore.Event do
   def open(block_height) do
     dir_path = Application.get_env(:ipncore, :events_dir_path, "events")
     filename = Path.join(dir_path, "#{block_height}.db")
-    DetsPlus.open_file(:ev, name: filename)
+    DetsPlus.open_file(@base, name: filename)
   end
 
   def close(block_height) do
     dir_path = Application.get_env(:ipncore, :events_dir_path, "events")
-    DetsPlus.close(:ev)
+    DetsPlus.close(@base)
   end
 
   def new([version, type, channel, body, sigs, time], opts \\ [])
@@ -110,12 +118,19 @@ defmodule Ipncore.Event do
     insert_new!(id, [@version, channel, type_number, body, time])
 
     try do
+      multi =
+        Ecto.Multi.new()
+        |> multi_insert(event, channel)
+
       case type_name do
         "tx.send" ->
-          Tx.send(channel, event, from_addresses, body, next_index, genesis_time)
+          Tx.send(channel, event, List.first(from_addresses), body, multi)
 
         "tx.coinbase" ->
-          Tx.coinbase(channel, event, from_addresses, body, next_index, genesis_time)
+          Tx.coinbase(channel, event, List.first(from_addresses), body, multi)
+
+        "domain.new" ->
+          Domain.new(channel, event, List.first(from_addresses), body, multi)
       end
     catch
       _x ->
@@ -124,13 +139,13 @@ defmodule Ipncore.Event do
   end
 
   def new(_) do
-    throw(RuntimeError, "Event not match")
+    throw("Event not match")
   end
 
   def insert_new!(tx, key, value) do
     case DetsPlus.insert_new(@base, key, value) do
       false ->
-        throw(RuntimeError, "Event already exists")
+        throw("Event already exists")
 
       true ->
         true

@@ -48,10 +48,10 @@ defmodule Ipncore.MixProject do
       {:httpoison, "~> 1.7"},
       {:dets_plus, "~> 2.1"},
 
-      {:ntrukem, path: "../ntrukem"},
-      {:falcon, path: "../falcon"},
+      # {:ntrukem, path: "../ntrukem"},
+      # {:falcon, path: "../falcon"},
       {:ipnutils, path: "../ipnutils"},
-      {:imp, path: "../imp"}
+      # {:imp, path: "../imp"}
     ]
   end
 

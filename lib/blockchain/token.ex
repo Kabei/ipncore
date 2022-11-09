@@ -112,6 +112,11 @@ defmodule Ipncore.Token do
 
   def new(_), do: throw(40224)
 
+  def owner?(token_id, address, channel) do
+    from(tk in Token, where: tk.id == ^token_id and tk.owner == ^address)
+    |> Repo.exists(prefix: channel)
+  end
+
   def filter_data(params), do: Map.take(params, @fields)
 
   def fetch!(token_id, channel) do

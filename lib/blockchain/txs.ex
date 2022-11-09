@@ -4,7 +4,7 @@ defmodule Ipncore.Tx do
   import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query, only: [from: 1, from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
-  alias Ipncore.{Address, Block, Chain, Txo, Txi, Balance, Token}
+  alias Ipncore.{Address, Balance, Block, Chain, Txo, Txi, Balance, Token, Validator}
   alias __MODULE__
 
   deftypes do
@@ -36,14 +36,17 @@ defmodule Ipncore.Tx do
   end
 
   @output_type_send "S"
+  @output_type_coinbase "C"
+  @output_type_fee "%"
 
   @primary_key {:id, :binary, []}
   schema "tx" do
     field(:from, {:array, :binary})
+    field(:time, :integer)
     field(:out_count, :integer)
     field(:in_count, :integer)
     field(:amount, :integer)
-    field(:time, :integer)
+    field(:token_value, :map)
     field(:validator, :binary)
     field(:fee, :integer, default: 0)
     field(:refundable, :boolean, default: false)
@@ -75,17 +78,18 @@ defmodule Ipncore.Tx do
           amount,
           to_address,
           validator_address,
-          fee,
           refundable,
           memo
         ],
-        next_index,
-        genesis_time
+        multi
       ) do
     txid = event.id
-    if amount <= 0, do: throw(RuntimeError, "Invalid amount to send")
+    timestamp = event.time
+    if amount <= 0, do: throw("Invalid amount to send")
 
-    inputs = [%{id: txid, ix: 0, address: from_address, token: token, value: amount}]
+    from_address = Address.from_text(from_address)
+    validator = Validator.fetch!(validator_address)
+    fees = calc_fees(validator.fee_type, validator.fee, amount, event.size)
 
     outputs = [
       %{
@@ -95,19 +99,34 @@ defmodule Ipncore.Tx do
         token: token,
         value: amount,
         type: @output_type_send
+      },
+      %{
+        id: txid,
+        ix: 1,
+        address: validator_address,
+        token: token,
+        value: fees,
+        type: @output_type_fee
       }
     ]
 
-    validator = Validator.fetch!(validator_address)
+    inputs = [%{id: txid, ix: 0, address: from_address, token: token, value: -amount - fees}]
 
-    fees = calc_fee(amount, validator.fee, validator.percent, event.size)
+    Balance.update!(
+      [{from_address, token}, {to_address, token}, {validator_address, token}],
+      %{
+        {from_address, token} => -amount - fees,
+        {to_address, token} => amount,
+        {validator_address, token} => fees
+      }
+    )
 
     tx = %{
       id: txid,
       from: [from_address],
       fee: fees,
       refundable: refundable,
-      time: event.time,
+      time: timestamp,
       memo: memo,
       validator: validator_address,
       out_count: length(outputs),
@@ -115,56 +134,142 @@ defmodule Ipncore.Tx do
       amount: amount
     }
 
-    Ecto.Multi.new()
-    |> Event.multi_insert(event, channel)
+    multi
     |> multi_insert(tx, channel)
-    |> Txi.multi_insert(inputs, channel)
+    |> Txi.multi_insert_all(:txi, inputs, channel)
+    |> Txo.multi_insert_all(:txo, outputs, channel)
+    |> Balance.multi_upsert_outgoings(:outgoings, inputs, timestamp, channel)
+    |> Balance.multi_upsert_incomes(:incomes, outputs, timestamp, channel)
+  end
+
+  def coinbase(
+        channel,
+        event,
+        from_address,
+        [
+          token_id,
+          init_outputs,
+          memo
+        ],
+        multi
+      ) do
+    txid = event.id
+    timestamp = event.time
+
+    {outputs, keys_entries, entries, token_value, amount} =
+      outputs_extract_coinbase!(txid, init_outputs, token_id)
+
+    if Token.owner?(token_id, from_address, channel) != false,
+      do: throw("Invalid owner")
+
+    Balance.update!(keys_entries, entries)
+
+    tx = %{
+      id: event.id,
+      fee: 0,
+      token_value: token_value,
+      refundable: false,
+      time: timestamp,
+      memo: memo,
+      out_count: length(outputs),
+      in_count: 0,
+      amount: amount
+    }
+
+    multi
+    |> multi_insert(tx, channel)
     |> Txo.multi_insert(outputs, channel)
-    |> Balances.multi_incomes()
+    |> Token.multi_update_stats(:token, token_id, amount, timestamp, channel)
+    |> Balance.multi_upsert_incomes(:incomes, outputs, timestamp, channel)
+  end
+
+  def send_fee(channel, event, from_address, validator_address, multi) do
+    txid = event.id
+    timestamp = event.time
+    validator = Validator.fetch!(validator_address)
+    fees = calc_fees(0, 1, 0, event.size)
+
+    inputs = [%{id: txid, ix: 0, address: from_address, token: @token, value: fees}]
+
+    outputs = [
+      %{
+        id: txid,
+        ix: 0,
+        address: validator_address,
+        token: @token,
+        value: fees,
+        type: @output_type_fee
+      }
+    ]
+
+    tx = %{
+      id: txid,
+      from: [from_address],
+      fee: fees,
+      refundable: false,
+      time: timestamp,
+      memo: memo,
+      validator: validator_address,
+      out_count: length(outputs),
+      in_count: length(inputs),
+      amount: amount
+    }
+
+    multi
+    |> multi_insert(tx, channel)
+    |> Txi.multi_insert_all(:txi, inputs, channel)
+    |> Txo.multi_insert_all(:txo, outputs, channel)
+    |> Balance.multi_upsert_outgoings(:outgoings, inputs, timestamp, channel)
+    |> Balance.multi_upsert_incomes(:incomes, outputs, timestamp, channel)
+  end
+
+  defp outputs_extract_coinbase!(txid, txos, token) do
+    {txos, key_entries, entries, amount, _ix} =
+      Enum.reduce(txos, {[], [], %{}, 0, 0}, fn [address, value],
+                                                {acc_txos, acc_keys, acc_entries, acc_amount,
+                                                 acc_ix} ->
+        if value <= 0, do: throw("Output has value zero")
+        bin_address = Address.from_text(address)
+
+        output = %{
+          id: txid,
+          ix: acc_ix,
+          token: token,
+          address: bin_address,
+          type: @output_type_coinbase,
+          value: value
+        }
+
+        entry = {bin_address, token}
+        acc_entries = Map.put(acc_entries, entry, value)
+
+        {acc_txos ++ [output], acc_keys ++ [entry], acc_entries, acc_amount + value, acc_ix + 1}
+      end)
+
+    token_value = Map.new() |> Map.put(token, amount)
+
+    {txos, key_entries, entries, token_value, amount}
   end
 
   @doc """
   0 -> by size
-  1 -> percent
+  1 -> by percent
   2 -> fixed price
   """
-  def calc_fees(0, _amount, validator_fee, size),
-    do: validator_fee * size
+  def calc_fees(0, fee_amount, _tx_amount, size),
+    do: trunc(fee_amount) * size
 
-  def calc_fees(1, amount, validator_fee, _size),
-    do: :math.ceil(amount * (validator_fee / 100)) |> trunc()
+  def calc_fees(1, fee_amount, tx_amount, _size),
+    do: :math.ceil(tx_amount * (fee_amount / 100)) |> trunc()
 
-  def calc_fees(2, _amount, validator_fee, 2, _size), do: validator_fee |> trunc()
+  def calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
-  def multi_insert_(
-        multi,
-        %{outputs: outputs, time: time} = params,
-        token_id,
-        total,
-        channel
-      ) do
-    multi
-    |> Ecto.Multi.insert(:tx, tx, prefix: channel, returning: false)
-    |> Ecto.Multi.insert_all(:txo, Txo, outputs, prefix: channel, returning: false)
-    |> Balance.multi_upsert_incomes(:incomes, outputs, tx.time, channel)
-    |> Token.multi_update_stats(:token, token_id, total, time, channel)
-  end
+  def calc_fees(_, _, _, _), do: throw("Wrong fee type")
 
-  def multi_insert_coinbase(
-        multi,
-        %{outputs: outputs, time: time} = params,
-        token_id,
-        total,
-        channel
-      ) do
-    tx =
-      struct(Tx, params)
-      |> Map.drop([:outputs])
-
-    multi
-    |> Ecto.Multi.insert(:tx, tx, prefix: channel, returning: false)
-    |> Ecto.Multi.insert_all(:txo, Txo, outputs, prefix: channel, returning: false)
-    |> Balance.multi_upsert_incomes(:incomes, outputs, tx.time, channel)
-    |> Token.multi_update_stats(:token, token_id, total, time, channel)
+  def multi_insert(multi, tx, channel) do
+    Ecto.Multi.insert_all(multi, :tx, Tx, [tx],
+      prefix: channel,
+      returning: false
+    )
   end
 end

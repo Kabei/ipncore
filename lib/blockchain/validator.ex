@@ -2,17 +2,16 @@ defmodule Ipncore.Validator do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Database, Block, Chain, Repo, Tx}
+  alias Ipncore.{Database, Block, Chain, Repo}
   alias __MODULE__
 
   @behaviour Database
 
-  @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
-  @fields ~w(owner host name fee fee_type)
+  # @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
   @edit_fields ~w(owner host name fee fee_type)
 
   @base :validator
-  @filaname "validator.db"
+  @filename "validator.db"
 
   @primary_key {:host, :string, []}
   schema "validator" do
@@ -85,7 +84,7 @@ defmodule Ipncore.Validator do
     end
   end
 
-  def new(channel, event, from_address, host, owner, name, fee, fee_type, multi)
+  def new(channel, _event, from_address, host, owner, name, fee, fee_type, multi)
       when fee_type >= 0 and fee_type <= 2 do
     if not Regex.match?(Const.Regex.hostname(), host), do: throw("Invalid hostname")
     if String.length(name) > 100, do: throw("Invalid name length")
@@ -106,7 +105,7 @@ defmodule Ipncore.Validator do
     multi
     |> Ecto.Multi.insert_all(:validator, Validator, [validator],
       returning: false,
-      prefix: cahnnel,
+      prefix: channel,
       returning: false
     )
   end
@@ -115,26 +114,25 @@ defmodule Ipncore.Validator do
     throw("Validator.new not match")
   end
 
-  def event_update!(channel, event, from_address, host, params) when is_map(params) do
+  def event_update!(channel, event, from_address, host, params, multi) when is_map(params) do
     if is_nil(host), do: throw("No hostname")
     keywords = to_keywords(params, @edit_fields)
     if keywords == %{}, do: throw("Invalid parameters")
 
-    fetch!(host, address)
+    fetch!(host, from_address)
 
     kw_params = Keyword.put(keywords, :updated_at, event.time)
 
-    queryable = from(v in Validator, where: v.host == ^host and v.owner == ^address)
+    queryable = from(v in Validator, where: v.host == ^host and v.owner == ^from_address)
 
-    multi
-    |> Ecto.Multi.update_all(:update, queryable,
+    Ecto.Multi.update_all(multi, :update, queryable,
       set: kw_params,
       returning: false,
       prefix: channel
     )
   end
 
-  def event_delete!(channel, event, address, host, multi) do
+  def event_delete!(channel, address, host, multi) do
     delete!(host, address)
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^address)

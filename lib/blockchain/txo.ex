@@ -5,10 +5,10 @@ defmodule Ipncore.Txo do
   import Ipnutils.Filters
   alias __MODULE__
 
-  @output_type_send "S"
-  @output_type_fee "%"
-  @output_type_return "R"
-  @output_type_coinbase "C"
+  # @output_type_send "S"
+  # @output_type_fee "%"
+  # @output_type_return "R"
+  # @output_type_coinbase "C"
 
   @primary_key false
   schema "txo" do

@@ -24,7 +24,6 @@ defmodule Ipncore.Block do
           time: pos_integer(),
           vsn: pos_integer(),
           ev_count: pos_integer(),
-          txvol: pos_integer(),
           events: [Event.t()] | [] | nil
         }
 
@@ -49,7 +48,6 @@ defmodule Ipncore.Block do
     field(:time, :integer)
     field(:vsn, :integer, default: @version)
     field(:ev_count, :integer, default: 0)
-    field(:txvol, Ecto.Amount, default: 0)
     has_many(:events, Event, foreign_key: :block_index, references: :index)
   end
 
@@ -64,16 +62,14 @@ defmodule Ipncore.Block do
         prev: b.prev,
         time: b.time,
         ev_count: b.ev_count,
-        txvol: b.txvol,
         vsn: b.vsn
       }
     end
   end
 
   @spec first([Tx.t()]) :: t
-  defp first(txs) do
+  defp first(events) do
     IO.inspect("Block first 1")
-    {coinbase_amount, 0} = Block.sum_amounts(txs)
 
     time =
       Chain.get_time()
@@ -84,23 +80,22 @@ defmodule Ipncore.Block do
       height: 0,
       prev: nil,
       time: time,
-      ev_count: length(txs),
+      ev_count: length(events),
       type: @block_type_genesis,
-      txs: txs
+      events: events
     }
     |> put_merkle_root()
     |> put_hash()
   end
 
-  @spec next(prev_block :: Block | nil, txs :: [] | [Tx.t()]) :: t() | nil
+  @spec next(prev_block :: Block | nil, events :: [] | [Tx.t()]) :: t() | nil
   def next(_, []), do: nil
   def next(nil, nil), do: nil
-  def next(nil, txs), do: first(txs)
+  def next(nil, events), do: first(events)
 
-  def next(%Block{} = prev_block, txs) do
+  def next(%Block{} = prev_block, events) do
     IO.inspect("Block 1")
-    IO.inspect(txs)
-    {coinbase_amount, txvol} = Block.sum_amounts(txs)
+    IO.inspect(events)
 
     time =
       Chain.get_time()
@@ -114,11 +109,9 @@ defmodule Ipncore.Block do
       height: prev_block.height + 1,
       index: next_index(time, genesis_time),
       prev: prev_block.hash,
-      ev_count: length(txs),
-      txvol: txvol,
-      amount: coinbase_amount,
+      ev_count: length(events),
       time: time,
-      txs: txs
+      events: events
     }
     |> put_merkle_root()
     |> put_hash()
@@ -137,8 +130,6 @@ defmodule Ipncore.Block do
   def new(nil, 0, txs), do: first(txs)
 
   def new(%Block{} = prev_block, index, events) do
-    {coinbase_amount, txvol} = Block.sum_amounts(events)
-
     time =
       Chain.get_time()
       |> format_block_time()
@@ -148,8 +139,6 @@ defmodule Ipncore.Block do
       height: prev_block.height + 1,
       prev: prev_block.hash,
       ev_count: length(events),
-      txvol: txvol,
-      amount: coinbase_amount,
       time: time,
       events: events
     }
@@ -188,19 +177,8 @@ defmodule Ipncore.Block do
 
   @spec compute_merkle_root(Block.t()) :: Block.t()
   def compute_merkle_root(%Block{} = b) do
-    hashes = Enum.map(b.txs, & &1.hash)
+    hashes = Enum.map(b.events, & &1.hash)
     MerkleTree.root(hashes)
-  end
-
-  @spec sum_amounts([Tx.t()]) :: {coinbase :: pos_integer(), txvol :: pos_integer()}
-  def sum_amounts(txs) do
-    Enum.reduce(txs, {0, 0}, fn tx, {acc_coinbase, acc_total} ->
-      if Tx.is_coinbase?(tx) do
-        {tx.amount + acc_coinbase, acc_total}
-      else
-        {acc_coinbase, acc_total + tx.amount}
-      end
-    end)
   end
 
   def fetch_count(channel) do

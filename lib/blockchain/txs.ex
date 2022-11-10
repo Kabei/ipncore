@@ -208,11 +208,10 @@ defmodule Ipncore.Tx do
       fee: fees,
       refundable: false,
       time: timestamp,
-      memo: memo,
       validator: validator_address,
       out_count: length(outputs),
       in_count: length(inputs),
-      amount: amount
+      amount: 0
     }
 
     multi

@@ -23,7 +23,7 @@ defmodule Ipncore.Chain do
 
     genesis_time = genesis_time()
     iit = get_time()
-    cycle = Default.interval()
+    cycle = Default.block_interval()
 
     calc_time = cycle - rem(iit - genesis_time, cycle)
 
@@ -116,17 +116,17 @@ defmodule Ipncore.Chain do
     end
   end
 
-  def add_block(prev_block, %Block{} = b, channel_id) do
+  def add_block(prev_block, b, channel_id) do
     is_genesis_block = b.index == 0
 
     case BlockValidator.valid_block?(prev_block, b) do
       :ok ->
         Ecto.Multi.new()
         |> Ecto.Multi.insert(:block, Map.put(b, :txs, []), prefix: channel_id, returning: false)
-        |> Tx.set_status_complete(:txs, b.index, channel_id)
-        |> Tx.cancel_all_pending(:pending, b.index, channel_id)
+        # |> Tx.set_status_complete(:txs, b.index, channel_id)
+        # |> Tx.cancel_all_pending(:pending, b.index, channel_id)
         |> Channel.multi_put_genesis_time(:gen_time, channel_id, b.time, is_genesis_block)
-        |> Channel.multi_update(:channel, channel_id, b.height, b.hash, b.amount, 1, b.tx_count)
+        |> Channel.multi_update(:channel, channel_id, b.height, b.hash, b.amount, 1, b.ev_count)
         |> Repo.transaction()
         |> case do
           {:ok, _} ->

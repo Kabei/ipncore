@@ -2,16 +2,16 @@ defmodule Ipncore.Validator do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Database, Block, Chain, Repo}
+  alias Ipncore.{Address, Database, Block, Chain, Repo, Utils}
   alias __MODULE__
 
   @behaviour Database
 
-  # @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
-  @edit_fields ~w(owner host name fee fee_type)
-
   @base :validator
   @filename "validator.db"
+
+  # @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
+  @edit_fields ~w(owner name fee fee_type)
 
   @primary_key {:host, :string, []}
   schema "validator" do
@@ -37,8 +37,8 @@ defmodule Ipncore.Validator do
   end
 
   @impl Database
-  def put!(validator) do
-    case DetsPlus.insert_new(validator) do
+  def put!(x) do
+    case DetsPlus.insert_new(@base, x) do
       true ->
         true
 
@@ -48,43 +48,46 @@ defmodule Ipncore.Validator do
   end
 
   @impl Database
-  def fetch!(host) do
-    case DetsPlus.lookup(@base, host) do
-      nil ->
-        throw("Validator no exists")
+  def fetch!(x) do
+    case DetsPlus.lookup(@base, x) do
+      [] ->
+        throw("Validator not exists")
 
-      [validator] ->
-        validator
+      [x] ->
+        x
     end
   end
 
   def fetch!(host, owner) do
-    result =
-      DetsPlus.Ext.reduce_while(@base, nil, fn x, acc ->
-        if x.host == host and x.owner == owner do
-          {:halt, x}
-        else
-          {:cont, acc}
-        end
-      end)
+    case DetsPlus.lookup(@base, host) do
+      [x] when x.owner != owner ->
+        x
 
-    if is_nil(result), do: throw("Validator no exists")
-
-    result
-  end
-
-  def delete!(key, address) do
-    case DetsPlus.lookup(@base, key) do
-      [validator] ->
-        if validator.owner != address, do: throw("Invalid owner")
-        DetsPlus.delete(@base, key)
+      [x] ->
+        throw("Invalid owner")
 
       _ ->
         throw("Validator not exists")
     end
   end
 
-  def new(channel, _event, from_address, host, owner, name, fee, fee_type, multi)
+  def delete!(key, owner) do
+    case DetsPlus.lookup(@base, key) do
+      [x] when x.owner == owner ->
+        case DetsPlus.delete(@base, key) do
+          {:error, _} -> throw("Error in the operation")
+          r -> r
+        end
+
+      [x] ->
+        throw("Invalid owner")
+
+      _ ->
+        throw("Validator not exists")
+    end
+  end
+
+  def new!(channel, _event, from_address, host, owner, name, fee, fee_type, multi)
       when fee_type >= 0 and fee_type <= 2 do
     if not Regex.match?(Const.Regex.hostname(), host), do: throw("Invalid hostname")
     if String.length(name) > 100, do: throw("Invalid name length")
@@ -105,23 +108,21 @@ defmodule Ipncore.Validator do
     multi
     |> Ecto.Multi.insert_all(:validator, Validator, [validator],
       returning: false,
-      prefix: channel,
-      returning: false
+      prefix: channel
     )
-  end
-
-  def new(_) do
-    throw("Validator.new not match")
   end
 
   def event_update!(channel, event, from_address, host, params, multi) when is_map(params) do
     if is_nil(host), do: throw("No hostname")
-    keywords = to_keywords(params, @edit_fields)
-    if keywords == %{}, do: throw("Invalid parameters")
+
+    kw_params =
+      params
+      |> Enum.take(@edit_fields)
+      |> cast()
+      |> Utils.to_keywords()
+      |> Keyword.put(:updated_at, event.time)
 
     fetch!(host, from_address)
-
-    kw_params = Keyword.put(keywords, :updated_at, event.time)
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^from_address)
 
@@ -132,25 +133,25 @@ defmodule Ipncore.Validator do
     )
   end
 
-  def event_delete!(channel, address, host, multi) do
-    delete!(host, address)
+  def event_delete!(channel, owner, host, multi) do
+    delete!(host, owner)
 
-    queryable = from(v in Validator, where: v.host == ^host and v.owner == ^address)
+    queryable = from(v in Validator, where: v.host == ^host and v.owner == ^owner)
 
     Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
   end
 
-  defp to_keywords(params, filter) do
-    params
-    |> Enum.take(filter)
-    |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
+  def one(hostname, channel, params \\ %{}) do
+    from(v in Validator, where: v.host == ^hostname and v.enabled)
+    |> filter_select(params)
+    |> Repo.one(prefix: channel)
+    |> transform()
   end
 
-  # --------------------------------------------------
   def all(params) do
-    from(p in Validator, where: p.enabled)
+    from(v in Validator, where: v.enabled)
     |> filter_host(params)
-    |> filter_select()
+    |> filter_select(params)
     |> filter_limit(params)
     |> filter_offset(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
@@ -159,20 +160,20 @@ defmodule Ipncore.Validator do
 
   defp filter_host(query, %{"q" => q}) do
     q = "%#{q}%"
-    where(query, [validator], ilike(validator.host, ^q) or ilike(validator.name, ^q))
+    where(query, [v], ilike(v.host, ^q) or ilike(v.name, ^q))
   end
 
   defp filter_host(query, _), do: query
 
-  defp filter_select(query) do
-    select(query, [p], %{
-      host: p.host,
-      name: p.name,
-      address: p.address,
-      fee: p.fee,
-      percent: p.percent,
-      created_at: p.created_at,
-      updated_at: p.updated_at
+  defp filter_select(query, _) do
+    select(query, [v], %{
+      host: v.host,
+      name: v.name,
+      owner: v.owner,
+      fee: v.fee,
+      percent: v.percent,
+      created_at: v.created_at,
+      updated_at: v.updated_at
     })
   end
 
@@ -180,5 +181,10 @@ defmodule Ipncore.Validator do
     Enum.map(data, fn x -> transform(x) end)
   end
 
-  defp transform(x), do: %{x | address: Address.to_text(x.address)}
+  defp transform(nil), do: nil
+  defp transform(x), do: %{x | owner: Address.to_text(x.owner)}
+
+  defp cast(%{}), do: throw("Invalid parameters")
+  defp cast(%{"owner" => address} = x), do: %{x | "owner" => Address.from_text(address)}
+  defp cast(x), do: x
 end

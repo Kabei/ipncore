@@ -4,50 +4,22 @@ defmodule Ipncore.Tx do
   import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query, only: [from: 1, from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
-  alias Ipncore.{Address, Balance, Block, Chain, Txo, Txi, Balance, Token, Validator}
+  alias Ipncore.{Address, Balance, Block, Chain, Txo, Balance, Token, Validator}
   alias __MODULE__
 
-  deftypes do
-    [
-      {100, "tx.coinbase"},
-      {101, "tx.send"},
-      {102, "tx.msend"},
-      {103, "tx.refund"},
-      {104, "tx.distro"},
-      {105, "tx.jackpot"},
-      {200, "token.new"},
-      {201, "token.update"},
-      {202, "token.delete"}
-    ]
-  else
-    {false, false}
-  end
+  @unit_time Default.unit_time()
+  @status_complete 3
 
-  defstatus do
-    [
-      {0, "pending"},
-      {1, "approved"},
-      {2, "confirmed"},
-      {-1, "cancelled"},
-      {-2, "timeout"}
-    ]
-  else
-    {false, false}
-  end
-
-  @output_type_send "S"
-  @output_type_coinbase "C"
-  @output_type_fee "%"
+  @token Default.token()
+  @output_reason_send "S"
+  @output_reason_coinbase "C"
+  @output_reason_fee "%"
+  @output_reason_refund "R"
 
   @primary_key {:id, :binary, []}
   schema "tx" do
-    field(:from, {:array, :binary})
-    field(:time, :integer)
     field(:out_count, :integer)
-    field(:in_count, :integer)
-    field(:amount, :integer)
     field(:token_value, :map)
-    field(:validator, :binary)
     field(:fee, :integer, default: 0)
     field(:refundable, :boolean, default: false)
     field(:memo, :string)
@@ -58,10 +30,8 @@ defmodule Ipncore.Tx do
       %{
         id: tx.id,
         out_count: tx.out_count,
-        in_count: tx.in_count,
-        amount: tx.amount,
-        time: tx.time,
-        validator: tx.validator,
+        time: ev.time,
+        token_value: ev.time,
         fee: tx.fee,
         refundable: tx.refundable,
         memo: tx.memo
@@ -69,93 +39,85 @@ defmodule Ipncore.Tx do
     end
   end
 
-  def send(
+  def send!(
+        multi,
         channel,
-        event,
+        txid,
+        timestamp,
+        event_size,
+        token,
         from_address,
-        [
-          token,
-          amount,
-          to_address,
-          validator_address,
-          refundable,
-          memo
-        ],
-        multi
+        amount,
+        to_address,
+        validator_address,
+        refundable,
+        memo
       ) do
-    txid = event.id
-    timestamp = event.time
     if amount <= 0, do: throw("Invalid amount to send")
 
-    from_address = Address.from_text(from_address)
+    if from_address == to_address or to_address == Default.imposible_address(),
+      do: throw("Invalid address to send")
+
     validator = Validator.fetch!(validator_address)
-    fees = calc_fees(validator.fee_type, validator.fee, amount, event.size)
+    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
 
     outputs = [
       %{
         id: txid,
         ix: 0,
-        address: to_address,
-        token: token,
+        from: from_address,
+        to: to_address,
         value: amount,
-        type: @output_type_send
+        token: token,
+        reason: @output_reason_send,
+        avail: false
       },
       %{
         id: txid,
         ix: 1,
-        address: validator_address,
         token: token,
-        value: fees,
-        type: @output_type_fee
+        from: from_address,
+        to: validator_address,
+        value: fee_total,
+        reason: @output_reason_fee,
+        avail: false
       }
     ]
-
-    inputs = [%{id: txid, ix: 0, address: from_address, token: token, value: -amount - fees}]
 
     Balance.update!(
       [{from_address, token}, {to_address, token}, {validator_address, token}],
       %{
-        {from_address, token} => -amount - fees,
+        {from_address, token} => -(amount + fee_total),
         {to_address, token} => amount,
-        {validator_address, token} => fees
+        {validator_address, token} => fee_total
       }
     )
 
     tx = %{
       id: txid,
-      from: [from_address],
-      fee: fees,
+      fee: fee_total,
       refundable: refundable,
-      time: timestamp,
-      memo: memo,
-      validator: validator_address,
+      token_value: Map.put(Map.new(), token, amount),
       out_count: length(outputs),
-      in_count: length(inputs),
-      amount: amount
+      memo: memo
     }
 
     multi
     |> multi_insert(tx, channel)
-    |> Txi.multi_insert_all(:txi, inputs, channel)
     |> Txo.multi_insert_all(:txo, outputs, channel)
-    |> Balance.multi_upsert_outgoings(:outgoings, inputs, timestamp, channel)
-    |> Balance.multi_upsert_incomes(:incomes, outputs, timestamp, channel)
+    |> Balance.multi_upsert(:balances, outputs, timestamp, channel)
   end
 
-  def coinbase(
+  def coinbase!(
+        multi,
         channel,
-        event,
+        txid,
+        timestamp,
+        token_id,
         from_address,
-        [
-          token_id,
-          init_outputs,
-          memo
-        ],
-        multi
+        init_outputs,
+        memo
       ) do
-    txid = event.id
-    timestamp = event.time
-
     {outputs, keys_entries, entries, token_value, amount} =
       outputs_extract_coinbase!(txid, init_outputs, token_id)
 
@@ -165,61 +127,57 @@ defmodule Ipncore.Tx do
     Balance.update!(keys_entries, entries)
 
     tx = %{
-      id: event.id,
+      id: txid,
       fee: 0,
       token_value: token_value,
       refundable: false,
-      time: timestamp,
       memo: memo,
-      out_count: length(outputs),
-      in_count: 0,
-      amount: amount
+      out_count: length(outputs)
     }
 
     multi
     |> multi_insert(tx, channel)
-    |> Txo.multi_insert(outputs, channel)
+    |> Txo.multi_insert_all(:txo, outputs, channel)
     |> Token.multi_update_stats(:token, token_id, amount, timestamp, channel)
-    |> Balance.multi_upsert_incomes(:incomes, outputs, timestamp, channel)
+    |> Balance.multi_upsert_coinbase(:balances, outputs, timestamp, channel)
   end
 
-  def send_fee(channel, event, from_address, validator_address, multi) do
-    txid = event.id
-    timestamp = event.time
+  def send_fee!(multi, channel, txid, timestamp, event_size, from_address, validator_address) do
     validator = Validator.fetch!(validator_address)
-    fees = calc_fees(0, 1, 0, event.size)
+    fee_total = calc_fees(0, 1, 0, event_size)
 
-    inputs = [%{id: txid, ix: 0, address: from_address, token: @token, value: fees}]
+    Balance.update!(
+      [{from_address, @token}, {validator_address, @token}],
+      %{
+        {from_address, @token} => -fee_total,
+        {validator_address, @token} => fee_total
+      }
+    )
 
     outputs = [
       %{
         id: txid,
         ix: 0,
-        address: validator_address,
+        from: from_address,
+        to: validator_address,
         token: @token,
-        value: fees,
-        type: @output_type_fee
+        value: fee_total,
+        reason: @output_reason_fee
       }
     ]
 
     tx = %{
       id: txid,
-      from: [from_address],
-      fee: fees,
+      fee: fee_total,
       refundable: false,
-      time: timestamp,
-      validator: validator_address,
       out_count: length(outputs),
-      in_count: length(inputs),
       amount: 0
     }
 
     multi
     |> multi_insert(tx, channel)
-    |> Txi.multi_insert_all(:txi, inputs, channel)
     |> Txo.multi_insert_all(:txo, outputs, channel)
-    |> Balance.multi_upsert_outgoings(:outgoings, inputs, timestamp, channel)
-    |> Balance.multi_upsert_incomes(:incomes, outputs, timestamp, channel)
+    |> Balance.multi_upsert(:balances, outputs, timestamp, channel)
   end
 
   defp outputs_extract_coinbase!(txid, txos, token) do
@@ -234,8 +192,8 @@ defmodule Ipncore.Tx do
           id: txid,
           ix: acc_ix,
           token: token,
-          address: bin_address,
-          type: @output_type_coinbase,
+          to: bin_address,
+          reason: @output_reason_coinbase,
           value: value
         }
 
@@ -255,20 +213,134 @@ defmodule Ipncore.Tx do
   1 -> by percent
   2 -> fixed price
   """
-  def calc_fees(0, fee_amount, _tx_amount, size),
+  defp calc_fees(0, fee_amount, _tx_amount, size),
     do: trunc(fee_amount) * size
 
-  def calc_fees(1, fee_amount, tx_amount, _size),
+  defp calc_fees(1, fee_amount, tx_amount, _size),
     do: :math.ceil(tx_amount * (fee_amount / 100)) |> trunc()
 
-  def calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
+  defp calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
-  def calc_fees(_, _, _, _), do: throw("Wrong fee type")
+  defp calc_fees(_, _, _, _), do: throw("Wrong fee type")
 
-  def multi_insert(multi, tx, channel) do
+  defp multi_insert(multi, tx, channel) do
     Ecto.Multi.insert_all(multi, :tx, Tx, [tx],
       prefix: channel,
       returning: false
     )
+  end
+
+  def one(txid, params) do
+    from(tx in Tx,
+      join: ev in Event,
+      on: ev.id == tx.id,
+      where: tx.id == ^txid,
+      select: map_select(),
+      limit: 1
+    )
+    |> Repo.one(prefix: filter_channel(params, Default.channel()))
+    |> transform()
+  end
+
+  def one_by_hash(hash, params) do
+    from(tx in Tx,
+      join: ev in Event,
+      on: ev.id == tx.id,
+      where: ev.hash == ^hash,
+      select: map_select(),
+      limit: 1
+    )
+    |> Repo.one(prefix: filter_channel(params, Default.channel()))
+    |> transform()
+  end
+
+  def all(params) do
+    from(tx in Tx, join: ev in Event, on: ev.id == tx.id)
+    |> where([_tx, ev], ev.status == @status_complete)
+    |> filter_index(params)
+    |> filter_select(params)
+    |> filter_offset(params)
+    |> filter_status(params)
+    |> filter_date(params)
+    |> filter_limit(params, 50, 100)
+    |> sort(params)
+    |> Repo.all(prefix: filter_channel(params, Default.channel()))
+    |> filter_map()
+  end
+
+  defp filter_index(query, %{"hash" => hash}) do
+    where(query, [_tx, ev], ev.hash == ^hash)
+  end
+
+  defp filter_index(query, %{"block_index" => block_index}) do
+    where(query, [_tx, ev], ev.block_index == ^block_index)
+  end
+
+  defp filter_index(query, %{"block_height" => block_height}) do
+    query
+    |> join(:inner, [_tx, ev], b in Block, on: b.index == ev.block_index)
+    |> where([_tx, ev, b], b.height == ^block_height)
+  end
+
+  defp filter_index(query, %{"q" => q}) do
+    binq = Utils.decode16(q)
+
+    where(query, [tx], tx.hash == ^binq)
+  end
+
+  defp filter_index(query, _), do: query
+
+  defp filter_status(query, %{"status" => status}) do
+    where(query, [_tx, ev], ev.status == ^status)
+  end
+
+  defp filter_status(query, _), do: query
+
+  def filter_date(query, %{"date_from" => from_date, "date_to" => to_date}) do
+    date_start = Utils.from_date_to_time(from_date, :start, @unit_time)
+
+    date_end = Utils.from_date_to_time(to_date, :end, @unit_time)
+
+    where(query, [_tx, ev], ev.time >= ^date_start and ev.time <= ^date_end)
+  end
+
+  def filter_date(query, %{"date_from" => from_date}) do
+    date_start = Utils.from_date_to_time(from_date, :start, @unit_time)
+
+    where(query, [_tx, ev], ev.time >= ^date_start)
+  end
+
+  def filter_date(query, %{"date_to" => to_date}) do
+    date_end = Utils.from_date_to_time(to_date, :end, @unit_time)
+
+    where(query, [_tx, ev], ev.time <= ^date_end)
+  end
+
+  def filter_date(query, _), do: query
+
+  defp filter_select(query, _), do: select(query, [tx, ev], map_select())
+
+  defp sort(query, params) do
+    case Map.get(params, "sort") do
+      "oldest" ->
+        order_by(query, [tx], asc: fragment("length(?)", tx.id), asc: tx.id)
+
+      "most_value" ->
+        order_by(query, [tx], desc: tx.amount)
+
+      "less_value" ->
+        order_by(query, [tx], asc: tx.amount)
+
+      _ ->
+        order_by(query, [tx], desc: fragment("length(?)", tx.id), desc: tx.id)
+    end
+  end
+
+  defp filter_map(data) do
+    Enum.map(data, fn x -> transform(x) end)
+  end
+
+  defp transform(x) do
+    x
   end
 end

@@ -2,11 +2,11 @@ defmodule Ipncore.Balance do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Repo, Token, Tx, Txi, Txo, Event, Address}
+  alias Ipncore.{Repo, Token, Tx, Txo, Event, Address}
   alias __MODULE__
 
-  @output_type_send "S"
-  @output_type_fee "%"
+  # @output_reason_send "S"
+  @output_reason_fee "%"
 
   @base :balances
 
@@ -20,6 +20,19 @@ defmodule Ipncore.Balance do
     field(:tx_count, Ecto.Amount, default: 0)
     field(:created_at, :integer, default: 0)
     field(:updated_at, :integer, default: 0)
+  end
+
+  def open(_) do
+    dir_path = Application.get_env(:ipncore, :dir_path) |> Path.join("balances")
+    CubDB.start_link(data_dir: dir_path, auto_compact: true, auto_file_sync: true, name: @base)
+  end
+
+  def sync do
+    CubDB.file_sync(@base)
+  end
+
+  def close do
+    CubDB.stop(@base)
   end
 
   defmacrop balance_select() do
@@ -46,10 +59,16 @@ defmodule Ipncore.Balance do
   def update!(keys, keys_values) do
     CubDB.get_and_update_multi(@base, keys, fn entries ->
       new_balances =
-        for {k, v} <- entries, into: %{} do
-          new_val = keys_values[k]
-          if new_val < 0 and v < new_val, do: raise(RuntimeError, message: "balance is too low")
-          {k, v + new_val}
+        for key <- keys, into: %{} do
+          {old_val, old_blocked} = entries[key] || {0, false}
+          new_val = keys_values[key]
+
+          if old_blocked, do: raise("Address is blocked")
+
+          if old_val < 0 and new_val < old_val,
+            do: raise("balance is too low")
+
+          {key, old_val + new_val}
         end
 
       {:ok, new_balances, []}
@@ -59,72 +78,28 @@ defmodule Ipncore.Balance do
   def activity(address58, params) do
     address = Address.from_text(address58)
 
-    # veces que he pagado
-    iquery =
-      from(txi in Txi,
-        join: tx in Tx,
-        on: tx.id == txi.txid,
-        join: ev in Event,
-        on: ev.id == tx.id,
-        where: txi.address == ^address,
-        select: %{
-          id: tx.id,
-          type: ev.type,
-          otype: @output_type_send,
-          address: txi.address,
-          memo: tx.memo,
-          token: txi.token,
-          value: txi.value,
-          time: tx.time,
-          ix: txi.ix,
-          status: ev.status,
-          received: false
-        }
-      )
-
-    # veces que me han pagado
-    oquery =
-      from(txo in Txo,
-        join: tx in Tx,
-        on: tx.id == txo.txid,
-        join: ev in Event,
-        on: ev.id == tx.id,
-        where: txo.address == ^address,
-        select: %{
-          id: tx.id,
-          type: ev.type,
-          otype: txo.type,
-          address: txo.address,
-          memo: tx.memo,
-          token: txo.token,
-          value: txo.value,
-          time: tx.time,
-          ix: txo.ix,
-          status: ev.status,
-          received: fragment("CASE WHEN ? = '%' THEN FALSE ELSE TRUE", txo.type)
-        },
-        union: ^iquery
-      )
-
-    from(s in subquery(oquery),
+    from(txo in Txo,
+      join: ev in Event,
+      on: ev.id == txo.txid,
+      join: tx in Tx,
+      on: tx.id == txo.txid,
       select: %{
-        id: s.id,
-        type: s.type,
-        otype: s.otype,
-        address: s.address,
-        memo: s.memo,
-        token: s.token,
-        value: s.value,
-        time: s.time,
-        ix: s.ix,
-        status: s.status,
-        received: s.received
+        id: txo.txid,
+        type: ev.type,
+        reason: txo.reason,
+        token: txo.token,
+        from: txo.from,
+        to: txo.to,
+        value: txo.value,
+        memo: tx.memo,
+        time: ev.time,
+        status: ev.status
       }
-      # group_by: [s.address, s.status, s.token, s.time, s.received]
     )
     |> filter_token(params)
     |> Tx.filter_date(params)
-    |> filter_operation(params)
+    |> filter_operation(address, params)
+    |> filter_reason(params)
     |> filter_type(params)
     |> filter_limit(params, 50, 100)
     |> filter_offset(params)
@@ -133,17 +108,17 @@ defmodule Ipncore.Balance do
     |> Enum.map(fn x ->
       %{
         id: Event.encode_id(x.id),
-        address: Address.to_text(x.address),
-        memo: x.memo,
-        status: Event.status_name(x.status),
         type: Event.type_name(x.type),
-        otype: x.otype,
+        reason: x.reason,
         token: x.token,
+        from: Address.to_text(x.from),
+        to: Address.to_text(x.to),
         value: x.value,
+        memo: x.memo,
         time: x.time,
-        fee: x.otype == @output_type_fee,
-        ix: x.ix,
-        received: x.received
+        status: Event.status_name(x.status),
+        fee: x.otype == @output_reason_fee,
+        received: address == x.to
       }
     end)
   end
@@ -155,28 +130,34 @@ defmodule Ipncore.Balance do
   defp filter_token(query, _), do: query
 
   defp filter_type(query, %{"type" => type}) do
-    where(query, [s], s.type == ^Event.type_index(type))
+    where(query, [_o, s], s.type == ^Event.type_index(type))
   end
 
   defp filter_type(query, _), do: query
 
-  defp filter_operation(query, %{"operation" => "in"}) do
-    where(query, [s], s.received == true)
+  defp filter_reason(query, %{"reason" => reason}) do
+    where(query, [s], s.reason == ^reason)
   end
 
-  defp filter_operation(query, %{"operation" => "out"}) do
-    where(query, [s], s.received == false)
+  defp filter_reason(query, _), do: query
+
+  defp filter_operation(query, address, %{"operation" => "in"}) do
+    where(query, [s], s.to == ^address)
   end
 
-  defp filter_operation(query, _), do: query
+  defp filter_operation(query, address, %{"operation" => "out"}) do
+    where(query, [s], s.from == ^address)
+  end
+
+  defp filter_operation(query, _, _), do: query
 
   defp activity_sort(query, params) do
     case Map.get(params, "sort") do
       "oldest" ->
-        order_by(query, [s], asc: fragment("length(?)", s.id), asc: s.id, asc: s.ix)
+        order_by(query, [s], asc: fragment("length(?)", s.txid), asc: s.xtid, asc: s.ix)
 
       _ ->
-        order_by(query, [s], desc: fragment("length(?)", s.id), desc: s.id, asc: s.ix)
+        order_by(query, [s], desc: fragment("length(?)", s.txid), desc: s.txid, asc: s.ix)
     end
   end
 
@@ -324,68 +305,26 @@ defmodule Ipncore.Balance do
     |> Map.delete(:created_at)
   end
 
-  def multi_upsert_outgoings(multi, _name, nil, _time, _channel), do: multi
-  def multi_upsert_outgoings(multi, _name, [], _time, _channel), do: multi
+  def multi_upsert_coinbase(multi, _name, nil, _time, _channel), do: multi
+  def multi_upsert_coinbase(multi, _name, [], _time, _channel), do: multi
 
-  def multi_upsert_outgoings(multi, name, txis, time, channel) do
+  def multi_upsert_coinbase(multi, name, txs, time, channel) do
     structs =
-      txis
-      |> Enum.map(fn x ->
-        %{
-          address: x.address,
-          token: x.token,
-          amount: -x.value,
-          locked: 0,
-          in_count: 0,
-          tx_count: 1,
-          out_count: x.value,
-          created_at: time,
-          updated_at: time
-        }
-      end)
-
-    upsert_query =
-      from(w in Balance,
-        where:
-          w.address == fragment("EXCLUDED.address") and w.token == fragment("EXCLUDED.token"),
-        update: [
-          inc: [
-            tx_count: 1,
-            amount: fragment("EXCLUDED.amount"),
-            out_count: fragment("EXCLUDED.out_count")
-          ],
-          set: [
-            updated_at: ^time
+      Enum.reduce(txs, [], fn x, acc ->
+        acc ++
+          [
+            %{
+              address: x.to,
+              token: x.token,
+              amount: x.value,
+              locked: 0,
+              in_count: x.value,
+              tx_count: 1,
+              out_count: 0,
+              created_at: time,
+              updated_at: time
+            }
           ]
-        ]
-      )
-
-    Ecto.Multi.insert_all(multi, name, Balance, structs,
-      on_conflict: upsert_query,
-      conflict_target: [:address, :token],
-      prefix: channel,
-      returning: false
-    )
-  end
-
-  def multi_upsert_incomes(multi, _name, nil, _time, _channel), do: multi
-  def multi_upsert_incomes(multi, _name, [], _time, _channel), do: multi
-
-  def multi_upsert_incomes(multi, name, txos, time, channel) do
-    structs =
-      txos
-      |> Enum.map(fn x ->
-        %{
-          address: x.address,
-          token: x.token,
-          amount: x.value,
-          locked: 0,
-          in_count: x.value,
-          tx_count: 1,
-          out_count: 0,
-          created_at: time,
-          updated_at: time
-        }
       end)
 
     upsert_query =
@@ -407,7 +346,64 @@ defmodule Ipncore.Balance do
     Ecto.Multi.insert_all(multi, name, Balance, structs,
       on_conflict: upsert_query,
       conflict_target: [:address, :token],
-      # stale_error_field: :address,
+      prefix: channel,
+      returning: false
+    )
+  end
+
+  def multi_upsert(multi, _name, nil, _time, _channel), do: multi
+  def multi_upsert(multi, _name, [], _time, _channel), do: multi
+
+  def multi_upsert(multi, name, txs, time, channel) do
+    structs =
+      Enum.reduce(txs, [], fn x, acc ->
+        acc ++
+          [
+            %{
+              address: x.from,
+              token: x.token,
+              amount: -x.value,
+              locked: 0,
+              in_count: 0,
+              tx_count: 1,
+              out_count: x.value,
+              created_at: time,
+              updated_at: time
+            },
+            %{
+              address: x.to,
+              token: x.token,
+              amount: x.value,
+              locked: 0,
+              in_count: x.value,
+              tx_count: 1,
+              out_count: 0,
+              created_at: time,
+              updated_at: time
+            }
+          ]
+      end)
+
+    upsert_query =
+      from(w in Balance,
+        where:
+          w.address == fragment("EXCLUDED.address") and w.token == fragment("EXCLUDED.token"),
+        update: [
+          inc: [
+            tx_count: 1,
+            amount: fragment("EXCLUDED.amount"),
+            out_count: fragment("EXCLUDED.out_count"),
+            in_count: fragment("EXCLUDED.in_count")
+          ],
+          set: [
+            updated_at: ^time
+          ]
+        ]
+      )
+
+    Ecto.Multi.insert_all(multi, name, Balance, structs,
+      on_conflict: upsert_query,
+      conflict_target: [:address, :token],
       prefix: channel,
       returning: false
     )

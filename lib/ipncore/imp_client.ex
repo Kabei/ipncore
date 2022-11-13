@@ -31,7 +31,7 @@ defmodule Ipncore.IMP.Client do
   end
 
   def on_message("tx" <> txid, payload, state) when is_binary(payload) do
-    Tx.put_bft(txid, payload, Default.channel())
+    # Tx.put_bft(txid, payload, Default.channel())
     {:ok, state}
   end
 

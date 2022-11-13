@@ -3,7 +3,7 @@ defmodule Ipncore.Explorer.Router do
 
   import Ipncore.WebTools, only: [json: 2, send_error: 2, send_result: 2]
   import Ipncore.StreamDeliver, only: [serve_video: 3]
-  alias Ipncore.{Block, Channel, Tx, Txo, Txi, Utxo, Token, Balance, Chain, Pool}
+  alias Ipncore.{Block, Channel, Event, Tx, Txo, Token, Balance, Chain, Validator}
 
   if Mix.env() == :dev do
     use Plug.Debugger
@@ -40,11 +40,11 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/txi" do
-    params = conn.params
-    resp = Txi.all(params)
-    send_result(conn, resp)
-  end
+  # get "/txi" do
+  #   params = conn.params
+  #   resp = Txi.all(params)
+  #   send_result(conn, resp)
+  # end
 
   get "/tokens" do
     params = conn.params
@@ -53,18 +53,18 @@ defmodule Ipncore.Explorer.Router do
   end
 
   get "/token/:token/:channel" do
-    resp = Token.get(token, channel, conn.params)
+    resp = Token.one(token, channel, conn.params)
     send_result(conn, resp)
   end
 
-  get "/pools" do
+  get "/validators" do
     params = conn.params
-    resp = Pool.all(params)
+    resp = Validator.all(params)
     send_result(conn, resp)
   end
 
-  get "/pool/:hostname/:channel" do
-    resp = Pool.get(hostname, channel)
+  get "/validators/:hostname/:channel" do
+    resp = Validator.one(hostname, channel, conn.params)
     send_result(conn, resp)
   end
 
@@ -89,7 +89,7 @@ defmodule Ipncore.Explorer.Router do
 
               case Block.get(%{"hash" => hash}) do
                 nil ->
-                  case Tx.get(hash, params) do
+                  case Tx.one_by_hash(hash, params) do
                     nil ->
                       nil
 
@@ -106,17 +106,17 @@ defmodule Ipncore.Explorer.Router do
 
               case Balance.fetch_balance(address, Default.token(), Default.channel()) do
                 nil ->
-                  index = Tx.decode_index(query)
-                  Tx.get_by_index(index, params)
+                  index = Event.decode_id(query)
+                  Tx.one(index, params)
 
                 x ->
                   %{"id" => x.address, "type" => "balance"}
               end
 
             Regex.match?(Const.Regex.base62(), query) ->
-              index = Tx.decode_index(query)
+              index = Event.decode_id(query)
 
-              case Tx.get_by_index(index, params) do
+              case Tx.one(index, params) do
                 nil ->
                   nil
 
@@ -169,7 +169,7 @@ defmodule Ipncore.Explorer.Router do
   get "/status/:channel_id" do
     genesis_time = Chain.genesis_time()
     channel = Channel.get(channel_id)
-    token = Token.get(Default.token(), channel_id)
+    token = Token.one(Default.token(), channel_id)
 
     resp = %{
       blocks: channel.block_count,
@@ -206,61 +206,75 @@ defmodule Ipncore.Explorer.Router do
   get "/tx/:hash16" when byte_size(hash16) == 64 do
     hash = Base.decode16!(hash16, case: :mixed)
 
-    resp = Tx.get(hash, conn.params)
+    resp = Tx.one_by_hash(hash, conn.params)
 
     send_result(conn, resp)
   end
 
-  get "/tx/:index62" do
-    index = Tx.decode_index(index62)
+  get "/tx/:txid" do
+    id = Event.decode_id(txid)
 
-    resp = Tx.get_by_index(index, conn.params)
+    resp = Tx.one(id, conn.params)
 
     send_result(conn, resp)
   end
 
-  post "/utxo" do
-    params = conn.params
+  # post "/utxo" do
+  #   params = conn.params
 
-    case params do
-      %{"address" => address, "channel" => channel, "token" => token, "total" => total} = params ->
-        IO.inspect(params)
+  #   case params do
+  #     %{"address" => address, "channel" => channel, "token" => token, "total" => total} = params ->
+  #       IO.inspect(params)
 
-        x =
-          if(is_list(address),
-            do: Enum.map(address, &Base58Check.decode(&1)),
-            else: [Base58Check.decode(address)]
-          )
+  #       x =
+  #         if(is_list(address),
+  #           do: Enum.map(address, &Base58Check.decode(&1)),
+  #           else: [Base58Check.decode(address)]
+  #         )
 
-        result = Utxo.fetch_by_address_multi(x, token, total, channel)
-        json(conn, result)
+  #       result = Utxo.fetch_by_address_multi(x, token, total, channel)
+  #       json(conn, result)
 
-      %{"address" => address, "token" => token, "total" => total} = params ->
-        IO.inspect(params)
+  #     %{"address" => address, "token" => token, "total" => total} = params ->
+  #       IO.inspect(params)
 
-        x =
-          if(is_list(address),
-            do: Enum.map(address, &Base58Check.decode(&1)),
-            else: [Base58Check.decode(address)]
-          )
+  #       x =
+  #         if(is_list(address),
+  #           do: Enum.map(address, &Base58Check.decode(&1)),
+  #           else: [Base58Check.decode(address)]
+  #         )
 
-        result = Utxo.fetch_by_address(x, token, total, Default.channel())
-        json(conn, result)
+  #       result = Utxo.fetch_by_address(x, token, total, Default.channel())
+  #       json(conn, result)
 
-      _ ->
-        send_error(conn, 400)
-    end
-  end
+  #     _ ->
+  #       send_error(conn, 400)
+  #   end
+  # end
 
-  post "/tx" do
-    # IO.puts(inspect(conn))
-    params = conn.params
-    IO.inspect(params)
+  # post "/tx" do
+  #   # IO.puts(inspect(conn))
+  #   params = conn.params
+  #   IO.inspect(params)
 
-    case Tx.begin_processing(params) do
-      {:ok, tx} ->
+  #   case Tx.begin_processing(params) do
+  #     {:ok, tx} ->
+  #       # Ipncore.IMP.Client.publish("tx:" <> tx.index, params)
+  #       json(conn, %{"index" => Tx.encode_index(tx.index)})
+
+  #     err ->
+  #       send_error(conn, err)
+  #   end
+  # end
+
+  post "/event" do
+    %{"_json" => event} = conn.params
+    IO.inspect(event)
+
+    case Event.new(event) do
+      {:ok, event} ->
         # Ipncore.IMP.Client.publish("tx:" <> tx.index, params)
-        json(conn, %{"index" => Tx.encode_index(tx.index)})
+        json(conn, %{"id" => Event.encode_id(event.id)})
 
       err ->
         send_error(conn, err)

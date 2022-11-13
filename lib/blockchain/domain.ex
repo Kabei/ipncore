@@ -1,11 +1,15 @@
 defmodule Ipncore.Domain do
-  alias __MODULE__
   use Ecto.Schema
   import Ecto.Query
-  alias Ipncore.Repo
+  import Ipnutils.Filters
+  alias Ipncore.{Address, Database, Repo, Utils}
+  alias __MODULE__
 
-  @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
-  @fields ~w(name owner email avatar)
+  @behaviour Database
+
+  @base :domain
+  @filename "domain.db"
+  # @fields ~w(name owner email avatar)
   @edit_fields ~w(owner enabled email avatar)
   @token Default.token()
 
@@ -21,49 +25,188 @@ defmodule Ipncore.Domain do
     field(:updated_at, :integer)
   end
 
-  def cast(params, filter, time) do
-    Map.take(params, filter)
-    |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
-    |> Keyword.merge(%{created_at: time, updated_at: time})
+  @impl Database
+  def open(_channel) do
+    dir_path = Application.get_env(:ipncore, :dir_path)
+    filename = Path.join([dir_path, @filename])
+    DetsPlus.open_file(@base, name: filename, keypos: :name, auto_save: 60_000)
   end
 
-  def new!(channel, event, from_address, [
+  @impl Database
+  def close(_channel) do
+    DetsPlus.close(@base)
+  end
+
+  @impl Database
+  def put!(x) do
+    case DetsPlus.insert_new(@base, x) do
+      true ->
+        true
+
+      false ->
+        throw("Domain already exists")
+    end
+  end
+
+  def put(x) do
+    DetsPlus.insert(@base, x)
+  end
+
+  def exists!(x) do
+    case DetsPlus.lookup(@base, x) do
+      [] ->
+        false
+
+      _ ->
+        throw("Domain already exists")
+    end
+  end
+
+  @impl Database
+  def fetch!(x) do
+    case DetsPlus.lookup(@base, x) do
+      [] ->
+        throw("Domain not exists")
+
+      [obj] ->
+        obj
+    end
+  end
+
+  def fetch!(name, owner) do
+    DetsPlus.lookup(@base, name)
+    |> case do
+      [x] when x.owner == owner ->
+        x
+
+      [x] ->
+        throw("Invalid owner")
+
+      _ ->
+        throw("Domain not exists")
+    end
+  end
+
+  def delete!(name, owner) do
+    case DetsPlus.lookup(@base, name) do
+      [domain] when domain.owner == owner ->
+        case DetsPlus.delete(@base, name) do
+          {:error, _} -> throw("Error in the operation")
+          r -> r
+        end
+
+      [domain] ->
+        throw("Invalid owner")
+
+      _ ->
+        throw("Domain not exists")
+    end
+  end
+
+  def new!(
+        multi,
+        channel,
+        event_id,
+        timestamp,
+        event_size,
+        from_address,
         name,
         owner,
         email,
         avatar,
         validator_address
-      ]) do
-    if not Regex.match(Const.Regex.hostname(), name), do: throw("No hostname")
-    if email and not Regex.match(Const.Regex.email(), email), do: throw("No email")
-
-    owner = Address.from_text(owner)
+      ) do
+    if not Regex.match(Const.Regex.hostname(), name), do: throw("Invalid hostname")
+    if !is_nil(email) and not Regex.match(Const.Regex.email(), email), do: throw("Invalid email")
+    if String.length(name) > 100, do: throw("Invalid name length")
 
     domain = %{
       name: name,
       email: email,
       avatar: avatar,
       owner: owner,
-      created_at: event.time,
-      updated_at: event.time
+      created_at: timestamp,
+      updated_at: timestamp
     }
 
-    Ecto.Multi.new()
-    |> Tx.send(channel, event, from_address, [
-      @token,
-      price(name),
-      PlatformOwner.address(),
-      validator_address,
-      false,
-      nil
-    ])
-    |> multi_insert(:domain, domain, channel)
+    exists!(name)
+
+    multi =
+      multi
+      |> Tx.send_fee!(channel, event_id, timestamp, event_size, from_address, validator_address)
+      |> Ecto.Multi.insert_all(:domain, Domain, [domain],
+        returning: false,
+        prefix: channel
+      )
+
+    put!(domain)
+
+    multi
   end
 
-  def new!(_, _, _), do: throw("Not match domain.new")
+  def event_update!(
+        multi,
+        channel,
+        event_id,
+        timestamp,
+        event_size,
+        owner,
+        name,
+        validator_address,
+        params
+      ) do
+    if is_nil(name), do: throw("No hostname")
 
-  def event_update!(channel, event, params) do
+    kw_params =
+      params
+      |> Enum.take(@edit_fields)
+      |> cast()
+      |> Utils.to_keywords()
+      |> Keyword.put(:updated_at, timestamp)
 
+    domain =
+      fetch!(name, owner)
+      |> Map.merge(kw_params)
+
+    queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
+
+    multi =
+      multi
+      |> Tx.send_fees!(
+        channel,
+        event_id,
+        timestamp,
+        event_size,
+        owner,
+        @token,
+        price(name),
+        PlatformOwner.address(),
+        validator_address,
+        false,
+        nil
+      )
+      |> Ecto.Multi.update_all(:update, queryable,
+        set: kw_params,
+        returning: false,
+        prefix: channel
+      )
+
+    put(domain)
+
+    multi
+  end
+
+  def event_delete!(multi, channel, owner, name) do
+    delete!(name, owner)
+
+    queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
+
+    Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
+  end
+
+  def exists?(name, channel) do
+    from(d in Domain, where: d.enabled and d.name == ^name)
+    |> Repo.exists?(prefix: channel)
   end
 
   defp price(name) do
@@ -74,198 +217,57 @@ defmodule Ipncore.Domain do
         100
 
       x <= 8 ->
-        70
+        75
 
       true ->
         5
     end
   end
 
-  def fetch!(name, channel) do
-    from(d in Domain, where: d.name == ^name and d.enabled)
-    |> Repo.one!(prefix: channel)
-  end
-
-  def fetch_and_check_delay(name, time, channel) do
-    from(d in Domain,
-      where: d.name == ^name and d.enabled and d.updated_at + @delay_edit < ^time
-    )
-    |> Repo.one(prefix: channel)
-  end
-
-  def get(name, channel) do
-    from(d in Domain, where: d.name == ^name and d.enabled)
+  def one(hostname, channel, params \\ %{}) do
+    from(d in Domain, where: d.name == ^hostname and d.enabled)
+    |> filter_select(params)
     |> Repo.one(prefix: channel)
     |> transform()
   end
 
-  def exists?(name, channel) do
-    from(d in Domain, where: d.enabled and d.name == ^name)
-    |> Repo.exists?(prefix: channel)
+  def all(params) do
+    from(d in Domain, where: d.enabled)
+    |> filter_host(params)
+    |> filter_select(params)
+    |> filter_limit(params)
+    |> filter_offset(params)
+    |> Repo.all(prefix: filter_channel(params, Default.channel()))
+    |> filter_map()
   end
 
-  def multi_insert(multi, name, data, channel) do
-    Ecto.Multi.insert_all(
-      multi,
-      name,
-      Domain,
-      data,
-      returning: false,
-      prefix: channel
-    )
+  defp filter_host(query, %{"q" => q}) do
+    q = "%#{q}%"
+    where(query, [d], ilike(d.name, ^q))
   end
 
-  def multi_update(multi, multi_name, name, params, time, channel, opts \\ []) do
-    query =
-      case Keyword.get(opts, :check_delay, false) do
-        true ->
-          from(d in Domain, where: d.name == ^name)
+  defp filter_host(query, _), do: query
 
-        false ->
-          from(d in Domain,
-            where: d.name == ^name and d.enabled and d.updated_at + @delay_edit < ^time
-          )
-      end
-
-    params = cast(params, @edit_fields, time)
-
-    Ecto.Multi.update_all(
-      multi,
-      multi_name,
-      query,
-      [set: params],
-      returning: false,
-      prefix: channel
-    )
+  defp filter_select(query, _) do
+    select(query, [d], %{
+      name: d.name,
+      email: d.email,
+      avatar: d.avatar,
+      records: d.records,
+      created_at: d.created_at,
+      renewed_at: d.renewed_at,
+      updated_at: d.updated_at
+    })
   end
 
-  def multi_delete(multi, multi_name, name, channel) do
-    query = from(d in Domain, where: d.name == ^name)
-
-    Ecto.Multi.delete_all(
-      multi,
-      multi_name,
-      query,
-      returning: false,
-      prefix: channel
-    )
+  defp filter_map(data) do
+    Enum.map(data, fn x -> transform(x) end)
   end
 
-  # # tx register
-  # def processing(
-  #       %{
-  #         "channel" => channel,
-  #         "inputs" => inputs,
-  #         "outputs" => outputs,
-  #         "sigs" => sigs,
-  #         "data" => data,
-  #         "time" => time,
-  #         "type" => type,
-  #         "pool" => pool_hostname,
-  #         "version" => version
-  #       } = params
-  #     ) do
-  #   # check size inputs
-  #   in_count = length(inputs)
-  #   if in_count == 0 or in_count > @max_inputs, do: throw(40203)
+  defp transform(nil), do: nil
+  defp transform(x), do: %{x | owner: Address.to_text(x.owner)}
 
-  #   # check size outputs
-  #   out_count = length(outputs)
-  #   if out_count == 0 or out_count > @max_outputs, do: throw(40204)
-
-  #   # get utxo
-  #   input_references = Txi.decode_references(inputs)
-  #   utxo = Utxo.get(input_references, channel)
-  #   if length(utxo) != in_count, do: throw(40206)
-  #   IO.inspect(utxo)
-
-  #   {txo, _txo_ids, txo_tokens, txo_address, txo_token_values, txo_total} = Txo.extract!(outputs)
-
-  #   {txi, utxo_ids, utxo_tokens, utxo_address, utxo_token_values, utxo_total} =
-  #     Utxo.extract!(utxo)
-
-  #   # check utxo and outputs totals
-  #   if utxo_total != txo_total, do: throw(40207)
-  #   # check utxo and outputs token-values
-  #   if utxo_token_values != txo_token_values, do: throw(40207)
-  #   # check default token exists
-  #   if @token not in utxo_tokens, do: throw(40213)
-  #   # check utxo and outputs token list 
-  #   if utxo_tokens != txo_tokens, do: throw(40213)
-  #   # check utxo and outputs address list
-  #   if Enum.sort(utxo_address) == Enum.sort(txo_address), do: throw(40235)
-
-  #   # fetch pool data from hostname
-  #   pool = Pool.fetch!(pool_hostname, channel)
-
-  #   next_index = Block.next_index(time)
-  #   genesis_time = Chain.genesis_time()
-
-  #   # extract outgoings and incomes
-  #   {outgoings, incomes} = extract_balances(utxo, txo)
-
-  #   # check output has domain price
-  #   case type do
-  #     1300 ->
-  #       domain_size = length(domain)
-
-  #       domain_price =
-  #         cond do
-  #           domain_size < 6 ->
-  #             100
-
-  #           domain_size < 9 ->
-  #             75
-
-  #           true ->
-  #             5
-  #         end
-
-  #       send_txo = %{tid: "USD", address: PlatformOwner.address(), type: "S", value: domain_price}
-  #       if send_txo not in txo, do: throw(40207)
-
-  #     true ->
-  #       nil
-  #   end
-
-  #   tx =
-  #     %{
-  #       inputs: txi,
-  #       outputs: txo,
-  #       block_index: next_index,
-  #       in_count: in_count,
-  #       out_count: out_count,
-  #       total_input: txo_total,
-  #       time: time,
-  #       type: type,
-  #       vsn: version,
-  #       status: Tx.status_approved(),
-  #       outgoings: outgoings,
-  #       incomes: incomes
-  #     }
-  #     |> Tx.put_hash()
-  #     |> Tx.put_signatures(sigs, utxo_address)
-  #     |> Tx.put_size()
-  #     |> Tx.put_index(genesis_time)
-  #     |> Tx.put_outputs_index()
-  #     |> Tx.put_inputs_index()
-  #     |> Tx.put_fees_data(utxo_address, pool.address, pool.fee, pool.percent, data)
-
-  #   Ecto.Multi.new()
-  #   |> Tx.multi_insert(tx, channel)
-  #   |> multi_insert(:domain, data, time, channel)
-  #   |> Repo.transaction()
-  #   |> case do
-  #     {:ok, _} ->
-  #       # set available txos
-  #       Txo.update_txid_avail(tx.index, channel, true)
-
-  #       {:ok, tx}
-
-  #     err ->
-  #       Logger.error("Tx error database")
-  #       IO.inspect(err)
-  #       {:error, 500}
-  #   end
-  # end
+  defp cast(%{}), do: throw("Invalid parameters")
+  defp cast(%{"owner" => address} = x), do: %{x | "owner" => Address.from_text(address)}
+  defp cast(x), do: x
 end

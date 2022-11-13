@@ -55,15 +55,10 @@ defmodule Ipncore.Migration.Blockchain do
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".tx(
         id bytea NOT NULL,
-        time bigint,
-        from bytea[],
-        token_value jsonb,
-        amount bigint NOT NULL,
         fee bigint NOT NULL,
-        validator bytea,
-        in_count integer NOT NULL,
-        out_count integer NOT NULL,
         refundable bool DEFAULT FALSE,
+        out_count integer NOT NULL,
+        token_value jsonb,
         memo varchar(100)
       )
       TABLESPACE #{tablespace};
@@ -72,21 +67,12 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".txo(
         txid bytea NOT NULL,
         ix integer NOT NULL,
-        address bytea,
         token varchar(64) NOT NULL,
-        type char(1),
+        from bytea,
+        to bytea,
+        reason char(1),
         value bigint,
         avail bool DEFAULT FALSE
-      )
-      TABLESPACE #{tablespace};
-      """,
-      """
-      CREATE TABLE IF NOT EXISTS "#{channel}".txi(
-        txid bytea NOT NULL,
-        ix integer NOT NULL,
-        address bytea,
-        token varchar(64) NOT NULL,
-        value bigint
       )
       TABLESPACE #{tablespace};
       """,
@@ -94,11 +80,9 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".token(
         id varchar(64) NOT NULL,
         name varchar,
-        type smallint,
         enabled bool DEFAULT TRUE,
         decimals integer DEFAULT 0,
         symbol varchar(5),
-        creator bytea NOT NULL,
         owner bytea NOT NULL,
         supply bigint DEFAULT 0,
         destroyed bigint DEFAULT 0,
@@ -119,9 +103,7 @@ defmodule Ipncore.Migration.Blockchain do
         tx_count numeric DEFAULT 0,
         created_at bigint NOT NULL,
         updated_at bigint,
-        CONSTRAINT balances_pk PRIMARY KEY (address, token),
-        CONSTRAINT balance_ck CHECK (amount >= 0::numeric),
-        CONSTRAINT locked_ck CHECK (locked >= 0::numeric)
+        CONSTRAINT balances_pk PRIMARY KEY (address, token)
       )
       """,
       """
@@ -134,7 +116,7 @@ defmodule Ipncore.Migration.Blockchain do
           percent bool NOT NULL,
           created_at bigint NOT NULL,
           updated_at bigint NOT NULL,
-          CONSTRAINT pools_pk PRIMARY KEY (host)
+          CONSTRAINT validator_pk PRIMARY KEY (host)
       )
       """,
       """
@@ -142,7 +124,6 @@ defmodule Ipncore.Migration.Blockchain do
           id varchar NOT NULL,
           title varchar NOT NULL,
           owner bytea NOT NULL,
-          address bytea NOT NULL,
           email varchar(64),
           avatar varchar,
           enabled bool DEFAULT TRUE,
@@ -151,9 +132,11 @@ defmodule Ipncore.Migration.Blockchain do
           created_at bigint NOT NULL,
           renewed_at bigint NOT NULL,
           updated_at bigint NOT NULL,
-          CONSTRAINT pools_pk PRIMARY KEY (id)
+          CONSTRAINT domain_pk PRIMARY KEY (id)
       )
       """,
+      # CONSTRAINT balance_ck CHECK (amount >= 0::numeric),
+      # CONSTRAINT locked_ck CHECK (locked >= 0::numeric)
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".dns_record(
         id varchar NOT NULL,

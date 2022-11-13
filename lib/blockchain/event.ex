@@ -1,6 +1,6 @@
 defmodule Ipncore.Event do
   use Ecto.Schema
-  alias Ipncore.{Block, Chain}
+  alias Ipncore.{Address, Block, Chain, Tx, Wallet}
   import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query
   import Ipnutils.Filters
@@ -36,7 +36,7 @@ defmodule Ipncore.Event do
       {0, "no processed"},
       {1, "pending"},
       {2, "approved"},
-      {3, "confirmed"},
+      {3, "complete"},
       {-1, "cancelled"},
       {-2, "timeout"}
     ]
@@ -44,10 +44,10 @@ defmodule Ipncore.Event do
     {false, false}
   end
 
-  @version Aplication.get_env(:ipncore, :event_version)
-  @timeout Aplication.get_env(:ipncore, :event_timeout)
-  @max_size Aplication.get_env(:ipncore, :event_max_size)
-  @max_signatures Aplication.get_env(:ipncore, :event_max_signatures, 5)
+  @version Application.compile_env(:ipncore, :event_version)
+  @threshold_timeout Application.compile_env(:ipncore, :event_threshold_timeout)
+  @max_size Application.compile_env(:ipncore, :event_max_size)
+  @max_signatures Application.compile_env(:ipncore, :event_max_signatures, 5)
 
   @base :ev
   @filaname "event.db"
@@ -66,7 +66,7 @@ defmodule Ipncore.Event do
     field(:type, :integer)
     field(:block_index, :integer)
     field(:sig_count, :integer)
-    field(:status, :integer, default: 100)
+    field(:status, :integer, default: 1)
     field(:size, :integer, default: 0)
     field(:vsn, :integer)
   end
@@ -74,7 +74,7 @@ defmodule Ipncore.Event do
   def open(block_height) do
     dir_path = Application.get_env(:ipncore, :events_dir_path, "events")
     filename = Path.join(dir_path, "#{block_height}.db")
-    DetsPlus.open_file(@base, name: filename)
+    DetsPlus.open_file(@base, name: filename, auto_save_memory: 1_000_000)
   end
 
   def close(block_height) do
@@ -82,12 +82,12 @@ defmodule Ipncore.Event do
     DetsPlus.close(@base)
   end
 
-  def new([version, type, channel, body, sigs, time], opts \\ [])
-      when mime == 2 and version == @version do
+  def new([version, type_number, channel, body, sigs, time], opts \\ [])
+      when version == @version do
     # check_timeout = Keyword.has_key?(opts, :check_timeout)
     # if check_timeout and abs(time - Chain.get_time()) > @timeout, do: throw("Event is timeout")
 
-    type_name = type_name(type)
+    type_name = type_name(type_number)
     if type_name == false, do: throw("Type invalid")
 
     if length(sigs) > @max_signatures, do: throw("Invalid signature count")
@@ -107,7 +107,7 @@ defmodule Ipncore.Event do
     event = %{
       id: id,
       hash: hash,
-      type: type,
+      type: type_number,
       block_index: next_index,
       sig_count: sig_count,
       size: size,
@@ -115,35 +115,110 @@ defmodule Ipncore.Event do
       vsn: version
     }
 
-    insert_new!(id, [@version, channel, type_number, body, time])
+    put!({id, [@version, channel, type_number, body, time]})
 
     try do
-      multi =
-        Ecto.Multi.new()
-        |> multi_insert(event, channel)
+      multi = multi_insert(Ecto.Multi.new(), event, channel)
 
-      case type_name do
-        "tx.send" ->
-          Tx.send(channel, event, List.first(from_addresses), body, multi)
+      result_multi =
+        case type_name do
+          "tx.send" ->
+            [from_address, token, amount, to_address, validator_address, refundable, memo] = body
+            [from_address] = from_addresses
 
-        "tx.coinbase" ->
-          Tx.coinbase(channel, event, List.first(from_addresses), body, multi)
+            Tx.send!(
+              multi,
+              channel,
+              event.id,
+              event.time,
+              event.size,
+              token,
+              from_address,
+              amount,
+              Address.from_text(to_address),
+              Address.from_text(validator_address),
+              refundable,
+              memo
+            )
 
-        "domain.new" ->
-          Domain.new(channel, event, List.first(from_addresses), body, multi)
+          "tx.coinbase" ->
+            [token_id, outputs, memo] = body
+            [from_address] = from_addresses
+
+            Tx.coinbase!(
+              multi,
+              channel,
+              event.id,
+              event.time,
+              token_id,
+              from_address,
+              outputs,
+              memo
+            )
+
+          "domain.new" ->
+            [name, owner, email, avatar, validator_address] = body
+            [from_address] = from_addresses
+
+            Domain.new!(
+              multi,
+              channel,
+              event.id,
+              event.time,
+              event.size,
+              from_address,
+              name,
+              owner,
+              email,
+              avatar,
+              Address.from_text(validator_address)
+            )
+
+          "domain.update" ->
+            [name, validator_address, params] = body
+            [owner_address] = from_addresses
+
+            Domain.event_update!(
+              multi,
+              channel,
+              event.id,
+              event.time,
+              event.size,
+              owner_address,
+              name,
+              validator_address,
+              params
+            )
+
+          "domain.delete" ->
+            nil
+
+          _ ->
+            nil
+        end
+
+      case result_multi do
+        nil ->
+          nil
+
+        result ->
+          Repo.transaction(result_multi)
       end
+
+      {:ok, event}
     catch
       _x ->
         delete(id)
+        :error
     end
   end
 
-  def new(_) do
+  def new(_, _) do
     throw("Event not match")
   end
 
-  def insert_new!(tx, key, value) do
-    case DetsPlus.insert_new(@base, key, value) do
+  def put!(x) do
+    case DetsPlus.insert_new(@base, x) do
       false ->
         throw("Event already exists")
 
@@ -154,6 +229,13 @@ defmodule Ipncore.Event do
 
   def delete(key) do
     DetsPlus.delete(@base, key)
+  end
+
+  def multi_insert(multi, event, channel) do
+    Ecto.Multi.insert_all(multi, :event, Event, [event],
+      returning: false,
+      prefix: channel
+    )
   end
 
   def generate_id(next_block_index, genesis_time, hash, time) do
@@ -180,12 +262,15 @@ defmodule Ipncore.Event do
   end
 
   def check_signatures!(hash, sigs) do
-    {addresses, size} =
-      Enum.reduce({addresses, 0}, fn [address, signature], {acc_addr, acc_size} ->
+    {addresses, byte_size} =
+      Enum.reduce(sigs, {[], 0}, fn [address, signature], {acc_addr, acc_size} ->
         bin_address = Address.from_text(address)
 
         case Wallet.get(bin_address) do
-          [{_, pubkey}] ->
+          nil ->
+            throw("There is an unregistered address")
+
+          pubkey ->
             case Falcon.verify(hash, signature, pubkey) do
               :ok ->
                 {acc_addr ++ [bin_address], byte_size(signature) + acc_size}
@@ -193,13 +278,10 @@ defmodule Ipncore.Event do
               :error ->
                 throw("Error signature")
             end
-
-          _ ->
-            throw("There is an unregistered address")
         end
       end)
 
-    {addresses, size, length(sigs)}
+    {addresses, byte_size, length(sigs)}
   end
 
   def encode_id(index) do
@@ -232,12 +314,11 @@ defmodule Ipncore.Event do
     end
   end
 
-  defmacro export_select(channel) do
+  defmacro export_select do
     quote do
       [
         ev.vsn,
         ev.type,
-        channel,
         ev.body,
         ev.sigs,
         ev.time
@@ -258,7 +339,12 @@ defmodule Ipncore.Event do
   end
 
   def one(id, channel) do
-    from(ev in Event, where: ev.id == ^decode_id(id))
+    from(ev in Event, where: ev.id == ^id)
+    |> Repo.one(prefix: channel)
+  end
+
+  def one_by_hash(hash, channel) do
+    from(ev in Event, where: ev.hash == ^hash)
     |> Repo.one(prefix: channel)
   end
 
@@ -270,7 +356,7 @@ defmodule Ipncore.Event do
     |> filter_select(params)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
-    |> transform()
+    |> filter_map()
   end
 
   defp filter_time(query, %{"from" => from_time, "to" => to_time}) do
@@ -288,21 +374,31 @@ defmodule Ipncore.Event do
   defp filter_time(query, _), do: query
 
   defp filter_select(query, %{"fmt" => "export"}) do
-    select(query, [ev], list_select())
+    select(query, [ev], export_select())
   end
 
   defp filter_select(query, _), do: select(query, [ev], map_select())
 
-  defp transform(nil), do: []
-  defp transform([]), do: []
+  defp sort(query, params) do
+    case Map.get(params, "sort") do
+      "oldest" ->
+        order_by(query, [ev], asc: fragment("length(?)", ev.id), asc: ev.id)
 
-  defp transform(data) do
+      _ ->
+        order_by(query, [ev], desc: fragment("length(?)", ev.id), desc: ev.id)
+    end
+  end
+
+  defp filter_map(data) do
     Enum.map(data, fn x ->
-      transform_one(x)
+      transform(x)
     end)
   end
 
-  defp transform_one(x) do
+  defp transform(nil), do: []
+  defp transform([]), do: []
+
+  defp transform(x) do
     %{x | id: encode_id(x.id), status: status_name(x.status), type: type_name(x.type)}
   end
 end

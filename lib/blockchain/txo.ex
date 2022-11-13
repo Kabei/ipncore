@@ -5,18 +5,14 @@ defmodule Ipncore.Txo do
   import Ipnutils.Filters
   alias __MODULE__
 
-  # @output_type_send "S"
-  # @output_type_fee "%"
-  # @output_type_return "R"
-  # @output_type_coinbase "C"
-
   @primary_key false
   schema "txo" do
     field(:txid, :binary)
     field(:ix, :integer)
     field(:token, :string)
-    field(:address, :binary)
-    field(:type, :string)
+    field(:from, :binary)
+    field(:to, :binary)
+    field(:reason, :string)
     field(:value, :integer)
     field(:avail, :boolean, default: false)
   end
@@ -83,19 +79,29 @@ defmodule Ipncore.Txo do
 
   defp filter_index(query, _params), do: query
 
-  defp filter_available(query, %{"used" => "0"}) do
+  defp filter_available(query, %{"avail" => "0"}) do
     where(query, [txo], txo.avail == false)
   end
 
-  defp filter_available(query, %{"used" => "1"}) do
+  defp filter_available(query, %{"avail" => _}) do
     where(query, [txo], txo.avail == true)
   end
 
   defp filter_available(query, _params), do: query
 
+  defp filter_address(query, %{"from" => address}) do
+    bin_address = Address.from_text(address)
+    where(query, [txo], txo.from == ^bin_address)
+  end
+
+  defp filter_address(query, %{"to" => address}) do
+    bin_address = Address.from_text(address)
+    where(query, [txo], txo.to == ^bin_address)
+  end
+
   defp filter_address(query, %{"address" => address}) do
     bin_address = Address.from_text(address)
-    where(query, [txo], txo.address == ^bin_address)
+    where(query, [txo], txo.to == ^bin_address or txo.address == ^bin_address)
   end
 
   defp filter_address(query, _params), do: query
@@ -112,9 +118,10 @@ defmodule Ipncore.Txo do
     |> select([o, tk], %{
       txid: o.txid,
       ix: o.ix,
-      address: o.address,
+      from: o.from,
+      to: o.to,
       token: o.token,
-      type: o.type,
+      reason: o.reason,
       value: o.value,
       available: o.avail,
       decimals: tk.decimals,
@@ -126,9 +133,10 @@ defmodule Ipncore.Txo do
     select(query, [o], [
       o.txid,
       o.ix,
-      o.address,
+      o.from,
+      o.to,
       o.token,
-      o.type,
+      o.reason,
       o.value,
       o.avail
     ])
@@ -139,8 +147,9 @@ defmodule Ipncore.Txo do
       id: o.txid,
       ix: o.ix,
       token: o.token,
-      address: o.address,
-      type: o.type,
+      from: o.from,
+      to: o.to,
+      reason: o.reason,
       value: o.value,
       available: o.avail
     })
@@ -157,13 +166,14 @@ defmodule Ipncore.Txo do
   end
 
   defp transform(txos, %{"fmt" => "list"}) do
-    Enum.map(txos, fn [id, ix, address, token, type, value, avail] ->
+    Enum.map(txos, fn [id, ix, token, from, to, reason, value, avail] ->
       [
         Event.encode_id(id),
         ix,
-        Address.to_text(address),
         token,
-        type,
+        Address.to_text(from),
+        Address.to_text(to),
+        reason,
         value,
         avail
       ]
@@ -172,7 +182,7 @@ defmodule Ipncore.Txo do
 
   defp transform(txos, _) do
     Enum.map(txos, fn x ->
-      %{x | id: Event.encode_id(x.id), address: Address.to_text(x.address)}
+      %{x | id: Event.encode_id(x.id), from: Address.to_text(x.from), to: Address.to_text(x.to)}
     end)
   end
 end

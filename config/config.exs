@@ -17,14 +17,15 @@ end
 config :ipnutils, :jsonlib, Jason
 config :ipnutils, :repo, Ipncore.Repo
 
-# blcokchain config
+# blockchain 
 config :ipncore, :migration_version, 0
+
+config :ipncore, :event_version, 0
+config :ipncore, :event_threshold_timeout, :timer.seconds(10)
+config :ipncore, :event_max_size, 8192
+
 config :ipncore, :block_version, 0
 config :ipncore, :block_interval, :timer.seconds(60)
 
-config :ipncore, :event_version, 0
-config :ipncore, :event_timeout, :timer.seconds(10)
-config :ipncore, :event_max_size, 8192
-
 config :ipncore, :tx_timeout_refund, :timer.hours(72)
-config :ipncore, :tx_edit_delay, :timer.hours(1)
+# config :ipncore, :tx_edit_delay, :timer.hours(1)

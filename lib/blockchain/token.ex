@@ -3,21 +3,15 @@ defmodule Ipncore.Token do
   import Ecto.Query, only: [from: 2, where: 3, order_by: 3, select: 3]
   import Ipnutils.Filters
   import Ipnutils.Macros, only: [deftypes: 1]
-  alias Ipncore.{Block, Chain, Tx, TxData, Repo}
+  alias Ipncore.{Address, Block, Chain, Tx, TxData, Repo, Database, Utils}
   alias __MODULE__
 
-  @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
-  @fields ~w(id name creator decimals symbol owner props)
-  @edit_fields ~w(enabled name owner props)
-
   @type t :: %Token{
-          id: binary(),
-          name: binary(),
-          type: integer(),
-          symbol: binary(),
+          id: String.t(),
+          name: String.t(),
           decimals: integer(),
+          symbol: String.t(),
           enabled: boolean(),
-          creator: binary(),
           owner: binary(),
           supply: pos_integer(),
           destroyed: pos_integer(),
@@ -26,14 +20,19 @@ defmodule Ipncore.Token do
           updated_at: pos_integer()
         }
 
-  @primary_key {:id, :binary, []}
+  @behaviour Database
+
+  @base :token
+  @filename "token.db"
+  # @fields ~w(id name creator decimals symbol owner props)
+  @edit_fields ~w(enabled name owner props)
+
+  @primary_key {:id, :string, []}
   schema "token" do
     field(:name, :string)
-    field(:type, :integer)
     field(:enabled, :boolean, default: true)
     field(:decimals, :integer)
     field(:symbol, :string)
-    field(:creator, :binary)
     field(:owner, :binary)
     field(:supply, :integer, default: 0)
     field(:destroyed, :integer, default: 0)
@@ -85,116 +84,149 @@ defmodule Ipncore.Token do
     type_match(token_id) in 1..4
   end
 
-  def new(
-        %{
-          "id" => token_id,
-          "name" => name,
-          "decimals" => decimals,
-          "symbol" => symbol,
-          "creator" => creator_address,
-          "owner" => owner_address
-        } = params,
-        time
-      ) do
-    %Token{
+  @impl Database
+  def open(_channel) do
+    dir_path = Application.get_env(:ipncore, :dir_path)
+    filename = Path.join([dir_path, @filename])
+    DetsPlus.open_file(@base, name: filename, keypos: :id, auto_save: 60_000)
+  end
+
+  @impl Database
+  def close(_channel) do
+    DetsPlus.close(@base)
+  end
+
+  @impl Database
+  def put!(x) do
+    case DetsPlus.insert_new(@base, x) do
+      true ->
+        true
+
+      false ->
+        throw("Token already exists")
+    end
+  end
+
+  @impl Database
+  def fetch!(token_id) do
+    case DetsPlus.lookup(@base, token_id) do
+      [] ->
+        throw("Token not exists")
+
+      [token] ->
+        token
+    end
+  end
+
+  def fetch!(token_id, owner) do
+    DetsPlus.lookup(@base, token_id)
+    |> case do
+      [x] when x.owner == owner ->
+        x
+
+      [x] ->
+        throw("Invalid owner")
+
+      _ ->
+        throw("Token not exists")
+    end
+  end
+
+  def delete!(token_id, owner) do
+    case DetsPlus.lookup(@base, token_id) do
+      [x] when x.owner == owner ->
+        case DetsPlus.delete(@base, token_id) do
+          {:error, _} -> throw("Error in the operation")
+          r -> r
+        end
+
+      [x] ->
+        throw("Invalid owner")
+
+      _ ->
+        throw("Token not exists")
+    end
+  end
+
+  def new!(event, channel, token_id, owner_address, name, decimals, symbol, props, multi) do
+    if not coin?(token_id), do: throw("Invalid token ID")
+
+    if owner_address != PlatformOwner.address(),
+      do: throw("Operation not allowed")
+
+    token = %{
       id: token_id,
       name: name,
-      props: params["props"],
+      owner: owner_address,
       decimals: decimals,
       symbol: symbol,
-      type: type_match(token_id),
-      creator: creator_address,
-      owner: owner_address,
-      created_at: time,
-      updated_at: time
+      props: props,
+      enabled: true,
+      supply: 0,
+      destroyed: 0,
+      created_at: event.time,
+      updated_at: event.time
     }
-  end
 
-  def new(_), do: throw(40224)
+    put!(token)
 
-  def owner?(token_id, address, channel) do
-    from(tk in Token, where: tk.id == ^token_id and tk.owner == ^address)
-    |> Repo.exists(prefix: channel)
-  end
-
-  def filter_data(params), do: Map.take(params, @fields)
-
-  def fetch!(token_id, channel) do
-    from(tk in Token, where: tk.id == ^token_id and tk.enabled)
-    |> Repo.one!(prefix: channel)
-  end
-
-  def fetch_and_check_delay(token_id, time, channel) do
-    from(tk in Token,
-      where: tk.id == ^token_id and tk.enabled and tk.updated_at + @delay_edit < ^time
-    )
-    |> Repo.one(prefix: channel)
-  end
-
-  def multi_insert(multi, name, token, time, channel) do
-    token_struct = new(token, time)
-
-    exists_symbol =
-      from(tk in Token, where: tk.symbol == ^token_struct.symbol)
-      |> Repo.exists?(prefix: channel)
-
-    if exists_symbol do
-      throw(40223)
-    end
-
-    Ecto.Multi.insert(
-      multi,
-      name,
-      token_struct,
+    Ecto.Multi.insert_all(multi, :token, Token, [token],
       returning: false,
       prefix: channel
     )
   end
 
-  def multi_update(multi, name, token_id, params, time, channel) do
-    query = from(tk in Token, where: tk.id == ^token_id and tk.updated_at + @delay_edit < ^time)
+  def event_update!(channel, event, from_address, token_id, params, multi) when is_map(params) do
+    if is_nil(token_id), do: throw("Bad format token ID")
 
-    params =
+    kw_params =
       params
-      |> Map.take(@edit_fields)
-      |> Enum.map(fn {k, v} -> {String.to_existing_atom(k), v} end)
-      |> Keyword.put(:updated_at, time)
+      |> Enum.take(@edit_fields)
+      |> cast()
+      |> Utils.to_keywords()
+      |> Keyword.put(:updated_at, event.time)
 
-    Ecto.Multi.update_all(
-      multi,
-      name,
-      query,
-      [set: params],
+    fetch!(token_id, from_address)
+
+    queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^from_address)
+
+    Ecto.Multi.update_all(multi, :update, queryable,
+      set: kw_params,
       returning: false,
       prefix: channel
     )
   end
 
-  def multi_update_stats(multi, name, token_id, amount, time, channel) do
-    query = from(tk in Token, where: tk.id == ^token_id)
+  def event_delete!(multi, channel, address, token_id) do
+    delete!(token_id, address)
 
-    Ecto.Multi.update_all(
-      multi,
-      name,
-      query,
-      [set: [updated_at: time], inc: [supply: amount]],
-      returning: false,
-      prefix: channel
-    )
+    queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^address)
+
+    Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
   end
 
-  def get(token_id, channel, params \\ %{}) do
+  @spec owner?(String.t(), binary, String.t()) :: boolean
+  def owner?(token_id, owner, channel) do
+    DetsPlus.lookup(@base, token_id)
+    |> case do
+      [x] ->
+        x.owner == owner
+
+      _ ->
+        false
+    end
+  end
+
+  def one(token_id, channel, params \\ %{}) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)
     |> filter_select(params)
     |> Repo.one(prefix: channel)
-    |> transform_one()
+    |> transform()
   end
 
   def all(params) do
     from(tk in Token, where: tk.enabled)
     |> filter_index(params)
-    |> filter_type(params)
-    |> filter_group(params)
     |> filter_offset(params)
     |> filter_limit(params, 50, 100)
     |> filter_select(params)
@@ -209,24 +241,10 @@ defmodule Ipncore.Token do
 
   defp filter_index(query, _params), do: query
 
-  defp filter_type(query, %{"type" => type}) do
-    where(query, [tk], tk.type == ^type)
-  end
-
-  defp filter_type(query, _params), do: query
-
-  defp filter_group(query, %{"group" => group}) do
-    where(query, [tk], tk.group == ^group)
-  end
-
-  defp filter_group(query, _params), do: query
-
   defp filter_select(query, %{"fmt" => "array"}) do
     select(query, [tk], [
       tk.id,
       tk.name,
-      tk.type,
-      tk.creator,
       tk.owner,
       tk.decimals,
       tk.supply,
@@ -238,12 +256,11 @@ defmodule Ipncore.Token do
     select(query, [tk], %{
       id: tk.id,
       name: tk.name,
-      creator: tk.creator,
       owner: tk.owner,
       decimals: tk.decimals,
-      props: tk.props,
-      type: tk.type,
-      supply: tk.supply
+      symbol: tk.symbol,
+      supply: tk.supply,
+      props: tk.props
     })
   end
 
@@ -258,100 +275,23 @@ defmodule Ipncore.Token do
   end
 
   defp filter_map(data) do
-    Enum.map(data, fn x -> transform_one(x) end)
+    Enum.map(data, fn x -> transform(x) end)
   end
 
-  defp transform_one([id, name, type, creator, owner, decimals, supply, props]),
+  defp transform(nil), do: nil
+
+  defp transform([id, name, owner, decimals, supply, props]),
     do: [
       id,
       name,
-      type_name(type),
-      Base58Check.encode(creator),
-      Base58Check.encode(owner),
+      Address.to_text(owner),
       decimals,
       supply,
       props
     ]
 
-  defp transform_one(x),
-    do: %{
-      x
-      | type: type_name(x.type),
-        creator: Base58Check.encode(x.creator),
-        owner: Base58Check.encode(x.owner)
-    }
+  defp transform(x), do: %{x | owner: Address.to_text(x.owner)}
 
-  def processing(%{
-        "channel" => channel_id,
-        "sig" => sig64,
-        "data" =>
-          %{
-            "id" => token_id,
-            "name" => _token_name,
-            "decimals" => token_decimal,
-            "creator" => creator58,
-            "owner" => owner58,
-            "props" => %{
-              "symbol" => token_symbol
-            }
-          } = token,
-        "time" => time,
-        "type" => "token_new" = type_name,
-        "version" => version
-      }) do
-    # check token ID format
-    unless coin?(token_id), do: throw(40222)
-
-    # check token-symbol is string valid
-    unless String.valid?(token_symbol), do: throw(40233)
-
-    # check token-decimal no max 10
-    unless is_integer(token_decimal) or token_decimal > 10 or token_decimal < 0,
-      do: throw(40234)
-
-    next_index = Block.next_index(time)
-    genesis_time = Chain.genesis_time()
-    creator = Base58Check.decode(creator58)
-    owner = Base58Check.decode(owner58)
-    signature = Base.decode64!(sig64)
-
-    token =
-      token
-      |> Map.put("creator", creator)
-      |> Map.put("owner", owner)
-
-    data =
-      token
-      |> filter_data()
-      |> CBOR.encode()
-
-    tx =
-      %{
-        block_index: next_index,
-        data: data,
-        sigs: [signature],
-        time: time,
-        type: type,
-        status: @status_approved,
-        vsn: version
-      }
-      |> Tx.put_hash(data)
-      |> Tx.put_index(genesis_time)
-      |> Tx.put_size(data)
-      |> Tx.verify_sign(signature, PlatformOwner.pubkey())
-
-    Ecto.Multi.new()
-    |> Ecto.Multi.insert(:tx, tx, returning: false, prefix: channel_id)
-    |> TxData.multi_insert(:txdata, tx.index, data, TxData.cbor_mime(), channel_id)
-    |> multi_insert(:token, token, time, channel_id)
-    |> Repo.transaction()
-    |> case do
-      {:ok, _} ->
-        {:ok, tx}
-
-      err ->
-        IO.inspect(err)
-        {:error, 500}
-    end
-  end
+  defp cast(%{"owner" => address} = x), do: %{x | "owner" => Address.from_text(address)}
+  defp cast(x), do: x
 end

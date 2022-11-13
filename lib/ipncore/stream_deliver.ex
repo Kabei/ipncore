@@ -1,7 +1,7 @@
 defmodule Ipncore.StreamDeliver do
   import Plug.Conn
 
-  @max_file_size Application.get_env(:ipncore, :max_file_size)
+  @max_file_size Application.compile_env(:ipncore, :max_file_size)
 
   defp posts_path, do: Application.get_env(:ipncore, :post_path)
 

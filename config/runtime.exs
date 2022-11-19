@@ -6,6 +6,12 @@ config :ipncore, :central, "ippan.net"
 config :ipncore, :channel, "IPN-003"
 config :ipncore, :gps_device, "/dev/AMC0"
 
+# folder paths
+config :ipncore, :data_path, "data"
+config :ipncore, :wallet_path, "data/wallet"
+config :ipncore, :balance_path, "data/balance"
+config :ipncore, :events_path, "data/events"
+
 config :ipncore, :imp_client,
   host: "us2.ippan.net",
   port: 8484,
@@ -34,18 +40,18 @@ config :ipncore, Ipncore.Repo,
   queue_target: 5_000
 
 # tmp, fs, ram, tmpfs
-config :ipncore, :cubdb,
-  check_expiry: 300_000,
-  blocks: [
-    %{
-      type: :fs,
-      root: "priv/buckets",
-      buckets: [
-        "txpool"
-      ],
-      compress: false
-    }
-  ]
+# config :ipncore, :cubdb,
+#   check_expiry: 300_000,
+#   blocks: [
+#     %{
+#       type: :fs,
+#       root: "priv/buckets",
+#       buckets: [
+#         "txpool"
+#       ],
+#       compress: false
+#     }
+#   ]
 
 config :ipncore, :ntp_servers, [
   '0.north-america.pool.ntp.org',

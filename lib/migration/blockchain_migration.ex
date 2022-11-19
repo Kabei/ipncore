@@ -70,8 +70,8 @@ defmodule Ipncore.Migration.Blockchain do
         token varchar(64) NOT NULL,
         from bytea,
         to bytea,
-        reason char(1),
         value bigint,
+        reason char(1),
         avail bool DEFAULT FALSE
       )
       TABLESPACE #{tablespace};
@@ -85,7 +85,7 @@ defmodule Ipncore.Migration.Blockchain do
         symbol varchar(5),
         owner bytea NOT NULL,
         supply bigint DEFAULT 0,
-        destroyed bigint DEFAULT 0,
+        burned bigint DEFAULT 0,
         props jsonb,
         created_at bigint NOT NULL,
         updated_at bigint,

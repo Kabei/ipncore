@@ -1,5 +1,5 @@
 defmodule Ipncore.BlockValidator do
-  alias Ipncore.{Block, Chain, Tx}
+  alias Ipncore.{Block, Chain, Event}
 
   @type validation_type :: :ok | {:error, atom}
 
@@ -15,8 +15,7 @@ defmodule Ipncore.BlockValidator do
          :ok <- valid_with_prev_block?(prev_block, block),
          :ok <- valid_block_hash?(block),
          :ok <- valid_block_type?(prev_block, block),
-         :ok <- valid_block_amounts?(block),
-         :ok <- valid_merkle_root?(block.mk, block.txs) do
+         :ok <- valid_merkle_root?(block.mk, block.events) do
       :ok
     else
       err -> err
@@ -102,13 +101,13 @@ defmodule Ipncore.BlockValidator do
   end
 
   @spec valid_merkle_root?(binary, list) :: validation_type()
-  def valid_merkle_root?(_merkle_root, nil), do: {:error, :no_txs}
-  def valid_merkle_root?(_merkle_root, []), do: {:error, :no_txs}
+  def valid_merkle_root?(_merkle_root, nil), do: {:error, :no_events}
+  def valid_merkle_root?(_merkle_root, []), do: {:error, :no_events}
 
-  def valid_merkle_root?(merkle_root, txs) do
+  def valid_merkle_root?(merkle_root, events) do
     if byte_size(merkle_root) == 32 do
       compute_root =
-        txs
+        events
         |> Enum.map(& &1.hash)
         |> MerkleTree.root()
 
@@ -133,88 +132,67 @@ defmodule Ipncore.BlockValidator do
 
   defp valid_block_hash?(_), do: {:error, :wrong_hash}
 
-  defp valid_block_amounts?(block) do
-    {coinbase, txvol} = Block.sum_amounts(block.txs)
-
-    cond do
-      block.type == 0 and txvol > 0 ->
-        {:error, :invalid_block_amount}
-
-      coinbase != block.amount ->
-        {:error, :invalid_block_amount}
-
-      txvol != block.txvol ->
-        {:error, :invalid_block_txvol}
-
-      length(block.txs) != block.tx_count ->
-        {:error, :invalid_block_tx_count}
-
-      true ->
-        :ok
-    end
-  end
-
   ## transaction validation
 
-  @spec valid_tx?(Tx.t(), Block.t() | nil) :: validation_type()
-  def valid_tx?(tx, prev_block) do
-    with :ok <- valid_tx_version?(tx),
-         :ok <- valid_tx_hash?(tx),
-         :ok <- valid_tx_index?(tx, prev_block),
-         :ok <- valid_tx_timestamp?(tx, prev_block.time) do
+  @spec valid_event?(Event.t(), Block.t() | nil) :: validation_type()
+  def valid_event?(event, prev_block) do
+    with :ok <- valid_event_version?(event),
+         :ok <- valid_event_hash?(event),
+         :ok <- valid_event_index?(event, prev_block),
+         :ok <- valid_event_timestamp?(event, prev_block.time) do
       :ok
     else
       err -> err
     end
   end
 
-  @spec valid_tx_version?(Tx.t()) :: validation_type()
-  defp valid_tx_version?(tx) do
-    if Tx.version() == tx.vsn, do: :ok, else: {:error, :invalid_tx_version}
+  @spec valid_event_version?(Event.t()) :: validation_type()
+  defp valid_event_version?(event) do
+    if Event.version() == event.vsn, do: :ok, else: {:error, :invalid_event_version}
   end
 
-  @spec valid_tx_hash?(Tx.t()) :: validation_type()
-  defp valid_tx_hash?(tx) do
+  @spec valid_event_hash?(Event.t()) :: validation_type()
+  defp valid_event_hash?(event) do
     cond do
-      byte_size(tx.hash) != 32 ->
-        {:error, :bad_tx_hash}
+      byte_size(event.hash) != 32 ->
+        {:error, :bad_event_hash}
 
-      Tx.compute_hash(tx) != tx.hash ->
-        {:error, :invalid_tx_hash}
+      Event.calc_hash(event) != event.hash ->
+        {:error, :invalid_event_hash}
 
       true ->
         :ok
     end
   end
 
-  defp valid_tx_index?(tx, prev_block) do
+  defp valid_event_index?(event, prev_block) do
     cond do
-      prev_block.index < tx.block_index ->
-        {:error, :invalid_tx_block_index}
+      prev_block.index < event.block_index ->
+        {:error, :invalid_event_block_index}
 
-      is_nil(tx.index) or byte_size(tx.index) != 12 ->
-        {:error, :invalid_tx_index}
+      is_nil(event.id) ->
+        {:error, :invalid_event_id}
 
-      Tx.generate_index(tx) != tx.index ->
-        {:error, :invalid_tx_index}
+      Event.generate_id(event) != event.id ->
+        {:error, :invalid_event_id}
 
       true ->
         :ok
     end
   end
 
-  defp valid_tx_timestamp?(%{time: time}, prev_block_time) do
+  defp valid_event_timestamp?(%{time: time}, prev_block_time) do
     iit = Chain.get_time()
 
     cond do
       prev_block_time > time ->
-        {:error, :invalid_tx_timestamp}
+        {:error, :invalid_event_timestamp}
 
       iit < time ->
-        {:error, :invalid_tx_iit}
+        {:error, :invalid_event_iit}
 
-      abs(iit - time) > Tx.timeout() ->
-        {:error, :invalid_tx_timeout}
+      abs(iit - time) > Event.timeout() ->
+        {:error, :invalid_event_timeout}
 
       true ->
         :ok

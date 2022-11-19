@@ -25,14 +25,14 @@ defmodule Ipncore.Validator do
   end
 
   @impl Database
-  def open(_channel) do
-    dir_path = Application.get_env(:ipncore, :dir_path)
+  def open do
+    dir_path = Application.get_env(:ipncore, :data_path, "data")
     filename = Path.join([dir_path, @filename])
     DetsPlus.open_file(@base, name: filename, keypos: :host, auto_save: 60_000)
   end
 
   @impl Database
-  def close(_channel) do
+  def close do
     DetsPlus.close(@base)
   end
 
@@ -63,7 +63,7 @@ defmodule Ipncore.Validator do
       [x] when x.owner != owner ->
         x
 
-      [x] ->
+      [_x] ->
         throw("Invalid owner")
 
       _ ->
@@ -79,7 +79,7 @@ defmodule Ipncore.Validator do
           r -> r
         end
 
-      [x] ->
+      [_x] ->
         throw("Invalid owner")
 
       _ ->
@@ -87,7 +87,12 @@ defmodule Ipncore.Validator do
     end
   end
 
-  def new!(channel, _event, from_address, host, owner, name, fee, fee_type, multi)
+  def check_new!(host, from_address, owner, ) do
+    
+    fetch!(host, )
+  end
+
+  def new!(channel, _event, from_address, host, owner, fee, fee_type, multi)
       when fee_type >= 0 and fee_type <= 2 do
     if not Regex.match?(Const.Regex.hostname(), host), do: throw("Invalid hostname")
     if String.length(name) > 100, do: throw("Invalid name length")

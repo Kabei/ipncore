@@ -1,8 +1,9 @@
 defmodule Ipncore.Application do
   @moduledoc false
   use Application
-  alias Ipncore.{Chain, IIT, Migration, Repo}
+  alias Ipncore.{Chain, IIT, Migration, Repo, Balance, Wallet, Token, Validator, Domain}
   alias Ipnutils.Address
+
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
 
@@ -12,40 +13,49 @@ defmodule Ipncore.Application do
   @impl true
   def start(_type, _args) do
     try do
-      # Ipncore.ConfigProvider.read()
-      # central = Application.get_env(:ipncore, :central)
-      imp_client = Application.get_env(@otp_app, :imp_client)
+      ## Ipncore.ConfigProvider.read()
 
-      {falcon_pk, _sk} =
-        :ipncore |> Application.app_dir(imp_client[:falcon_file]) |> Falcon.read_file!()
+      # imp_client = Application.get_env(@otp_app, :imp_client)
 
-      address = Address.to_internal_address(falcon_pk)
+      # {falcon_pk, _sk} =
+      #   :ipncore |> Application.app_dir(imp_client[:falcon_file]) |> Falcon.read_file!()
 
-      web = Application.get_env(@otp_app, :web)
-      Application.put_env(@otp_app, :address, address)
-      Application.put_env(@otp_app, :address58, Base58Check.encode(address))
+      # address = Address.to_internal_address(falcon_pk)
+
+      # web = Application.get_env(@otp_app, :web)
+      # Application.put_env(@otp_app, :address, address)
+      # Application.put_env(@otp_app, :address58, Base58Check.encode(address))
 
       # deliver
-      post_path =
-        Application.get_env(@otp_app, :post_path)
-        |> Path.expand()
+      # post_path =
+      #   Application.get_env(@otp_app, :post_path)
+      #   |> Path.expand()
 
-      Application.put_env(@otp_app, :post_path, post_path)
+      # Application.put_env(@otp_app, :post_path, post_path)
 
-      opts_cubdb = Application.get_env(@otp_app, :cubdb)
+      # opts_cubdb = Application.get_env(@otp_app, :cubdb)
 
-      migration_start()
+      # migration_start()
 
-      IO.inspect("imp_client")
-      IO.inspect(imp_client)
+      # IO.inspect("imp_client")
+      # IO.inspect(imp_client)
 
-      children =
-        [
-          Repo,
-          {Ipncore.IMP.Client, imp_client},
-          Chain,
-          http_server(web)
-        ] ++ Ipnutils.CubDB.children(opts_cubdb)
+      # open local databases
+      File.mkdir(Application.get_env(:ipncore, :data_path, "data"))
+
+      Mempool.open()
+      Wallet.open()
+      Token.open()
+      Validator.open()
+      Domain.open()
+      Balance.open()
+
+      children = [
+        Repo
+        # {Ipncore.IMP.Client, imp_client}
+        # Chain,
+        # http_server(web)
+      ]
 
       Supervisor.start_link(children, @opts)
     rescue

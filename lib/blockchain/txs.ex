@@ -4,7 +4,7 @@ defmodule Ipncore.Tx do
   import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query, only: [from: 1, from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
-  alias Ipncore.{Address, Balance, Block, Chain, Txo, Balance, Token, Validator}
+  alias Ipncore.{Address, Balance, Block, Chain, Txo, Balance, Token, Validator, Repo}
   alias __MODULE__
 
   @unit_time Default.unit_time()
@@ -37,6 +37,57 @@ defmodule Ipncore.Tx do
         memo: tx.memo
       }
     end
+  end
+
+  def check_send!(
+        from_address,
+        token,
+        amount,
+        validator_address,
+        event_size
+      )
+      when token == @token do
+    if amount <= 0, do: throw("Invalid amount to send")
+    validator = Validator.fetch!(validator_address)
+    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+
+    if not Balance.check(from_address, token, amount + fee_total), do: throw("balance is too low")
+    :ok
+  end
+
+  def check_send!(
+        from_address,
+        to_address,
+        token,
+        amount,
+        validator_address,
+        event_size
+      )
+      when token != @token do
+    if amount <= 0, do: throw("Invalid amount to send")
+
+    if from_address == to_address or to_address == Default.imposible_address(),
+      do: throw("Invalid address to send")
+
+    validator = Validator.fetch!(validator_address)
+    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+
+    if not Balance.check_multi([{from_address, token}, {from_address, @token}], %{
+         {from_address, token} => amount,
+         {from_address, @token} => fee_total
+       }),
+       do: throw("balance is too low")
+
+    :ok
+  end
+
+  def check_fees!(
+        from_address,
+        fee_total
+      ) do
+    if fee_total <= 0, do: throw("Invalid fee amount to send")
+    if not Balance.check(from_address, @token, fee_total), do: throw("balance is too low")
+    :ok
   end
 
   def send!(

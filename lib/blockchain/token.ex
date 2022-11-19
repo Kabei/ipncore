@@ -14,7 +14,7 @@ defmodule Ipncore.Token do
           enabled: boolean(),
           owner: binary(),
           supply: pos_integer(),
-          destroyed: pos_integer(),
+          burned: pos_integer(),
           props: Map.t() | nil,
           created_at: pos_integer(),
           updated_at: pos_integer()
@@ -35,7 +35,7 @@ defmodule Ipncore.Token do
     field(:symbol, :string)
     field(:owner, :binary)
     field(:supply, :integer, default: 0)
-    field(:destroyed, :integer, default: 0)
+    field(:burned, :integer, default: 0)
     field(:props, :map)
     field(:created_at, :integer)
     field(:updated_at, :integer)
@@ -85,14 +85,14 @@ defmodule Ipncore.Token do
   end
 
   @impl Database
-  def open(_channel) do
-    dir_path = Application.get_env(:ipncore, :dir_path)
+  def open do
+    dir_path = Application.get_env(:ipncore, :data_path, "data")
     filename = Path.join([dir_path, @filename])
     DetsPlus.open_file(@base, name: filename, keypos: :id, auto_save: 60_000)
   end
 
   @impl Database
-  def close(_channel) do
+  def close do
     DetsPlus.close(@base)
   end
 
@@ -124,11 +124,21 @@ defmodule Ipncore.Token do
       [x] when x.owner == owner ->
         x
 
-      [x] ->
+      [_x] ->
         throw("Invalid owner")
 
       _ ->
         throw("Token not exists")
+    end
+  end
+
+  def exists!(x) do
+    case DetsPlus.lookup(@base, x) do
+      [] ->
+        false
+
+      _ ->
+        throw("Token already exists")
     end
   end
 
@@ -140,7 +150,7 @@ defmodule Ipncore.Token do
           r -> r
         end
 
-      [x] ->
+      [_x] ->
         throw("Invalid owner")
 
       _ ->
@@ -163,7 +173,7 @@ defmodule Ipncore.Token do
       props: props,
       enabled: true,
       supply: 0,
-      destroyed: 0,
+      burned: 0,
       created_at: event.time,
       updated_at: event.time
     }

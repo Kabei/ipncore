@@ -12,8 +12,8 @@ defmodule Ipncore.Txo do
     field(:token, :string)
     field(:from, :binary)
     field(:to, :binary)
-    field(:reason, :string)
     field(:value, :integer)
+    field(:reason, :string)
     field(:avail, :boolean, default: false)
   end
 

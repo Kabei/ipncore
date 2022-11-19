@@ -2,12 +2,12 @@ defmodule Ipncore.Database do
   @doc """
   Open local database
   """
-  @callback open(String.t()) :: {:ok, term} | {:error, any}
+  @callback open() :: {:ok, term} | {:error, any}
 
   @doc """
   Close database
   """
-  @callback close(String.t()) :: :ok
+  @callback close() :: :ok
 
   @callback put!(term) :: boolean
 

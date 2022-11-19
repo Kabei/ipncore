@@ -1,15 +1,8 @@
 defmodule MerkleTree do
-  @spec build([Block.t()]) :: [binary]
-  def build(chunks) do
-    chunks
-    |> Enum.map(&Crypto.hash(&1))
-    |> build_tree()
-  end
-
   @spec root([binary]) :: binary
   def root(chunks) do
     chunks
-    |> build()
+    |> build_tree()
     |> Enum.at(0)
   end
 

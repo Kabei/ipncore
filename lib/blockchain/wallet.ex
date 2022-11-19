@@ -3,35 +3,41 @@ defmodule Ipncore.Wallet do
 
   @base "wallet"
   @file_extension ".db"
-  @partitions 8
+  @partitions 16
 
-  def open(_channel) do
-    folder_path = Application.get_env(:ipncore, :dir_path)
+  def open do
+    folder_path = Application.get_env(:ipncore, :wallet_path)
 
     for number <- 0..(@partitions - 1) do
-      base = String.to_atom("#{@base}#{number}")
-      path = Path.join(folder_path, base <> @file_extension)
-      DetsPlus.open_file(base, name: path, auto_save: :infinity)
+      base = String.to_atom(IO.iodata_to_binary([@base, number]))
+      path = Path.join(folder_path, IO.iodata_to_binary([to_string(base), @file_extension]))
+      DetsPlus.open_file(base, name: path, auto_save: 60_000, auto_save_memory: 1_000_000)
     end
   end
 
-  def close(_) do
-    folder_path = Application.get_env(:ipncore, :dir_path)
+  def close do
+    folder_path = Application.get_env(:ipncore, :wallet_path)
 
     for number <- 0..(@partitions - 1) do
-      base = String.to_existing_atom("#{@base}#{number}")
-      path = Path.join(folder_path, base <> @file_extension)
+      base = String.to_existing_atom(IO.iodata_to_binary([@base, number]))
+      path = Path.join(folder_path, IO.iodata_to_binary([base, @file_extension]))
       DetsPlus.close(base)
     end
   end
 
-  def put(pubkey) do
+  def put_multi!(pubkeys) do
+    Enum.each(pubkeys, fn pubkey ->
+      put!(pubkey)
+    end)
+  end
+
+  def put!(pubkey) do
     hash = Address.hash(pubkey)
     base = get_base(hash)
 
     case DetsPlus.insert_new(base, {hash, pubkey}) do
       true ->
-        DetsPlus.sync(base)
+        :ok
 
       false ->
         :error
@@ -44,6 +50,26 @@ defmodule Ipncore.Wallet do
   end
 
   def has_key?(address_hash) do
+    DetsPlus.member?(get_base(address_hash), address_hash)
+  end
+
+  def check!(hash, pubkey, signature) do
+    cond do
+      byte_size(pubkey) != 897 ->
+        throw("Invalid pubkey")
+
+      Falcon.verify(hash, signature, pubkey) == :error ->
+        throw("Invalid signature")
+
+      exists?(pubkey) ->
+        throw("Pubkey already exists")
+
+      true ->
+        :ok
+    end
+  end
+
+  def exists?(address_hash) do
     DetsPlus.member?(get_base(address_hash), address_hash)
   end
 

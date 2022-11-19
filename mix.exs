@@ -37,7 +37,7 @@ defmodule Ipncore.MixProject do
     [
       # {:xxhash, "~> 0.3.1"},
       {:cbor, "~> 1.0.0"},
-      {:dns, "~> 2.3.0"},
+      {:dns, "~> 2.4.0"},
       {:sntp, "~> 0.2.0"},
       {:jason, "~> 1.4"},
       {:ecto_sql, "~> 3.8"},
@@ -48,10 +48,10 @@ defmodule Ipncore.MixProject do
       {:httpoison, "~> 1.7"},
       {:dets_plus, "~> 2.1"},
 
-      # {:ntrukem, path: "../ntrukem"},
-      # {:falcon, path: "../falcon"},
+      {:ntrukem, path: "../ntrukem"},
+      {:falcon, path: "../falcon"},
       {:ipnutils, path: "../ipnutils"},
-      # {:imp, path: "../imp"}
+      {:imp, path: "../imp"}
     ]
   end
 

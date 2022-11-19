@@ -22,8 +22,8 @@ defmodule Ipncore.Balance do
     field(:updated_at, :integer, default: 0)
   end
 
-  def open(_) do
-    dir_path = Application.get_env(:ipncore, :dir_path) |> Path.join("balances")
+  def open do
+    dir_path = Path.join(Application.get_env(:ipncore, :data_path), "balances")
     CubDB.start_link(data_dir: dir_path, auto_compact: true, auto_file_sync: true, name: @base)
   end
 
@@ -52,10 +52,37 @@ defmodule Ipncore.Balance do
     end
   end
 
+  @spec check!(Tuple.t(), pos_integer) :: boolean
+  def check!({_address, _token} = balance, amount) do
+    case CubDB.get_multi(@base, balance) do
+      {_m, true} -> throw("Tokens is blocked")
+      {x, _false} when x >= amount -> true
+      _ -> false
+    end
+  end
+
+  @spec check_multi!(List.t(), Map.t()) :: boolean
+  def check_multi!(list_keys, map_balance_to_check) do
+    case CubDB.get_multi(@base, list_keys) do
+      %{} ->
+        false
+
+      balances ->
+        Enum.each(map_balance_to_check, fn {key, amount} ->
+          case Map.get(balances, key) do
+            {_m, true} -> throw("Tokens is blocked")
+            {x, _false} when x >= amount -> true
+            _ -> false
+          end
+        end)
+    end
+  end
+
   @doc """
   keys = [{address, token}, ...]
   keys_values = %{{address, token} => integer_postive_or_negative, ...}
   """
+  @spec update!(List.t(), Map.t()) :: :ok
   def update!(keys, keys_values) do
     CubDB.get_and_update_multi(@base, keys, fn entries ->
       new_balances =

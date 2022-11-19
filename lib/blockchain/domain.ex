@@ -26,14 +26,14 @@ defmodule Ipncore.Domain do
   end
 
   @impl Database
-  def open(_channel) do
-    dir_path = Application.get_env(:ipncore, :dir_path)
+  def open do
+    dir_path = Application.get_env(:ipncore, :data_path, "data")
     filename = Path.join([dir_path, @filename])
     DetsPlus.open_file(@base, name: filename, keypos: :name, auto_save: 60_000)
   end
 
   @impl Database
-  def close(_channel) do
+  def close do
     DetsPlus.close(@base)
   end
 
@@ -53,12 +53,22 @@ defmodule Ipncore.Domain do
   end
 
   def exists!(x) do
-    case DetsPlus.lookup(@base, x) do
-      [] ->
+    case DetsPlus.member?(@base, x) do
+      false ->
         false
 
-      _ ->
+      true ->
         throw("Domain already exists")
+    end
+  end
+
+  def not_exists!(x) do
+    case DetsPlus.member?(@base, x) do
+      false ->
+        throw("Domain already exists")
+
+      true ->
+        true
     end
   end
 
@@ -79,7 +89,7 @@ defmodule Ipncore.Domain do
       [x] when x.owner == owner ->
         x
 
-      [x] ->
+      [_x] ->
         throw("Invalid owner")
 
       _ ->
@@ -95,7 +105,7 @@ defmodule Ipncore.Domain do
           r -> r
         end
 
-      [domain] ->
+      [_domain] ->
         throw("Invalid owner")
 
       _ ->
@@ -103,23 +113,38 @@ defmodule Ipncore.Domain do
     end
   end
 
+  def check_new!(name, from_address, to_address, email, avatar, validator_address, size) do
+    if not Regex.match(Const.Regex.hostname(), name), do: throw("Invalid hostname")
+    if !is_nil(email) and not Regex.match(Const.Regex.email(), email), do: throw("Invalid email")
+    if String.length(name) > 100, do: throw("Invalid name length")
+    if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
+
+    exists!(name)
+
+    Tx.check_send!(
+      from_address,
+      PlatformOwner.address(),
+      to_address,
+      @token,
+      price(name),
+      validator_address,
+      size
+    )
+
+    :ok
+  end
+
   def new!(
-        multi,
-        channel,
         event_id,
-        timestamp,
-        event_size,
         from_address,
         name,
         owner,
         email,
         avatar,
-        validator_address
+        validator_address,
+        event_size,
+        timestamp
       ) do
-    if not Regex.match(Const.Regex.hostname(), name), do: throw("Invalid hostname")
-    if !is_nil(email) and not Regex.match(Const.Regex.email(), email), do: throw("Invalid email")
-    if String.length(name) > 100, do: throw("Invalid name length")
-
     domain = %{
       name: name,
       email: email,
@@ -129,19 +154,26 @@ defmodule Ipncore.Domain do
       updated_at: timestamp
     }
 
-    exists!(name)
-
-    multi =
-      multi
-      |> Tx.send_fee!(channel, event_id, timestamp, event_size, from_address, validator_address)
-      |> Ecto.Multi.insert_all(:domain, Domain, [domain],
-        returning: false,
-        prefix: channel
-      )
-
     put!(domain)
 
-    multi
+    Tx.send!(event_id, from_address, PlatformOwner.address(), price(name), validator_address)
+
+    # multi =
+    #   multi
+    #   |> Tx.send_fee!(channel, event_id, timestamp, event_size, from_address, validator_address)
+    #   |> Ecto.Multi.insert_all(:domain, Domain, [domain],
+    #     returning: false,
+    #     prefix: channel
+    #   )
+  end
+
+  def check_update!(name, from_address, validator_address, params) when is_map(params) do
+    if is_nil(name), do: throw("No hostname")
+    if not Regex.match(Const.Regex.hostname(), name), do: throw("Invalid hostname")
+
+    Tx.check_fee!(from_address, 1_000)
+    fetch!(name, from_address)
+    :ok
   end
 
   def event_update!(
@@ -160,7 +192,9 @@ defmodule Ipncore.Domain do
     kw_params =
       params
       |> Enum.take(@edit_fields)
-      |> cast()
+      |> Utils.validate_length("avatar", 255)
+      |> Utils.validate_email("email")
+      |> Utils.validate_boolean("enabled")
       |> Utils.to_keywords()
       |> Keyword.put(:updated_at, timestamp)
 
@@ -168,40 +202,44 @@ defmodule Ipncore.Domain do
       fetch!(name, owner)
       |> Map.merge(kw_params)
 
-    queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
-
-    multi =
-      multi
-      |> Tx.send_fees!(
-        channel,
-        event_id,
-        timestamp,
-        event_size,
-        owner,
-        @token,
-        price(name),
-        PlatformOwner.address(),
-        validator_address,
-        false,
-        nil
-      )
-      |> Ecto.Multi.update_all(:update, queryable,
-        set: kw_params,
-        returning: false,
-        prefix: channel
-      )
-
     put(domain)
 
-    multi
+    # queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
+
+    # multi =
+    #   multi
+    #   |> Tx.send_fees!(
+    #     channel,
+    #     event_id,
+    #     timestamp,
+    #     event_size,
+    #     owner,
+    #     @token,
+    #     price(name),
+    #     PlatformOwner.address(),
+    #     validator_address,
+    #     false,
+    #     nil
+    #   )
+    #   |> Ecto.Multi.update_all(:update, queryable,
+    #     set: kw_params,
+    #     returning: false,
+    #     prefix: channel
+    #   )
+
+    # multi
   end
 
-  def event_delete!(multi, channel, owner, name) do
+  def check_delete!(name, owner) do
+    not_exists!(name, owner)
+  end
+
+  def event_delete!(multi, owner, name) do
     delete!(name, owner)
 
-    queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
+    # queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
 
-    Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
+    # Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
   end
 
   def exists?(name, channel) do
@@ -214,13 +252,13 @@ defmodule Ipncore.Domain do
 
     cond do
       x <= 5 ->
-        100
+        100_000
 
       x <= 8 ->
-        75
+        75_000
 
       true ->
-        5
+        5_000
     end
   end
 
@@ -266,8 +304,4 @@ defmodule Ipncore.Domain do
 
   defp transform(nil), do: nil
   defp transform(x), do: %{x | owner: Address.to_text(x.owner)}
-
-  defp cast(%{}), do: throw("Invalid parameters")
-  defp cast(%{"owner" => address} = x), do: %{x | "owner" => Address.from_text(address)}
-  defp cast(x), do: x
 end

@@ -25,7 +25,8 @@ defmodule Ipncore.Token do
   @base :token
   @filename "token.db"
   # @fields ~w(id name creator decimals symbol owner props)
-  @edit_fields ~w(enabled name owner props)
+  @edit_fields ~w(name owner)
+  @props ~w{maxSupply allowBlocking}
 
   @primary_key {:id, :string, []}
   schema "token" do
@@ -158,24 +159,65 @@ defmodule Ipncore.Token do
     end
   end
 
-  def new!(event, channel, token_id, owner_address, name, decimals, symbol, props, multi) do
+  def check_new!(token_id, from_address) do
     if not coin?(token_id), do: throw("Invalid token ID")
 
-    if owner_address != PlatformOwner.address(),
+    if from_address != PlatformOwner.address(),
       do: throw("Operation not allowed")
+
+    exists!(token_id)
+  end
+
+  def check_coinbase!(token_id, owner, amount) do
+    token = fetch!(token_id, owner)
+    max_supply = Map.get(token.props, "maxSupply", 0)
+    new_supply = token.supply + amount
+
+    if max_supply != 0 and max_supply < new_supply, do: throw("MaxSupply exceeded")
+  end
+
+  def check_delete!(token_id, from_address) do
+    fetch!(token_id, from_address)
+  end
+
+  def update_supply(token_id, amount) do
+    token = fetch!(token_id)
+
+    Map.put(token, :supply, token.supply + amount)
+    |> put!()
+
+    token
+  end
+
+  def new!(
+        multi,
+        token_id,
+        from_address,
+        owner,
+        name,
+        decimals,
+        symbol,
+        props,
+        timestamp,
+        channel
+      ) do
+    # if not coin?(token_id), do: throw("Invalid token ID")
+
+    # if owner_address != PlatformOwner.address(),
+    #   do: throw("Operation not allowed")
 
     token = %{
       id: token_id,
       name: name,
-      owner: owner_address,
+      owner: owner,
       decimals: decimals,
       symbol: symbol,
-      props: props,
+      props: props || %{},
       enabled: true,
       supply: 0,
       burned: 0,
-      created_at: event.time,
-      updated_at: event.time
+      created_at: timestamp,
+      updated_at: timestamp
     }
 
     put!(token)
@@ -186,17 +228,24 @@ defmodule Ipncore.Token do
     )
   end
 
-  def event_update!(channel, event, from_address, token_id, params, multi) when is_map(params) do
+  def event_update!(channel, from_address, token_id, params, timestamp, multi) when is_map(params) do
     if is_nil(token_id), do: throw("Bad format token ID")
 
-    kw_params =
+    token_params =
       params
-      |> Enum.take(@edit_fields)
-      |> cast()
-      |> Utils.to_keywords()
-      |> Keyword.put(:updated_at, event.time)
+      |> MapUtil.require_only(@edit_fields)
+      |> Map.take(@edit_fields)
+      |> MapUtil.validate_length("name", 100)
+      |> MapUtil.validate_address("owner")
+
+    kw_params =
+      token_params
+      |> MapUtil.to_atom_keywords()
+      |> Keyword.put(:updated_at, timestamp)
 
     fetch!(token_id, from_address)
+    |> Map.merge(token_params)
+    |> put!()
 
     queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^from_address)
 
@@ -207,16 +256,16 @@ defmodule Ipncore.Token do
     )
   end
 
-  def event_delete!(multi, channel, address, token_id) do
-    delete!(token_id, address)
+  def event_delete!(multi, token_id, owner, channel) do
+    delete!(token_id, owner)
 
-    queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^address)
+    queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^owner)
 
     Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
   end
 
-  @spec owner?(String.t(), binary, String.t()) :: boolean
-  def owner?(token_id, owner, channel) do
+  @spec owner?(String.t(), binary) :: boolean
+  def owner?(token_id, owner) do
     DetsPlus.lookup(@base, token_id)
     |> case do
       [x] ->
@@ -301,7 +350,4 @@ defmodule Ipncore.Token do
     ]
 
   defp transform(x), do: %{x | owner: Address.to_text(x.owner)}
-
-  defp cast(%{"owner" => address} = x), do: %{x | "owner" => Address.from_text(address)}
-  defp cast(x), do: x
 end

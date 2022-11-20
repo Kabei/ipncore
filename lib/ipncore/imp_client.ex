@@ -16,16 +16,16 @@ defmodule Ipncore.IMP.Client do
 
   @impl true
   def on_message("new_tx", %{"id" => index} = payload, state) do
-    vote =
-      case Tx.processing(payload) do
-        {:ok, %{"id" => txid}} ->
-          TxVote.new_approved(txid, state.address, state.falcon_pk, state.falcon_sk)
+    # vote =
+    #   case Tx.processing(payload) do
+    #     {:ok, %{"id" => txid}} ->
+    #       TxVote.new_approved(txid, state.address, state.falcon_pk, state.falcon_sk)
 
-        _ ->
-          TxVote.new_cancelled(index, state.address, state.falcon_pk, state.falcon_sk)
-      end
+    #     _ ->
+    #       TxVote.new_cancelled(index, state.address, state.falcon_pk, state.falcon_sk)
+    #   end
 
-    Ipncore.IMP.Client.publish("tx:" <> payload.id, vote, state.skey)
+    # Ipncore.IMP.Client.publish("tx:" <> payload.id, vote, state.skey)
 
     {:ok, state}
   end
@@ -56,30 +56,30 @@ defmodule Ipncore.IMP.Client do
   #   {:ok, state}
   # end
 
-  def on_message("build", payload, state) do
-    Logger.debug("build #{inspect(payload)}")
+  # def on_message("build", payload, state) do
+  #   Logger.debug("build #{inspect(payload)}")
 
-    blocks = Chain.build_all(Default.channel())
-    Logger.debug("after next")
+  #   blocks = Chain.build_all(Default.channel())
+  #   Logger.debug("after next")
 
-    case blocks do
-      nil ->
-        Logger.debug("build block empty")
+  #   case blocks do
+  #     nil ->
+  #       Logger.debug("build block empty")
 
-      [] ->
-        Logger.debug("build block empty")
+  #     [] ->
+  #       Logger.debug("build block empty")
 
-      blocks ->
-        Enum.each(blocks, fn block ->
-          Ipncore.IMP.Client.publish(
-            "block:#{block.index}",
-            Block.from_struct(block)
-          )
-        end)
-    end
+  #     blocks ->
+  #       Enum.each(blocks, fn block ->
+  #         Ipncore.IMP.Client.publish(
+  #           "block:#{block.index}",
+  #           Block.from_struct(block)
+  #         )
+  #       end)
+  #   end
 
-    {:ok, state}
-  end
+  #   {:ok, state}
+  # end
 
   def on_message(_, _, state) do
     Logger.debug("msg")

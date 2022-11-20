@@ -268,16 +268,17 @@ defmodule Ipncore.Explorer.Router do
   # end
 
   post "/event" do
-    %{"_json" => event} = conn.params
-    IO.inspect(event)
+    %{"_json" => body} = conn.params
+    IO.inspect(body)
+    [version, type_name, time, event_body, address, sig64] = body
 
-    case Event.new(event) do
-      {:ok, event} ->
+    case Event.check(version, type_name, time, event_body, address, sig64) do
+      {:ok, event_id} ->
         # Ipncore.IMP.Client.publish("tx:" <> tx.index, params)
-        json(conn, %{"id" => Event.encode_id(event.id)})
+        json(conn, %{"id" => Base.encode16(event_id, case: :lower)})
 
-      err ->
-        send_error(conn, err)
+      {:error, err_message} ->
+        send_error(conn, err_message)
     end
   end
 

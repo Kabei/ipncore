@@ -43,15 +43,15 @@ defmodule Ipncore.Tx do
         from_address,
         token,
         amount,
-        validator_address,
+        validator_host,
         event_size
       )
       when token == @token do
     if amount <= 0, do: throw("Invalid amount to send")
-    validator = Validator.fetch!(validator_address)
+    validator = Validator.fetch!(validator_host)
     fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
 
-    if not Balance.check(from_address, token, amount + fee_total), do: throw("balance is too low")
+    Balance.check!({from_address, token}, amount + fee_total)
     :ok
   end
 
@@ -60,7 +60,7 @@ defmodule Ipncore.Tx do
         to_address,
         token,
         amount,
-        validator_address,
+        validator_host,
         event_size
       )
       when token != @token do
@@ -69,14 +69,13 @@ defmodule Ipncore.Tx do
     if from_address == to_address or to_address == Default.imposible_address(),
       do: throw("Invalid address to send")
 
-    validator = Validator.fetch!(validator_address)
+    validator = Validator.fetch!(validator_host)
     fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
 
-    if not Balance.check_multi([{from_address, token}, {from_address, @token}], %{
-         {from_address, token} => amount,
-         {from_address, @token} => fee_total
-       }),
-       do: throw("balance is too low")
+    Balance.check_multi!([{from_address, token}, {from_address, @token}], %{
+      {from_address, token} => amount,
+      {from_address, @token} => fee_total
+    })
 
     :ok
   end
@@ -86,31 +85,32 @@ defmodule Ipncore.Tx do
         fee_total
       ) do
     if fee_total <= 0, do: throw("Invalid fee amount to send")
-    if not Balance.check(from_address, @token, fee_total), do: throw("balance is too low")
+    Balance.check!({from_address, @token}, fee_total)
     :ok
   end
 
   def send!(
         multi,
-        channel,
         txid,
-        timestamp,
-        event_size,
         token,
         from_address,
-        amount,
         to_address,
-        validator_address,
+        amount,
+        validator_host,
+        event_size,
         refundable,
-        memo
+        memo,
+        timestamp,
+        channel
       ) do
     if amount <= 0, do: throw("Invalid amount to send")
 
     if from_address == to_address or to_address == Default.imposible_address(),
       do: throw("Invalid address to send")
 
-    validator = Validator.fetch!(validator_address)
+    validator = Validator.fetch!(validator_host)
     fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+    validator_address = validator.owner
 
     outputs = [
       %{
@@ -161,18 +161,18 @@ defmodule Ipncore.Tx do
 
   def coinbase!(
         multi,
-        channel,
         txid,
-        timestamp,
         token_id,
         from_address,
         init_outputs,
-        memo
+        memo,
+        timestamp,
+        channel
       ) do
     {outputs, keys_entries, entries, token_value, amount} =
       outputs_extract_coinbase!(txid, init_outputs, token_id)
 
-    if Token.owner?(token_id, from_address, channel) != false,
+    if Token.owner?(token_id, from_address) != false,
       do: throw("Invalid owner")
 
     Balance.update!(keys_entries, entries)
@@ -189,19 +189,20 @@ defmodule Ipncore.Tx do
     multi
     |> multi_insert(tx, channel)
     |> Txo.multi_insert_all(:txo, outputs, channel)
-    |> Token.multi_update_stats(:token, token_id, amount, timestamp, channel)
+    |> Token.multi_update_stats(token_id, amount, timestamp, channel)
     |> Balance.multi_upsert_coinbase(:balances, outputs, timestamp, channel)
   end
 
-  def send_fee!(multi, channel, txid, timestamp, event_size, from_address, validator_address) do
-    validator = Validator.fetch!(validator_address)
-    fee_total = calc_fees(0, 1, 0, event_size)
+  def send_fee!(multi, txid, from_address, validator_host, fee_amount, timestamp, channel) do
+    validator = Validator.fetch!(validator_host)
+    validator_address = validator.owner
+    # fee_total = calc_fees(0, 1, 0, event_size)
 
     Balance.update!(
       [{from_address, @token}, {validator_address, @token}],
       %{
-        {from_address, @token} => -fee_total,
-        {validator_address, @token} => fee_total
+        {from_address, @token} => -fee_amount,
+        {validator_address, @token} => fee_amount
       }
     )
 
@@ -212,14 +213,14 @@ defmodule Ipncore.Tx do
         from: from_address,
         to: validator_address,
         token: @token,
-        value: fee_total,
+        value: fee_amount,
         reason: @output_reason_fee
       }
     ]
 
     tx = %{
       id: txid,
-      fee: fee_total,
+      fee: fee_amount,
       refundable: false,
       out_count: length(outputs),
       amount: 0

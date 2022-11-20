@@ -2,7 +2,7 @@ defmodule Ipncore.Validator do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Address, Database, Block, Chain, Repo, Utils}
+  alias Ipncore.{Address, Database, Block, Chain, Repo}
   alias __MODULE__
 
   @behaviour Database
@@ -71,6 +71,16 @@ defmodule Ipncore.Validator do
     end
   end
 
+  def exists!(x) do
+    case DetsPlus.lookup(@base, x) do
+      [] ->
+        false
+
+      _ ->
+        throw("Validator already exists")
+    end
+  end
+
   def delete!(key, owner) do
     case DetsPlus.lookup(@base, key) do
       [x] when x.owner == owner ->
@@ -87,19 +97,17 @@ defmodule Ipncore.Validator do
     end
   end
 
-  def check_new!(host, from_address, owner, ) do
-    
-    fetch!(host, )
-  end
-
-  def new!(channel, _event, from_address, host, owner, fee, fee_type, multi)
-      when fee_type >= 0 and fee_type <= 2 do
+  def check_new!(host, name, from_address) do
     if not Regex.match?(Const.Regex.hostname(), host), do: throw("Invalid hostname")
     if String.length(name) > 100, do: throw("Invalid name length")
+    if from_address != PlatformOwner.address(), do: throw("Operation not allowed")
+    exists!(host)
 
-    if from_address != PlatformOwner.address(),
-      do: throw("Operation not allowed")
+    :ok
+  end
 
+  def new!(multi, _from_address, host, name, owner, fee, fee_type, channel)
+      when fee_type >= 0 and fee_type <= 2 do
     validator = %{
       host: host,
       name: name,
@@ -117,17 +125,28 @@ defmodule Ipncore.Validator do
     )
   end
 
-  def event_update!(channel, event, from_address, host, params, multi) when is_map(params) do
-    if is_nil(host), do: throw("No hostname")
+  def check_update!(name, from_address) do
+    fetch!(name, from_address)
+  end
+
+  def event_update!(multi, from_address, host, params, timestamp, channel) when is_map(params) do
+    atom_params =
+      params
+      |> MapUtil.require_only(@edit_fields)
+      |> Map.take(@edit_fields)
+      |> MapUtil.validate_length("name", 100)
+      |> MapUtil.validate_value("fee", :gt, 0)
+      |> MapUtil.validate_range("fee_type", 0..2)
+      |> MapUtil.to_atoms()
 
     kw_params =
-      params
-      |> Enum.take(@edit_fields)
-      |> cast()
+      atom_params
       |> Utils.to_keywords()
-      |> Keyword.put(:updated_at, event.time)
+      |> Keyword.put(:updated_at, timestamp)
 
-    fetch!(host, from_address)
+    validator = fetch!(host, from_address)
+    Map.put(validator, :params, atom_params)
+    put!(validator)
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^from_address)
 
@@ -138,7 +157,11 @@ defmodule Ipncore.Validator do
     )
   end
 
-  def event_delete!(channel, owner, host, multi) do
+  def check_delete!(name, from_address) do
+    fetch!(name, from_address)
+  end
+
+  def event_delete!(multi, owner, host, channel) do
     delete!(host, owner)
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^owner)

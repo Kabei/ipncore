@@ -57,7 +57,7 @@ defmodule Ipncore.Balance do
     case CubDB.get_multi(@base, balance) do
       {_m, true} -> throw("Tokens is blocked")
       {x, _false} when x >= amount -> true
-      _ -> false
+      _ -> throw("balance is too low")
     end
   end
 
@@ -119,8 +119,7 @@ defmodule Ipncore.Balance do
         to: txo.to,
         value: txo.value,
         memo: tx.memo,
-        time: ev.time,
-        status: ev.status
+        time: ev.time
       }
     )
     |> filter_token(params)
@@ -143,7 +142,6 @@ defmodule Ipncore.Balance do
         value: x.value,
         memo: x.memo,
         time: x.time,
-        status: Event.status_name(x.status),
         fee: x.otype == @output_reason_fee,
         received: address == x.to
       }

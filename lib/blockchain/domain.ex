@@ -10,7 +10,7 @@ defmodule Ipncore.Domain do
   @base :domain
   @filename "domain.db"
   # @fields ~w(name owner email avatar)
-  @edit_fields ~w(owner enabled email avatar)
+  @edit_fields ~w(enabled owner email avatar)
   @token Default.token()
 
   @primary_key {:name, :string, []}
@@ -113,7 +113,7 @@ defmodule Ipncore.Domain do
     end
   end
 
-  def check_new!(name, from_address, to_address, email, avatar, validator_address, size) do
+  def check_new!(name, from_address, email, avatar, validator_host, size) do
     if not Regex.match(Const.Regex.hostname(), name), do: throw("Invalid hostname")
     if !is_nil(email) and not Regex.match(Const.Regex.email(), email), do: throw("Invalid email")
     if String.length(name) > 100, do: throw("Invalid name length")
@@ -124,10 +124,9 @@ defmodule Ipncore.Domain do
     Tx.check_send!(
       from_address,
       PlatformOwner.address(),
-      to_address,
       @token,
       price(name),
-      validator_address,
+      validator_host,
       size
     )
 
@@ -135,15 +134,17 @@ defmodule Ipncore.Domain do
   end
 
   def new!(
+        multi,
         event_id,
         from_address,
         name,
         owner,
         email,
         avatar,
-        validator_address,
+        validator_host,
         event_size,
-        timestamp
+        timestamp,
+        channel
       ) do
     domain = %{
       name: name,
@@ -156,90 +157,80 @@ defmodule Ipncore.Domain do
 
     put!(domain)
 
-    Tx.send!(event_id, from_address, PlatformOwner.address(), price(name), validator_address)
-
-    # multi =
-    #   multi
-    #   |> Tx.send_fee!(channel, event_id, timestamp, event_size, from_address, validator_address)
-    #   |> Ecto.Multi.insert_all(:domain, Domain, [domain],
-    #     returning: false,
-    #     prefix: channel
-    #   )
+    multi
+    |> Tx.send!(
+      event_id,
+      @token,
+      from_address,
+      PlatformOwner.address(),
+      price(name),
+      validator_host,
+      event_size,
+      false,
+      nil,
+      channel
+    )
+    |> Ecto.Multi.insert_all(:domain, Domain, [domain],
+      returning: false,
+      prefix: channel
+    )
   end
 
-  def check_update!(name, from_address, validator_address, params) when is_map(params) do
+  def check_update!(name, from_address) do
     if is_nil(name), do: throw("No hostname")
     if not Regex.match(Const.Regex.hostname(), name), do: throw("Invalid hostname")
 
-    Tx.check_fee!(from_address, 1_000)
     fetch!(name, from_address)
     :ok
   end
 
   def event_update!(
         multi,
-        channel,
         event_id,
-        timestamp,
-        event_size,
-        owner,
         name,
-        validator_address,
-        params
+        from_address,
+        validator_host,
+        params,
+        timestamp,
+        channel
       ) do
-    if is_nil(name), do: throw("No hostname")
-
     kw_params =
       params
-      |> Enum.take(@edit_fields)
-      |> Utils.validate_length("avatar", 255)
-      |> Utils.validate_email("email")
-      |> Utils.validate_boolean("enabled")
-      |> Utils.to_keywords()
+      |> MapUtil.require_only(@edit_fields)
+      |> Map.take(@edit_fields)
+      |> MapUtil.validate_length("avatar", 255)
+      |> MapUtil.validate_email("email")
+      |> MapUtil.validate_boolean("enabled")
+      |> MapUtil.to_atom_keywords()
       |> Keyword.put(:updated_at, timestamp)
 
     domain =
-      fetch!(name, owner)
+      fetch!(name, from_address)
       |> Map.merge(kw_params)
 
+    multi = Tx.send_fee!(multi, event_id, from_address, validator_host, 1000, timestamp, channel)
     put(domain)
 
-    # queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
+    queryable = from(d in Domain, where: d.name == ^name and d.owner == ^from_address)
 
-    # multi =
-    #   multi
-    #   |> Tx.send_fees!(
-    #     channel,
-    #     event_id,
-    #     timestamp,
-    #     event_size,
-    #     owner,
-    #     @token,
-    #     price(name),
-    #     PlatformOwner.address(),
-    #     validator_address,
-    #     false,
-    #     nil
-    #   )
-    #   |> Ecto.Multi.update_all(:update, queryable,
-    #     set: kw_params,
-    #     returning: false,
-    #     prefix: channel
-    #   )
-
-    # multi
+    multi
+    |> Ecto.Multi.update_all(:update, queryable,
+      set: kw_params,
+      returning: false,
+      prefix: channel
+    )
   end
 
   def check_delete!(name, owner) do
-    not_exists!(name, owner)
+    fetch!(name, owner)
   end
 
-  def event_delete!(multi, owner, name) do
+  def event_delete!(multi, name, owner, channel) do
     delete!(name, owner)
 
-    # queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
+    queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
 
-    # Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
+    Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
   end
 
   def exists?(name, channel) do

@@ -48,6 +48,7 @@ defmodule Ipncore.Event do
   #   {false, false}
   # end
 
+  @channel Application.compile_env(:ipncore, :channel)
   @version Application.compile_env(:ipncore, :event_version)
   @threshold_timeout Application.compile_env(:ipncore, :event_threshold_timeout)
   @max_size Application.compile_env(:ipncore, :event_max_size)
@@ -98,229 +99,180 @@ defmodule Ipncore.Event do
 
   def timeout, do: @threshold_timeout
 
-  def check!(@version, "pubkey.new", time, body, address, signature)
-      when is_binary(signature) and is_binary(body) and time > 0 do
-    address_hash = Address.hash(body)
-    pubkey = Base.decode64!(body)
-    sig = Base.decode64!(signature)
-    hash = calc_hash(1000, pubkey, time)
+  @spec check(pos_integer, String.t(), pos_integer, term, String.t(), String.t()) ::
+          {:ok, binary} | {:error, String.t()}
+  def check(@version, type_name, time, body, address, sig64) do
+    try do
+      type_number = type_index(type_name)
+      if type_name == false, do: throw("Type invalid")
 
-    Wallet.check!(hash, pubkey, signature)
+      body_text = Jason.encode!(body)
 
-    case Mempool.push!(hash, time, 1000, address_hash, pubkey, sig) do
-      true ->
-        :ok
+      from_address = Address.from_text(address)
+      hash = calc_hash(type_number, body_text, time)
+      signature = Base.decode64!(sig64)
 
-      _ ->
-        throw("Error push to mempool")
+      size = byte_size(body_text) + byte_size(signature)
+      if size > @max_size, do: throw("Body size exceeded")
+
+      pubkey = Wallet.get(from_address)
+
+      if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
+
+      case type_name do
+        "pubkey.new" ->
+          [pubkey] = body
+          Wallet.check!(hash, pubkey, signature)
+
+        "token.new" ->
+          token_id = List.first(body)
+          Token.check_new!(token_id, from_address)
+
+        "token.delete" ->
+          token_id = List.first(body)
+          Token.check_delete!(token_id, from_address)
+
+        "validator.new" ->
+          [hostname, name | _rest] = body
+          Validator.check_new!(hostname, name, from_address)
+
+        "validator.update" ->
+          [hostname | _rest] = body
+          Validator.check_update!(hostname, from_address)
+
+        "validator.delete" ->
+          [hostname | _rest] = body
+          Validator.check_delete!(hostname, from_address)
+
+        "domain.new" ->
+          [name, email, avatar, validator_host] = body
+
+          Domain.check_new!(
+            name,
+            email,
+            avatar,
+            from_address,
+            validator_host,
+            size
+          )
+
+        "domain.udpate" ->
+          [name, _validator_host, _params] = body
+          Domain.check_update!(name, from_address)
+
+        "domain.delete" ->
+          [host] = body
+          Domain.check_delete!(host, from_address)
+
+        "tx.send" ->
+          [token, _to_address, amount, validator_host] = body
+
+          Tx.check_send!(
+            from_address,
+            token,
+            amount,
+            validator_host,
+            size
+          )
+
+        "tx.coinbase" ->
+          [token, _outputs] = body
+          Tx.check_coinbase!(from_address, token)
+      end
+
+      case Mempool.push!(hash, time, type_number, from_address, body, signature, size) do
+        true ->
+          {:ok, hash}
+
+        false ->
+          throw("Error push to mempool")
+      end
+    catch
+      x -> x
     end
   end
 
-  def check!(@version, type_name, time, body, address, sig64) do
-    type_number = type_index(type_name)
-    if type_name == false, do: throw("Type invalid")
-    body_text = Jason.encode!(body)
+  def new!(next_index, hash, time, type_number, from_address, body, signature, size) do
+    # if check_timeout and abs(time - Chain.get_time()) > @timeout, do: throw("Event is timeout")
+    type = type_name(type_number)
+    put!({hash, time, @version, type_number, from_address, body, signature})
 
-    hash = calc_hash(type_number, body_text, time)
-    signature = Base.decode64!(sig64)
+    event = %{
+      id: hash,
+      type: type_number,
+      block_index: next_index,
+      sig_count: 1,
+      size: size,
+      time: time,
+      vsn: @version
+    }
 
-    size = byte_size(body_text) + byte_size(signature)
-    if size > @max_size, do: throw("Body size exceeded")
+    channel = @channel
 
-    from_address = Address.from_text(address)
-    pubkey = Wallet.get(from_address)
+    multi =
+      Ecto.Multi.new()
+      |> multi_insert(event, channel)
 
-    if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
+    case type do
+      "pubkey.new" ->
+        List.first(body)
+        |> Wallet.put!()
 
-    case type_name do
       "token.new" ->
-        token_id = List.first(body)
-        Token.check_new!(token_id, from_address)
+        [token_id, owner, name, decimals, symbol, props] = body
+
+        Token.new!(
+          multi,
+          token_id,
+          from_address,
+          Address.from_text(owner),
+          name,
+          decimals,
+          symbol,
+          props,
+          time,
+          channel
+        )
+
+      "token.update" ->
+        [token_id, params] = body
+        Token.event_update!(multi, token_id, params, channel)
 
       "token.delete" ->
-        token_id = List.first(body)
-        Token.check_delete!(token_id, from_address)
+        [token_id] = body
+        Token.event_delete!(multi, token_id, channel)
 
       "validator.new" ->
-        [hostname | _rest] = body
-        Validator.check_new!(hostname)
+        [hostname, owner, fee, fee_type] = body
+
+        Validator.new!(
+          multi,
+          from_address,
+          Address.from_text(owner),
+          hostname,
+          fee,
+          fee_type,
+          time,
+          channel
+        )
 
       "validator.update" ->
-        [hostname | _rest] = body
-        Validator.check_update!(hostname, from_address)
+        [hostname, params] = body
+
+        Validator.event_update!(
+          multi,
+          hostname,
+          from_address,
+          params,
+          time,
+          channel
+        )
 
       "validator.delete" ->
-        [hostname | _rest] = body
-        Validator.check_delete!(hostname, from_address)
-
-      "domain.new" ->
-        [name, _owner, email, avatar, validator_address] = body
-
-        Domain.check_new!(
-          name,
-          from_address,
-          email,
-          avatar,
-          Address.from_text(validator_address),
-          size
-        )
-
-      "domain.udpate" ->
-        [name | params] = body
-        Domain.check_update!(name, from_address, validator_address, params)
-
-      "domain.delete" ->
-        [host, validator_address, params] = body
-        Domain.check_delete!(name, from_address, Address.from_text(validator_address), params)
-
-      "tx.send" ->
-        [to_address, token, amount, validator_address] = body
-
-        Tx.check_send!(
-          from_address,
-          Address.from_text(to_address),
-          token,
-          amount,
-          Address.from_text(validator_address),
-          size
-        )
-
-      "tx.coinbase" ->
-        [token, outputs] = body
-        Tx.check_coinbase!(from_address, token)
-    end
-
-    case Mempool.push!(hash, time, type_number, from_address, body, signature) do
-      true ->
-        :ok
-
-      false ->
-        throw("Error push to mempool")
+        [owner] = body
+        Validator.event_delete!(multi, Address.from_text(owner), time, channel)
     end
   end
-
-  def new(hash, time, type_number, address, body, signature) do
-    # check_timeout = Keyword.has_key?(opts, :check_timeout)
-    # if check_timeout and abs(time - Chain.get_time()) > @timeout, do: throw("Event is timeout")
-
-    put!({hash, time, @version, type_number, address, body, signature})
-
-    # event = %{
-    #   id: hash,
-    #   type: type_number,
-    #   block_index: next_index,
-    #   sig_count: sig_count,
-    #   size: size,
-    #   time: time,
-    #   vsn: version
-    # }
-
-    # case type_name do
-    #   "pubkey.new" ->
-    #     Wallet.put(body)
-    # end
-
-    # try do
-    #   multi = multi_insert(Ecto.Multi.new(), event, channel)
-
-    #   result_multi =
-    #     case type_name do
-    #       "tx.send" ->
-    #         [from_address, token, amount, to_address, validator_address, refundable, memo] = body
-    #         [from_address] = from_addresses
-
-    #         Tx.send!(
-    #           multi,
-    #           channel,
-    #           event.id,
-    #           event.time,
-    #           event.size,
-    #           token,
-    #           from_address,
-    #           amount,
-    #           Address.from_text(to_address),
-    #           Address.from_text(validator_address),
-    #           refundable,
-    #           memo
-    #         )
-
-    #       "tx.coinbase" ->
-    #         [token_id, outputs, memo] = body
-    #         [from_address] = from_addresses
-
-    #         Tx.coinbase!(
-    #           multi,
-    #           channel,
-    #           event.id,
-    #           event.time,
-    #           token_id,
-    #           from_address,
-    #           outputs,
-    #           memo
-    #         )
-
-    #       "domain.new" ->
-    #         [name, owner, email, avatar, validator_address] = body
-    #         [from_address] = from_addresses
-
-    #         Domain.new!()
-
-    #         Domain.new!(
-    #           multi,
-    #           channel,
-    #           event.id,
-    #           event.time,
-    #           event.size,
-    #           from_address,
-    #           name,
-    #           owner,
-    #           email,
-    #           avatar,
-    #           Address.from_text(validator_address)
-    #         )
-
-    #       "domain.update" ->
-    #         [name, validator_address, params] = body
-    #         [owner_address] = from_addresses
-
-    #         Domain.event_update!(
-    #           multi,
-    #           channel,
-    #           event.id,
-    #           event.time,
-    #           event.size,
-    #           owner_address,
-    #           name,
-    #           validator_address,
-    #           params
-    #         )
-
-    #       "domain.delete" ->
-    #         nil
-
-    #       _ ->
-    #         nil
-    #     end
-
-    #   case result_multi do
-    #     nil ->
-    #       nil
-
-    #     result ->
-    #       Repo.transaction(result_multi)
-    #   end
-
-    #   {:ok, event}
-    # catch
-    #   _x ->
-    #     delete(id)
-    #     :error
-    # end
-  end
-
-  # def new(_, _) do
-  #   throw("Event not match")
-  # end
 
   def put!(x) do
     case DetsPlus.insert_new(@base, x) do

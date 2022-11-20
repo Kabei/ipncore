@@ -62,6 +62,7 @@ Events are requests made by users and automatic operations by the system that af
 |Explorer API|HTTP|80, 443|✅
 |RealTime API|WebSocket|80, 443|❌|
 |DNS Service|DNS|53|❌|
+|IMP Service|IMP|8484|⚒️ 70%|
 
 ## Explorer API
 

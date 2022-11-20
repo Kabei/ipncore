@@ -25,7 +25,7 @@ It is the set of objects that is part of the Blockchain
 
 |Asset|Description|
 |-|-|
-|```Tokens```|Are payment currencies exchangeable in the Blockchain ecosystem|
+|```Tokens```|Payment currencies exchangeable in the Blockchain ecosystem|
 |```Validators```|These are the nodes in charge of performing the Proof of Validation (PoV) applied to all events of the block that are processed on the platform|
 |```Domains```|Identification record that can be used to shorten an address to receive payments, navigate to a social profile or website|
 

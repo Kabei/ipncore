@@ -1,4 +1,5 @@
 defmodule MapUtil do
+  alias Ipncore.Address
   ## util functions
   def to_keywords(params) do
     Enum.map(params, fn {k, v} -> {k, v} end)

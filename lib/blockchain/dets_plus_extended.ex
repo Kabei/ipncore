@@ -14,7 +14,7 @@ defmodule DetsPlus.Ext do
   end
 
   def get_multi(pid, items) when is_pid(pid) or is_atom(pid) do
-    Enum.reduce_while(get_handle(pid), fn {k, _v} = x, {keys, acc} = accs ->
+    Enum.reduce_while(get_handle(pid), {[], []}, fn {k, _v} = x, {keys, acc} = accs ->
       case k in items do
         true ->
           keys = keys ++ [k]

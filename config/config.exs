@@ -25,7 +25,8 @@ config :ipncore, :event_threshold_timeout, :timer.seconds(10)
 config :ipncore, :event_max_size, 8192
 
 config :ipncore, :block_version, 0
-config :ipncore, :block_interval, :timer.seconds(60)
+config :ipncore, :block_interval, :timer.seconds(5)
 
-config :ipncore, :tx_timeout_refund, :timer.hours(72)
+config :ipncore, :timeout_refund, :timer.hours(72)
+config :ipncore, :epoch, 552_960
 # config :ipncore, :tx_edit_delay, :timer.hours(1)

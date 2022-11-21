@@ -40,6 +40,10 @@ defmodule Ipncore.Chain do
     :erlang.monotonic_time(@unit_time) + get(:diff_iit, 0)
   end
 
+  def next_index do
+    Application.gen_env(:ipncore, :next_block)
+  end
+
   def put_iit(iit_time) when iit_time > 0 do
     put(:diff_iit, iit_time - :erlang.monotonic_time(@unit_time))
   end
@@ -178,30 +182,30 @@ defmodule Ipncore.Chain do
   # end
 
   def build_all(channel) do
-    if has_channel() do
-      before_next_index = next_index_to_build()
+    # if has_channel() do
+    #   before_next_index = next_index_to_build()
 
-      if before_next_index >= 0 do
-        txs_approved_grouped_by_block =
-          Tx.get_all_approved(channel)
-          |> Enum.filter(&(&1.block_index <= before_next_index))
-          |> Enum.group_by(fn x -> x.block_index end)
+    #   if before_next_index >= 0 do
+    #     txs_approved_grouped_by_block =
+    #       Tx.get_all_approved(channel)
+    #       |> Enum.filter(&(&1.block_index <= before_next_index))
+    #       |> Enum.group_by(fn x -> x.block_index end)
 
-        txs_approved_grouped_by_block
-        |> Enum.map(fn {block_index, txs} ->
-          prev_block = prev_block()
-          block = Block.new(prev_block, block_index, txs)
-          add_block(prev_block, block, channel)
-          block
-        end)
-      else
-        []
-      end
-    end
+    #     txs_approved_grouped_by_block
+    #     |> Enum.map(fn {block_index, txs} ->
+    #       prev_block = prev_block()
+    #       block = Block.new(prev_block, block_index, txs)
+    #       add_block(prev_block, block, channel)
+    #       block
+    #     end)
+    #   else
+    #     []
+    #   end
+    # end
   end
 
   def next_index_to_build do
-    index = Block.next_index()
+    index = next_index()
 
     cond do
       index == 0 ->

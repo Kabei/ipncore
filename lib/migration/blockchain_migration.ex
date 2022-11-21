@@ -23,7 +23,6 @@ defmodule Ipncore.Migration.Blockchain do
       # """,
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".block(
-        index bigint NOT NULL,
         height bigint NOT NULL,
         time bigint,
         type smallint,

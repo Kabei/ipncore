@@ -11,11 +11,11 @@ defmodule Ipncore.Block do
 
   @block_type_genesis 0
   @block_type_regular 1
+  @epoch Application.compile_env(:ipncore, :epoch)
 
   @type block_type :: 0 | 100 | 200 | 201 | 300 | 400 | 401
 
   @type t :: %__MODULE__{
-          index: pos_integer(),
           height: pos_integer(),
           prev: binary | nil,
           hash: binary,
@@ -38,9 +38,8 @@ defmodule Ipncore.Block do
 
   def version, do: @version
 
-  @primary_key {:index, :integer, []}
+  @primary_key {:height, :integer, []}
   schema "block" do
-    field(:height, :integer)
     field(:hash, :binary)
     field(:prev, :binary)
     field(:type, :integer, default: @block_type_regular)
@@ -48,13 +47,12 @@ defmodule Ipncore.Block do
     field(:time, :integer)
     field(:vsn, :integer, default: @version)
     field(:ev_count, :integer, default: 0)
-    has_many(:events, Event, foreign_key: :block_index, references: :index)
+    has_many(:events, Event, foreign_key: :block_height, references: :height)
   end
 
   defmacro map_select do
     quote do
       %{
-        index: b.index,
         height: b.height,
         hash: b.hash,
         mk: b.mk,
@@ -76,7 +74,6 @@ defmodule Ipncore.Block do
       |> format_block_time()
 
     %Block{
-      index: 0,
       height: 0,
       prev: nil,
       time: time,
@@ -107,7 +104,6 @@ defmodule Ipncore.Block do
 
     %Block{
       height: prev_block.height + 1,
-      index: next_index(time, genesis_time),
       prev: prev_block.hash,
       ev_count: length(events),
       time: time,
@@ -116,6 +112,9 @@ defmodule Ipncore.Block do
     |> put_merkle_root()
     |> put_hash()
   end
+
+  @spec epoch(block_height :: pos_integer()) :: pos_integer()
+  def epoch(block_height), do: rem(block_height, @epoch)
 
   @doc """
   Format time to a perfect block interval time
@@ -126,16 +125,15 @@ defmodule Ipncore.Block do
   @spec format_block_time(block_time :: pos_integer()) :: block_time_formated :: pos_integer()
   def format_block_time(time), do: time - rem(time, @interval)
 
-  def new(_prev_block, _index, []), do: nil
-  def new(nil, 0, txs), do: first(txs)
+  def new(_prev_block, []), do: nil
+  def new(nil, txs), do: first(txs)
 
-  def new(%Block{} = prev_block, index, events) do
+  def new(%Block{} = prev_block, events) do
     time =
       Chain.get_time()
       |> format_block_time()
 
     %Block{
-      index: index,
       height: prev_block.height + 1,
       prev: prev_block.hash,
       ev_count: length(events),
@@ -153,7 +151,6 @@ defmodule Ipncore.Block do
 
   @spec compute_hash(t) :: binary
   def compute_hash(%{
-        index: index,
         height: height,
         prev: prev,
         vsn: version,
@@ -163,7 +160,6 @@ defmodule Ipncore.Block do
       to_string(version),
       Default.channel(),
       to_string(height),
-      to_string(index),
       Utils.normalize(prev),
       mk
     ]
@@ -197,88 +193,88 @@ defmodule Ipncore.Block do
   end
 
   def fetch_genesis do
-    from(b in Block, where: b.index == 0 and b.type == @block_type_genesis, limit: 1)
+    from(b in Block, where: b.height == 0 and b.type == @block_type_genesis, limit: 1)
     |> Repo.one(prefix: Default.channel())
   end
 
   def fetch_last do
-    from(b in Block, order_by: [desc: b.index], limit: 1)
+    from(b in Block, order_by: [desc: b.height], limit: 1)
     |> Repo.one(prefix: Default.channel())
   end
 
-  @spec next_index() :: pos_integer()
-  def next_index do
-    iit = Chain.get_time()
-    genesis_time = Chain.genesis_time()
+  # @spec next_index() :: pos_integer()
+  # def next_index do
+  #   iit = Chain.get_time()
+  #   genesis_time = Chain.genesis_time()
 
-    case genesis_time do
-      0 ->
-        0
+  #   case genesis_time do
+  #     0 ->
+  #       0
 
-      _ ->
-        div(iit - genesis_time, @interval)
-    end
-  end
+  #     _ ->
+  #       div(iit - genesis_time, @interval)
+  #   end
+  # end
 
-  @spec next_index(time :: pos_integer()) :: pos_integer()
-  def next_index(time) do
-    genesis_time = Chain.genesis_time()
+  # @spec next_index(time :: pos_integer()) :: pos_integer()
+  # def next_index(time) do
+  #   genesis_time = Chain.genesis_time()
 
-    case genesis_time do
-      0 ->
-        0
+  #   case genesis_time do
+  #     0 ->
+  #       0
 
-      _ ->
-        div(time - genesis_time, @interval)
-    end
-  end
+  #     _ ->
+  #       div(time - genesis_time, @interval)
+  #   end
+  # end
 
-  @spec next_index(pos_integer(), pos_integer()) :: pos_integer()
-  def next_index(_timestamp, 0), do: 0
+  # @spec next_index(pos_integer(), pos_integer()) :: pos_integer()
+  # def next_index(_timestamp, 0), do: 0
 
-  def next_index(timestamp, genesis_time) do
-    div(timestamp - genesis_time, @interval)
-  end
+  # def next_index(timestamp, genesis_time) do
+  #   div(timestamp - genesis_time, @interval)
+  # end
 
-  @spec block_index_start_time(pos_integer(), pos_integer()) :: pos_integer()
-  def block_index_start_time(block_index, genesis_time) do
-    block_index * @interval + genesis_time
-  end
+  # @spec block_index_start_time(pos_integer(), pos_integer()) :: pos_integer()
+  # def block_index_start_time(block_index, genesis_time) do
+  #   block_index * @interval + genesis_time
+  # end
 
-  def get(%{"index" => index} = params) do
-    from(b in Block, where: b.index == ^index, select: map_select())
-    |> Repo.one(prefix: filter_channel(params, Default.channel()))
-    |> transform_one()
-  end
+  # def get(%{"height" => height} = params) do
+  #   from(b in Block, where: b.height == ^height, select: map_select())
+  #   |> Repo.one(prefix: filter_channel(params, Default.channel()))
+  #   |> transform()
+  # end
 
   def get(%{"hash" => hash} = params) do
     from(b in Block, where: b.hash == ^hash, select: map_select())
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
-    |> transform_one()
+    |> transform()
   end
 
   def get(%{"height" => height} = params) do
     from(b in Block, where: b.height == ^height, select: map_select())
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
-    |> transform_one()
+    |> transform()
   end
 
-  def get_by_index(index, channel) do
-    from(b in Block, where: b.index == ^index, select: map_select())
-    |> Repo.one(prefix: channel)
-    |> transform_one()
-  end
+  # def get_by_index(index, channel) do
+  #   from(b in Block, where: b.index == ^index, select: map_select())
+  #   |> Repo.one(prefix: channel)
+  #   |> transform()
+  # end
 
   def get_by_hash(hash, channel) do
     from(b in Block, where: b.hash == ^hash, select: map_select())
     |> Repo.one(prefix: channel)
-    |> transform_one()
+    |> transform()
   end
 
   def get_by_height(height, channel) do
     from(b in Block, where: b.height == ^height, select: map_select())
     |> Repo.one(prefix: channel)
-    |> transform_one()
+    |> transform()
   end
 
   def all(params) do
@@ -288,16 +284,16 @@ defmodule Ipncore.Block do
     |> sort(params)
     |> filter_select(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
-    |> transform()
+    |> filter_map()
   end
 
   defp sort(query, params) do
     case Map.get(params, "sort") do
       "oldest" ->
-        order_by(query, [b], asc: b.index)
+        order_by(query, [b], asc: b.height)
 
       _ ->
-        order_by(query, [b], desc: b.index)
+        order_by(query, [b], desc: b.height)
     end
   end
 
@@ -305,16 +301,16 @@ defmodule Ipncore.Block do
     select(query, [b], map_select())
   end
 
-  defp transform(nil), do: []
-  defp transform([]), do: []
+  defp filter_map(nil), do: []
+  defp filter_map([]), do: []
 
-  defp transform(blocks) do
-    Enum.map(blocks, &transform_one(&1))
+  defp filter_map(blocks) do
+    Enum.map(blocks, &transform(&1))
   end
 
-  defp transform_one(nil), do: nil
+  defp transform(nil), do: nil
 
-  defp transform_one(b) do
+  defp transform(b) do
     %{
       b
       | hash: Base.encode16(b.hash, case: :lower),
@@ -322,13 +318,9 @@ defmodule Ipncore.Block do
         prev: prev_hash(b.prev),
         mk: Base.encode16(b.mk, case: :lower)
     }
+    |> Map.put(:epoch, epoch(b.height))
   end
 
   defp prev_hash(nil), do: nil
   defp prev_hash(x), do: Base.encode16(x, case: :lower)
-
-  def from_struct(b) do
-    Map.drop(b, [:__meta__])
-    |> Map.from_struct()
-  end
 end

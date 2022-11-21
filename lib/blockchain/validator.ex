@@ -141,7 +141,7 @@ defmodule Ipncore.Validator do
 
     kw_params =
       atom_params
-      |> Utils.to_keywords()
+      |> MapUtil.to_keywords()
       |> Keyword.put(:updated_at, timestamp)
 
     validator = fetch!(host, from_address)

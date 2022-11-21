@@ -177,7 +177,7 @@ defmodule Ipncore.Explorer.Router do
       iit: Chain.get_time(),
       coins: token.supply,
       tx_count: channel.tx_count,
-      next_index: Block.next_index()
+      next_index: Chain.next_index()
     }
 
     send_result(conn, resp)

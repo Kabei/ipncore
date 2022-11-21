@@ -16,11 +16,11 @@ defmodule Ipncore.Wallet do
   end
 
   def close do
-    folder_path = Application.get_env(:ipncore, :wallet_path)
+    # folder_path = Application.get_env(:ipncore, :wallet_path)
 
     for number <- 0..(@partitions - 1) do
       base = String.to_existing_atom(IO.iodata_to_binary([@base, number]))
-      path = Path.join(folder_path, IO.iodata_to_binary([base, @file_extension]))
+      # path = Path.join(folder_path, IO.iodata_to_binary([base, @file_extension]))
       DetsPlus.close(base)
     end
   end

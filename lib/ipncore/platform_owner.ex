@@ -122,5 +122,5 @@ defmodule PlatformOwner do
       249, 244, 249, 226, 222, 244, 8, 20, 13>>
   end
 
-  def address, do: Address.to_internal_address(pubkey())
+  def address, do: pubkey() |> Ipncore.Address.hash()
 end

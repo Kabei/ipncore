@@ -455,6 +455,14 @@ defmodule Ipncore.Event do
     end)
   end
 
+  def encode_id(id) do
+    Base.encode16(id, case: :lower)
+  end
+
+  def decode_id(id) do
+    Base.decode16!(id, case: :lower)
+  end
+
   defp transform(nil), do: []
   defp transform([]), do: []
 

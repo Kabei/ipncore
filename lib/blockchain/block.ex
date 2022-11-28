@@ -47,7 +47,7 @@ defmodule Ipncore.Block do
     field(:time, :integer)
     field(:vsn, :integer, default: @version)
     field(:ev_count, :integer, default: 0)
-    has_many(:events, Event, foreign_key: :block_height, references: :height)
+    has_many(:events, Event, foreign_key: :block_index, references: :height)
   end
 
   defmacro map_select do
@@ -98,10 +98,6 @@ defmodule Ipncore.Block do
       Chain.get_time()
       |> format_block_time()
 
-    genesis_time = Chain.genesis_time()
-
-    IO.inspect("Block 2")
-
     %Block{
       height: prev_block.height + 1,
       prev: prev_block.hash,
@@ -113,7 +109,8 @@ defmodule Ipncore.Block do
     |> put_hash()
   end
 
-  @spec epoch(block_height :: pos_integer()) :: pos_integer()
+  @spec epoch(block_height :: pos_integer() | nil) :: pos_integer()
+  def epoch(nil), do: 0
   def epoch(block_height), do: rem(block_height, @epoch)
 
   @doc """
@@ -173,7 +170,7 @@ defmodule Ipncore.Block do
 
   @spec compute_merkle_root(Block.t()) :: Block.t()
   def compute_merkle_root(%Block{} = b) do
-    hashes = Enum.map(b.events, & &1.hash)
+    hashes = Enum.map(b.events, & &1.id)
     MerkleTree.root(hashes)
   end
 
@@ -258,12 +255,6 @@ defmodule Ipncore.Block do
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
     |> transform()
   end
-
-  # def get_by_index(index, channel) do
-  #   from(b in Block, where: b.index == ^index, select: map_select())
-  #   |> Repo.one(prefix: channel)
-  #   |> transform()
-  # end
 
   def get_by_hash(hash, channel) do
     from(b in Block, where: b.hash == ^hash, select: map_select())

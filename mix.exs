@@ -27,7 +27,7 @@ defmodule Ipncore.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:crypto, :syntax_tools, :logger, :download],
+      extra_applications: [:crypto, :socket, :syntax_tools, :logger, :download],
       mod: {Ipncore.Application, []}
     ]
   end

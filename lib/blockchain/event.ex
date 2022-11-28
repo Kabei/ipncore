@@ -1,6 +1,6 @@
 defmodule Ipncore.Event do
   use Ecto.Schema
-  alias Ipncore.{Address, Block, Chain, Domain, Repo, Token, Tx, Validator, Wallet}
+  alias Ipncore.{Address, Domain, Repo, RepoWorker, Token, Tx, Validator, Wallet, Mempool}
   import Ipnutils.Macros, only: [deftypes: 1]
   # import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query
@@ -26,8 +26,7 @@ defmodule Ipncore.Event do
       {400, "domain.new"},
       {401, "domain.update"},
       {402, "domain.delete"},
-      {410, "dns.new"},
-      {411, "dns.update"},
+      {410, "dns.set"},
       {412, "dns.delete"},
       {1000, "pubkey.new"}
     ]
@@ -52,10 +51,10 @@ defmodule Ipncore.Event do
   @version Application.compile_env(:ipncore, :event_version)
   @threshold_timeout Application.compile_env(:ipncore, :event_threshold_timeout)
   @max_size Application.compile_env(:ipncore, :event_max_size)
-  @max_signatures Application.compile_env(:ipncore, :event_max_signatures, 5)
+  # @max_signatures Application.compile_env(:ipncore, :event_max_signatures, 5)
 
   @base :ev
-  @filaname "event.db"
+  # @filaname "event.db"
 
   # mime
   # 0 - text
@@ -85,10 +84,11 @@ defmodule Ipncore.Event do
     field(:vsn, :integer)
   end
 
-  def open(block_height) do
-    dir_path = Application.get_env(:ipncore, :events_path, "events")
-    filename = Path.join(dir_path, "#{block_height}.db")
-    DetsPlus.open_file(@base, name: filename, auto_save_memory: 1_000_000_000)
+  def open(epoch_number) do
+    dir_path = Application.get_env(:ipncore, :events_path, "data/events")
+    File.mkdir_p(dir_path)
+    filename = Path.join(dir_path, "#{epoch_number}.db")
+    DetsPlus.open_file(@base, file: filename, auto_save_memory: 1_000_000_000)
   end
 
   def close do
@@ -103,6 +103,8 @@ defmodule Ipncore.Event do
           {:ok, binary} | {:error, String.t()}
   def check(@version, type_name, time, body, address, sig64) do
     try do
+      # if check_timeout and abs(time - Chain.get_time()) > @timeout, do: throw("Event is timeout")
+
       type_number = type_index(type_name)
       if type_name == false, do: throw("Type invalid")
 
@@ -176,8 +178,8 @@ defmodule Ipncore.Event do
           )
 
         "tx.coinbase" ->
-          [token, _outputs] = body
-          Tx.check_coinbase!(from_address, token)
+          [token, amount, _outputs] = body
+          Tx.check_coinbase!(from_address, token, amount)
       end
 
       case Mempool.push!(hash, time, type_number, from_address, body, signature, size) do
@@ -192,10 +194,9 @@ defmodule Ipncore.Event do
     end
   end
 
+  @spec new!(pos_integer, binary, pos_integer, pos_integer, binary, term, binary, pos_integer) :: Event.t()
   def new!(next_index, hash, time, type_number, from_address, body, signature, size) do
-    # if check_timeout and abs(time - Chain.get_time()) > @timeout, do: throw("Event is timeout")
     type = type_name(type_number)
-    put!({hash, time, @version, type_number, from_address, body, signature})
 
     event = %{
       id: hash,
@@ -236,11 +237,11 @@ defmodule Ipncore.Event do
 
       "token.update" ->
         [token_id, params] = body
-        Token.event_update!(multi, token_id, params, channel)
+        Token.event_update!(multi, from_address, token_id, params, time, channel)
 
       "token.delete" ->
         [token_id] = body
-        Token.event_delete!(multi, token_id, channel)
+        Token.event_delete!(multi, token_id, from_address, channel)
 
       "validator.new" ->
         [hostname, owner, fee, fee_type] = body
@@ -272,6 +273,11 @@ defmodule Ipncore.Event do
         [owner] = body
         Validator.event_delete!(multi, Address.from_text(owner), time, channel)
     end
+    |> RepoWorker.run()
+
+    put!({hash, time, @version, type_number, from_address, body, signature})
+
+    event
   end
 
   def put!(x) do
@@ -402,11 +408,11 @@ defmodule Ipncore.Event do
     |> transform()
   end
 
-  def one_by_hash(hash, channel) do
-    from(ev in Event, where: ev.hash == ^hash)
-    |> Repo.one(prefix: channel)
-    |> transform()
-  end
+  # def one_by_hash(hash, channel) do
+  #   from(ev in Event, where: ev.hash == ^hash)
+  #   |> Repo.one(prefix: channel)
+  #   |> transform()
+  # end
 
   def all(params) do
     from(ev in Event)

@@ -6,12 +6,13 @@ defmodule Ipncore.Wallet do
   @partitions 16
 
   def open do
-    folder_path = Application.get_env(:ipncore, :wallet_path)
+    folder_path = Application.get_env(:ipncore, :wallet_path, "data/wallets")
+    File.mkdir_p(folder_path)
 
     for number <- 0..(@partitions - 1) do
       base = String.to_atom(IO.iodata_to_binary([@base, number]))
       path = Path.join(folder_path, IO.iodata_to_binary([to_string(base), @file_extension]))
-      DetsPlus.open_file(base, name: path, auto_save: 60_000, auto_save_memory: 1_000_000)
+      DetsPlus.open_file(base, file: path, auto_save: 60_000, auto_save_memory: 1_000_000)
     end
   end
 

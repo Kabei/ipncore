@@ -2,6 +2,7 @@ defmodule Ipncore.Explorer.Router do
   use Plug.Router
 
   import Ipncore.WebTools, only: [json: 2, send_error: 2, send_result: 2]
+  import Ipnutils.Filters
   import Ipncore.StreamDeliver, only: [serve_video: 3]
   alias Ipncore.{Block, Channel, Event, Tx, Txo, Token, Balance, Chain, Validator}
 
@@ -191,12 +192,6 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/block/:id" do
-    resp = Block.get(%{"index" => id})
-
-    send_result(conn, resp)
-  end
-
   get "/block/height/:height" do
     resp = Block.get(%{"height" => height})
 
@@ -206,18 +201,31 @@ defmodule Ipncore.Explorer.Router do
   get "/tx/:hash16" when byte_size(hash16) == 64 do
     hash = Base.decode16!(hash16, case: :mixed)
 
-    resp = Tx.one_by_hash(hash, conn.params)
+    resp = Tx.one(hash, conn.params)
 
     send_result(conn, resp)
   end
 
-  get "/tx/:txid" do
-    id = Event.decode_id(txid)
+  get "/events" do
+    resp = Event.all(conn.params)
+    send_result(conn, resp)
+  end
 
-    resp = Tx.one(id, conn.params)
+  get "/event/:evid" do
+    id = Event.decode_id(evid)
+
+    resp = Event.one(id, filter_channel(conn.params, Default.channel()))
 
     send_result(conn, resp)
   end
+
+  # get "/tx/:txid" do
+  #   id = Event.decode_id(txid)
+
+  #   resp = Tx.one(id, conn.params)
+
+  #   send_result(conn, resp)
+  # end
 
   # post "/utxo" do
   #   params = conn.params

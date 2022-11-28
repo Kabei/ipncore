@@ -10,7 +10,7 @@ defmodule Ipncore.Mined do
   """
   @spec proof_of_remainder(Block.t(), binary) :: binary
   def proof_of_remainder(%Block{} = prev_block, channel) do
-    bindex = :binary.encode_unsigned(prev_block.index)
+    bindex = :binary.encode_unsigned(prev_block.hash)
 
     addresses =
       from(txo in Txo,

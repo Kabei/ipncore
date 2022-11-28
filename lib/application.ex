@@ -1,8 +1,22 @@
 defmodule Ipncore.Application do
   @moduledoc false
   use Application
-  alias Ipncore.{Chain, IIT, Migration, Repo, Balance, Wallet, Token, Validator, Domain}
-  alias Ipnutils.Address
+
+  alias Ipncore.{
+    Block,
+    Balance,
+    Chain,
+    DNSS,
+    Domain,
+    Event,
+    Migration,
+    Mempool,
+    Repo,
+    RepoWorker,
+    Validator,
+    Token,
+    Wallet
+  }
 
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
@@ -18,11 +32,11 @@ defmodule Ipncore.Application do
       # imp_client = Application.get_env(@otp_app, :imp_client)
 
       # {falcon_pk, _sk} =
-      #   :ipncore |> Application.app_dir(imp_client[:falcon_file]) |> Falcon.read_file!()
+      #    @otp_app |> Application.app_dir(imp_client[:falcon_file]) |> Falcon.read_file!()
+
+      http_config = Application.get_env(@otp_app, :web)
 
       # address = Address.to_internal_address(falcon_pk)
-
-      # web = Application.get_env(@otp_app, :web)
       # Application.put_env(@otp_app, :address, address)
       # Application.put_env(@otp_app, :address58, Base58Check.encode(address))
 
@@ -35,27 +49,41 @@ defmodule Ipncore.Application do
 
       # opts_cubdb = Application.get_env(@otp_app, :cubdb)
 
-      # migration_start()
-
       # IO.inspect("imp_client")
       # IO.inspect(imp_client)
 
-      # open local databases
-      File.mkdir(Application.get_env(:ipncore, :data_path, "data"))
+      # create data folder
+      File.mkdir(Application.get_env(@otp_app, :data_path, "data"))
 
-      Mempool.open()
-      Wallet.open()
-      Token.open()
-      Validator.open()
-      Domain.open()
-      Balance.open()
+      # run migration
+      migration_start()
+
+      # open local databases
+      with {:ok, _} <- Chain.open(),
+           {:ok, _} <- Event.open(Block.epoch(Chain.next_index())),
+           :mempool <- Mempool.open(),
+           [{:ok, _} | _] <- Wallet.open(),
+           {:ok, _} <- Balance.open(),
+           {:ok, _} <- Token.open(),
+           {:ok, _} <- Validator.open(),
+           {:ok, _} <- Domain.open() do
+        :ok
+      else
+        err -> throw(err)
+      end
+
+      # init chain
+      :ok = Chain.initialize()
 
       children = [
-        Repo
-        # {Ipncore.IMP.Client, imp_client}
-        # Chain,
-        # http_server(web)
+        {DNSS, Application.get_env(@otp_app, :dns_port, 53)},
+        Repo,
+        RepoWorker,
+        # {Ipncore.IMP.Client, imp_client},
+        http_server(http_config)
       ]
+
+      BlockBuilderWork.next()
 
       Supervisor.start_link(children, @opts)
     rescue
@@ -65,15 +93,10 @@ defmodule Ipncore.Application do
   end
 
   defp migration_start do
-    {:ok, supervisor} = Supervisor.start_link([Repo, Chain], @opts)
+    {:ok, supervisor} = Supervisor.start_link([Repo], @opts)
 
-    channel = Application.get_env(@otp_app, :channel)
     # migration
     Migration.start()
-
-    iit = IIT.sync()
-    Chain.put_iit(iit)
-    Chain.initialize(channel)
 
     :ok = Supervisor.stop(supervisor, :normal)
   end

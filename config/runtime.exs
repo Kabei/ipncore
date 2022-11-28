@@ -8,9 +8,12 @@ config :ipncore, :gps_device, "/dev/AMC0"
 
 # folder paths
 config :ipncore, :data_path, "data"
-config :ipncore, :wallet_path, "data/wallet"
-config :ipncore, :balance_path, "data/balance"
+config :ipncore, :wallet_path, "data/wallets"
+config :ipncore, :balance_path, "data/balances"
 config :ipncore, :events_path, "data/events"
+
+# DNS config
+config :ipncore, :dns_port, 53
 
 config :ipncore, :imp_client,
   host: "us2.ippan.net",

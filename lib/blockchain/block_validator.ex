@@ -173,8 +173,8 @@ defmodule Ipncore.BlockValidator do
       is_nil(event.id) ->
         {:error, :invalid_event_id}
 
-      Event.generate_id(event) != event.id ->
-        {:error, :invalid_event_id}
+      # Event.generate_id(event) != event.id ->
+      #   {:error, :invalid_event_id}
 
       true ->
         :ok

@@ -2,7 +2,7 @@ defmodule Ipncore.Domain do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Address, Database, Repo, Utils}
+  alias Ipncore.{Address, Database, Repo, Tx}
   alias __MODULE__
 
   @behaviour Database
@@ -29,7 +29,7 @@ defmodule Ipncore.Domain do
   def open do
     dir_path = Application.get_env(:ipncore, :data_path, "data")
     filename = Path.join([dir_path, @filename])
-    DetsPlus.open_file(@base, name: filename, keypos: :name, auto_save: 60_000)
+    DetsPlus.open_file(@base, file: filename, keypos: :name, auto_save: 60_000)
   end
 
   @impl Database
@@ -113,9 +113,16 @@ defmodule Ipncore.Domain do
     end
   end
 
+  def extract_domain(domain) do
+    domain
+    |> String.split(".")
+    |> Enum.take(-2)
+    |> Enum.join(".")
+  end
+
   def check_new!(name, from_address, email, avatar, validator_host, size) do
-    if not Regex.match(Const.Regex.hostname(), name), do: throw("Invalid hostname")
-    if !is_nil(email) and not Regex.match(Const.Regex.email(), email), do: throw("Invalid email")
+    if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid hostname")
+    if !is_nil(email) and not Regex.match?(Const.Regex.email(), email), do: throw("Invalid email")
     if String.length(name) > 100, do: throw("Invalid name length")
     if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
 
@@ -157,8 +164,8 @@ defmodule Ipncore.Domain do
 
     put!(domain)
 
-    multi
-    |> Tx.send!(
+    Tx.send!(
+      multi,
       event_id,
       @token,
       from_address,
@@ -168,6 +175,7 @@ defmodule Ipncore.Domain do
       event_size,
       false,
       nil,
+      timestamp,
       channel
     )
     |> Ecto.Multi.insert_all(:domain, Domain, [domain],
@@ -178,7 +186,7 @@ defmodule Ipncore.Domain do
 
   def check_update!(name, from_address) do
     if is_nil(name), do: throw("No hostname")
-    if not Regex.match(Const.Regex.hostname(), name), do: throw("Invalid hostname")
+    if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid hostname")
 
     fetch!(name, from_address)
     :ok

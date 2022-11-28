@@ -61,7 +61,7 @@ defmodule MapUtil do
     map
   end
 
-  def validate_boolean(map, key, :boolean) do
+  def validate_boolean(map, key) do
     val = Map.get(map, key)
     if val and not is_boolean(val), do: throw("Invalid #{key}")
     map

@@ -2,7 +2,7 @@ defmodule Ipncore.Validator do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Address, Database, Block, Chain, Repo}
+  alias Ipncore.{Address, Database, Repo}
   alias __MODULE__
 
   @behaviour Database
@@ -28,7 +28,7 @@ defmodule Ipncore.Validator do
   def open do
     dir_path = Application.get_env(:ipncore, :data_path, "data")
     filename = Path.join([dir_path, @filename])
-    DetsPlus.open_file(@base, name: filename, keypos: :host, auto_save: 60_000)
+    DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 60_000)
   end
 
   @impl Database
@@ -211,8 +211,4 @@ defmodule Ipncore.Validator do
 
   defp transform(nil), do: nil
   defp transform(x), do: %{x | owner: Address.to_text(x.owner)}
-
-  defp cast(%{}), do: throw("Invalid parameters")
-  defp cast(%{"owner" => address} = x), do: %{x | "owner" => Address.from_text(address)}
-  defp cast(x), do: x
 end

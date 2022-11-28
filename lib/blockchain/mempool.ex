@@ -1,4 +1,4 @@
-defmodule Mempool do
+defmodule Ipncore.Mempool do
   @table :mempool
 
   @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
@@ -27,6 +27,8 @@ defmodule Mempool do
     end
   end
 
+  def size, do: :ets.info(@table, :size)
+
   def push!(hash, time, type_number, from, body, signature, size) do
     thread = assign_worker_thread(from)
     :ets.insert_new(@table, {{time, hash}, thread, type_number, from, body, signature, size})
@@ -52,9 +54,14 @@ defmodule Mempool do
   def select_delete(timestamp) do
     # :ets.fun2ms(fn {{_hash, time}, thread, _type, _from, _body, _sigs, _size} = x when and time <= 0 -> true end)
     fun = [
-      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$2", timestamp}], [true]}
+      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$2", timestamp}],
+       [true]}
     ]
 
     :ets.select_delete(@table, fun)
+  end
+
+  def delete(key) do
+    :ets.delete(@table, key)
   end
 end

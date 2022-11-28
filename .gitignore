@@ -36,3 +36,5 @@ mix.lock
 *.rar
 *.7z
 *.gz
+*.db
+*.cub

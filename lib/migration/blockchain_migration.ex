@@ -32,7 +32,7 @@ defmodule Ipncore.Migration.Blockchain do
         vsn integer NOT NULL,
         ev_count integer,
         txvol numeric,
-        CONSTRAINT block_pk PRIMARY KEY (index),
+        CONSTRAINT block_pk PRIMARY KEY (height),
       )
       TABLESPACE #{tablespace};
       """,
@@ -40,7 +40,6 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".event(
         id bytea NOT NULL,
         time bigint NOT NULL,
-        hash bytea NOT NULL,
         type smallint NOT NULL,
         status smallint NOT NULL,
         block_index bigint,
@@ -112,7 +111,7 @@ defmodule Ipncore.Migration.Blockchain do
           address bytea NOT NULL,
           enabled bool DEFAULT TRUE,
           fee double precision NOT NULL,
-          percent bool NOT NULL,
+          fee_type smallint NOT NULL,
           created_at bigint NOT NULL,
           updated_at bigint NOT NULL,
           CONSTRAINT validator_pk PRIMARY KEY (host)
@@ -138,15 +137,11 @@ defmodule Ipncore.Migration.Blockchain do
       # CONSTRAINT locked_ck CHECK (locked >= 0::numeric)
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".dns_record(
-        id varchar NOT NULL,
-        name varchar(64) NOT NULL,
+        domain varchar NOT NULL,
         type varchar(5) NOT NULL,
         value varchar(64) NOT NULL,
         ttl integer NOT NULL,
-        CONSTRAINT fk_dns_record FOREIGN KEY (id)
-          REFERENCES "#{channel}".domain (id) MATCH SIMPLE
-          ON UPDATE NO ACTION
-          ON DELETE CASCADE
+        CONSTRAINT dnsr_pk PRIMARY KEY (domain, type)
       )
       """
       # """

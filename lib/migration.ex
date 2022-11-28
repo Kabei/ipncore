@@ -1,5 +1,5 @@
 defmodule Ipncore.Migration do
-  alias Ipncore.{Channel, Repo}
+  alias Ipncore.Repo
 
   alias Ipncore.Migration.{
     Blockchain,
@@ -17,27 +17,31 @@ defmodule Ipncore.Migration do
       System.build(%{"version" => migration_version})
     end
 
-    Channel.all()
-    |> case do
-      [] ->
-        Channel.new(%{
-          "id" => channel,
-          "pubkey" => PlatformOwner.pubkey(),
-          "time" => :erlang.system_time(:millisecond)
-        })
-        |> Repo.insert(prefix: @prefix)
-
-        if not Repo.schema_exists?(channel) do
-          Blockchain.build(%{"channel" => channel, "version" => migration_version})
-        end
-
-      channels ->
-        for channel <- channels do
-          if not Repo.schema_exists?(channel.id) do
-            Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
-          end
-        end
+    if not Repo.schema_exists?(channel) do
+      Blockchain.build(%{"channel" => channel, "version" => migration_version})
     end
+
+    # Channel.all()
+    # |> case do
+    #   [] ->
+    #     Channel.new(%{
+    #       "id" => channel,
+    #       "pubkey" => PlatformOwner.pubkey(),
+    #       "time" => :erlang.system_time(:millisecond)
+    #     })
+    #     |> Repo.insert(prefix: @prefix)
+
+    #     if not Repo.schema_exists?(channel) do
+    #       Blockchain.build(%{"channel" => channel, "version" => migration_version})
+    #     end
+
+    #   channels ->
+    #     for channel <- channels do
+    #       if not Repo.schema_exists?(channel.id) do
+    #         Blockchain.build(%{"channel" => channel.id, "version" => migration_version})
+    #       end
+    #     end
+    # end
   end
 
   # test

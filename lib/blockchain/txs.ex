@@ -159,6 +159,24 @@ defmodule Ipncore.Tx do
     |> Balance.multi_upsert(:balances, outputs, timestamp, channel)
   end
 
+  def check_coinbase!(from_address, token_id, amount) do
+    token = Token.fetch!(token_id, from_address)
+    max_supply = Token.get_param(token, "maxSupply", 0)
+    supply = token.supply + amount
+
+    if supply > max_supply, do: throw("MaxSupply exceeded")
+
+    :ok
+  end
+
+  def check_coinbase!(token_id, owner, amount) do
+    token = Token.fetch!(token_id, owner)
+    max_supply = Map.get(token.props, "maxSupply", 0)
+    new_supply = token.supply + amount
+
+    if max_supply != 0 and max_supply < new_supply, do: throw("MaxSupply exceeded")
+  end
+
   def coinbase!(
         multi,
         txid,
@@ -189,7 +207,7 @@ defmodule Ipncore.Tx do
     multi
     |> multi_insert(tx, channel)
     |> Txo.multi_insert_all(:txo, outputs, channel)
-    |> Token.multi_update_stats(token_id, amount, timestamp, channel)
+    |> Token.multi_update_stats(:token, token_id, amount, timestamp, channel)
     |> Balance.multi_upsert_coinbase(:balances, outputs, timestamp, channel)
   end
 
@@ -260,11 +278,9 @@ defmodule Ipncore.Tx do
     {txos, key_entries, entries, token_value, amount}
   end
 
-  @doc """
-  0 -> by size
-  1 -> by percent
-  2 -> fixed price
-  """
+  # 0 -> by size
+  # 1 -> by percent
+  # 2 -> fixed price
   defp calc_fees(0, fee_amount, _tx_amount, size),
     do: trunc(fee_amount) * size
 

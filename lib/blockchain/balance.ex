@@ -23,7 +23,7 @@ defmodule Ipncore.Balance do
   end
 
   def open do
-    dir_path = Path.join(Application.get_env(:ipncore, :data_path), "balances")
+    dir_path = Application.get_env(:ipncore, :balance_path, "data/balances")
     CubDB.start_link(data_dir: dir_path, auto_compact: true, auto_file_sync: true, name: @base)
   end
 

@@ -3,7 +3,7 @@ defmodule Ipncore.Token do
   import Ecto.Query, only: [from: 2, where: 3, order_by: 3, select: 3]
   import Ipnutils.Filters
   import Ipnutils.Macros, only: [deftypes: 1]
-  alias Ipncore.{Address, Block, Chain, Tx, TxData, Repo, Database, Utils}
+  alias Ipncore.{Address, Repo, Database}
   alias __MODULE__
 
   @type t :: %Token{
@@ -26,7 +26,7 @@ defmodule Ipncore.Token do
   @filename "token.db"
   # @fields ~w(id name creator decimals symbol owner props)
   @edit_fields ~w(name owner)
-  @props ~w{maxSupply allowBlocking}
+  # @props ~w{maxSupply allowBlocking}
 
   @primary_key {:id, :string, []}
   schema "token" do
@@ -89,7 +89,7 @@ defmodule Ipncore.Token do
   def open do
     dir_path = Application.get_env(:ipncore, :data_path, "data")
     filename = Path.join([dir_path, @filename])
-    DetsPlus.open_file(@base, name: filename, keypos: :id, auto_save: 60_000)
+    DetsPlus.open_file(@base, file: filename, keypos: :id, auto_save: 60_000)
   end
 
   @impl Database
@@ -168,14 +168,6 @@ defmodule Ipncore.Token do
     exists!(token_id)
   end
 
-  def check_coinbase!(token_id, owner, amount) do
-    token = fetch!(token_id, owner)
-    max_supply = Map.get(token.props, "maxSupply", 0)
-    new_supply = token.supply + amount
-
-    if max_supply != 0 and max_supply < new_supply, do: throw("MaxSupply exceeded")
-  end
-
   def check_delete!(token_id, from_address) do
     fetch!(token_id, from_address)
   end
@@ -192,7 +184,7 @@ defmodule Ipncore.Token do
   def new!(
         multi,
         token_id,
-        from_address,
+        _from_address,
         owner,
         name,
         decimals,
@@ -205,6 +197,11 @@ defmodule Ipncore.Token do
 
     # if owner_address != PlatformOwner.address(),
     #   do: throw("Operation not allowed")
+
+    props =
+      (props || %{})
+      |> MapUtil.validate_value("maxSupply", :lte, 0)
+      |> MapUtil.validate_boolean("allowBlocking")
 
     token = %{
       id: token_id,
@@ -228,7 +225,8 @@ defmodule Ipncore.Token do
     )
   end
 
-  def event_update!(channel, from_address, token_id, params, timestamp, multi) when is_map(params) do
+  def event_update!(multi, from_address, token_id, params, timestamp, channel)
+      when is_map(params) do
     if is_nil(token_id), do: throw("Bad format token ID")
 
     token_params =
@@ -262,6 +260,23 @@ defmodule Ipncore.Token do
     queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^owner)
 
     Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
+  end
+
+  def multi_update_stats(multi, name, token_id, amount, time, channel) do
+    query = from(tk in Token, where: tk.id == ^token_id)
+
+    Ecto.Multi.update_all(
+      multi,
+      name,
+      query,
+      [set: [updated_at: time], inc: [supply: amount]],
+      returning: false,
+      prefix: channel
+    )
+  end
+
+  def get_param(token, name, def) do
+    Map.get(token.props || %{}, name, def)
   end
 
   @spec owner?(String.t(), binary) :: boolean

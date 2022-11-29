@@ -1,15 +1,12 @@
 defmodule Ipncore.Tx do
   use Ecto.Schema
   require Logger
-  import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
-  import Ecto.Query, only: [from: 1, from: 2, where: 3, select: 3, order_by: 3, join: 5]
+  import Ecto.Query, only: [from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
-  alias Ipncore.{Address, Balance, Block, Chain, Txo, Balance, Token, Validator, Repo}
+  alias Ipncore.{Address, Balance, Block, Txo, Balance, Token, Validator, Repo}
   alias __MODULE__
 
   @unit_time Default.unit_time()
-  @status_complete 3
-
   @token Default.token()
   @output_reason_send "S"
   @output_reason_coinbase "C"
@@ -164,17 +161,9 @@ defmodule Ipncore.Tx do
     max_supply = Token.get_param(token, "maxSupply", 0)
     supply = token.supply + amount
 
-    if supply > max_supply, do: throw("MaxSupply exceeded")
+    if max_supply != 0 and supply > max_supply, do: throw("MaxSupply exceeded")
 
     :ok
-  end
-
-  def check_coinbase!(token_id, owner, amount) do
-    token = Token.fetch!(token_id, owner)
-    max_supply = Map.get(token.props, "maxSupply", 0)
-    new_supply = token.supply + amount
-
-    if max_supply != 0 and max_supply < new_supply, do: throw("MaxSupply exceeded")
   end
 
   def coinbase!(
@@ -324,11 +313,9 @@ defmodule Ipncore.Tx do
 
   def all(params) do
     from(tx in Tx, join: ev in Event, on: ev.id == tx.id)
-    |> where([_tx, ev], ev.status == @status_complete)
     |> filter_index(params)
     |> filter_select(params)
     |> filter_offset(params)
-    |> filter_status(params)
     |> filter_date(params)
     |> filter_limit(params, 50, 100)
     |> sort(params)
@@ -357,12 +344,6 @@ defmodule Ipncore.Tx do
   end
 
   defp filter_index(query, _), do: query
-
-  defp filter_status(query, %{"status" => status}) do
-    where(query, [_tx, ev], ev.status == ^status)
-  end
-
-  defp filter_status(query, _), do: query
 
   def filter_date(query, %{"date_from" => from_date, "date_to" => to_date}) do
     date_start = Utils.from_date_to_time(from_date, :start, @unit_time)

@@ -6,21 +6,14 @@ defmodule Ipncore.Migration.Blockchain do
 
     [
       "CREATE SCHEMA IF NOT EXISTS \"#{channel}\"",
-      "ALTER SYSTEM SET max_connections = 200",
-      "ALTER SYSTEM SET shared_buffers = 1GB",
-      "ALTER SYSTEM SET effective_io_concurrency = 1000",
-      "ALTER SYSTEM SET wal_level = minimal",
-      "ALTER SYSTEM SET fsync = off",
-      "ALTER SYSTEM SET synchronous_commit = off",
-      "ALTER SYSTEM SET full_page_writes = off",
-      "ALTER SYSTEM SET max_wal_senders = 0",
-      # """
-      # CREATE TYPE "file" AS (
-      # hash bytea,
-      # path varchar,
-      # size bigint
-      # );
-      # """,
+      # "ALTER SYSTEM SET max_connections = 200",
+      # "ALTER SYSTEM SET shared_buffers = 1GB",
+      # "ALTER SYSTEM SET effective_io_concurrency = 1000",
+      # "ALTER SYSTEM SET wal_level = minimal",
+      # "ALTER SYSTEM SET fsync = off",
+      # "ALTER SYSTEM SET synchronous_commit = off",
+      # "ALTER SYSTEM SET full_page_writes = off",
+      # "ALTER SYSTEM SET max_wal_senders = 0",
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".block(
         height bigint NOT NULL,
@@ -32,7 +25,7 @@ defmodule Ipncore.Migration.Blockchain do
         vsn integer NOT NULL,
         ev_count integer,
         txvol numeric,
-        CONSTRAINT block_pk PRIMARY KEY (height),
+        CONSTRAINT block_pk PRIMARY KEY (height)
       )
       TABLESPACE #{tablespace};
       """,
@@ -45,8 +38,7 @@ defmodule Ipncore.Migration.Blockchain do
         block_index bigint,
         sig_count smallint DEFAULT 0,
         size integer DEFAULT 0,
-        vsn integer NOT NULL,
-        CONSTRAINT txs_pk PRIMARY KEY (id)
+        vsn integer NOT NULL
       )
       TABLESPACE #{tablespace};
       """,
@@ -63,14 +55,13 @@ defmodule Ipncore.Migration.Blockchain do
       """,
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".txo(
-        txid bytea NOT NULL,
+        id bytea NOT NULL,
         ix integer NOT NULL,
         token varchar(64) NOT NULL,
-        from bytea,
-        to bytea,
+        "from" bytea,
+        "to" bytea,
         value bigint,
-        reason char(1),
-        avail bool DEFAULT FALSE
+        reason char(1)
       )
       TABLESPACE #{tablespace};
       """,

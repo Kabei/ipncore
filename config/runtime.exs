@@ -3,7 +3,7 @@ import Config
 # prod = config_env() == :prod
 
 config :ipncore, :central, "ippan.net"
-config :ipncore, :channel, "IPN-003"
+config :ipncore, :channel, "DEV-NET"
 config :ipncore, :gps_device, "/dev/AMC0"
 
 # folder paths
@@ -18,9 +18,21 @@ config :ipncore, :dns_port, 53
 config :ipncore, :imp_client,
   host: "us2.ippan.net",
   port: 8484,
-  falcon_file: "priv/cert/falcon.keys",
-  kem_file: "priv/cert/kem.keys",
+  cert_dir: "priv/cert",
   node_type: 0
+
+config :ipncore, :http,
+  host: "0.0.0.0",
+  port: 80,
+  acceptors: 100,
+  max_conn: 16384
+
+config :ipncore, :https,
+  host: "0.0.0.0",
+  port: 443,
+  cert_dir: "priv/cert",
+  acceptors: 100,
+  max_conn: 16384
 
 # database
 config :ipncore, Ipncore.Repo,
@@ -41,20 +53,6 @@ config :ipncore, Ipncore.Repo,
   timeout: 30_000,
   queue_interval: 2_000,
   queue_target: 5_000
-
-# tmp, fs, ram, tmpfs
-# config :ipncore, :cubdb,
-#   check_expiry: 300_000,
-#   blocks: [
-#     %{
-#       type: :fs,
-#       root: "priv/buckets",
-#       buckets: [
-#         "txpool"
-#       ],
-#       compress: false
-#     }
-#   ]
 
 config :ipncore, :ntp_servers, [
   '0.north-america.pool.ntp.org',

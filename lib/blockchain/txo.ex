@@ -14,7 +14,6 @@ defmodule Ipncore.Txo do
     field(:to, :binary)
     field(:value, :integer)
     field(:reason, :string)
-    field(:avail, :boolean, default: false)
   end
 
   def multi_insert_all(multi, _name, nil, _channel), do: multi
@@ -24,35 +23,8 @@ defmodule Ipncore.Txo do
     Ecto.Multi.insert_all(multi, name, Txo, outputs, prefix: channel, returning: false)
   end
 
-  @spec update_avail(binary, binary, boolean) :: {integer, List.t() | nil}
-  def update_avail(txid, channel_id, value) do
-    from(txo in Txo,
-      where: txo.txid == ^txid,
-      update: [set: [avail: ^value]]
-    )
-    |> Repo.update_all([], prefix: channel_id)
-  end
-
-  def multi_update_avail(multi, _name, nil, _channel, _value), do: multi
-  def multi_update_avail(multi, _name, [], _channel, _value), do: multi
-
-  def multi_update_avail(multi, name, txid, channel, value) do
-    query = from(txo in Txo, where: txo.txid == ^txid)
-
-    Ecto.Multi.update_all(
-      multi,
-      name,
-      query,
-      [set: [avail: value]],
-      returning: false,
-      prefix: channel
-    )
-  end
-
   def all(params) do
     from(Txo)
-    |> where([o], not is_nil(o.avail))
-    |> filter_available(params)
     |> filter_index(params)
     |> filter_address(params)
     |> filter_token(params)
@@ -78,16 +50,6 @@ defmodule Ipncore.Txo do
   end
 
   defp filter_index(query, _params), do: query
-
-  defp filter_available(query, %{"avail" => "0"}) do
-    where(query, [txo], txo.avail == false)
-  end
-
-  defp filter_available(query, %{"avail" => _}) do
-    where(query, [txo], txo.avail == true)
-  end
-
-  defp filter_available(query, _params), do: query
 
   defp filter_address(query, %{"from" => address}) do
     bin_address = Address.from_text(address)
@@ -123,7 +85,6 @@ defmodule Ipncore.Txo do
       token: o.token,
       reason: o.reason,
       value: o.value,
-      available: o.avail,
       decimals: tk.decimals,
       symbol: tk.symbol
     })
@@ -137,8 +98,7 @@ defmodule Ipncore.Txo do
       o.to,
       o.token,
       o.reason,
-      o.value,
-      o.avail
+      o.value
     ])
   end
 
@@ -150,8 +110,7 @@ defmodule Ipncore.Txo do
       from: o.from,
       to: o.to,
       reason: o.reason,
-      value: o.value,
-      available: o.avail
+      value: o.value
     })
   end
 
@@ -166,7 +125,7 @@ defmodule Ipncore.Txo do
   end
 
   defp transform(txos, %{"fmt" => "list"}) do
-    Enum.map(txos, fn [id, ix, token, from, to, reason, value, avail] ->
+    Enum.map(txos, fn [id, ix, token, from, to, reason, value] ->
       [
         Event.encode_id(id),
         ix,
@@ -174,8 +133,7 @@ defmodule Ipncore.Txo do
         Address.to_text(from),
         Address.to_text(to),
         reason,
-        value,
-        avail
+        value
       ]
     end)
   end

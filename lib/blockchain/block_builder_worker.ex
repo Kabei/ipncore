@@ -1,7 +1,7 @@
 defmodule BlockBuilderWork do
   require Logger
   alias Ipncore.{Block, Chain, Event, Mempool}
-  @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
+
   @unit_time Default.unit_time()
   @interval Default.block_interval()
   @channel Default.channel()
@@ -11,12 +11,13 @@ defmodule BlockBuilderWork do
     total_events = Mempool.size()
 
     if total_events != 0 do
+      total_threads = Application.get_env(:ipncore, :total_threads, System.schedulers_online())
       timestamp = :erlang.system_time(@unit_time)
       next_height = Chain.next_index()
       ["BlockBuilder | Events: ", total_events] |> IO.iodata_to_binary() |> Logger.debug()
 
       events =
-        Enum.map(0..(@total_threads - 1), fn thread ->
+        Enum.map(0..(total_threads - 1), fn thread ->
           Task.async(fn ->
             events = Mempool.select(thread, timestamp)
 

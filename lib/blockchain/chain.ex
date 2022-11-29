@@ -2,7 +2,7 @@ defmodule Ipncore.Chain do
   require Logger
   # use Ipnutils.FastGlobal, name: FG.Chain
   # use GenServer
-  alias Ipncore.{Address, Channel, IIT, Repo, BlockValidator}
+  alias Ipncore.{Channel, IIT, Repo, BlockValidator}
 
   @compile {:inline, get_time: 0, genesis_time: 0, prev_block: 0}
   @base :chain
@@ -142,23 +142,10 @@ defmodule Ipncore.Chain do
     put(:genesis_time, block.time)
   end
 
-  def has_channel do
-    get(:has_channel, false)
-  end
-
   def initialize do
     Logger.info("Chain initialize")
 
-    channel_id = Application.get_env(:ipncore, :channel)
-    imp_client = Application.get_env(:ipncore, :imp_client)
-    # read falcon file
-    {falcon_pk, _sk} =
-      Application.app_dir(:ipncore, imp_client[:falcon_file]) |> Falcon.read_file!()
-
-    # set node's address
-    address = Address.hash(falcon_pk)
-    Application.put_env(:ipncore, :address, address)
-    Application.put_env(:ipncore, :address58, Address.to_text(address))
+    channel_id = Default.channel()
 
     # time sync
     iit = IIT.sync()
@@ -166,6 +153,7 @@ defmodule Ipncore.Chain do
 
     # get last block built
     last_block = last_block()
+    my_address = Application.get_env(Lipncore, :address58)
 
     case last_block do
       nil ->
@@ -173,12 +161,11 @@ defmodule Ipncore.Chain do
         Channel #{channel_id} is ready!
         IIT          #{Format.timestamp(iit)}
         No Blocks
+        Host Address #{my_address}
         """
         |> Logger.info()
 
       last_block ->
-        put(:has_channel, true)
-
         genesis_block = get(:genesis_block)
 
         """
@@ -187,6 +174,7 @@ defmodule Ipncore.Chain do
         Genesis Time #{Format.timestamp(genesis_block.time)}
         Last block   #{last_block.heigth}
         Next block   #{last_block.heigth + 1}
+        Host Address #{my_address}
         """
         |> Logger.info()
     end

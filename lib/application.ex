@@ -3,6 +3,7 @@ defmodule Ipncore.Application do
   use Application
 
   alias Ipncore.{
+    Address,
     Block,
     Balance,
     Chain,
@@ -29,28 +30,12 @@ defmodule Ipncore.Application do
     try do
       ## Ipncore.ConfigProvider.read()
 
-      # imp_client = Application.get_env(@otp_app, :imp_client)
-
-      # {falcon_pk, _sk} =
-      #    @otp_app |> Application.app_dir(imp_client[:falcon_file]) |> Falcon.read_file!()
-
-      http_config = Application.get_env(@otp_app, :web)
-
-      # address = Address.to_internal_address(falcon_pk)
-      # Application.put_env(@otp_app, :address, address)
-      # Application.put_env(@otp_app, :address58, Base58Check.encode(address))
-
       # deliver
       # post_path =
       #   Application.get_env(@otp_app, :post_path)
       #   |> Path.expand()
 
       # Application.put_env(@otp_app, :post_path, post_path)
-
-      # opts_cubdb = Application.get_env(@otp_app, :cubdb)
-
-      # IO.inspect("imp_client")
-      # IO.inspect(imp_client)
 
       # create data folder
       File.mkdir(Application.get_env(@otp_app, :data_path, "data"))
@@ -76,11 +61,12 @@ defmodule Ipncore.Application do
       :ok = Chain.initialize()
 
       children = [
-        {DNSS, Application.get_env(@otp_app, :dns_port, 53)},
         Repo,
         RepoWorker,
-        # {Ipncore.IMP.Client, imp_client},
-        http_server(http_config)
+        dns_server(),
+        # imp_client(),
+        http_server()
+        # https_server
       ]
 
       BlockBuilderWork.next()
@@ -101,13 +87,67 @@ defmodule Ipncore.Application do
     :ok = Supervisor.stop(supervisor, :normal)
   end
 
-  defp http_server(opts) do
+  defp imp_client do
+    opts = Application.get_env(@otp_app, :imp_client)
+    cert_dir = opts[:cert_dir] || :code.priv_dir(@otp_app)
+
+    {falcon_pk, _falcon_sk} = Path.join(cert_dir, "falcon.keys") |> Falcon.read_file!()
+
+    address = Address.hash(falcon_pk)
+    Application.put_env(@otp_app, :address, address)
+    Application.put_env(@otp_app, :address58, Address.to_text(address))
+
+    {Ipncore.IMP.Client, opts}
+  end
+
+  defp dns_server do
+    {DNSS, Application.get_env(@otp_app, :dns_port, 53)}
+  end
+
+  defp http_server do
+    opts = Application.get_env(@otp_app, :http)
+
     {Plug.Cowboy,
      scheme: :http,
      plug: Ipncore.Endpoint,
      options: [
-       port: opts[:http] || 80,
-       protocol_options: [idle_timeout: 60_000, max_keepalive: 5_000_000]
+       net: opts[:net] || :inet,
+       port: opts[:port] || 80,
+       protocol_options: [
+         idle_timeout: 60_000,
+         max_keepalive: 5_000_000
+       ],
+       transport_options: [
+         num_acceptors: opts[:acceptors] || 100,
+         max_connections: opts[:max_conn] || 16_384
+       ]
+     ]}
+  end
+
+  defp https_server do
+    opts = Application.get_env(@otp_app, :https)
+    cert_dir = opts[:cert_dir] || :code.priv_dir(@otp_app)
+
+    {Plug.Cowboy,
+     scheme: :https,
+     plug: Ipncore.Endpoint,
+     options: [
+       net: opts[:net] || :inet,
+       compress: true,
+       cipher_suite: :strong,
+       otp_app: @otp_app,
+       port: opts[:port] || 443,
+       keyfile: Path.join(cert_dir, "key.pem"),
+       certfile: Path.join(cert_dir, "cert.pem"),
+       cacertfile: Path.join(cert_dir, "cacert.pem"),
+       protocol_options: [
+         idle_timeout: 60_000,
+         max_keepalive: 5_000_000
+       ],
+       transport_options: [
+         num_acceptors: opts[:acceptors] || 100,
+         max_connections: opts[:max_conn] || 16_384
+       ]
      ]}
   end
 end

@@ -1,6 +1,6 @@
 defmodule Ipncore.IMP.Client do
   use IMP.Conn
-  alias Ipncore.{Tx, TxVote, Block, Chain}
+  # alias Ipncore.{Tx, TxVote, Block, Chain}
 
   # @channel Application.get_env(:ipncore, :channel)
 
@@ -15,7 +15,7 @@ defmodule Ipncore.IMP.Client do
   end
 
   @impl true
-  def on_message("new_tx", %{"id" => index} = payload, state) do
+  def on_message("new_tx", _payload, state) do
     # vote =
     #   case Tx.processing(payload) do
     #     {:ok, %{"id" => txid}} ->
@@ -30,7 +30,7 @@ defmodule Ipncore.IMP.Client do
     {:ok, state}
   end
 
-  def on_message("tx" <> txid, payload, state) when is_binary(payload) do
+  def on_message("tx" <> _txid, _payload, state) do
     # Tx.put_bft(txid, payload, Default.channel())
     {:ok, state}
   end

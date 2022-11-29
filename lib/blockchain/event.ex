@@ -167,7 +167,7 @@ defmodule Ipncore.Event do
           Domain.check_delete!(host, from_address)
 
         "tx.send" ->
-          [token, _to_address, amount, validator_host] = body
+          [token, _to_address, amount, validator_host | _rest] = body
 
           Tx.check_send!(
             from_address,
@@ -194,7 +194,8 @@ defmodule Ipncore.Event do
     end
   end
 
-  @spec new!(pos_integer, binary, pos_integer, pos_integer, binary, term, binary, pos_integer) :: Event.t()
+  @spec new!(pos_integer, binary, pos_integer, pos_integer, binary, term, binary, pos_integer) ::
+          Event.t()
   def new!(next_index, hash, time, type_number, from_address, body, signature, size) do
     type = type_name(type_number)
 
@@ -214,68 +215,132 @@ defmodule Ipncore.Event do
       Ecto.Multi.new()
       |> multi_insert(event, channel)
 
-    case type do
-      "pubkey.new" ->
-        List.first(body)
-        |> Wallet.put!()
+    result =
+      case type do
+        "pubkey.new" ->
+          List.first(body)
+          |> Wallet.put!()
 
-      "token.new" ->
-        [token_id, owner, name, decimals, symbol, props] = body
+        "token.new" ->
+          [token_id, owner, name, decimals, symbol, props] = body
 
-        Token.new!(
-          multi,
-          token_id,
-          from_address,
-          Address.from_text(owner),
-          name,
-          decimals,
-          symbol,
-          props,
-          time,
-          channel
-        )
+          Token.new!(
+            multi,
+            token_id,
+            from_address,
+            Address.from_text(owner),
+            name,
+            decimals,
+            symbol,
+            props,
+            time,
+            channel
+          )
 
-      "token.update" ->
-        [token_id, params] = body
-        Token.event_update!(multi, from_address, token_id, params, time, channel)
+        "token.update" ->
+          [token_id, params] = body
+          Token.event_update!(multi, from_address, token_id, params, time, channel)
 
-      "token.delete" ->
-        [token_id] = body
-        Token.event_delete!(multi, token_id, from_address, channel)
+        "token.delete" ->
+          [token_id] = body
+          Token.event_delete!(multi, token_id, from_address, channel)
 
-      "validator.new" ->
-        [hostname, owner, fee, fee_type] = body
+        "validator.new" ->
+          [hostname, owner, fee, fee_type] = body
 
-        Validator.new!(
-          multi,
-          from_address,
-          Address.from_text(owner),
-          hostname,
-          fee,
-          fee_type,
-          time,
-          channel
-        )
+          Validator.new!(
+            multi,
+            from_address,
+            Address.from_text(owner),
+            hostname,
+            fee,
+            fee_type,
+            time,
+            channel
+          )
 
-      "validator.update" ->
-        [hostname, params] = body
+        "validator.update" ->
+          [hostname, params] = body
 
-        Validator.event_update!(
-          multi,
-          hostname,
-          from_address,
-          params,
-          time,
-          channel
-        )
+          Validator.event_update!(
+            multi,
+            hostname,
+            from_address,
+            params,
+            time,
+            channel
+          )
 
-      "validator.delete" ->
-        [owner] = body
-        Validator.event_delete!(multi, Address.from_text(owner), time, channel)
-    end
-    |> RepoWorker.run()
+        "validator.delete" ->
+          [owner] = body
+          Validator.event_delete!(multi, Address.from_text(owner), time, channel)
+
+        "domain.new" ->
+          [name, email, avatar, validator_host] = body
+
+          Domain.new!(
+            multi,
+            hash,
+            from_address,
+            name,
+            email,
+            avatar,
+            validator_host,
+            size,
+            time,
+            channel
+          )
+
+        "domain.udpate" ->
+          [name, validator_host, params] = body
+
+          Domain.event_update!(
+            multi,
+            hash,
+            name,
+            from_address,
+            validator_host,
+            params,
+            time,
+            channel
+          )
+
+        "domain.delete" ->
+          [host] = body
+          Domain.event_delete!(multi, host, from_address, channel)
+
+        "tx.send" ->
+          [token, to_address, amount, validator_host, refundable, memo] = body
+
+          Tx.send!(
+            multi,
+            hash,
+            token,
+            from_address,
+            Address.from_text(to_address),
+            amount,
+            validator_host,
+            size,
+            refundable,
+            memo,
+            time,
+            channel
+          )
+
+        "tx.coinbase" ->
+          [token, outputs, memo] = body
+          Tx.coinbase!(multi, hash, token, from_address, outputs, memo, time, channel)
+      end
 
     put!({hash, time, @version, type_number, from_address, body, signature})
+
+    case result do
+      :ok ->
+        :ok
+
+      multi ->
+        RepoWorker.run(multi)
+    end
 
     event
   end

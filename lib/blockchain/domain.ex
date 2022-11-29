@@ -145,7 +145,6 @@ defmodule Ipncore.Domain do
         event_id,
         from_address,
         name,
-        owner,
         email,
         avatar,
         validator_host,
@@ -157,7 +156,7 @@ defmodule Ipncore.Domain do
       name: name,
       email: email,
       avatar: avatar,
-      owner: owner,
+      owner: from_address,
       created_at: timestamp,
       updated_at: timestamp
     }

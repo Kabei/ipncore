@@ -2,9 +2,9 @@ defmodule Ipncore.DNSS do
   @moduledoc """
   DNS.Server
   """
-  @behaviour DNS.Server
-  use DNS.Server
-#   alias Ipncore.DnsRecord
+  @behaviour Ipncore.DNS.Server
+  use Ipncore.DNS.Server
+  #   alias Ipncore.DnsRecord
   require Logger
 
   def handle(record, _cl) do
@@ -14,10 +14,12 @@ defmodule Ipncore.DNSS do
 
     result =
       case query.type do
-        :a -> {127, 0, 0, 1}
+        :a -> {150, 0, 0, 1}
+        :aaaa -> {127, 0, 0, 0, 0, 0, 0, 1}
         :cname -> 'your.domain.com'
         :txt -> ['your txt value']
-        _ -> nil
+        # :ptr -> '150.0.0.in-addr.arpa'
+        _ -> ''
       end
 
     # {value, ttl} = DnsRecord.lookup(query.domain, query.type)

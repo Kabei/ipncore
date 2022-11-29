@@ -5,7 +5,7 @@ defmodule Ipncore.DnsRecord do
 
   @base :dns
   @filename "dns.db"
-  @dns_types ~w(a aaaa cname mx txt srv caa ns)
+  @dns_types ~w(a aaaa cname ptr mx txt srv caa ns)
   @max_domain_size 100
   @dns_max_ttl 2_147_483_647
 

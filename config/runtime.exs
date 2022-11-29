@@ -13,14 +13,19 @@ config :ipncore, :balance_path, "data/balances"
 config :ipncore, :events_path, "data/events"
 
 # DNS config
-config :ipncore, :dns_port, 53
+config :ipncore, :dns,
+  ip: '0.0.0.0',
+  port: 53
 
+# IMP config
 config :ipncore, :imp_client,
   host: "us2.ippan.net",
   port: 8484,
   cert_dir: "priv/cert",
-  node_type: 0
+  node_type: 0,
+  role: :core
 
+# HTTP config
 config :ipncore, :http,
   host: "0.0.0.0",
   port: 80,

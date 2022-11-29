@@ -65,8 +65,8 @@ defmodule Ipncore.Application do
         RepoWorker,
         dns_server(),
         # imp_client(),
-        http_server()
-        # https_server
+        http_server(),
+        https_server()
       ]
 
       BlockBuilderWork.next()
@@ -101,7 +101,10 @@ defmodule Ipncore.Application do
   end
 
   defp dns_server do
-    {DNSS, Application.get_env(@otp_app, :dns_port, 53)}
+    opts = Application.get_env(@otp_app, :dns)
+    ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0})
+    port = Keyword.get(opts, :port, 53)
+    {DNSS, [ip_address, port]}
   end
 
   defp http_server do

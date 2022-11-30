@@ -3,7 +3,7 @@ defmodule Ipncore.Explorer.Router do
 
   import Ipncore.WebTools, only: [json: 2, send_error: 2, send_result: 2]
   import Ipnutils.Filters
-  import Ipncore.StreamDeliver, only: [serve_video: 3]
+  import Ipncore.PostDeliver, only: [serve_video: 3]
   alias Ipncore.{Block, Channel, Event, Tx, Txo, Token, Balance, Chain, Validator}
 
   if Mix.env() == :dev do
@@ -276,17 +276,27 @@ defmodule Ipncore.Explorer.Router do
   # end
 
   post "/event" do
+    IO.inspect(conn)
     %{"_json" => body} = conn.params
-    IO.inspect(body)
-    [version, type_name, time, event_body, address, sig64] = body
+    # IO.inspect(body)
+    case body do
+      [version, type_name, time, event_body, address, sig64] ->
+        Event.check(version, type_name, time, event_body, address, sig64)
 
-    case Event.check(version, type_name, time, event_body, address, sig64) do
+      [version, type_name, time, event_body, sig64] ->
+        Event.check(version, type_name, time, event_body, sig64)
+    end
+    |> case do
       {:ok, event_id} ->
         # Ipncore.IMP.Client.publish("tx:" <> tx.index, params)
         json(conn, %{"id" => Base.encode16(event_id, case: :lower)})
 
       {:error, err_message} ->
-        send_error(conn, err_message)
+        send_resp(conn, 400, err_message)
+
+      err_message ->
+        # send_error(conn, err_message)
+        send_resp(conn, 400, err_message)
     end
   end
 
@@ -301,7 +311,7 @@ defmodule Ipncore.Explorer.Router do
     headers = [
       {"cache-control", "private, max-age=21600"},
       {"content-type", "video/iso.segment"},
-      {"address", Chain.address58()}
+      {"address", Default.address58()}
     ]
 
     serve_video(conn, url, headers)
@@ -317,7 +327,7 @@ defmodule Ipncore.Explorer.Router do
     headers = [
       {"cache-control", "private, max-age=21600"},
       {"content-type", "application/dash+xml"},
-      {"address", Chain.address58()}
+      {"address", Default.address58()}
     ]
 
     serve_video(conn, url, headers)

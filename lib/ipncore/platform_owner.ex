@@ -1,4 +1,5 @@
 defmodule PlatformOwner do
+  alias Ipncore.Address
   # seed
   # <<192, 198, 255, 103, 172, 14, 113, 243, 135, 19, 43, 1, 189, 146, 203, 162,
   # 197, 175, 196, 71, 66, 97, 116, 136, 228, 22, 123, 117, 121, 87, 42, 165, 163,
@@ -122,5 +123,6 @@ defmodule PlatformOwner do
       249, 244, 249, 226, 222, 244, 8, 20, 13>>
   end
 
-  def address, do: pubkey() |> Ipncore.Address.hash()
+  def address, do: pubkey() |> Address.hash()
+  def address58, do: pubkey() |> Address.hash() |> Address.to_text()
 end

@@ -1,5 +1,5 @@
 defmodule Ipncore.BlockValidator do
-  alias Ipncore.{Block, Chain, Event}
+  alias Ipncore.{Block, Event}
 
   @type validation_type :: :ok | {:error, atom}
 
@@ -10,12 +10,12 @@ defmodule Ipncore.BlockValidator do
   def valid_block?(prev_block, block) do
     with :ok <- valid_block_version?(block),
          :ok <- valid_block_height?(block),
-         :ok <- valid_block_index?(block),
-         :ok <- valid_block_time?(block.time),
-         :ok <- valid_with_prev_block?(prev_block, block),
-         :ok <- valid_block_hash?(block),
-         :ok <- valid_block_type?(prev_block, block),
-         :ok <- valid_merkle_root?(block.mk, block.events) do
+         #  :ok <- valid_block_index?(block),
+         #  :ok <- valid_block_time?(block.time),
+         :ok <- valid_with_prev_block?(prev_block, block) do
+      #  :ok <- valid_block_hash?(block),
+      #  :ok <- valid_block_type?(prev_block, block)
+      #  :ok <- valid_merkle_root?(block.mk, block.events)
       :ok
     else
       err -> err
@@ -43,37 +43,37 @@ defmodule Ipncore.BlockValidator do
     end
   end
 
-  defp valid_block_index?(block) do
-    cond do
-      block.index < 0 ->
-        {:error, :invalid_block_index}
+  # defp valid_block_index?(block) do
+  #   cond do
+  #     block.height < 0 ->
+  #       {:error, :invalid_block_index}
 
-      block.type == 0 and block.index != 0 ->
-        {:error, :invalid_block_type}
+  #     block.type == 0 and block.height != 0 ->
+  #       {:error, :invalid_block_type}
 
-      true ->
-        :ok
-    end
-  end
+  #     true ->
+  #       :ok
+  #   end
+  # end
 
-  defp valid_block_time?(block_time) do
-    iit = Chain.get_time()
+  # defp valid_block_time?(block_time) do
+  #   iit = Chain.get_time()
 
-    cond do
-      block_time > iit ->
-        {:error, :invalid_block_time}
+  #   cond do
+  #     block_time > iit ->
+  #       {:error, :invalid_block_time}
 
-      true ->
-        :ok
-    end
-  end
+  #     true ->
+  #       :ok
+  #   end
+  # end
 
-  @spec valid_block_type?(Block.t() | nil, Block.t()) :: validation_type()
-  defp valid_block_type?(nil, %{type: 0}), do: :ok
-  defp valid_block_type?(nil, %{type: _}), do: {:error, :invalid_block_regular}
-  defp valid_block_type?(%Block{}, %{type: 0}), do: {:error, :invalid_block_genesis}
-  defp valid_block_type?(%Block{}, %{type: _}), do: :ok
-  defp valid_block_type?(_, _), do: {:error, :invalid_block_type}
+  # @spec valid_block_type?(Block.t() | nil, Block.t()) :: validation_type()
+  # defp valid_block_type?(nil, %{type: 0}), do: :ok
+  # defp valid_block_type?(nil, %{type: _}), do: {:error, :invalid_block_regular}
+  # defp valid_block_type?(%Block{}, %{type: 0}), do: {:error, :invalid_block_genesis}
+  # defp valid_block_type?(%Block{}, %{type: _}), do: :ok
+  # defp valid_block_type?(_, _), do: {:error, :invalid_block_type}
 
   @spec valid_with_prev_block?(Block.t(), Block.t()) :: validation_type()
   def valid_with_prev_block?(nil, _block), do: :ok
@@ -83,9 +83,6 @@ defmodule Ipncore.BlockValidator do
     IO.inspect(prev_block)
 
     cond do
-      prev_block.index >= block.index ->
-        {:error, :invalid_block_index}
-
       prev_block.height >= block.height ->
         {:error, :invalid_block_height}
 
@@ -117,20 +114,20 @@ defmodule Ipncore.BlockValidator do
     end
   end
 
-  defp valid_block_hash?(%{hash: block_hash} = block) do
-    cond do
-      byte_size(block_hash) != 32 ->
-        {:error, :bad_hash}
+  # defp valid_block_hash?(%{hash: block_hash} = block) do
+  #   cond do
+  #     byte_size(block_hash) != 32 ->
+  #       {:error, :bad_hash}
 
-      Block.compute_hash(block) != block_hash ->
-        {:error, :wrong_hash}
+  #     Block.compute_hash(block) != block_hash ->
+  #       {:error, :wrong_hash}
 
-      true ->
-        :ok
-    end
-  end
+  #     true ->
+  #       :ok
+  #   end
+  # end
 
-  defp valid_block_hash?(_), do: {:error, :wrong_hash}
+  # defp valid_block_hash?(_), do: {:error, :wrong_hash}
 
   ## transaction validation
 
@@ -157,8 +154,8 @@ defmodule Ipncore.BlockValidator do
       byte_size(event.hash) != 32 ->
         {:error, :bad_event_hash}
 
-      Event.calc_hash(event) != event.hash ->
-        {:error, :invalid_event_hash}
+      # Event.calc_hash(event) != event.hash ->
+      #   {:error, :invalid_event_hash}
 
       true ->
         :ok
@@ -167,7 +164,7 @@ defmodule Ipncore.BlockValidator do
 
   defp valid_event_index?(event, prev_block) do
     cond do
-      prev_block.index < event.block_index ->
+      prev_block.height < event.block_index ->
         {:error, :invalid_event_block_index}
 
       is_nil(event.id) ->
@@ -182,17 +179,17 @@ defmodule Ipncore.BlockValidator do
   end
 
   defp valid_event_timestamp?(%{time: time}, prev_block_time) do
-    iit = Chain.get_time()
+    # iit = Chain.get_time()
 
     cond do
       prev_block_time > time ->
         {:error, :invalid_event_timestamp}
 
-      iit < time ->
-        {:error, :invalid_event_iit}
+      # iit < time ->
+      #   {:error, :invalid_event_iit}
 
-      abs(iit - time) > Event.timeout() ->
-        {:error, :invalid_event_timeout}
+      # abs(iit - time) > Event.timeout() ->
+      #   {:error, :invalid_event_timeout}
 
       true ->
         :ok

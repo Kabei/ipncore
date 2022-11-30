@@ -1,10 +1,9 @@
 defmodule BlockBuilderWork do
   require Logger
-  alias Ipncore.{Block, Chain, Event, Mempool}
+  alias Ipncore.{Block, Chain, Event}
 
   @unit_time Default.unit_time()
   @interval Default.block_interval()
-  @channel Default.channel()
   @timeout :infinity
 
   def run do
@@ -14,7 +13,10 @@ defmodule BlockBuilderWork do
       total_threads = Application.get_env(:ipncore, :total_threads, System.schedulers_online())
       timestamp = :erlang.system_time(@unit_time)
       next_height = Chain.next_index()
-      ["BlockBuilder | Events: ", total_events] |> IO.iodata_to_binary() |> Logger.debug()
+
+      ["BlockBuilder | Events: ", to_string(total_events)]
+      |> IO.iodata_to_binary()
+      |> Logger.debug()
 
       events =
         Enum.map(0..(total_threads - 1), fn thread ->
@@ -28,28 +30,37 @@ defmodule BlockBuilderWork do
                 ev = Event.new!(next_height, hash, time, type_number, from, body, signature, size)
                 acc ++ [ev]
               rescue
-                _ex ->
+                ex ->
+                  Logger.error(Exception.format(:error, ex, __STACKTRACE__))
                   Mempool.delete(key)
                   acc
               catch
-                _err ->
+                err ->
+                  Logger.info("Error #{err}")
                   Mempool.delete(key)
                   acc
               end
             end)
-
-            :ok
           end)
         end)
         |> Task.await_many(@timeout)
         |> Enum.concat()
         |> Enum.sort(&({&1.time, &1.hash} <= {&2.time, &2.hash}))
 
+      IO.inspect("Events")
+      IO.inspect(events)
+
       Mempool.select_delete(timestamp)
 
-      last_block = Chain.last_block()
-      block = Block.new(last_block, events)
-      Chain.add_block(last_block, block, @channel)
+      case events do
+        [] ->
+          Logger.info("Events empty")
+
+        events ->
+          last_block = Chain.last_block()
+          block = Block.next(last_block, events)
+          Chain.add_block(last_block, block, Default.channel())
+      end
     end
 
     next()

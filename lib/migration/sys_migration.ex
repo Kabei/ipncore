@@ -29,7 +29,6 @@ defmodule Ipncore.Migration.System do
         last_height bigint,
         last_hash bytea,
         block_count bigint NOT NULL,
-        coins numeric,
         tx_count bigint NOT NULL,
         vsn integer NOT NULL,
         created_at bigint NOT NULL,

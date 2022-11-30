@@ -2,9 +2,9 @@ defmodule Ipncore.Chain do
   require Logger
   # use Ipnutils.FastGlobal, name: FG.Chain
   # use GenServer
-  alias Ipncore.{Channel, IIT, Repo, BlockValidator}
+  alias Ipncore.{Block, Channel, IIT, Repo, BlockValidator}
 
-  @compile {:inline, get_time: 0, genesis_time: 0, prev_block: 0}
+  @compile {:inline, get_time: 0, genesis_time: 0, last_block: 0}
   @base :chain
   @table :chain
   @filename "chain.db"
@@ -47,7 +47,7 @@ defmodule Ipncore.Chain do
   defmacrop get(atom_name, default \\ nil) do
     quote do
       case :ets.lookup(@table, unquote(atom_name)) do
-        [obj] -> obj
+        [{_k, val}] -> val
         _ -> unquote(default)
       end
     end
@@ -85,11 +85,11 @@ defmodule Ipncore.Chain do
   def get_time do
     # diff = get(:diff_iit, 0)
     # if diff == 0, do: throw(:error_time)
-    :erlang.monotonic_time(@unit_time) + get(:diff_time, 0)
+    :erlang.system_time(@unit_time) + get(:diff_time, 0)
   end
 
   def next_index do
-    case get(:height) do
+    case get(:next_index) do
       nil -> 0
       n -> n + 1
     end
@@ -110,29 +110,20 @@ defmodule Ipncore.Chain do
 
   # @impl true
   # def handle_cast({:last_block, block}, state) do
-  #   new_state = Map.merge(state, %{last_block: block, height: block.heigth})
+  #   new_state = Map.merge(state, %{last_block: block, height: block.height})
   #   {:noreply, new_state}
   # end
 
   def put_iit(iit_time) when iit_time > 0 do
-    put(:diff_iit, iit_time - :erlang.monotonic_time(@unit_time))
+    put(:diff_iit, iit_time - :erlang.system_time(@unit_time))
   end
 
-  def prev_block, do: get(:prev_block, nil)
+  def put_last_block(nil), do: :none
 
-  def put_prev_block(nil), do: :none
-
-  def put_prev_block(%{time: time} = prev_block) do
-    put(:prev_time, time)
-    put(:prev_block, Map.drop(prev_block, [:events]))
+  def put_last_block(last_block) do
+    put(:last_block, last_block)
+    put(:next_index, last_block.height + 1)
   end
-
-  def prev_block_time, do: get(:prev_time, 0)
-
-  def address, do: Application.get_env(:ipncore, :address)
-  def address58, do: Application.get_env(:ipncore, :address58)
-
-  def pool_address, do: Application.get_env(:ipncore, :pool)[:address] |> Base58Check.decode()
 
   def genesis_block, do: get(:genesis_block)
   def genesis_time, do: get(:genesis_time, 0)
@@ -153,7 +144,7 @@ defmodule Ipncore.Chain do
 
     # get last block built
     last_block = last_block()
-    my_address = Application.get_env(Lipncore, :address58)
+    my_address = Default.address58()
 
     case last_block do
       nil ->
@@ -166,14 +157,14 @@ defmodule Ipncore.Chain do
         |> Logger.info()
 
       last_block ->
-        genesis_block = get(:genesis_block)
+        genesis_block = genesis_block()
 
         """
         Channel #{channel_id} is ready!
         IIT          #{Format.timestamp(iit)}
         Genesis Time #{Format.timestamp(genesis_block.time)}
-        Last block   #{last_block.heigth}
-        Next block   #{last_block.heigth + 1}
+        Last block   #{last_block.height}
+        Next block   #{last_block.height + 1}
         Host Address #{my_address}
         """
         |> Logger.info()
@@ -181,33 +172,47 @@ defmodule Ipncore.Chain do
   end
 
   def add_block(prev_block, b, channel_id) do
-    is_genesis_block = b.heigth == 0
+    is_genesis_block = b.height == 0
 
     case BlockValidator.valid_block?(prev_block, b) do
       :ok ->
+        block =
+          b
+          |> Map.from_struct()
+          |> Map.drop([:events, :__meta__])
+
+        IO.inspect(block)
+
+        if is_genesis_block do
+          put_genesis_block(block)
+        end
+
+        put_last_block(block)
+
         Ecto.Multi.new()
-        |> Ecto.Multi.insert(:block, Map.put(b, :txs, []), prefix: channel_id, returning: false)
-        # |> Tx.set_status_complete(:txs, b.index, channel_id)
-        # |> Tx.cancel_all_pending(:pending, b.index, channel_id)
-        |> Channel.multi_put_genesis_time(:gen_time, channel_id, b.time, is_genesis_block)
-        |> Channel.multi_update(:channel, channel_id, b.height, b.hash, b.amount, 1, b.ev_count)
+        |> Ecto.Multi.insert_all(:block, Block, [block], prefix: channel_id, returning: false)
+        # |> Tx.set_status_complete(:txs, block.height, channel_id)
+        # |> Tx.cancel_all_pending(:pending, block.height, channel_id)
+        |> Channel.multi_put_genesis_time(:gen_time, channel_id, block.time, is_genesis_block)
+        |> Channel.multi_update(
+          :channel,
+          channel_id,
+          block.height,
+          block.hash,
+          1,
+          block.ev_count
+        )
         |> Repo.transaction()
         |> case do
           {:ok, _} ->
-            # genesis block (after tx)
-            if is_genesis_block do
-              put_genesis_block(b)
-            end
-
-            put_prev_block(b)
             :ok
 
           err ->
             IO.inspect(err)
 
-            Ecto.Multi.new()
+            # Ecto.Multi.new()
             # |> Tx.cancel_all_pending(:pending, b.index, channel_id)
-            |> Repo.transaction()
+            # |> Repo.transaction()
 
             err
         end

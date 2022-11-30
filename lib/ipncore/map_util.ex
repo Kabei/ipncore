@@ -43,40 +43,40 @@ defmodule MapUtil do
 
   def validate_hostname(map, key) do
     val = Map.get(map, key)
-    if val and not Regex.match?(Const.Regex.hostname(), val), do: throw("Invalid #{key}")
+    if not is_nil(val) and not Regex.match?(Const.Regex.hostname(), val), do: throw("Invalid #{key}")
 
     map
   end
 
   def validate_address(map, key) do
     val = Map.get(map, key)
-    if val and not Regex.match?(Const.Regex.address(), val), do: throw("Invalid address #{key}")
+    if not is_nil(val) and not Regex.match?(Const.Regex.address(), val), do: throw("Invalid address #{key}")
     map
   end
 
   def validate_format(map, key, regex) do
     val = Map.get(map, key)
-    if val and not Regex.match?(regex, val), do: throw("Invalid #{key}")
+    if not is_nil(val) and not Regex.match?(regex, val), do: throw("Invalid #{key}")
 
     map
   end
 
   def validate_boolean(map, key) do
     val = Map.get(map, key)
-    if val and not is_boolean(val), do: throw("Invalid #{key}")
+    if not is_nil(val) and not is_boolean(val), do: throw("Invalid #{key}")
     map
   end
 
   def validate_integer(map, key) do
     val = Map.get(map, key)
-    if val and not is_integer(val), do: throw("Invalid #{key}")
+    if not is_nil(val) and not is_integer(val), do: throw("Invalid #{key}")
     map
   end
 
   def validate_value(map, key, op, value) do
     val = Map.get(map, key)
 
-    (val &&
+    (not is_nil(val) and
        case op do
          :gt -> val > value
          :eq -> val == value
@@ -95,7 +95,7 @@ defmodule MapUtil do
 
   def validate_range(map, key, range) do
     val = Map.get(map, key)
-    if val not in range, do: throw("Invalid range #{key}")
+    if not is_nil(val) and val not in range, do: throw("Invalid range #{key}")
     map
   end
 
@@ -108,28 +108,28 @@ defmodule MapUtil do
 
   def validate_bytes(map, key, _x.._y = range) do
     val = Map.get(map, key)
-    if byte_size(val) not in range, do: throw("Invalid max length #{key}")
+    if not is_nil(val) and byte_size(val) not in range, do: throw("Invalid max length #{key}")
 
     map
   end
 
   def validate_bytes(map, key, size, _) do
     val = Map.get(map, key)
-    if byte_size(val) > size, do: throw("Invalid max length #{key}")
+    if not is_nil(val) and byte_size(val) > size, do: throw("Invalid max length #{key}")
 
     map
   end
 
   def validate_length(map, key, _x.._y = range) do
     val = Map.get(map, key)
-    if String.length(val) not in range, do: throw("Invalid max length #{key}")
+    if not is_nil(val) and String.length(val) not in range, do: throw("Invalid max length #{key}")
 
     map
   end
 
   def validate_length(map, key, size, _) do
     val = Map.get(map, key)
-    if String.length(val) > size, do: throw("Invalid max length #{key}")
+    if not is_nil(val) and String.length(val) > size, do: throw("Invalid max length #{key}")
 
     map
   end

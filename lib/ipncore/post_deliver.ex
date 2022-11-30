@@ -1,16 +1,16 @@
-defmodule Ipncore.StreamDeliver do
+defmodule Ipncore.PostDeliver do
   import Plug.Conn
 
   @max_file_size Application.compile_env(:ipncore, :max_file_size)
 
-  defp posts_path, do: Application.get_env(:ipncore, :post_path)
+  defp post_path, do: Application.get_env(:ipncore, :post_path)
 
   def serve_video(conn, url, headers) do
     hash =
       :crypto.hash(:md5, url)
       |> Base.encode16()
 
-    path = [posts_path(), hash] |> Path.join()
+    path = [post_path(), hash] |> Path.join()
 
     case verify_file(path) do
       false ->
@@ -50,7 +50,7 @@ defmodule Ipncore.StreamDeliver do
 
   defp get_video_dash(url, hash) do
     file_path =
-      [posts_path(), hash]
+      [post_path(), hash]
       |> Path.join()
 
     Download.from(url,

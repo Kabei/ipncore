@@ -1,6 +1,7 @@
 defmodule Ipncore.Application do
   @moduledoc false
   use Application
+  require Logger
 
   alias Ipncore.{
     Address,
@@ -11,7 +12,6 @@ defmodule Ipncore.Application do
     Domain,
     Event,
     Migration,
-    Mempool,
     Repo,
     RepoWorker,
     Validator,
@@ -44,14 +44,14 @@ defmodule Ipncore.Application do
       migration_start()
 
       # open local databases
-      with {:ok, _} <- Chain.open(),
-           {:ok, _} <- Event.open(Block.epoch(Chain.next_index())),
+      with {:ok, _pid} <- Chain.open(),
+           {:ok, _pid} <- Event.open(Block.epoch(Chain.next_index())),
            :mempool <- Mempool.open(),
-           [{:ok, _} | _] <- Wallet.open(),
-           {:ok, _} <- Balance.open(),
-           {:ok, _} <- Token.open(),
-           {:ok, _} <- Validator.open(),
-           {:ok, _} <- Domain.open() do
+           [{:ok, _pid} | _rest] <- Wallet.open(),
+           {:ok, _pid} <- Balance.open(),
+           {:ok, _pid} <- Token.open(),
+           {:ok, _pid} <- Validator.open(),
+           {:ok, _pid} <- Domain.open() do
         :ok
       else
         err -> throw(err)
@@ -76,6 +76,18 @@ defmodule Ipncore.Application do
       DBConnection.ConnectionError ->
         {:error, "Database connexion failed"}
     end
+  end
+
+  @impl true
+  def stop(_state) do
+    Logger.info("Stopping application")
+    Chain.close()
+    Event.close()
+    Wallet.close()
+    Balance.close()
+    Token.close()
+    Validator.close()
+    Domain.close()
   end
 
   defp migration_start do

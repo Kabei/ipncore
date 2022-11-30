@@ -14,6 +14,8 @@ defmodule Ipncore.Migration.Blockchain do
       # "ALTER SYSTEM SET synchronous_commit = off",
       # "ALTER SYSTEM SET full_page_writes = off",
       # "ALTER SYSTEM SET max_wal_senders = 0",
+      # CONSTRAINT balance_ck CHECK (amount >= 0::numeric),
+      # CONSTRAINT locked_ck CHECK (locked >= 0::numeric)
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".block(
         height bigint NOT NULL,
@@ -34,7 +36,6 @@ defmodule Ipncore.Migration.Blockchain do
         id bytea NOT NULL,
         time bigint NOT NULL,
         type smallint NOT NULL,
-        status smallint NOT NULL,
         block_index bigint,
         sig_count smallint DEFAULT 0,
         size integer DEFAULT 0,
@@ -86,7 +87,7 @@ defmodule Ipncore.Migration.Blockchain do
         address bytea NOT NULL,
         token varchar(64) NOT NULL,
         amount numeric DEFAULT 0 NOT NULL,
-        locked numeric DEFAULT 0 NOT NULL,
+        block bool DEFAULT FALSE NOT NULL,
         out_count numeric DEFAULT 0,
         in_count numeric DEFAULT 0,
         tx_count numeric DEFAULT 0,
@@ -99,7 +100,7 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".validator(
           host varchar NOT NULL,
           name varchar NOT NULL,
-          address bytea NOT NULL,
+          owner bytea NOT NULL,
           enabled bool DEFAULT TRUE,
           fee double precision NOT NULL,
           fee_type smallint NOT NULL,
@@ -124,8 +125,6 @@ defmodule Ipncore.Migration.Blockchain do
           CONSTRAINT domain_pk PRIMARY KEY (id)
       )
       """,
-      # CONSTRAINT balance_ck CHECK (amount >= 0::numeric),
-      # CONSTRAINT locked_ck CHECK (locked >= 0::numeric)
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".dns_record(
         domain varchar NOT NULL,

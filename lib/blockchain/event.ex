@@ -1,6 +1,6 @@
 defmodule Ipncore.Event do
   use Ecto.Schema
-  alias Ipncore.{Address, Domain, Repo, RepoWorker, Token, Tx, Validator, Wallet, Mempool}
+  alias Ipncore.{Address, Domain, Repo, RepoWorker, Token, Tx, Validator, Wallet}
   import Ipnutils.Macros, only: [deftypes: 1]
   # import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query
@@ -47,7 +47,6 @@ defmodule Ipncore.Event do
   #   {false, false}
   # end
 
-  @channel Application.compile_env(:ipncore, :channel)
   @version Application.compile_env(:ipncore, :event_version)
   @threshold_timeout Application.compile_env(:ipncore, :event_threshold_timeout)
   @max_size Application.compile_env(:ipncore, :event_max_size)
@@ -66,7 +65,6 @@ defmodule Ipncore.Event do
   @type t :: %__MODULE__{
           id: binary(),
           time: pos_integer(),
-          # hash: binary(),
           type: pos_integer(),
           block_index: pos_integer(),
           sig_count: pos_integer(),
@@ -101,6 +99,32 @@ defmodule Ipncore.Event do
 
   @spec check(pos_integer, String.t(), pos_integer, term, String.t(), String.t()) ::
           {:ok, binary} | {:error, String.t()}
+  def check(@version, "pubkey.new" = type_name, time, [pubkey] = body, sig64) do
+    try do
+      type_number = type_index(type_name)
+      if type_name == false, do: throw("Type invalid")
+      body_text = Jason.encode!(body)
+      hash = calc_hash(type_number, body_text, time)
+      signature = Base.decode64!(sig64)
+      size = byte_size(body_text) + byte_size(signature)
+      from_address = Address.hash(pubkey)
+
+      if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
+
+      if Wallet.has_key?(from_address), do: throw("Pubkey already exists")
+
+      case Mempool.push!(hash, time, type_number, from_address, body, signature, size) do
+        true ->
+          {:ok, hash}
+
+        false ->
+          throw("Error push to mempool")
+      end
+    catch
+      x -> {:error, x}
+    end
+  end
+
   def check(@version, type_name, time, body, address, sig64) do
     try do
       # if check_timeout and abs(time - Chain.get_time()) > @timeout, do: throw("Event is timeout")
@@ -117,15 +141,11 @@ defmodule Ipncore.Event do
       size = byte_size(body_text) + byte_size(signature)
       if size > @max_size, do: throw("Body size exceeded")
 
-      pubkey = Wallet.get(from_address)
+      pubkey = Wallet.fetch!(from_address)
 
       if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
 
       case type_name do
-        "pubkey.new" ->
-          [pubkey] = body
-          Wallet.check!(hash, pubkey, signature)
-
         "token.new" ->
           token_id = List.first(body)
           Token.check_new!(token_id, from_address)
@@ -135,8 +155,8 @@ defmodule Ipncore.Event do
           Token.check_delete!(token_id, from_address)
 
         "validator.new" ->
-          [hostname, name | _rest] = body
-          Validator.check_new!(hostname, name, from_address)
+          [hostname, name, _owner, fee_type, fee | _rest] = body
+          Validator.check_new!(hostname, name, from_address, fee_type, fee)
 
         "validator.update" ->
           [hostname | _rest] = body
@@ -180,6 +200,9 @@ defmodule Ipncore.Event do
         "tx.coinbase" ->
           [token, amount, _outputs] = body
           Tx.check_coinbase!(from_address, token, amount)
+
+        _ ->
+          throw("Invalid Match Type")
       end
 
       case Mempool.push!(hash, time, type_number, from_address, body, signature, size) do
@@ -190,7 +213,7 @@ defmodule Ipncore.Event do
           throw("Error push to mempool")
       end
     catch
-      x -> x
+      x -> {:error, x}
     end
   end
 
@@ -209,7 +232,7 @@ defmodule Ipncore.Event do
       vsn: @version
     }
 
-    channel = @channel
+    channel = Default.channel()
 
     multi =
       Ecto.Multi.new()
@@ -218,8 +241,12 @@ defmodule Ipncore.Event do
     result =
       case type do
         "pubkey.new" ->
-          List.first(body)
+          body
+          |> List.first()
+          |> Base.decode64!()
           |> Wallet.put!()
+
+          multi
 
         "token.new" ->
           [token_id, owner, name, decimals, symbol, props] = body
@@ -246,15 +273,16 @@ defmodule Ipncore.Event do
           Token.event_delete!(multi, token_id, from_address, channel)
 
         "validator.new" ->
-          [hostname, owner, fee, fee_type] = body
+          [hostname, name, owner, fee_type, fee] = body
 
           Validator.new!(
             multi,
             from_address,
-            Address.from_text(owner),
             hostname,
-            fee,
+            name,
+            Address.from_text(owner),
             fee_type,
+            fee,
             time,
             channel
           )
@@ -272,8 +300,8 @@ defmodule Ipncore.Event do
           )
 
         "validator.delete" ->
-          [owner] = body
-          Validator.event_delete!(multi, Address.from_text(owner), time, channel)
+          [hostname] = body
+          Validator.event_delete!(multi, hostname, time, channel)
 
         "domain.new" ->
           [name, email, avatar, validator_host] = body
@@ -332,14 +360,14 @@ defmodule Ipncore.Event do
           Tx.coinbase!(multi, hash, token, from_address, outputs, memo, time, channel)
       end
 
-    put!({hash, time, @version, type_number, from_address, body, signature})
+    put!({hash, time, next_index, @version, type_number, from_address, body, signature})
 
     case result do
       :ok ->
         :ok
 
-      multi ->
-        RepoWorker.run(multi)
+      multi_or_fun ->
+        RepoWorker.run(multi_or_fun)
     end
 
     event
@@ -377,7 +405,7 @@ defmodule Ipncore.Event do
   #   |> IO.iodata_to_binary()
   # end
 
-  def calc_hash(type_number, event_body_text, time) do
+  def calc_hash(type_number, event_body_text, time) when is_binary(event_body_text) do
     [
       to_string(type_number),
       event_body_text,
@@ -386,15 +414,24 @@ defmodule Ipncore.Event do
     |> Crypto.hash3()
   end
 
-  def calc_hash(event) do
+  def calc_hash(type_number, event_body_term, time) do
     [
-      to_string(event.vsn),
-      to_string(event.type),
-      event.body,
-      to_string(event.time)
+      to_string(type_number),
+      Jason.encode!(event_body_term),
+      to_string(time)
     ]
     |> Crypto.hash3()
   end
+
+  # def calc_hash(event) do
+  #   [
+  #     to_string(event.vsn),
+  #     to_string(event.type),
+  #     Jason.encode!(event.body),
+  #     to_string(event.time)
+  #   ]
+  #   |> Crypto.hash3()
+  # end
 
   def check_signatures!(hash, sigs) do
     {addresses, byte_size} =
@@ -403,7 +440,7 @@ defmodule Ipncore.Event do
 
         case Wallet.get(bin_address) do
           nil ->
-            throw("There is an unregistered address")
+            throw("There is an unregistered pubkey")
 
           pubkey ->
             case Falcon.verify(hash, signature, pubkey) do

@@ -10,7 +10,7 @@ defmodule Ipncore.Wallet do
     File.mkdir_p(folder_path)
 
     for number <- 0..(@partitions - 1) do
-      base = String.to_atom(IO.iodata_to_binary([@base, number]))
+      base = String.to_atom(IO.iodata_to_binary([@base, to_string(number)]))
       path = Path.join(folder_path, IO.iodata_to_binary([to_string(base), @file_extension]))
       DetsPlus.open_file(base, file: path, auto_save: 60_000, auto_save_memory: 1_000_000)
     end
@@ -18,7 +18,7 @@ defmodule Ipncore.Wallet do
 
   def close do
     for number <- 0..(@partitions - 1) do
-      base = String.to_existing_atom(IO.iodata_to_binary([@base, number]))
+      base = String.to_existing_atom(IO.iodata_to_binary([@base, to_string(number)]))
       DetsPlus.close(base)
     end
   end
@@ -43,8 +43,23 @@ defmodule Ipncore.Wallet do
   end
 
   def get(address_hash) do
-    [{_hash, pubkey}] = DetsPlus.lookup(get_base(address_hash), address_hash)
-    pubkey
+    case DetsPlus.lookup(get_base(address_hash), address_hash) do
+      [{_hash, pubkey}] ->
+        pubkey
+
+      _ ->
+        nil
+    end
+  end
+
+  def fetch!(address_hash) do
+    case DetsPlus.lookup(get_base(address_hash), address_hash) do
+      [{_hash, pubkey}] ->
+        pubkey
+
+      _ ->
+        throw("Pubkey not exists")
+    end
   end
 
   def has_key?(address_hash) do
@@ -74,7 +89,7 @@ defmodule Ipncore.Wallet do
   defp get_base(<<first::8, _rest::binary>>) do
     number = rem(first, @partitions)
 
-    [@base, number]
+    [@base, to_string(number)]
     |> IO.iodata_to_binary()
     |> String.to_existing_atom()
   end

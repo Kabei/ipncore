@@ -7,18 +7,21 @@ defmodule Ipncore.Validator do
 
   @behaviour Database
 
+  # Fee type
+  # 0. by size
+  # 1. percent
+  # 2. fixed price
+
   @base :validator
   @filename "validator.db"
-
-  # @delay_edit Application.get_env(:ipncore, :tx_delay_edit)
   @edit_fields ~w(owner name fee fee_type)
 
   @primary_key {:host, :string, []}
   schema "validator" do
     field(:name, :string)
     field(:owner, :binary)
-    field(:fee, :float)
     field(:fee_type, :integer)
+    field(:fee, :float)
     field(:enabled, :boolean, default: true)
     field(:created_at, :integer)
     field(:updated_at, :integer)
@@ -97,23 +100,26 @@ defmodule Ipncore.Validator do
     end
   end
 
-  def check_new!(host, name, from_address) do
-    if not Regex.match?(Const.Regex.hostname(), host), do: throw("Invalid hostname")
+  def check_new!(host, name, from_address, fee_type, fee) do
+    if not Regex.match?(Const.Regex.domain(), host), do: throw("Invalid domain")
     if String.length(name) > 100, do: throw("Invalid name length")
     if from_address != PlatformOwner.address(), do: throw("Operation not allowed")
+    unless fee_type >= 0 and fee_type <= 2, do: throw("Invalid fee_type")
+    if not is_float(fee), do: throw("Invalid Fee value")
     exists!(host)
 
     :ok
   end
 
-  def new!(multi, _from_address, host, name, owner, fee, fee_type, channel)
-      when fee_type >= 0 and fee_type <= 2 do
+  def new!(multi, _from_address, host, name, owner, fee_type, fee, timestamp, channel) do
     validator = %{
       host: host,
       name: name,
       owner: owner,
       fee_type: fee_type,
-      fee: fee
+      fee: fee,
+      created_at: timestamp,
+      updated_at: timestamp
     }
 
     put!(validator)
@@ -125,8 +131,8 @@ defmodule Ipncore.Validator do
     )
   end
 
-  def check_update!(name, from_address) do
-    fetch!(name, from_address)
+  def check_update!(host, from_address) do
+    fetch!(host, from_address)
   end
 
   def event_update!(multi, from_address, host, params, timestamp, channel) when is_map(params) do
@@ -157,11 +163,11 @@ defmodule Ipncore.Validator do
     )
   end
 
-  def check_delete!(name, from_address) do
-    fetch!(name, from_address)
+  def check_delete!(host, from_address) do
+    fetch!(host, from_address)
   end
 
-  def event_delete!(multi, owner, host, channel) do
+  def event_delete!(multi, host, owner, channel) do
     delete!(host, owner)
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^owner)

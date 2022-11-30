@@ -1,4 +1,4 @@
-defmodule Ipncore.Mempool do
+defmodule Mempool do
   @table :mempool
 
   @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
@@ -42,19 +42,19 @@ defmodule Ipncore.Mempool do
   end
 
   def select(thread, timestamp) do
-    # :ets.fun2ms(fn {{_hash, time}, thread, _type, _from, _body, _sigs, _size} = x when thread == 0 and time <= 1 -> x end)
+    # :ets.fun2ms(fn {{time, _hash}, thread, _type, _from, _body, _sigs, _size} = x when thread == 0 and time <= 1 -> x end)
     fun = [
       {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"},
-       [{:andalso, {:==, :"$3", thread}, {:"=<", :"$2", timestamp}}], [:"$_"]}
+       [{:andalso, {:==, :"$3", thread}, {:"=<", :"$1", timestamp}}], [:"$_"]}
     ]
 
     :ets.select(@table, fun)
   end
 
   def select_delete(timestamp) do
-    # :ets.fun2ms(fn {{_hash, time}, thread, _type, _from, _body, _sigs, _size} = x when and time <= 0 -> true end)
+    # :ets.fun2ms(fn {{time, _hash}, thread, _type, _from, _body, _sigs, _size} = x when and time <= 0 -> true end)
     fun = [
-      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$2", timestamp}],
+      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$1", timestamp}],
        [true]}
     ]
 

@@ -26,7 +26,7 @@ defmodule Ipncore.Token do
   @filename "token.db"
   # @fields ~w(id name creator decimals symbol owner props)
   @edit_fields ~w(name owner)
-  # @props ~w{maxSupply allowBlocking}
+  # @props ~w{maxSupply allowBlock allowBurn}
 
   @primary_key {:id, :string, []}
   schema "token" do
@@ -201,7 +201,8 @@ defmodule Ipncore.Token do
     props =
       (props || %{})
       |> MapUtil.validate_value("maxSupply", :lte, 0)
-      |> MapUtil.validate_boolean("allowBlocking")
+      |> MapUtil.validate_boolean("allowBlock")
+      |> MapUtil.validate_boolean("allowBurn")
 
     token = %{
       id: token_id,

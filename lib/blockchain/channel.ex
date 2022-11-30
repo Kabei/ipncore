@@ -13,7 +13,6 @@ defmodule Ipncore.Channel do
           last_height: pos_integer(),
           last_hash: binary(),
           block_count: pos_integer(),
-          coins: pos_integer(),
           tx_count: pos_integer(),
           vsn: pos_integer(),
           created_at: pos_integer(),
@@ -31,7 +30,6 @@ defmodule Ipncore.Channel do
     field(:last_height, :integer, default: 0)
     field(:last_hash, :binary)
     field(:block_count, :integer, default: 0)
-    field(:coins, Ecto.Amount, default: 0)
     field(:tx_count, :integer, default: 0)
     field(:vsn, :integer, default: 0)
     field(:created_at, :integer)
@@ -94,7 +92,6 @@ defmodule Ipncore.Channel do
         channel_id,
         last_height,
         last_hash,
-        total_coinbase,
         block_inc \\ 1,
         tx_inc \\ 1
       ) do
@@ -108,7 +105,7 @@ defmodule Ipncore.Channel do
       query,
       [
         set: [last_height: last_height, last_hash: last_hash, updated_at: time],
-        inc: [block_count: block_inc, tx_count: tx_inc, coins: total_coinbase]
+        inc: [block_count: block_inc, tx_count: tx_inc]
       ],
       returning: false,
       prefix: "sys"
@@ -133,7 +130,6 @@ defmodule Ipncore.Channel do
         block_count: c.block_count,
         created_at: c.created_at,
         genesis_time: c.genesis_time,
-        coins: c.coins,
         last_height: c.last_height,
         last_hash: c.last_hash,
         pubkey: fragment("encode(?, 'base64')", c.pubkey),

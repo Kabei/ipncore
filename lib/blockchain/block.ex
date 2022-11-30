@@ -67,7 +67,7 @@ defmodule Ipncore.Block do
 
   @spec first([Tx.t()]) :: t
   defp first(events) do
-    IO.inspect("Block first 1")
+    IO.inspect("Block first")
 
     time =
       Chain.get_time()
@@ -85,14 +85,13 @@ defmodule Ipncore.Block do
     |> put_hash()
   end
 
-  @spec next(prev_block :: Block | nil, events :: [] | [Tx.t()]) :: t() | nil
+  @spec next(prev_block :: Block.t() | nil, events :: [] | [Tx.t()]) :: t() | nil
   def next(_, []), do: nil
   def next(nil, nil), do: nil
   def next(nil, events), do: first(events)
 
-  def next(%Block{} = prev_block, events) do
-    IO.inspect("Block 1")
-    IO.inspect(events)
+  def next(prev_block, events) do
+    IO.inspect("Block #{prev_block.height + 1}")
 
     time =
       Chain.get_time()
@@ -103,6 +102,7 @@ defmodule Ipncore.Block do
       prev: prev_block.hash,
       ev_count: length(events),
       time: time,
+      type: @block_type_regular,
       events: events
     }
     |> put_merkle_root()
@@ -122,24 +122,24 @@ defmodule Ipncore.Block do
   @spec format_block_time(block_time :: pos_integer()) :: block_time_formated :: pos_integer()
   def format_block_time(time), do: time - rem(time, @interval)
 
-  def new(_prev_block, []), do: nil
-  def new(nil, txs), do: first(txs)
+  # def new(_prev_block, []), do: nil
+  # def new(nil, txs), do: first(txs)
 
-  def new(%Block{} = prev_block, events) do
-    time =
-      Chain.get_time()
-      |> format_block_time()
+  # def new(%Block{} = prev_block, events) do
+  #   time =
+  #     Chain.get_time()
+  #     |> format_block_time()
 
-    %Block{
-      height: prev_block.height + 1,
-      prev: prev_block.hash,
-      ev_count: length(events),
-      time: time,
-      events: events
-    }
-    |> put_merkle_root()
-    |> put_hash()
-  end
+  #   %Block{
+  #     height: prev_block.height + 1,
+  #     prev: prev_block.hash,
+  #     ev_count: length(events),
+  #     time: time,
+  #     events: events
+  #   }
+  #   |> put_merkle_root()
+  #   |> put_hash()
+  # end
 
   @spec put_hash(t) :: t
   def put_hash(b) do
@@ -155,12 +155,11 @@ defmodule Ipncore.Block do
       }) do
     [
       to_string(version),
-      Default.channel(),
       to_string(height),
       Utils.normalize(prev),
       mk
     ]
-    |> Crypto.hash()
+    |> Crypto.hash3()
   end
 
   @spec put_merkle_root(Block.t()) :: Block.t()

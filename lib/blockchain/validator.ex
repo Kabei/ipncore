@@ -29,9 +29,9 @@ defmodule Ipncore.Validator do
 
   @impl Database
   def open do
-    dir_path = Application.get_env(:ipncore, :data_path, "data")
+    dir_path = Default.data_dir()
     filename = Path.join([dir_path, @filename])
-    DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 60_000)
+    DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 5_000)
   end
 
   @impl Database

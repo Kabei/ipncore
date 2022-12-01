@@ -34,11 +34,13 @@ defmodule Ipncore.Application do
       # post_path =
       #   Application.get_env(@otp_app, :post_path)
       #   |> Path.expand()
-
       # Application.put_env(@otp_app, :post_path, post_path)
 
       # create data folder
       File.mkdir(Application.get_env(@otp_app, :data_path, "data"))
+
+      # load node config
+      node_config()
 
       # run migration
       migration_start()
@@ -60,6 +62,7 @@ defmodule Ipncore.Application do
       # init chain
       :ok = Chain.initialize()
 
+      # services
       children = [
         Repo,
         RepoWorker,
@@ -69,6 +72,7 @@ defmodule Ipncore.Application do
         https_server()
       ]
 
+      # start block builder
       BlockBuilderWork.next()
 
       Supervisor.start_link(children, @opts)
@@ -99,7 +103,7 @@ defmodule Ipncore.Application do
     :ok = Supervisor.stop(supervisor, :normal)
   end
 
-  defp imp_client do
+  defp node_config do
     opts = Application.get_env(@otp_app, :imp_client)
     cert_dir = opts[:cert_dir] || :code.priv_dir(@otp_app)
 
@@ -108,7 +112,10 @@ defmodule Ipncore.Application do
     address = Address.hash(falcon_pk)
     Application.put_env(@otp_app, :address, address)
     Application.put_env(@otp_app, :address58, Address.to_text(address))
+  end
 
+  defp imp_client do
+    opts = Application.get_env(@otp_app, :imp_client)
     {Ipncore.IMP.Client, opts}
   end
 

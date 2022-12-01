@@ -289,7 +289,7 @@ defmodule Ipncore.Explorer.Router do
     |> case do
       {:ok, event_id} ->
         # Ipncore.IMP.Client.publish("tx:" <> tx.index, params)
-        json(conn, %{"id" => Base.encode16(event_id, case: :lower)})
+        json(conn, %{"hash" => Base.encode16(event_id, case: :lower)})
 
       {:error, err_message} ->
         send_resp(conn, 400, err_message)

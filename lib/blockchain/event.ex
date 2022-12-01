@@ -26,8 +26,8 @@ defmodule Ipncore.Event do
       {400, "domain.new"},
       {401, "domain.update"},
       {402, "domain.delete"},
-      {410, "dns.set"},
-      {412, "dns.delete"},
+      {410, "dns.put"},
+      {411, "dns.drop"},
       {1000, "pubkey.new"}
     ]
   else
@@ -63,7 +63,7 @@ defmodule Ipncore.Event do
   # 4 - cbor
 
   @type t :: %__MODULE__{
-          id: binary(),
+          hash: binary(),
           time: pos_integer(),
           type: pos_integer(),
           block_index: pos_integer(),
@@ -72,7 +72,7 @@ defmodule Ipncore.Event do
           vsn: pos_integer()
         }
 
-  @primary_key {:id, :binary, []}
+  @primary_key {:hash, :binary, []}
   schema "event" do
     field(:time, :integer)
     field(:type, :integer)
@@ -86,7 +86,7 @@ defmodule Ipncore.Event do
     dir_path = Application.get_env(:ipncore, :events_path, "data/events")
     File.mkdir_p(dir_path)
     filename = Path.join(dir_path, "#{epoch_number}.db")
-    DetsPlus.open_file(@base, file: filename, auto_save_memory: 1_000_000_000)
+    DetsPlus.open_file(@base, file: filename, auto_save_memory: 1_000_000_000, auto_save: 5_000)
   end
 
   def close do
@@ -187,10 +187,11 @@ defmodule Ipncore.Event do
           Domain.check_delete!(host, from_address)
 
         "tx.send" ->
-          [token, _to_address, amount, validator_host | _rest] = body
+          [token, to_address, amount, validator_host | _rest] = body
 
           Tx.check_send!(
             from_address,
+            Address.from_text(to_address),
             token,
             amount,
             validator_host,
@@ -198,8 +199,8 @@ defmodule Ipncore.Event do
           )
 
         "tx.coinbase" ->
-          [token, amount, _outputs] = body
-          Tx.check_coinbase!(from_address, token, amount)
+          [token, _outputs, memo] = body
+          Tx.check_coinbase!(from_address, token, memo)
 
         _ ->
           throw("Invalid Match Type")
@@ -223,7 +224,7 @@ defmodule Ipncore.Event do
     type = type_name(type_number)
 
     event = %{
-      id: hash,
+      hash: hash,
       type: type_number,
       block_index: next_index,
       sig_count: 1,
@@ -469,7 +470,7 @@ defmodule Ipncore.Event do
   defmacro map_select do
     quote do
       %{
-        id: fragment("encode(?, 'hex')", ev.id),
+        hash: fragment("encode(?, 'hex')", ev.hash),
         time: ev.time,
         type: ev.type,
         block_index: ev.block_index,
@@ -492,8 +493,8 @@ defmodule Ipncore.Event do
     end
   end
 
-  def fetch!(bin_id, channel) do
-    from(ev in Event, where: ev.id == ^bin_id)
+  def fetch!(bin_hash, channel) do
+    from(ev in Event, where: ev.hash == ^bin_hash)
     |> Repo.one(prefix: channel)
     |> case do
       nil ->
@@ -504,8 +505,8 @@ defmodule Ipncore.Event do
     end
   end
 
-  def one(id, channel) do
-    from(ev in Event, where: ev.id == ^id)
+  def one(hash, channel) do
+    from(ev in Event, where: ev.hash == ^hash)
     |> Repo.one(prefix: channel)
     |> transform()
   end
@@ -550,10 +551,10 @@ defmodule Ipncore.Event do
   defp sort(query, params) do
     case Map.get(params, "sort") do
       "oldest" ->
-        order_by(query, [ev], asc: fragment("length(?)", ev.id), asc: ev.id)
+        order_by(query, [ev], asc: fragment("length(?)", ev.hash), asc: ev.hash)
 
       _ ->
-        order_by(query, [ev], desc: fragment("length(?)", ev.id), desc: ev.id)
+        order_by(query, [ev], desc: fragment("length(?)", ev.hash), desc: ev.hash)
     end
   end
 
@@ -575,7 +576,7 @@ defmodule Ipncore.Event do
   defp transform([]), do: []
 
   defp transform(x) do
-    # %{x | id: encode_id(x.id), type: type_name(x.type)}
+    # %{x | hash: encode_id(x.hash), type: type_name(x.type)}
     %{x | type: type_name(x.type)}
   end
 end

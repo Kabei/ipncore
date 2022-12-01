@@ -111,7 +111,8 @@ defmodule Ipncore.Block do
 
   @spec epoch(block_height :: pos_integer() | nil) :: pos_integer()
   def epoch(nil), do: 0
-  def epoch(block_height), do: rem(block_height, @epoch)
+  def epoch(0), do: 0
+  def epoch(block_height), do: div(block_height, @epoch)
 
   @doc """
   Format time to a perfect block interval time
@@ -169,7 +170,7 @@ defmodule Ipncore.Block do
 
   @spec compute_merkle_root(Block.t()) :: Block.t()
   def compute_merkle_root(%Block{} = b) do
-    hashes = Enum.map(b.events, & &1.id)
+    hashes = Enum.map(b.events, & &1.hash)
     MerkleTree.root(hashes)
   end
 

@@ -54,9 +54,8 @@ Events are requests made by users and automatic operations by the system that af
 |400|```domain.new```|Register a new domain|⚒️|
 |401|```domain.update```|Update a domain|⚒️|
 |402|```domain.delete```|Delete a domain|⚒️|
-|410|```dns.new```|Register a new DNS Record|❌|
-|411|```dns.update```|Update a DNS Record|❌|
-|412|```dns.delete```|Delete a DNS Record|❌|
+|410|```dns.put```|Put a DNS Record|❌|
+|411|```dns.drop```|Drop a DNS Record|❌|
 |1000|```pubkey.new```|Public key registration|✅|
 
 ## Services

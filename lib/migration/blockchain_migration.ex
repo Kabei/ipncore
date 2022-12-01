@@ -33,8 +33,8 @@ defmodule Ipncore.Migration.Blockchain do
       """,
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".event(
-        id bytea NOT NULL,
         time bigint NOT NULL,
+        hash bytea NOT NULL,
         type smallint NOT NULL,
         block_index bigint,
         sig_count smallint DEFAULT 0,
@@ -56,7 +56,7 @@ defmodule Ipncore.Migration.Blockchain do
       """,
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".txo(
-        id bytea NOT NULL,
+        txid bytea NOT NULL,
         ix integer NOT NULL,
         token varchar(64) NOT NULL,
         "from" bytea,

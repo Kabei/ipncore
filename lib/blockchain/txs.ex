@@ -11,7 +11,8 @@ defmodule Ipncore.Tx do
   @output_reason_send "S"
   @output_reason_coinbase "C"
   @output_reason_fee "%"
-  @output_reason_refund "R"
+  # @output_reason_refund "R"
+  @memo_max_size 100
 
   @primary_key {:id, :binary, []}
   schema "tx" do
@@ -36,21 +37,21 @@ defmodule Ipncore.Tx do
     end
   end
 
-  def check_send!(
-        from_address,
-        token,
-        amount,
-        validator_host,
-        event_size
-      )
-      when token == @token do
-    if amount <= 0, do: throw("Invalid amount to send")
-    validator = Validator.fetch!(validator_host)
-    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+  # def check_send!(
+  #       from_address,
+  #       token,
+  #       amount,
+  #       validator_host,
+  #       event_size
+  #     )
+  #     when token == @token do
+  #   if amount <= 0, do: throw("Invalid amount to send")
+  #   validator = Validator.fetch!(validator_host)
+  #   fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
 
-    Balance.check!({from_address, token}, amount + fee_total)
-    :ok
-  end
+  #   Balance.check!({from_address, token}, amount + fee_total)
+  #   :ok
+  # end
 
   def check_send!(
         from_address,
@@ -100,10 +101,7 @@ defmodule Ipncore.Tx do
         timestamp,
         channel
       ) do
-    if amount <= 0, do: throw("Invalid amount to send")
-
-    if from_address == to_address or to_address == Default.imposible_address(),
-      do: throw("Invalid address to send")
+    if not is_nil(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
 
     validator = Validator.fetch!(validator_host)
     fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
@@ -156,12 +154,14 @@ defmodule Ipncore.Tx do
     |> Balance.multi_upsert(:balances, outputs, timestamp, channel)
   end
 
-  def check_coinbase!(from_address, token_id, amount) do
-    token = Token.fetch!(token_id, from_address)
-    max_supply = Token.get_param(token, "maxSupply", 0)
-    supply = token.supply + amount
+  def check_coinbase!(from_address, token_id, memo) do
+    if not is_nil(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
 
-    if max_supply != 0 and supply > max_supply, do: throw("MaxSupply exceeded")
+    Token.fetch!(token_id, from_address)
+    # max_supply = Token.get_param(token, "maxSupply", 0)
+    # supply = token.supply + amount
+
+    # if max_supply != 0 and supply > max_supply, do: throw("MaxSupply exceeded")
 
     :ok
   end
@@ -179,8 +179,11 @@ defmodule Ipncore.Tx do
     {outputs, keys_entries, entries, token_value, amount} =
       outputs_extract_coinbase!(txid, init_outputs, token_id)
 
-    if Token.owner?(token_id, from_address) != false,
-      do: throw("Invalid owner")
+    # check max supply
+    token = Token.fetch!(token_id, from_address)
+    max_supply = Token.get_param(token, "maxSupply", 0)
+    supply = token.supply + amount
+    if max_supply != 0 and supply > max_supply, do: throw("MaxSupply exceeded")
 
     Balance.update!(keys_entries, entries)
 
@@ -192,6 +195,8 @@ defmodule Ipncore.Tx do
       memo: memo,
       out_count: length(outputs)
     }
+
+    Token.put(%{token | supply: supply})
 
     multi
     |> multi_insert(tx, channel)
@@ -248,7 +253,7 @@ defmodule Ipncore.Tx do
         bin_address = Address.from_text(address)
 
         output = %{
-          id: txid,
+          txid: txid,
           ix: acc_ix,
           token: token,
           to: bin_address,

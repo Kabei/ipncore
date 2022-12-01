@@ -14,4 +14,5 @@ defmodule Default do
   def imposible_address, do: <<0::160>>
   def address, do: Application.get_env(:ipncore, :address)
   def address58, do: Application.get_env(:ipncore, :address58)
+  def data_dir, do: Application.get_env(:ipncore, :data_path, "data")
 end

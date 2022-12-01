@@ -87,7 +87,7 @@ defmodule Ipncore.Token do
 
   @impl Database
   def open do
-    dir_path = Application.get_env(:ipncore, :data_path, "data")
+    dir_path = Default.data_dir()
     filename = Path.join([dir_path, @filename])
     DetsPlus.open_file(@base, file: filename, keypos: :id, auto_save: 60_000)
   end
@@ -106,6 +106,10 @@ defmodule Ipncore.Token do
       false ->
         throw("Token already exists")
     end
+  end
+
+  def put(x) do
+    DetsPlus.insert(@base, x)
   end
 
   @impl Database
@@ -240,7 +244,7 @@ defmodule Ipncore.Token do
     kw_params =
       token_params
       |> MapUtil.to_atom_keywords()
-      |> Keyword.put(:updated_at, timestamp)
+      |> Map.put(:updated_at, timestamp)
 
     fetch!(token_id, from_address)
     |> Map.merge(token_params)

@@ -1,5 +1,5 @@
 defmodule Ipncore.BlockValidator do
-  alias Ipncore.{Block, Event}
+  alias Ipncore.Block
 
   @type validation_type :: :ok | {:error, atom}
 
@@ -131,70 +131,70 @@ defmodule Ipncore.BlockValidator do
 
   ## transaction validation
 
-  @spec valid_event?(Event.t(), Block.t() | nil) :: validation_type()
-  def valid_event?(event, prev_block) do
-    with :ok <- valid_event_version?(event),
-         :ok <- valid_event_hash?(event),
-         :ok <- valid_event_index?(event, prev_block),
-         :ok <- valid_event_timestamp?(event, prev_block.time) do
-      :ok
-    else
-      err -> err
-    end
-  end
+  # @spec valid_event?(Event.t(), Block.t() | nil) :: validation_type()
+  # def valid_event?(event, prev_block) do
+  #   with :ok <- valid_event_version?(event),
+  #        :ok <- valid_event_hash?(event),
+  #        :ok <- valid_event_index?(event, prev_block),
+  #        :ok <- valid_event_timestamp?(event, prev_block.time) do
+  #     :ok
+  #   else
+  #     err -> err
+  #   end
+  # end
 
-  @spec valid_event_version?(Event.t()) :: validation_type()
-  defp valid_event_version?(event) do
-    if Event.version() == event.vsn, do: :ok, else: {:error, :invalid_event_version}
-  end
+  # @spec valid_event_version?(Event.t()) :: validation_type()
+  # defp valid_event_version?(event) do
+  #   if Event.version() == event.vsn, do: :ok, else: {:error, :invalid_event_version}
+  # end
 
-  @spec valid_event_hash?(Event.t()) :: validation_type()
-  defp valid_event_hash?(event) do
-    cond do
-      byte_size(event.hash) != 32 ->
-        {:error, :bad_event_hash}
+  # @spec valid_event_hash?(Event.t()) :: validation_type()
+  # defp valid_event_hash?(event) do
+  #   cond do
+  #     byte_size(event.hash) != 32 ->
+  #       {:error, :bad_event_hash}
 
-      # Event.calc_hash(event) != event.hash ->
-      #   {:error, :invalid_event_hash}
+  #     # Event.calc_hash(event) != event.hash ->
+  #     #   {:error, :invalid_event_hash}
 
-      true ->
-        :ok
-    end
-  end
+  #     true ->
+  #       :ok
+  #   end
+  # end
 
-  defp valid_event_index?(event, prev_block) do
-    cond do
-      prev_block.height < event.block_index ->
-        {:error, :invalid_event_block_index}
+  # defp valid_event_index?(event, prev_block) do
+  #   cond do
+  #     prev_block.height < event.block_index ->
+  #       {:error, :invalid_event_block_index}
 
-      is_nil(event.id) ->
-        {:error, :invalid_event_id}
+  #     # is_nil(event.id) ->
+  #     #   {:error, :invalid_event_id}
 
-      # Event.generate_id(event) != event.id ->
-      #   {:error, :invalid_event_id}
+  #     # Event.generate_id(event) != event.id ->
+  #     #   {:error, :invalid_event_id}
 
-      true ->
-        :ok
-    end
-  end
+  #     true ->
+  #       :ok
+  #   end
+  # end
 
-  defp valid_event_timestamp?(%{time: time}, prev_block_time) do
-    # iit = Chain.get_time()
+  # defp valid_event_timestamp?(%{time: time}, prev_block_time) do
+  #   # iit = Chain.get_time()
 
-    cond do
-      prev_block_time > time ->
-        {:error, :invalid_event_timestamp}
+  #   cond do
+  #     prev_block_time > time ->
+  #       {:error, :invalid_event_timestamp}
 
-      # iit < time ->
-      #   {:error, :invalid_event_iit}
+  #     # iit < time ->
+  #     #   {:error, :invalid_event_iit}
 
-      # abs(iit - time) > Event.timeout() ->
-      #   {:error, :invalid_event_timeout}
+  #     # abs(iit - time) > Event.timeout() ->
+  #     #   {:error, :invalid_event_timeout}
 
-      true ->
-        :ok
-    end
-  end
+  #     true ->
+  #       :ok
+  #   end
+  # end
 
   # @spec valid_coinbase?(Tx.t()) :: :ok | {:error, atom()}
   # defp valid_coinbase?(tx) do

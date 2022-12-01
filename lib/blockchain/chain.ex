@@ -2,39 +2,13 @@ defmodule Ipncore.Chain do
   require Logger
   # use Ipnutils.FastGlobal, name: FG.Chain
   # use GenServer
-  alias Ipncore.{Block, Channel, IIT, Repo, BlockValidator}
+  alias Ipncore.{Block, IIT, Repo, BlockValidator}
 
   @compile {:inline, get_time: 0, genesis_time: 0, last_block: 0}
   @base :chain
   @table :chain
   @filename "chain.db"
   @unit_time Default.unit_time()
-
-  # def start_link(_opts) do
-  #   GenServer.start_link(__MODULE__, [], name: __MODULE__)
-  # end
-
-  # @impl true
-  # def init(_opts) do
-  #   {:ok, nil}
-  # end
-
-  # @impl true
-  # def handle_info({:start_block_round, channel}, last_key) do
-  #   Logger.debug("start_block_round")
-
-  #   genesis_time = genesis_time()
-  #   iit = get_time()
-  #   cycle = Default.block_interval()
-
-  #   calc_time = cycle - rem(iit - genesis_time, cycle)
-
-  #   Process.send_after(__MODULE__, {:start_block_round, channel}, calc_time)
-
-  #   build_all(channel)
-
-  #   {:noreply, last_key}
-  # end
 
   defmacrop put(atom_name, val) do
     quote do
@@ -69,13 +43,24 @@ defmodule Ipncore.Chain do
         :ok
     end
 
-    dir_path = Application.get_env(:ipncore, :data_path, "data")
+    dir_path = Default.data_dir()
     filename = Path.join(dir_path, @filename)
-    DetsPlus.open_file(@base, file: filename, auto_save: 15_000)
+    r = DetsPlus.open_file(@base, file: filename, auto_save: 5_000)
+
+    # load from DB to ets
+    DetsPlus.reduce(@base, nil, fn x, _acc ->
+      :ets.insert(@table, x)
+    end)
+
+    r
   end
 
   def close do
     DetsPlus.close(@base)
+  end
+
+  def sync do
+    DetsPlus.sync(@base)
   end
 
   def last_block do
@@ -149,7 +134,7 @@ defmodule Ipncore.Chain do
     case last_block do
       nil ->
         """
-        Channel #{channel_id} is ready!
+        Chain #{channel_id} is ready!
         IIT          #{Format.timestamp(iit)}
         No Blocks
         Host Address #{my_address}
@@ -160,11 +145,10 @@ defmodule Ipncore.Chain do
         genesis_block = genesis_block()
 
         """
-        Channel #{channel_id} is ready!
+        Chain #{channel_id} is ready!
         IIT          #{Format.timestamp(iit)}
         Genesis Time #{Format.timestamp(genesis_block.time)}
-        Last block   #{last_block.height}
-        Next block   #{last_block.height + 1}
+        Blockchain height   #{last_block.height}
         Host Address #{my_address}
         """
         |> Logger.info()
@@ -188,20 +172,21 @@ defmodule Ipncore.Chain do
         end
 
         put_last_block(block)
+        sync()
 
         Ecto.Multi.new()
         |> Ecto.Multi.insert_all(:block, Block, [block], prefix: channel_id, returning: false)
         # |> Tx.set_status_complete(:txs, block.height, channel_id)
         # |> Tx.cancel_all_pending(:pending, block.height, channel_id)
-        |> Channel.multi_put_genesis_time(:gen_time, channel_id, block.time, is_genesis_block)
-        |> Channel.multi_update(
-          :channel,
-          channel_id,
-          block.height,
-          block.hash,
-          1,
-          block.ev_count
-        )
+        # |> Channel.multi_put_genesis_time(:gen_time, channel_id, block.time, is_genesis_block)
+        # |> Channel.multi_update(
+        #   :channel,
+        #   channel_id,
+        #   block.height,
+        #   block.hash,
+        #   1,
+        #   block.ev_count
+        # )
         |> Repo.transaction()
         |> case do
           {:ok, _} ->

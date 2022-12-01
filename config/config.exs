@@ -28,5 +28,5 @@ config :ipncore, :block_version, 0
 config :ipncore, :block_interval, :timer.seconds(5)
 
 config :ipncore, :timeout_refund, :timer.hours(72)
-config :ipncore, :epoch, 552_960
+config :ipncore, :epoch, 120_960
 # config :ipncore, :tx_edit_delay, :timer.hours(1)

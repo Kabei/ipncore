@@ -104,7 +104,7 @@ defmodule Ipncore.Txo do
 
   defp filter_select(query, _params) do
     select(query, [o], %{
-      id: o.txid,
+      txid: o.txid,
       ix: o.ix,
       token: o.token,
       from: o.from,

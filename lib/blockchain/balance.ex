@@ -95,7 +95,7 @@ defmodule Ipncore.Balance do
           if old_val < 0 and new_val < old_val,
             do: raise("balance is too low")
 
-          {key, old_val + new_val}
+          {key, {old_val + new_val, old_blocked}}
         end
 
       {:ok, new_balances, []}

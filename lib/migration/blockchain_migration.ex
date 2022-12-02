@@ -87,7 +87,7 @@ defmodule Ipncore.Migration.Blockchain do
         address bytea NOT NULL,
         token varchar(64) NOT NULL,
         amount numeric DEFAULT 0 NOT NULL,
-        blocked bool DEFAULT FALSE NOT NULL,
+        locked bool DEFAULT FALSE NOT NULL,
         out_count numeric DEFAULT 0,
         in_count numeric DEFAULT 0,
         tx_count numeric DEFAULT 0,

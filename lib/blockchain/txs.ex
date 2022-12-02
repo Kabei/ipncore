@@ -125,7 +125,7 @@ defmodule Ipncore.Tx do
       %{
         txid: txid,
         ix: 1,
-        token: token,
+        token: @token,
         from: from_address,
         to: validator_address,
         value: fee_total,
@@ -134,7 +134,7 @@ defmodule Ipncore.Tx do
     ]
 
     Balance.update!(
-      [{from_address, token}, {to_address, token}, {validator_address, token}],
+      [{from_address, token}, {to_address, token}, {validator_address, @token}],
       %{
         {from_address, token} => -(amount + fee_total),
         {to_address, token} => amount,

@@ -1,6 +1,6 @@
 defmodule Ipncore.Event do
   use Ecto.Schema
-  alias Ipncore.{Address, Domain, Repo, RepoWorker, Token, Tx, Validator, Wallet}
+  alias Ipncore.{Address, Balance, Domain, Repo, RepoWorker, Token, Tx, Validator, Wallet}
   import Ipnutils.Macros, only: [deftypes: 1]
   # import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query
@@ -23,6 +23,7 @@ defmodule Ipncore.Event do
       # only validators
       {215, "tx.reward"},
       {216, "tx.burned"},
+      {250, "balance.lock"},
       {400, "domain.new"},
       {401, "domain.update"},
       {402, "domain.delete"},
@@ -153,6 +154,10 @@ defmodule Ipncore.Event do
           token_id = List.first(body)
           Token.check_new!(token_id, from_address)
 
+        "token.update" ->
+          [token_id | _rest] = body
+          Token.check_update!(token_id, from_address)
+
         "token.delete" ->
           token_id = List.first(body)
           Token.check_delete!(token_id, from_address)
@@ -166,7 +171,7 @@ defmodule Ipncore.Event do
           Validator.check_update!(hostname, from_address)
 
         "validator.delete" ->
-          [hostname | _rest] = body
+          [hostname] = body
           Validator.check_delete!(hostname, from_address)
 
         "domain.new" ->
@@ -182,9 +187,9 @@ defmodule Ipncore.Event do
             size
           )
 
-        "domain.udpate" ->
-          [name, _validator_host, _params] = body
-          Domain.check_update!(name, from_address)
+        "domain.update" ->
+          [host, _validator_host, _params] = body
+          Domain.check_update!(host, from_address)
 
         "domain.delete" ->
           [host] = body
@@ -206,6 +211,10 @@ defmodule Ipncore.Event do
           [token, _outputs, memo] = body
           Tx.check_coinbase!(from_address, token, memo)
 
+        "balance.lock" ->
+          [to_address, token_id, value] = body
+          Balance.check_lock!(from_address, Address.from_text(to_address), token_id, value)
+
         _ ->
           throw("Invalid Match Type")
       end
@@ -217,6 +226,9 @@ defmodule Ipncore.Event do
         false ->
           throw("Error push to mempool")
       end
+    rescue
+      ex ->
+        {:error, Exception.format(:error, ex, __STACKTRACE__)}
     catch
       x -> {:error, x}
     end
@@ -306,7 +318,7 @@ defmodule Ipncore.Event do
 
         "validator.delete" ->
           [hostname] = body
-          Validator.event_delete!(multi, hostname, time, channel)
+          Validator.event_delete!(multi, hostname, from_address, channel)
 
         "domain.new" ->
           [name, email, avatar, years_to_renew, validator_host] = body
@@ -325,7 +337,7 @@ defmodule Ipncore.Event do
             channel
           )
 
-        "domain.udpate" ->
+        "domain.update" ->
           [name, validator_host, params] = body
 
           Domain.event_update!(
@@ -364,6 +376,10 @@ defmodule Ipncore.Event do
         "tx.coinbase" ->
           [token, outputs, memo] = body
           Tx.coinbase!(multi, hash, token, from_address, outputs, memo, time, channel)
+
+        "balance.lock" ->
+          [to_address, token_id, value] = body
+          Balance.lock!(multi, Address.from_text(to_address), token_id, value, time, channel)
       end
 
     put!({hash, time, next_index, @version, type_number, from_address, body, signature})

@@ -26,7 +26,7 @@ defmodule Ipncore.Token do
   @filename "token.db"
   # @fields ~w(id name creator decimals symbol owner props)
   @edit_fields ~w(name owner)
-  # @props ~w{maxSupply allowBlock allowBurn}
+  # @props ~w{maxSupply allowLock allowBurn}
 
   @primary_key {:id, :string, []}
   schema "token" do
@@ -172,8 +172,16 @@ defmodule Ipncore.Token do
     exists!(token_id)
   end
 
-  def check_delete!(token_id, from_address) do
+  def check_update!(token_id, from_address) do
     fetch!(token_id, from_address)
+  end
+
+  def check_delete!(token_id, from_address) do
+    token = fetch!(token_id, from_address)
+
+    if token.supply > 0 or token.burned > 0, do: throw("Invalid operation")
+
+    :ok
   end
 
   def new!(
@@ -191,7 +199,7 @@ defmodule Ipncore.Token do
     props =
       (props || %{})
       |> MapUtil.validate_value("maxSupply", :lte, 0)
-      |> MapUtil.validate_boolean("allowBlock")
+      |> MapUtil.validate_boolean("allowLock")
       |> MapUtil.validate_boolean("allowBurn")
 
     token = %{
@@ -220,20 +228,21 @@ defmodule Ipncore.Token do
       when is_map(params) do
     if is_nil(token_id), do: throw("Bad format token ID")
 
-    token_params =
+    map_params =
       params
       |> MapUtil.require_only(@edit_fields)
       |> Map.take(@edit_fields)
       |> MapUtil.validate_length("name", 100)
       |> MapUtil.validate_address("owner")
-
-    kw_params =
-      token_params
-      |> MapUtil.to_atom_keywords()
+      |> MapUtil.to_atoms()
       |> Map.put(:updated_at, timestamp)
 
+    kw_params =
+      map_params
+      |> MapUtil.to_keywords()
+
     fetch!(token_id, from_address)
-    |> Map.merge(token_params)
+    |> Map.merge(map_params)
     |> put()
 
     queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^from_address)

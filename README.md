@@ -51,6 +51,7 @@ Events are requests made by users and automatic operations by the system that af
 |214|```tx.jackpot```|Jackpot event|❌|
 |215|```tx.reward```|Reward core validators|❌|
 |216|```tx.burned```|Coin destruction|❌|
+|250|```balance.lock```|balance lock|🐞|
 |400|```domain.new```|Register a new domain|✅|
 |401|```domain.update```|Update a domain|🐞|
 |402|```domain.delete```|Delete a domain|🐞|

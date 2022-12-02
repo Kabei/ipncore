@@ -14,7 +14,7 @@ defmodule Ipncore.Balance do
     field(:address, :binary)
     field(:token, :binary)
     field(:amount, Ecto.Amount, default: 0)
-    field(:blocked, :boolean, default: false)
+    field(:locked, :boolean, default: false)
     field(:out_count, Ecto.Amount, default: 0)
     field(:in_count, Ecto.Amount, default: 0)
     field(:tx_count, Ecto.Amount, default: 0)
@@ -40,7 +40,7 @@ defmodule Ipncore.Balance do
       %{
         address: b.address,
         amount: b.amount,
-        blocked: b.blocked,
+        locked: b.locked,
         token: b.token,
         decimal: tk.decimals,
         symbol: tk.symbol,
@@ -53,11 +53,11 @@ defmodule Ipncore.Balance do
   end
 
   @spec check!(Tuple.t(), pos_integer) :: boolean
-  def check!({_address, _token} = balance, amount) do
+  def check!({_address, token} = balance, amount) do
     case CubDB.get(@base, balance) do
-      {_m, true} -> throw("Tokens is blocked")
+      {_m, true} -> throw("Tokens is locked")
       {x, _false} when x >= amount -> true
-      _ -> throw("balance is too low")
+      _ -> throw("#{token} balance is too low")
     end
   end
 
@@ -70,7 +70,7 @@ defmodule Ipncore.Balance do
       balances ->
         Enum.each(map_balance_to_check, fn {key, amount} ->
           case Map.get(balances, key) do
-            {_m, true} -> throw("Tokens is blocked")
+            {_m, true} -> throw("Balance is locked")
             {x, _false} when x >= amount -> true
             _ -> false
           end
@@ -87,15 +87,15 @@ defmodule Ipncore.Balance do
     CubDB.get_and_update_multi(@base, keys, fn entries ->
       new_balances =
         for key <- keys, into: %{} do
-          {old_val, old_blocked} = entries[key] || {0, false}
+          {old_val, old_locked} = entries[key] || {0, false}
           new_val = keys_values[key]
 
-          if old_blocked, do: raise("Address is blocked")
+          if old_locked, do: raise("Address is locked")
 
           if old_val < 0 and new_val < old_val,
-            do: raise("balance is too low")
+            do: raise("Insufficient balance")
 
-          {key, {old_val + new_val, old_blocked}}
+          {key, {old_val + new_val, old_locked}}
         end
 
       {:ok, new_balances, []}
@@ -239,7 +239,7 @@ defmodule Ipncore.Balance do
         select: %{
           address: ^address,
           amount: fragment("0::NUMERIC"),
-          blocked: fragment("FALSE"),
+          locked: fragment("FALSE"),
           token: tk.id,
           decimal: tk.decimals,
           symbol: tk.symbol,
@@ -342,7 +342,7 @@ defmodule Ipncore.Balance do
               address: x.to,
               token: x.token,
               amount: x.value,
-              blocked: false,
+              locked: false,
               in_count: x.value,
               tx_count: 1,
               out_count: 0,
@@ -388,7 +388,7 @@ defmodule Ipncore.Balance do
               address: x.from,
               token: x.token,
               amount: -x.value,
-              blocked: false,
+              locked: false,
               in_count: 0,
               tx_count: 1,
               out_count: x.value,
@@ -399,7 +399,7 @@ defmodule Ipncore.Balance do
               address: x.to,
               token: x.token,
               amount: x.value,
-              blocked: false,
+              locked: false,
               in_count: x.value,
               tx_count: 1,
               out_count: 0,
@@ -450,6 +450,50 @@ defmodule Ipncore.Balance do
     Ecto.Multi.insert_all(multi, name, Balance, structs,
       on_conflict: upsert_query,
       conflict_target: [:address, :token],
+      prefix: channel,
+      returning: false
+    )
+  end
+
+  def check_lock!(from, to, token_id, value) when is_boolean(value) do
+    token = Token.fetch!(token_id, from)
+
+    unless Token.get_param(token, "allowLock", false), do: throw("Operation not allowed")
+
+    case CubDB.get(@base, {to, token_id}) do
+      {_amount, x} ->
+        if x == value do
+          case x do
+            true ->
+              throw("Balance is already locked")
+
+            false ->
+              throw("Balance is already unlocked")
+          end
+        else
+          :ok
+        end
+
+      _ ->
+        throw("Balance not exists")
+    end
+  end
+
+  def lock!(multi, to, token, value, time, channel) do
+    CubDB.get_and_update(@base, {to, token}, fn {amount, _locked} ->
+      {
+        :ok,
+        {amount, value}
+      }
+    end)
+
+    multi_locked(multi, :balance, to, token, value, time, channel)
+  end
+
+  def multi_locked(multi, name, address, token, value, time, channel) do
+    query = from(w in Balance, where: w.address == ^address and w.token == ^token)
+
+    Ecto.Multi.update_all(multi, name, query, [set: [locked: value, updated_at: time]],
       prefix: channel,
       returning: false
     )

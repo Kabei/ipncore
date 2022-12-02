@@ -212,7 +212,7 @@ defmodule Ipncore.Domain do
         timestamp,
         channel
       ) do
-    kw_params =
+    map_params =
       params
       |> MapUtil.require_only(@edit_fields)
       |> Map.take(@edit_fields)
@@ -220,12 +220,16 @@ defmodule Ipncore.Domain do
       |> MapUtil.validate_email("email")
       |> MapUtil.validate_boolean("enabled")
       |> MapUtil.decode_address("owner")
-      |> MapUtil.to_atom_keywords()
-      |> Keyword.put(:updated_at, timestamp)
+      |> MapUtil.to_atoms()
+      |> Map.put(:updated_at, timestamp)
+
+    kw_params =
+      map_params
+      |> MapUtil.to_keywords()
 
     domain =
       fetch!(name, from_address)
-      |> Map.merge(kw_params)
+      |> Map.merge(map_params)
 
     multi = Tx.send_fee!(multi, event_id, from_address, validator_host, 1000, timestamp, channel)
     put(domain)

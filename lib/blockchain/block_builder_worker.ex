@@ -36,7 +36,7 @@ defmodule BlockBuilderWork do
                   acc
               catch
                 err ->
-                  Logger.info("Error #{err}")
+                  Logger.error(err)
                   Mempool.delete(key)
                   acc
               end
@@ -47,8 +47,7 @@ defmodule BlockBuilderWork do
         |> Enum.concat()
         |> Enum.sort(&({&1.time, &1.hash} <= {&2.time, &2.hash}))
 
-      IO.inspect("Events")
-      IO.inspect(events)
+      IO.inspect("Events: #{length(events)}")
 
       Mempool.select_delete(timestamp)
 

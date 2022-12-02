@@ -140,7 +140,7 @@ defmodule Ipncore.Validator do
   end
 
   def event_update!(multi, from_address, host, params, timestamp, channel) when is_map(params) do
-    atom_params =
+    map_params =
       params
       |> MapUtil.require_only(@edit_fields)
       |> Map.take(@edit_fields)
@@ -148,17 +148,15 @@ defmodule Ipncore.Validator do
       |> MapUtil.validate_value("fee", :gt, 0)
       |> MapUtil.validate_range("fee_type", 0..2)
       |> MapUtil.to_atoms()
+      |> Map.put(:updated_at, timestamp)
 
     kw_params =
-      atom_params
+      map_params
       |> MapUtil.to_keywords()
-      |> Keyword.put(:updated_at, timestamp)
 
-    validator =
-      fetch!(host, from_address)
-      |> Map.merge(atom_params)
-
-    put(validator)
+    fetch!(host, from_address)
+    |> Map.merge(map_params)
+    |> put()
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^from_address)
 

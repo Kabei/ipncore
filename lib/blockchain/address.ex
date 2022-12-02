@@ -8,7 +8,9 @@ defmodule Ipncore.Address do
   def from_text(x) when byte_size(x) == 20, do: x
 
   def from_text("1x" <> rest) do
-    Base58.decode(rest)
+    rest
+    |> Base58.decode()
+    |> ByteUtils.zeros_pad_leading(160)
   end
 
   def from_text(x), do: throw("Error convert address text to bin #{x}")

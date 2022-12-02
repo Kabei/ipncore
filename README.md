@@ -133,3 +133,4 @@ List of events stored in volatile memory, categorized by CPU threads that proces
 |Unit time|millisecond|
 |Default token|IPN|
 |Maximum domain renewal time|Two years|
+|Imposible Address|1x1|

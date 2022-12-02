@@ -37,21 +37,26 @@ defmodule Ipncore.Tx do
     end
   end
 
-  # def check_send!(
-  #       from_address,
-  #       token,
-  #       amount,
-  #       validator_host,
-  #       event_size
-  #     )
-  #     when token == @token do
-  #   if amount <= 0, do: throw("Invalid amount to send")
-  #   validator = Validator.fetch!(validator_host)
-  #   fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+  def check_send!(
+        from_address,
+        to_address,
+        token,
+        amount,
+        validator_host,
+        event_size
+      )
+      when token == @token do
+    if amount <= 0, do: throw("Invalid amount to send")
 
-  #   Balance.check!({from_address, token}, amount + fee_total)
-  #   :ok
-  # end
+    if from_address == to_address or to_address == Default.imposible_address(),
+      do: throw("Invalid address to send")
+
+    validator = Validator.fetch!(validator_host)
+    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+
+    Balance.check!({from_address, token}, amount + fee_total)
+    :ok
+  end
 
   def check_send!(
         from_address,
@@ -109,24 +114,22 @@ defmodule Ipncore.Tx do
 
     outputs = [
       %{
-        id: txid,
+        txid: txid,
         ix: 0,
         from: from_address,
         to: to_address,
         value: amount,
         token: token,
-        reason: @output_reason_send,
-        avail: false
+        reason: @output_reason_send
       },
       %{
-        id: txid,
+        txid: txid,
         ix: 1,
         token: token,
         from: from_address,
         to: validator_address,
         value: fee_total,
-        reason: @output_reason_fee,
-        avail: false
+        reason: @output_reason_fee
       }
     ]
 

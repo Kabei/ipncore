@@ -1,6 +1,5 @@
 defmodule Mempool do
   @table :mempool
-
   @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
 
   def open do
@@ -20,9 +19,28 @@ defmodule Mempool do
     end
   end
 
-  defmacro assign_worker_thread(from) do
+  defmacrop assign_worker_thread(type, from, [first_body | _rest_body]) do
     quote do
-      :binary.last(unquote(from))
+      type_name = Ipncore.Event.type_name(unquote(type))
+
+      target =
+        case type_name do
+          "tx." <> _ ->
+            unquote(from)
+
+          _ ->
+            unquote(first_body)
+        end
+
+      :binary.last(target)
+      |> rem(@total_threads)
+    end
+  end
+
+  defmacrop assign_worker_thread(_type, from, _) do
+    quote do
+      unquote(from)
+      |> :binary.last()
       |> rem(@total_threads)
     end
   end
@@ -30,7 +48,9 @@ defmodule Mempool do
   def size, do: :ets.info(@table, :size)
 
   def push!(hash, time, type_number, from, body, signature, size) do
-    thread = assign_worker_thread(from)
+    IO.inspect("push! x")
+    thread = assign_worker_thread(type_number, from, body)
+    IO.inspect("thread - #{thread}")
     :ets.insert_new(@table, {{time, hash}, thread, type_number, from, body, signature, size})
   end
 
@@ -38,6 +58,22 @@ defmodule Mempool do
     case :ets.lookup(@table, {time, hash}) do
       [obj] -> obj
       _ -> nil
+    end
+  end
+
+  def last do
+    case :ets.last(@table) do
+      :"$end_of_table" ->
+        nil
+
+      key ->
+        case :ets.lookup(@table, key) do
+          [val] ->
+            val
+
+          _ ->
+            nil
+        end
     end
   end
 

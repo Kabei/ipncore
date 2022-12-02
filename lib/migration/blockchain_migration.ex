@@ -87,7 +87,7 @@ defmodule Ipncore.Migration.Blockchain do
         address bytea NOT NULL,
         token varchar(64) NOT NULL,
         amount numeric DEFAULT 0 NOT NULL,
-        block bool DEFAULT FALSE NOT NULL,
+        blocked bool DEFAULT FALSE NOT NULL,
         out_count numeric DEFAULT 0,
         in_count numeric DEFAULT 0,
         tx_count numeric DEFAULT 0,
@@ -111,8 +111,7 @@ defmodule Ipncore.Migration.Blockchain do
       """,
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".domain(
-          id varchar NOT NULL,
-          title varchar NOT NULL,
+          name varchar NOT NULL,
           owner bytea NOT NULL,
           email varchar(64),
           avatar varchar,
@@ -122,7 +121,7 @@ defmodule Ipncore.Migration.Blockchain do
           created_at bigint NOT NULL,
           renewed_at bigint NOT NULL,
           updated_at bigint NOT NULL,
-          CONSTRAINT domain_pk PRIMARY KEY (id)
+          CONSTRAINT domain_pk PRIMARY KEY (name)
       )
       """,
       """

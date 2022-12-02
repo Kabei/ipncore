@@ -1,6 +1,5 @@
 defmodule Ipncore.Chain do
   require Logger
-  # use Ipnutils.FastGlobal, name: FG.Chain
   # use GenServer
   alias Ipncore.{Block, IIT, Repo, BlockValidator}
 
@@ -118,8 +117,8 @@ defmodule Ipncore.Chain do
     put(:genesis_time, block.time)
   end
 
-  def initialize do
-    Logger.info("Chain initialize")
+  def start do
+    Logger.info("Chain starting")
 
     channel_id = Default.channel()
 
@@ -134,7 +133,7 @@ defmodule Ipncore.Chain do
     case last_block do
       nil ->
         """
-        Chain #{channel_id} is ready!
+        #{channel_id} is ready!
         IIT          #{Format.timestamp(iit)}
         No Blocks
         Host Address #{my_address}
@@ -145,11 +144,11 @@ defmodule Ipncore.Chain do
         genesis_block = genesis_block()
 
         """
-        Chain #{channel_id} is ready!
-        IIT          #{Format.timestamp(iit)}
-        Genesis Time #{Format.timestamp(genesis_block.time)}
-        Blockchain height   #{last_block.height}
-        Host Address #{my_address}
+        #{channel_id} is ready!
+        IIT               #{Format.timestamp(iit)}
+        Genesis Time      #{Format.timestamp(genesis_block.time)}
+        Blockchain height #{last_block.height}
+        Host Address      #{my_address}
         """
         |> Logger.info()
     end
@@ -208,61 +207,4 @@ defmodule Ipncore.Chain do
         err
     end
   end
-
-  # def build_next(channel) do
-  #   if has_channel() do
-  #     next_index = Block.next_index()
-  #     next_index = if(next_index == 0, do: 0, else: next_index - 1)
-  #     prev_block = prev_block()
-  #     txs_approved = Tx.get_all_approved(next_index, channel)
-
-  #     case Block.next(prev_block, txs_approved) do
-  #       nil ->
-  #         IO.inspect("nil block")
-  #         nil
-
-  #       block ->
-  #         IO.inspect("adding block")
-  #         add_block(block, prev_block, channel)
-  #         block
-  #     end
-  #   else
-  #     nil
-  #   end
-  # end
-
-  # def build_all(channel) do
-  # if has_channel() do
-  #   before_next_index = next_index_to_build()
-
-  #   if before_next_index >= 0 do
-  #     txs_approved_grouped_by_block =
-  #       Tx.get_all_approved(channel)
-  #       |> Enum.filter(&(&1.block_index <= before_next_index))
-  #       |> Enum.group_by(fn x -> x.block_index end)
-
-  #     txs_approved_grouped_by_block
-  #     |> Enum.map(fn {block_index, txs} ->
-  #       prev_block = prev_block()
-  #       block = Block.new(prev_block, block_index, txs)
-  #       add_block(prev_block, block, channel)
-  #       block
-  #     end)
-  #   else
-  #     []
-  #   end
-  # end
-  # end
-
-  # def next_index_to_build do
-  #   index = next_index()
-
-  #   cond do
-  #     index == 0 ->
-  #       0
-
-  #     true ->
-  #       index - 1
-  #   end
-  # end
 end

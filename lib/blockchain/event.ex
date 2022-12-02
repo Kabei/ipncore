@@ -136,6 +136,9 @@ defmodule Ipncore.Event do
 
       from_address = Address.from_text(address)
       hash = calc_hash(type_number, body_text, time)
+
+      # check if already exists
+      exists!(hash)
       signature = Base.decode64!(sig64)
 
       size = byte_size(body_text) + byte_size(signature)
@@ -167,13 +170,14 @@ defmodule Ipncore.Event do
           Validator.check_delete!(hostname, from_address)
 
         "domain.new" ->
-          [name, email, avatar, validator_host] = body
+          [name, email, avatar, years_to_renew, validator_host] = body
 
           Domain.check_new!(
             name,
+            from_address,
             email,
             avatar,
-            from_address,
+            years_to_renew,
             validator_host,
             size
           )
@@ -305,7 +309,7 @@ defmodule Ipncore.Event do
           Validator.event_delete!(multi, hostname, time, channel)
 
         "domain.new" ->
-          [name, email, avatar, validator_host] = body
+          [name, email, avatar, years_to_renew, validator_host] = body
 
           Domain.new!(
             multi,
@@ -314,6 +318,7 @@ defmodule Ipncore.Event do
             name,
             email,
             avatar,
+            years_to_renew,
             validator_host,
             size,
             time,
@@ -493,15 +498,13 @@ defmodule Ipncore.Event do
     end
   end
 
-  def fetch!(bin_hash, channel) do
-    from(ev in Event, where: ev.hash == ^bin_hash)
-    |> Repo.one(prefix: channel)
-    |> case do
-      nil ->
-        throw("Event no exists")
+  def exists!(x) do
+    case DetsPlus.member?(@base, x) do
+      false ->
+        false
 
-      ev ->
-        ev
+      _ ->
+        throw("Event already exists")
     end
   end
 

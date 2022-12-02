@@ -60,7 +60,7 @@ defmodule Ipncore.Application do
       end
 
       # init chain
-      :ok = Chain.initialize()
+      :ok = Chain.start()
 
       # services
       children = [

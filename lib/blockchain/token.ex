@@ -138,8 +138,8 @@ defmodule Ipncore.Token do
   end
 
   def exists!(x) do
-    case DetsPlus.lookup(@base, x) do
-      [] ->
+    case DetsPlus.member?(@base, x) do
+      false ->
         false
 
       _ ->

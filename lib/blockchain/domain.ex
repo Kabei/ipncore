@@ -12,6 +12,7 @@ defmodule Ipncore.Domain do
   # @fields ~w(name owner email avatar)
   @edit_fields ~w(enabled owner email avatar)
   @token Default.token()
+  @renewed_time 31_536_000_000
 
   @primary_key {:name, :string, []}
   schema "domain" do
@@ -19,6 +20,7 @@ defmodule Ipncore.Domain do
     field(:email, :string)
     field(:avatar, :string)
     field(:enabled, :boolean, default: true)
+    field(:forsale, :boolean, default: false)
     field(:records, :integer, default: 0)
     field(:created_at, :integer)
     field(:renewed_at, :integer)
@@ -120,9 +122,13 @@ defmodule Ipncore.Domain do
     |> Enum.join(".")
   end
 
-  def check_new!(name, from_address, email, avatar, validator_host, size) do
+  def check_new!(name, from_address, email, avatar, years_to_renew, validator_host, size) do
+    if years_to_renew not in 1..2, do: throw("Invalid years to renew")
     if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid hostname")
-    if !is_nil(email) and not Regex.match?(Const.Regex.email(), email), do: throw("Invalid email")
+
+    if not is_nil(email) and not Regex.match?(Const.Regex.email(), email),
+      do: throw("Invalid email")
+
     if String.length(name) > 100, do: throw("Invalid name length")
     if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
 
@@ -132,7 +138,7 @@ defmodule Ipncore.Domain do
       from_address,
       PlatformOwner.address(),
       @token,
-      price(name),
+      price(name, years_to_renew),
       validator_host,
       size
     )
@@ -147,6 +153,7 @@ defmodule Ipncore.Domain do
         name,
         email,
         avatar,
+        years_to_renew,
         validator_host,
         event_size,
         timestamp,
@@ -156,9 +163,13 @@ defmodule Ipncore.Domain do
       name: name,
       email: email,
       avatar: avatar,
+      enabled: true,
+      forsale: false,
+      records: 0,
       owner: from_address,
       created_at: timestamp,
-      updated_at: timestamp
+      updated_at: timestamp,
+      renewed_at: timestamp + years_to_renew * @renewed_time
     }
 
     put!(domain)
@@ -169,7 +180,7 @@ defmodule Ipncore.Domain do
       @token,
       from_address,
       PlatformOwner.address(),
-      price(name),
+      price(name, years_to_renew),
       validator_host,
       event_size,
       false,
@@ -245,7 +256,7 @@ defmodule Ipncore.Domain do
     |> Repo.exists?(prefix: channel)
   end
 
-  defp price(name) do
+  defp price(name, years_to_renew) do
     x = String.length(name)
 
     cond do
@@ -258,6 +269,7 @@ defmodule Ipncore.Domain do
       true ->
         5_000
     end
+    |> Kernel.*(years_to_renew)
   end
 
   def one(hostname, channel, params \\ %{}) do

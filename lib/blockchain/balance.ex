@@ -14,7 +14,7 @@ defmodule Ipncore.Balance do
     field(:address, :binary)
     field(:token, :binary)
     field(:amount, Ecto.Amount, default: 0)
-    field(:locked, Ecto.Amount, default: 0)
+    field(:blocked, :boolean, default: false)
     field(:out_count, Ecto.Amount, default: 0)
     field(:in_count, Ecto.Amount, default: 0)
     field(:tx_count, Ecto.Amount, default: 0)
@@ -40,7 +40,7 @@ defmodule Ipncore.Balance do
       %{
         address: b.address,
         amount: b.amount,
-        locked: b.locked,
+        blocked: b.blocked,
         token: b.token,
         decimal: tk.decimals,
         symbol: tk.symbol,
@@ -54,7 +54,7 @@ defmodule Ipncore.Balance do
 
   @spec check!(Tuple.t(), pos_integer) :: boolean
   def check!({_address, _token} = balance, amount) do
-    case CubDB.get_multi(@base, balance) do
+    case CubDB.get(@base, balance) do
       {_m, true} -> throw("Tokens is blocked")
       {x, _false} when x >= amount -> true
       _ -> throw("balance is too low")
@@ -239,7 +239,7 @@ defmodule Ipncore.Balance do
         select: %{
           address: ^address,
           amount: fragment("0::NUMERIC"),
-          locked: fragment("0::NUMERIC"),
+          blocked: fragment("FALSE"),
           token: tk.id,
           decimal: tk.decimals,
           symbol: tk.symbol,
@@ -342,7 +342,7 @@ defmodule Ipncore.Balance do
               address: x.to,
               token: x.token,
               amount: x.value,
-              locked: 0,
+              blocked: false,
               in_count: x.value,
               tx_count: 1,
               out_count: 0,
@@ -388,7 +388,7 @@ defmodule Ipncore.Balance do
               address: x.from,
               token: x.token,
               amount: -x.value,
-              locked: 0,
+              blocked: false,
               in_count: 0,
               tx_count: 1,
               out_count: x.value,
@@ -399,7 +399,7 @@ defmodule Ipncore.Balance do
               address: x.to,
               token: x.token,
               amount: x.value,
-              locked: 0,
+              blocked: false,
               in_count: x.value,
               tx_count: 1,
               out_count: 0,
@@ -407,6 +407,27 @@ defmodule Ipncore.Balance do
               updated_at: time
             }
           ]
+      end)
+      |> Enum.group_by(fn x -> {x.address, x.token} end)
+      |> Map.values()
+      |> Enum.reduce([], fn x, acc ->
+        acc ++
+          case x do
+            [_y] = g ->
+              g
+
+            z ->
+              {amount, in_count, out_count} =
+                Enum.reduce(z, {0, 0, 0}, fn z, {acc, acc2, acc3} ->
+                  {z.amount + acc, z.in_count + acc2, z.out_count + acc3}
+                end)
+
+              [
+                z
+                |> List.first()
+                |> Map.merge(%{amount: amount, in_count: in_count, out_count: out_count})
+              ]
+          end
       end)
 
     upsert_query =

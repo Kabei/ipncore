@@ -276,7 +276,7 @@ defmodule Ipncore.Explorer.Router do
   # end
 
   post "/event" do
-    IO.inspect(conn)
+    # IO.inspect(conn)
     %{"_json" => body} = conn.params
     # IO.inspect(body)
     case body do

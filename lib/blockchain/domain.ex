@@ -219,6 +219,7 @@ defmodule Ipncore.Domain do
       |> MapUtil.validate_length("avatar", 255)
       |> MapUtil.validate_email("email")
       |> MapUtil.validate_boolean("enabled")
+      |> MapUtil.decode_address("owner")
       |> MapUtil.to_atom_keywords()
       |> Keyword.put(:updated_at, timestamp)
 
@@ -232,8 +233,7 @@ defmodule Ipncore.Domain do
     queryable = from(d in Domain, where: d.name == ^name and d.owner == ^from_address)
 
     multi
-    |> Ecto.Multi.update_all(:update, queryable,
-      set: kw_params,
+    |> Ecto.Multi.update_all(:update, queryable, [set: kw_params],
       returning: false,
       prefix: channel
     )

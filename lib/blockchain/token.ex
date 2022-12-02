@@ -176,15 +176,6 @@ defmodule Ipncore.Token do
     fetch!(token_id, from_address)
   end
 
-  def update_supply(token_id, amount) do
-    token = fetch!(token_id)
-
-    Map.put(token, :supply, token.supply + amount)
-    |> put!()
-
-    token
-  end
-
   def new!(
         multi,
         token_id,
@@ -197,11 +188,6 @@ defmodule Ipncore.Token do
         timestamp,
         channel
       ) do
-    # if not coin?(token_id), do: throw("Invalid token ID")
-
-    # if owner_address != PlatformOwner.address(),
-    #   do: throw("Operation not allowed")
-
     props =
       (props || %{})
       |> MapUtil.validate_value("maxSupply", :lte, 0)
@@ -248,12 +234,11 @@ defmodule Ipncore.Token do
 
     fetch!(token_id, from_address)
     |> Map.merge(token_params)
-    |> put!()
+    |> put()
 
     queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^from_address)
 
-    Ecto.Multi.update_all(multi, :update, queryable,
-      set: kw_params,
+    Ecto.Multi.update_all(multi, :update, queryable, [set: kw_params],
       returning: false,
       prefix: channel
     )
@@ -267,14 +252,27 @@ defmodule Ipncore.Token do
     Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
   end
 
-  def multi_update_stats(multi, name, token_id, amount, time, channel) do
+  def check_supply!(token, amount) do
+    max_supply = Token.get_param(token, "maxSupply", 0)
+    supply = token.supply + amount
+    if max_supply != 0 and supply > max_supply, do: throw("MaxSupply exceeded")
+
+    supply
+  end
+
+  def update_supply(token, new_supply) do
+    %{token | supply: new_supply}
+    |> put()
+  end
+
+  def multi_update_stats(multi, name, token_id, inc_params, time, channel) do
     query = from(tk in Token, where: tk.id == ^token_id)
 
     Ecto.Multi.update_all(
       multi,
       name,
       query,
-      [set: [updated_at: time], inc: [supply: amount]],
+      [set: [updated_at: time], inc: inc_params],
       returning: false,
       prefix: channel
     )

@@ -14,7 +14,7 @@ defmodule Ipncore.Validator do
 
   @base :validator
   @filename "validator.db"
-  @edit_fields ~w(owner name fee fee_type)
+  @edit_fields ~w(name fee fee_type)
 
   @primary_key {:host, :string, []}
   schema "validator" do
@@ -50,20 +50,24 @@ defmodule Ipncore.Validator do
     end
   end
 
+  def put(x) do
+    DetsPlus.insert(@base, x)
+  end
+
   @impl Database
   def fetch!(x) do
     case DetsPlus.lookup(@base, x) do
-      [] ->
-        throw("Validator not exists")
-
       [x] ->
         x
+
+      _ ->
+        throw("Validator not exists")
     end
   end
 
   def fetch!(host, owner) do
     case DetsPlus.lookup(@base, host) do
-      [x] when x.owner != owner ->
+      [x] when x.owner == owner ->
         x
 
       [_x] ->
@@ -150,14 +154,15 @@ defmodule Ipncore.Validator do
       |> MapUtil.to_keywords()
       |> Keyword.put(:updated_at, timestamp)
 
-    validator = fetch!(host, from_address)
-    Map.put(validator, :params, atom_params)
-    put!(validator)
+    validator =
+      fetch!(host, from_address)
+      |> Map.merge(atom_params)
+
+    put(validator)
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^from_address)
 
-    Ecto.Multi.update_all(multi, :update, queryable,
-      set: kw_params,
+    Ecto.Multi.update_all(multi, :update, queryable, [set: kw_params],
       returning: false,
       prefix: channel
     )

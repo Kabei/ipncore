@@ -184,9 +184,7 @@ defmodule Ipncore.Tx do
 
     # check max supply
     token = Token.fetch!(token_id, from_address)
-    max_supply = Token.get_param(token, "maxSupply", 0)
-    supply = token.supply + amount
-    if max_supply != 0 and supply > max_supply, do: throw("MaxSupply exceeded")
+    new_supply = Token.check_supply!(token, amount)
 
     Balance.update!(keys_entries, entries)
 
@@ -199,12 +197,12 @@ defmodule Ipncore.Tx do
       out_count: length(outputs)
     }
 
-    Token.put(%{token | supply: supply})
+    Token.update_supply(token, new_supply)
 
     multi
     |> multi_insert(tx, channel)
     |> Txo.multi_insert_all(:txo, outputs, channel)
-    |> Token.multi_update_stats(:token, token_id, amount, timestamp, channel)
+    |> Token.multi_update_stats(:token, token_id, [supply: amount], timestamp, channel)
     |> Balance.multi_upsert_coinbase(:balances, outputs, timestamp, channel)
   end
 

@@ -9,6 +9,9 @@ defmodule Test do
   @seed2 <<127, 94, 236, 64, 158, 61, 121, 128, 15, 118, 103, 214, 90, 196, 11, 42, 2, 12, 65, 98,
            70, 247, 220, 114, 105, 204, 60, 222, 84, 159, 204, 160>>
 
+  # Platform
+  # {osk, opk, oaddr, oaddr58} = {PlatformOwner.secret_key, PlatformOwner.pubkey, PlatformOwner.address, PlatformOwner.address58}
+
   # {pk, sk, addr, addr58} = Test.wallet1
   def wallet1 do
     {:ok, pk, sk} = Falcon.gen_keys_from_seed(@seed)
@@ -27,9 +30,9 @@ defmodule Test do
     {pk, sk, addr, addr58}
   end
 
-  # Test.pubkey_new PlatformOwner.pubkey, PlatformOwner.secret_key
-  # Test.pubkey_new pk, sk
-  # Test.pubkey_new pk2, sk2
+  # Test.pubkey_new(opk, osk)
+  # Test.pubkey_new(pk, sk)
+  # Test.pubkey_new(pk2, sk2)
   def pubkey_new(pk, sk) do
     type_number = Event.type_index("pubkey.new")
     time = :erlang.system_time(@unit_time)
@@ -41,32 +44,30 @@ defmodule Test do
     [@version, "pubkey.new", time, body, sig64]
   end
 
-  # Test.token_new(PlatformOwner.secret_key, PlatformOwner.address, Default.token, Default.token_name, 9, Default.token_symbol, %{})
-  # Test.token_new(PlatformOwner.secret_key, PlatformOwner.address, "USD", "USD Dollar", 2, "$", %{})
-  def token_new(sk, owner, token_id, name, decimals, symbol, props) do
+  # Test.token_new(osk, oaddr58, Default.token, oaddr58, Default.token_name, 9, Default.token_symbol, %{})
+  # Test.token_new(osk, oaddr58, "USD", oaddr58, "USD Dollar", 2, "$", %{})
+  def token_new(sk, from58, token_id, owner58, name, decimals, symbol, props) do
     type_number = Event.type_index("token.new")
     time = :erlang.system_time(@unit_time)
-    from = PlatformOwner.address()
-    body = [token_id, Address.to_text(owner), name, decimals, symbol, props]
+    body = [token_id, owner58, name, decimals, symbol, props]
     hash = Event.calc_hash(type_number, body, time)
 
     sig64 = signature64(sk, hash)
-    [@version, "token.new", time, body, Address.to_text(from), sig64]
+    [@version, "token.new", time, body, from58, sig64]
   end
 
-  # Test.validator_new(PlatformOwner.secret_key, "ippan.red", "My Pool", PlatformOwner.address58, 2, 1.0)
-  def validator_new(sk, hostname, name, owner, fee_type, fee) do
+  # Test.validator_new(osk, oaddr58, "ippan.red", "My Pool", oaddr58, 2, 1.0)
+  def validator_new(sk, from58, hostname, name, owner58, fee_type, fee) do
     type_number = Event.type_index("validator.new")
     time = :erlang.system_time(@unit_time)
-    from = PlatformOwner.address()
-    body = [hostname, name, owner, fee_type, fee]
+    body = [hostname, name, owner58, fee_type, fee]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
 
-    [@version, "validator.new", time, body, Address.to_text(from), sig64]
+    [@version, "validator.new", time, body, from58, sig64]
   end
 
-  # Test.tx_coinbase(PlatformOwner.secret_key, PlatformOwner.address58, "IPN", 1_000_000, addr58, "Texto")
+  # Test.tx_coinbase(osk, oaddr58, "IPN", 1_000_000, addr58, "Texto")
   def tx_coinbase(sk, from58, token, amount, to_address58, memo) do
     type_number = Event.type_index("tx.coinbase")
     time = :erlang.system_time(@unit_time)
@@ -97,7 +98,43 @@ defmodule Test do
     [@version, "domain.new", time, body, from58, sig64]
   end
 
-  def
+  # Test.token_delete(osk, oaddr58, "IPN")
+  def token_delete(sk, from58, token_id) do
+    type_number = Event.type_index("token.delete")
+    time = :erlang.system_time(@unit_time)
+    body = [token_id]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "token.delete", time, body, from58, sig64]
+  end
+
+  def validator_delete(sk, from58, hostname) do
+    type_number = Event.type_index("validator.delete")
+    time = :erlang.system_time(@unit_time)
+    body = [hostname]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "validator.delete", time, body, from58, sig64]
+  end
+
+  def domain_delete(sk, from58, hostname) do
+    type_number = Event.type_index("domain.delete")
+    time = :erlang.system_time(@unit_time)
+    body = [hostname]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "domain.delete", time, body, from58, sig64]
+  end
+
+  # Test.validator_update(osk, oaddr58, "ippan.red", %{"name" => "Your Pool"})
+  def validator_update(sk, from58, hostname, params) do
+    type_number = Event.type_index("validator.update")
+    time = :erlang.system_time(@unit_time)
+    body = [hostname, params]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "validator.update", time, body, from58, sig64]
+  end
 
   defp signature64(sk, hash) do
     Falcon.sign(sk, hash)

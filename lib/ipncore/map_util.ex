@@ -127,7 +127,7 @@ defmodule MapUtil do
     map
   end
 
-  def validate_length(map, key, size, _) do
+  def validate_length(map, key, size) do
     val = Map.get(map, key)
     if not is_nil(val) and String.length(val) > size, do: throw("Invalid max length #{key}")
 

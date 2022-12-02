@@ -43,14 +43,19 @@ defmodule MapUtil do
 
   def validate_hostname(map, key) do
     val = Map.get(map, key)
-    if not is_nil(val) and not Regex.match?(Const.Regex.hostname(), val), do: throw("Invalid #{key}")
+
+    if not is_nil(val) and not Regex.match?(Const.Regex.hostname(), val),
+      do: throw("Invalid #{key}")
 
     map
   end
 
   def validate_address(map, key) do
     val = Map.get(map, key)
-    if not is_nil(val) and not Regex.match?(Const.Regex.address(), val), do: throw("Invalid address #{key}")
+
+    if not is_nil(val) and not Regex.match?(Const.Regex.address(), val),
+      do: throw("Invalid address #{key}")
+
     map
   end
 
@@ -96,6 +101,15 @@ defmodule MapUtil do
   def validate_range(map, key, range) do
     val = Map.get(map, key)
     if not is_nil(val) and val not in range, do: throw("Invalid range #{key}")
+    map
+  end
+
+  def validate_any(map, key, list) when is_list(list) do
+    val = Map.get(map, key)
+
+    if not is_nil(val) and not Enum.any?(val, fn x -> x in list end),
+      do: throw("Invalid range #{key}")
+
     map
   end
 

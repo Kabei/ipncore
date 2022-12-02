@@ -26,7 +26,7 @@ defmodule Ipncore.Token do
   @filename "token.db"
   # @fields ~w(id name creator decimals symbol owner props)
   @edit_fields ~w(name owner)
-  # @props ~w{maxSupply allowLock allowBurn}
+  @props ~w{maxSupply opts}
 
   @primary_key {:id, :string, []}
   schema "token" do
@@ -198,9 +198,9 @@ defmodule Ipncore.Token do
       ) do
     props =
       (props || %{})
+      |> Map.take(@props)
       |> MapUtil.validate_value("maxSupply", :lte, 0)
-      |> MapUtil.validate_boolean("allowLock")
-      |> MapUtil.validate_boolean("allowBurn")
+      |> MapUtil.validate_any("opts", ["burn", "coinbase", "lock"])
 
     token = %{
       id: token_id,
@@ -261,15 +261,15 @@ defmodule Ipncore.Token do
     Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
   end
 
-  def check_supply!(token, amount) do
-    max_supply = Token.get_param(token, "maxSupply", 0)
-    supply = token.supply + amount
-    if max_supply != 0 and supply > max_supply, do: throw("MaxSupply exceeded")
+  def check_max_supply!(token, amount) do
+    max_supply = Token.get_props(token, "maxSupply", 0)
+    new_supply = token.supply + amount
+    if max_supply != 0 and new_supply > max_supply, do: throw("MaxSupply exceeded")
 
-    supply
+    new_supply
   end
 
-  def update_supply(token, new_supply) do
+  def put_supply(token, new_supply) do
     %{token | supply: new_supply}
     |> put()
   end
@@ -287,7 +287,11 @@ defmodule Ipncore.Token do
     )
   end
 
-  def get_param(token, name, def) do
+  def check_opts(token, name) do
+    name in Map.get(token.props || %{}, "opts", [])
+  end
+
+  def get_props(token, name, def) do
     Map.get(token.props || %{}, name, def)
   end
 

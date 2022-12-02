@@ -53,26 +53,28 @@ defmodule Ipncore.Balance do
   end
 
   @spec check!(Tuple.t(), pos_integer) :: boolean
-  def check!({_address, token} = balance, amount) do
+  def check!({_address, _token} = balance, amount) do
     case CubDB.get(@base, balance) do
-      {_m, true} -> throw("Tokens is locked")
+      {_m, true} -> throw("Balance is locked")
       {x, _false} when x >= amount -> true
-      _ -> throw("#{token} balance is too low")
+      _ -> throw("Balance is too low")
     end
   end
 
   @spec check_multi!(List.t(), Map.t()) :: boolean
   def check_multi!(list_keys, map_balance_to_check) do
-    case CubDB.get_multi(@base, list_keys) do
-      %{} ->
-        false
+    map_result = CubDB.get_multi(@base, list_keys)
 
-      balances ->
+    cond do
+      %{} == map_result ->
+        throw("Balance is too low")
+
+      true ->
         Enum.each(map_balance_to_check, fn {key, amount} ->
-          case Map.get(balances, key) do
+          case Map.get(map_result, key) do
             {_m, true} -> throw("Balance is locked")
             {x, _false} when x >= amount -> true
-            _ -> false
+            _ -> throw("Balance is too low")
           end
         end)
     end
@@ -87,13 +89,13 @@ defmodule Ipncore.Balance do
     CubDB.get_and_update_multi(@base, keys, fn entries ->
       new_balances =
         for key <- keys, into: %{} do
-          {old_val, old_locked} = entries[key] || {0, false}
-          new_val = keys_values[key]
+          {old_val, old_locked} = Map.get(entries, key, {0, false})
+          new_val = Map.get(keys_values, key)
 
-          if old_locked, do: raise("Address is locked")
+          if old_locked, do: throw("Address is locked")
 
           if old_val < 0 and new_val < old_val,
-            do: raise("Insufficient balance")
+            do: throw("Insufficient balance")
 
           {key, {old_val + new_val, old_locked}}
         end
@@ -458,12 +460,12 @@ defmodule Ipncore.Balance do
   def check_lock!(from, to, token_id, value) when is_boolean(value) do
     token = Token.fetch!(token_id, from)
 
-    unless Token.get_param(token, "allowLock", false), do: throw("Operation not allowed")
+    unless Token.check_opts(token, "lock"), do: throw("Operation not allowed")
 
     case CubDB.get(@base, {to, token_id}) do
       {_amount, x} ->
         if x == value do
-          case x do
+          case value do
             true ->
               throw("Balance is already locked")
 

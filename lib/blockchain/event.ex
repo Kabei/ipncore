@@ -98,6 +98,26 @@ defmodule Ipncore.Event do
 
   def timeout, do: @threshold_timeout
 
+  defmacrop mempool_push!(hash, time, type_number, from_address, body, signature, size) do
+    quote do
+      case Mempool.push!(
+             unquote(hash),
+             unquote(time),
+             unquote(type_number),
+             unquote(from_address),
+             unquote(body),
+             unquote(signature),
+             unquote(size)
+           ) do
+        true ->
+          {:ok, unquote(hash)}
+
+        false ->
+          throw("Error in pushing mempool")
+      end
+    end
+  end
+
   @spec check(pos_integer, String.t(), pos_integer, term, String.t(), String.t()) ::
           {:ok, binary} | {:error, String.t()}
   def check(@version, "pubkey.new" = type_name, time, [pubkey] = body, sig64) do
@@ -106,6 +126,10 @@ defmodule Ipncore.Event do
       if type_name == false, do: throw("Type invalid")
       body_text = Jason.encode!(body)
       hash = calc_hash(type_number, body_text, time)
+
+      # check if already exists
+      exists!(hash)
+
       signature = Base.decode64!(sig64)
       size = byte_size(body_text) + byte_size(signature)
       from_address = Address.hash(pubkey)
@@ -114,13 +138,7 @@ defmodule Ipncore.Event do
 
       if Wallet.has_key?(from_address), do: throw("Pubkey already exists")
 
-      case Mempool.push!(hash, time, type_number, from_address, body, signature, size) do
-        true ->
-          {:ok, hash}
-
-        false ->
-          throw("Error push to mempool")
-      end
+      mempool_push!(hash, time, type_number, from_address, body, signature, size)
     catch
       x -> {:error, x}
     end
@@ -219,13 +237,7 @@ defmodule Ipncore.Event do
           throw("Invalid Match Type")
       end
 
-      case Mempool.push!(hash, time, type_number, from_address, body, signature, size) do
-        true ->
-          {:ok, hash}
-
-        false ->
-          throw("Error push to mempool")
-      end
+      mempool_push!(hash, time, type_number, from_address, body, signature, size)
     rescue
       ex ->
         {:error, Exception.format(:error, ex, __STACKTRACE__)}

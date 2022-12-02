@@ -6,16 +6,6 @@ defmodule Ipncore.Migration.Blockchain do
 
     [
       "CREATE SCHEMA IF NOT EXISTS \"#{channel}\"",
-      # "ALTER SYSTEM SET max_connections = 200",
-      # "ALTER SYSTEM SET shared_buffers = 1GB",
-      # "ALTER SYSTEM SET effective_io_concurrency = 1000",
-      # "ALTER SYSTEM SET wal_level = minimal",
-      # "ALTER SYSTEM SET fsync = off",
-      # "ALTER SYSTEM SET synchronous_commit = off",
-      # "ALTER SYSTEM SET full_page_writes = off",
-      # "ALTER SYSTEM SET max_wal_senders = 0",
-      # CONSTRAINT balance_ck CHECK (amount >= 0::numeric),
-      # CONSTRAINT locked_ck CHECK (locked >= 0::numeric)
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".block(
         height bigint NOT NULL,
@@ -133,21 +123,6 @@ defmodule Ipncore.Migration.Blockchain do
         CONSTRAINT dnsr_pk PRIMARY KEY (domain, type)
       )
       """
-      # """
-      # CREATE TABLE IF NOT EXISTS "#{channel}".account(
-      #     username TEXT NOT NULL,
-      #     address bytea NOT NULL,
-      #     name TEXT,
-      #     avatar TEXT,
-      #     email TEXT,
-      #     phone TEXT,
-      #     enabled bool DEFAULT TRUE,
-      #     props jsonb,
-      #     created_at bigint NOT NULL,
-      #     updated_at bigint NOT NULL,
-      #     CONSTRAINT pools_pk PRIMARY KEY (username)
-      # )
-      # """
       # """
       # CREATE TABLE IF NOT EXISTS "#{channel}".tx_votes(
       #   id bytea NOT NULL,

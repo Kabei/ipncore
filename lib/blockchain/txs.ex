@@ -134,11 +134,17 @@ defmodule Ipncore.Tx do
     ]
 
     Balance.update!(
-      [{from_address, token}, {to_address, token}, {validator_address, @token}],
+      [
+        {from_address, token},
+        {to_address, token},
+        {from_address, @token},
+        {validator_address, @token}
+      ],
       %{
         {from_address, token} => -(amount + fee_total),
         {to_address, token} => amount,
-        {validator_address, token} => fee_total
+        {from_address, @token} => -fee_total,
+        {validator_address, @token} => fee_total
       }
     )
 
@@ -160,11 +166,8 @@ defmodule Ipncore.Tx do
   def check_coinbase!(from_address, token_id, memo) do
     if not is_nil(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
 
-    Token.fetch!(token_id, from_address)
-    # max_supply = Token.get_param(token, "maxSupply", 0)
-    # supply = token.supply + amount
-
-    # if max_supply != 0 and supply > max_supply, do: throw("MaxSupply exceeded")
+    token = Token.fetch!(token_id, from_address)
+    unless Token.check_opts(token, "coinbase"), do: throw("Operation not allowed")
 
     :ok
   end
@@ -184,7 +187,7 @@ defmodule Ipncore.Tx do
 
     # check max supply
     token = Token.fetch!(token_id, from_address)
-    new_supply = Token.check_supply!(token, amount)
+    new_supply = Token.check_max_supply!(token, amount)
 
     Balance.update!(keys_entries, entries)
 
@@ -197,7 +200,7 @@ defmodule Ipncore.Tx do
       out_count: length(outputs)
     }
 
-    Token.update_supply(token, new_supply)
+    Token.put_supply(token, new_supply)
 
     multi
     |> multi_insert(tx, channel)

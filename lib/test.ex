@@ -9,7 +9,7 @@ defmodule Test do
   @seed2 <<127, 94, 236, 64, 158, 61, 121, 128, 15, 118, 103, 214, 90, 196, 11, 42, 2, 12, 65, 98,
            70, 247, 220, 114, 105, 204, 60, 222, 84, 159, 204, 160>>
 
-  # alias Ipncore.{Address, Block, Token, Balance, Tx, Txo, Domain, Validator} 
+  # alias Ipncore.{Address, Block, Event, Token, Balance, Tx, Txo, Domain, Validator}
 
   # Owner
   # {osk, opk, oaddr, oaddr58} = {PlatformOwner.secret_key, PlatformOwner.pubkey, PlatformOwner.address, PlatformOwner.address58}
@@ -46,9 +46,9 @@ defmodule Test do
     [@version, "pubkey.new", time, body, sig64]
   end
 
-  # Test.token_new(osk, oaddr58, Default.token, oaddr58, Default.token_name, 9, Default.token_symbol, %{})
-  # Test.token_new(osk, oaddr58, "GBP", oaddr58, "Great British Pound", 2, "£", %{"allowLock" => true})
-  # Test.token_new(osk, oaddr58, "USD", oaddr58, "USD Dollar", 2, "$", %{"allowLock" => true})
+  # Test.token_new(osk, oaddr58, Default.token, oaddr58, Default.token_name, 9, Default.token_symbol, %{"opts" => ["burn", "coinbase", "lock"]})
+  # Test.token_new(osk, oaddr58, "GBP", oaddr58, "Great British Pound", 5, "£", %{"opts" => ["burn", "coinbase", "lock"]})
+  # Test.token_new(osk, oaddr58, "USD", oaddr58, "US Dollar", 5, "$", %{"opts" => ["burn", "coinbase", "lock"]})
   def token_new(sk, from58, token_id, owner58, name, decimals, symbol, props) do
     type_number = Event.type_index("token.new")
     time = :erlang.system_time(@unit_time)

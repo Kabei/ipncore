@@ -48,9 +48,7 @@ defmodule Mempool do
   def size, do: :ets.info(@table, :size)
 
   def push!(hash, time, type_number, from, body, signature, size) do
-    IO.inspect("push! x")
     thread = assign_worker_thread(type_number, from, body)
-    IO.inspect("thread - #{thread}")
     :ets.insert_new(@table, {{time, hash}, thread, type_number, from, body, signature, size})
   end
 

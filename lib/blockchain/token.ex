@@ -198,6 +198,7 @@ defmodule Ipncore.Token do
       ) do
     props =
       (props || %{})
+      |> MapUtil.require_only(@props)
       |> Map.take(@props)
       |> MapUtil.validate_value("maxSupply", :lte, 0)
       |> MapUtil.validate_any("opts", ["burn", "coinbase", "lock"])

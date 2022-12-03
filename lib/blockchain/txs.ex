@@ -212,7 +212,6 @@ defmodule Ipncore.Tx do
   def send_fee!(multi, txid, from_address, validator_host, fee_amount, timestamp, channel) do
     validator = Validator.fetch!(validator_host)
     validator_address = validator.owner
-    # fee_total = calc_fees(0, 1, 0, event_size)
 
     Balance.update!(
       [{from_address, @token}, {validator_address, @token}],
@@ -224,7 +223,7 @@ defmodule Ipncore.Tx do
 
     outputs = [
       %{
-        id: txid,
+        txid: txid,
         ix: 0,
         from: from_address,
         to: validator_address,
@@ -237,9 +236,9 @@ defmodule Ipncore.Tx do
     tx = %{
       id: txid,
       fee: fee_amount,
+      token_value: %{@token => fee_amount},
       refundable: false,
-      out_count: length(outputs),
-      amount: 0
+      out_count: length(outputs)
     }
 
     multi

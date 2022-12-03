@@ -107,7 +107,7 @@ defmodule Ipncore.Validator do
   def check_new!(host, name, from_address, fee_type, fee) do
     if not Regex.match?(Const.Regex.domain(), host), do: throw("Invalid domain")
     if String.length(name) > 100, do: throw("Invalid name length")
-    if from_address != PlatformOwner.address(), do: throw("Operation not allowed")
+    if not Platform.owner?(from_address), do: throw("Operation not allowed")
     unless fee_type >= 0 and fee_type <= 2, do: throw("Invalid fee_type")
     if not is_float(fee), do: throw("Invalid Fee value")
     exists!(host)

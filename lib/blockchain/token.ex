@@ -27,6 +27,7 @@ defmodule Ipncore.Token do
   # @fields ~w(id name creator decimals symbol owner props)
   @edit_fields ~w(name owner)
   @props ~w{maxSupply opts}
+  @token Default.token()
 
   @primary_key {:id, :string, []}
   schema "token" do
@@ -89,7 +90,7 @@ defmodule Ipncore.Token do
   def open do
     dir_path = Default.data_dir()
     filename = Path.join([dir_path, @filename])
-    DetsPlus.open_file(@base, file: filename, keypos: :id, auto_save: 60_000)
+    DetsPlus.open_file(@base, file: filename, keypos: :id, auto_save: 5_000)
   end
 
   @impl Database
@@ -137,6 +138,16 @@ defmodule Ipncore.Token do
     end
   end
 
+  def fetch(token_id) do
+    case DetsPlus.lookup(@base, token_id) do
+      [token] ->
+        token
+
+      _ ->
+        nil
+    end
+  end
+
   def exists!(x) do
     case DetsPlus.member?(@base, x) do
       false ->
@@ -163,13 +174,19 @@ defmodule Ipncore.Token do
     end
   end
 
+  def check_new!(@token, _from_address) do
+    if Platform.has_owner?(), do: throw("Token already exists")
+    :ok
+  end
+
   def check_new!(token_id, from_address) do
     if not coin?(token_id), do: throw("Invalid token ID")
 
-    if from_address != PlatformOwner.address(),
+    if not Platform.owner?(from_address),
       do: throw("Operation not allowed")
 
     exists!(token_id)
+    :ok
   end
 
   def check_update!(token_id, from_address) do
@@ -219,6 +236,8 @@ defmodule Ipncore.Token do
 
     put!(token)
 
+    Platform.put(token)
+
     Ecto.Multi.insert_all(multi, :token, Token, [token],
       returning: false,
       prefix: channel
@@ -242,9 +261,13 @@ defmodule Ipncore.Token do
       map_params
       |> MapUtil.to_keywords()
 
-    fetch!(token_id, from_address)
-    |> Map.merge(map_params)
-    |> put()
+    token =
+      fetch!(token_id, from_address)
+      |> Map.merge(map_params)
+
+    put(token)
+
+    Platform.put(token)
 
     queryable = from(tk in Token, where: tk.id == ^token_id and tk.owner == ^from_address)
 

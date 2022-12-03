@@ -4,28 +4,30 @@ defmodule Test do
   @version 0
   @unit_time Default.unit_time()
 
-  @seed <<126, 94, 236, 64, 158, 61, 121, 128, 15, 118, 103, 214, 90, 196, 11, 42, 2, 12, 65, 98,
-          70, 247, 220, 114, 105, 204, 60, 222, 84, 159, 204, 160>>
-  @seed2 <<127, 94, 236, 64, 158, 61, 121, 128, 15, 118, 103, 214, 90, 196, 11, 42, 2, 12, 65, 98,
-           70, 247, 220, 114, 105, 204, 60, 222, 84, 159, 204, 160>>
+  def owner_seed,
+    do:
+      <<192, 198, 255, 103, 172, 14, 113, 243, 135, 19, 43, 1, 189, 146, 203, 162, 197, 175, 196,
+        71, 66, 97, 116, 136, 228, 22, 123, 117, 121, 87, 42, 165, 163, 215, 36, 207, 207, 152,
+        67, 166, 12, 43, 142, 237, 27, 77, 90, 177, 33, 19, 176, 175, 248, 195, 13, 161, 180, 81,
+        91, 204, 239, 39, 45, 64>>
+
+  def seed,
+    do:
+      <<126, 94, 236, 64, 158, 61, 121, 128, 15, 118, 103, 214, 90, 196, 11, 42, 2, 12, 65, 98,
+        70, 247, 220, 114, 105, 204, 60, 222, 84, 159, 204, 160>>
+
+  def seed2,
+    do:
+      <<127, 94, 236, 64, 158, 61, 121, 128, 15, 118, 103, 214, 90, 196, 11, 42, 2, 12, 65, 98,
+        70, 247, 220, 114, 105, 204, 60, 222, 84, 159, 204, 160>>
 
   # alias Ipncore.{Address, Block, Event, Token, Balance, Tx, Txo, Domain, Validator}
 
-  # Owner
-  # {osk, opk, oaddr, oaddr58} = {PlatformOwner.secret_key, PlatformOwner.pubkey, PlatformOwner.address, PlatformOwner.address58}
-
-  # {pk, sk, addr, addr58} = Test.wallet1
-  def wallet1 do
-    {:ok, pk, sk} = Falcon.gen_keys_from_seed(@seed)
-    addr = Address.hash(pk)
-    addr58 = Address.to_text(addr)
-
-    {pk, sk, addr, addr58}
-  end
-
-  # {pk2, sk2, addr2, addr2_58} = Test.wallet2
-  def wallet2 do
-    {:ok, pk, sk} = Falcon.gen_keys_from_seed(@seed2)
+  # {osk, opk, oaddr, oaddr58} = Test.wallet(owner_seed())
+  # {pk, sk, addr, addr58} = Test.wallet(seed())
+  # {pk2, sk2, addr2, addr2_58} = Test.wallet(seed2())
+  def wallet(seed) do
+    {:ok, pk, sk} = Falcon.gen_keys_from_seed(seed)
     addr = Address.hash(pk)
     addr58 = Address.to_text(addr)
 

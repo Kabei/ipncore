@@ -136,7 +136,7 @@ defmodule Ipncore.Domain do
 
     Tx.check_send!(
       from_address,
-      PlatformOwner.address(),
+      Platform.address(),
       @token,
       price(name, years_to_renew),
       validator_host,
@@ -179,7 +179,7 @@ defmodule Ipncore.Domain do
       event_id,
       @token,
       from_address,
-      PlatformOwner.address(),
+      Platform.address(),
       price(name, years_to_renew),
       validator_host,
       event_size,
@@ -231,7 +231,17 @@ defmodule Ipncore.Domain do
       fetch!(name, from_address)
       |> Map.merge(map_params)
 
-    multi = Tx.send_fee!(multi, event_id, from_address, validator_host, 1000, timestamp, channel)
+    multi =
+      Tx.send_fee!(
+        multi,
+        event_id,
+        from_address,
+        validator_host,
+        1000,
+        timestamp,
+        channel
+      )
+
     put(domain)
 
     queryable = from(d in Domain, where: d.name == ^name and d.owner == ^from_address)

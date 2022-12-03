@@ -54,7 +54,7 @@ defmodule Ipncore.Application do
            {:ok, _pid} <- Token.open(),
            {:ok, _pid} <- Validator.open(),
            {:ok, _pid} <- Domain.open() do
-        :ok
+        Platform.start()
       else
         err -> throw(err)
       end

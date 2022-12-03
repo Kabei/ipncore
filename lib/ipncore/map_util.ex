@@ -151,11 +151,25 @@ defmodule MapUtil do
   ## Encode/Decode functions
   def decode_address(map, key) do
     val = Map.get(map, key)
-    Map.put(map, key, Address.from_text(val))
+
+    case val do
+      nil ->
+        map
+
+      val ->
+        Map.put(map, key, Address.from_text(val))
+    end
   end
 
   def encode_address(map, key) do
     val = Map.get(map, key)
-    Map.put(map, key, Address.to_text(val))
+
+    case val do
+      nil ->
+        map
+
+      val ->
+        Map.put(map, key, Address.to_text(val))
+    end
   end
 end

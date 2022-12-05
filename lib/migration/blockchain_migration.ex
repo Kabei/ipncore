@@ -37,7 +37,6 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".tx(
         id bytea NOT NULL,
         fee bigint NOT NULL,
-        refundable bool DEFAULT FALSE,
         out_count integer NOT NULL,
         token_value jsonb,
         memo varchar(100)
@@ -101,7 +100,7 @@ defmodule Ipncore.Migration.Blockchain do
       """,
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".domain(
-          name varchar NOT NULL,
+          name varchar(25) NOT NULL,
           owner bytea NOT NULL,
           email varchar(64),
           avatar varchar,
@@ -120,7 +119,7 @@ defmodule Ipncore.Migration.Blockchain do
         type varchar(5) NOT NULL,
         value varchar(64) NOT NULL,
         ttl integer NOT NULL,
-        CONSTRAINT dnsr_pk PRIMARY KEY (domain, type)
+        root varchar(25) NOT NULL
       )
       """
       # """

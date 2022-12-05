@@ -43,20 +43,20 @@ Events are requests made by users and automatic operations by the system that af
 |102|```validator.delete```|Delete a validator|✅|
 |200|```token.new```|Create a new token|✅|
 |201|```token.update```|Update a token|✅|
-|202|```token.delete```|Delete a token|⚒️|
+|202|```token.delete```|Delete a token|✅|
 |210|```tx.coinbase```|Creation of coins by the token owner|✅|
-|211|```tx.send```|Send a simple payment|🐞 (50%)|
+|211|```tx.send```|Send a simple payment|✅|
 |212|```tx.sendmulti```|Send payment to multiple recipients|❌|
 |213|```tx.refund```|Returns a transaction made by the payer|❌|
 |214|```tx.jackpot```|Jackpot event|❌|
 |215|```tx.reward```|Reward core validators|❌|
 |216|```tx.burned```|Coin destruction|❌|
-|250|```balance.lock```|balance lock|🐞|
+|250|```balance.lock```|balance lock|✅|
 |400|```domain.new```|Register a new domain|✅|
-|401|```domain.update```|Update a domain|🐞|
-|402|```domain.delete```|Delete a domain|🐞|
-|410|```dns.put```|Put a DNS Record|⚒️ (50%)|
-|411|```dns.drop```|Drop a DNS Record|⚒️ (50%)|
+|401|```domain.update```|Update a domain|✅|
+|402|```domain.delete```|Delete a domain|✅|
+|410|```dns.push```|Put a DNS Record|✅|
+|411|```dns.drop```|Drop a DNS Record|✅|
 |1000|```pubkey.new```|Public key registration|✅|
 
 ## Network server
@@ -95,14 +95,15 @@ Events are requests made by users and automatic operations by the system that af
 
 |Type|Status|
 |-|-|
-|A|❌|
-|AAAA|❌|
-|CNAME|❌|
+|A|✅|
+|AAAA|✅|
+|CNAME|✅|
 |MX|❌|
-|TXT|❌|
+|TXT|✅|
 |SRV|❌|
 |CAA|❌|
 |NS|❌|
+|SOA|❌|
 
 ### Domain Prices
 |Characters|Price (nIPN)|
@@ -114,6 +115,7 @@ Events are requests made by users and automatic operations by the system that af
 ### Updating operations
 - All fee prices to update 1.000 nIPN
 - Time to wait update again (20 minutes)
+- DNS Record update 500 nIPN
 
 ## Mempool
 **Status: ⚒️**

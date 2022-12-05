@@ -8,6 +8,7 @@ defmodule Ipncore.Tx do
 
   @unit_time Default.unit_time()
   @token Default.token()
+  @imposible Default.imposible_address()
   @output_reason_send "S"
   @output_reason_coinbase "C"
   @output_reason_fee "%"
@@ -19,7 +20,6 @@ defmodule Ipncore.Tx do
     field(:out_count, :integer)
     field(:token_value, :map)
     field(:fee, :integer, default: 0)
-    field(:refundable, :boolean, default: false)
     field(:memo, :string)
   end
 
@@ -31,7 +31,6 @@ defmodule Ipncore.Tx do
         time: ev.time,
         token_value: ev.time,
         fee: tx.fee,
-        refundable: tx.refundable,
         memo: tx.memo
       }
     end
@@ -48,7 +47,7 @@ defmodule Ipncore.Tx do
       when token == @token do
     if amount <= 0, do: throw("Invalid amount to send")
 
-    if from_address == to_address or to_address == Default.imposible_address(),
+    if from_address == to_address or to_address == @imposible,
       do: throw("Invalid address to send")
 
     validator = Validator.fetch!(validator_host)
@@ -69,7 +68,7 @@ defmodule Ipncore.Tx do
       when token != @token do
     if amount <= 0, do: throw("Invalid amount to send")
 
-    if from_address == to_address or to_address == Default.imposible_address(),
+    if from_address == to_address or to_address == @imposible,
       do: throw("Invalid address to send")
 
     validator = Validator.fetch!(validator_host)
@@ -83,7 +82,7 @@ defmodule Ipncore.Tx do
     :ok
   end
 
-  def check_fees!(
+  def check_fee!(
         from_address,
         fee_total
       ) do
@@ -101,7 +100,6 @@ defmodule Ipncore.Tx do
         amount,
         validator_host,
         event_size,
-        refundable,
         memo,
         timestamp,
         channel
@@ -151,7 +149,6 @@ defmodule Ipncore.Tx do
     tx = %{
       id: txid,
       fee: fee_total,
-      refundable: refundable,
       token_value: Map.put(Map.new(), token, amount),
       out_count: length(outputs),
       memo: memo
@@ -195,7 +192,6 @@ defmodule Ipncore.Tx do
       id: txid,
       fee: 0,
       token_value: token_value,
-      refundable: false,
       memo: memo,
       out_count: length(outputs)
     }
@@ -237,7 +233,6 @@ defmodule Ipncore.Tx do
       id: txid,
       fee: fee_amount,
       token_value: %{@token => fee_amount},
-      refundable: false,
       out_count: length(outputs)
     }
 

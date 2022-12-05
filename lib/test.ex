@@ -21,11 +21,11 @@ defmodule Test do
       <<127, 94, 236, 64, 158, 61, 121, 128, 15, 118, 103, 214, 90, 196, 11, 42, 2, 12, 65, 98,
         70, 247, 220, 114, 105, 204, 60, 222, 84, 159, 204, 160>>
 
-  # alias Ipncore.{Address, Block, Event, Token, Balance, Tx, Txo, Domain, Validator}
+  # alias Ipncore.{Address, Block, Event, Token, Balance, Tx, Txo, Domain, DnsRecord, Validator}
 
-  # {osk, opk, oaddr, oaddr58} = Test.wallet(owner_seed())
-  # {pk, sk, addr, addr58} = Test.wallet(seed())
-  # {pk2, sk2, addr2, addr2_58} = Test.wallet(seed2())
+  # {osk, opk, oaddr, oaddr58} = Test.owner_seed |> Test.wallet()
+  # {pk, sk, addr, addr58} = Test.seed() |> Test.wallet()
+  # {pk2, sk2, addr2, addr2_58} = Test.seed2() |> Test.wallet()
   def wallet(seed) do
     {:ok, pk, sk} = Falcon.gen_keys_from_seed(seed)
     addr = Address.hash(pk)
@@ -124,12 +124,12 @@ defmodule Test do
     [@version, "tx.coinbase", time, body, from58, sig64]
   end
 
-  # Test.tx_send(sk, Default.token, addr58, addr2_58, 50, "ippan.red", false, "")
-  # Test.tx_send(sk2, "GBP", addr2_58, addr58, 5000, "ippan.red", true, "")
-  def tx_send(sk, token, from58, to58, amount, validator_host, refundable, memo) do
+  # Test.tx_send(sk, Default.token, addr58, addr2_58, 50, "ippan.red", "")
+  # Test.tx_send(sk2, "GBP", addr2_58, addr58, 5000, "ippan.red", "")
+  def tx_send(sk, token, from58, to58, amount, validator_host, memo) do
     type_number = Event.type_index("tx.send")
     time = :erlang.system_time(@unit_time)
-    body = [token, to58, amount, validator_host, refundable, memo]
+    body = [token, to58, amount, validator_host, memo]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
     [@version, "tx.send", time, body, from58, sig64]
@@ -155,7 +155,7 @@ defmodule Test do
     [@version, "domain.update", time, body, from58, sig64]
   end
 
-  # Test.domain_delete(sk, addr58, "my-domain")
+  # Test.domain_delete(sk, addr58, "ippan")
   def domain_delete(sk, from58, hostname) do
     type_number = Event.type_index("domain.delete")
     time = :erlang.system_time(@unit_time)
@@ -173,6 +173,37 @@ defmodule Test do
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
     [@version, "balance.lock", time, body, from58, sig64]
+  end
+
+  # Test.dns_push(sk, addr58, "ippan.com", "a", "44.203.142.247", 86400, "ippan.red")
+  # Test.dns_push(sk, addr58, "ippan.com", "a", "191.145.20.15", 86400, "ippan.red")
+  def dns_push(sk, from58, domain, type, value, ttl, validator_host) do
+    type_number = Event.type_index("dns.push")
+    time = :erlang.system_time(@unit_time)
+    body = [domain, type, value, ttl, validator_host]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "dns.push", time, body, from58, sig64]
+  end
+
+  # Test.dns_drop(sk, addr58, "ippan.com")
+  def dns_drop(sk, from58, domain) do
+    type_number = Event.type_index("dns.drop")
+    time = :erlang.system_time(@unit_time)
+    body = [domain]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "dns.drop", time, body, from58, sig64]
+  end
+  
+  # Test.dns_drop(sk, addr58, "ippan.com", "a")
+  def dns_drop(sk, from58, domain, type) do
+    type_number = Event.type_index("dns.drop")
+    time = :erlang.system_time(@unit_time)
+    body = [domain, type]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "dns.drop", time, body, from58, sig64]
   end
 
   defp signature64(sk, hash) do

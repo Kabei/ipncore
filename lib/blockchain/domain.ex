@@ -2,7 +2,7 @@ defmodule Ipncore.Domain do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Address, Database, Repo, Tx}
+  alias Ipncore.{Address, Database, DnsRecord, Repo, Tx}
   alias __MODULE__
 
   @behaviour Database
@@ -11,8 +11,10 @@ defmodule Ipncore.Domain do
   @filename "domain.db"
   # @fields ~w(name owner email avatar)
   @edit_fields ~w(enabled owner email avatar)
+  @max_characters 25
   @token Default.token()
   @renewed_time 31_536_000_000
+  @price_to_update 1000
 
   @primary_key {:name, :string, []}
   schema "domain" do
@@ -115,16 +117,19 @@ defmodule Ipncore.Domain do
     end
   end
 
-  def extract_domain(domain) do
+  def extract_root(domain) do
     domain
     |> String.split(".")
     |> Enum.take(-2)
-    |> Enum.join(".")
+    |> List.first()
+
+    # |> Enum.join(".")
   end
 
   def check_new!(name, from_address, email, avatar, years_to_renew, validator_host, size) do
     if years_to_renew not in 1..2, do: throw("Invalid years to renew")
-    if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid hostname")
+    if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid name")
+    if @max_characters < byte_size(name), do: throw("Max characters is 25")
 
     if not is_nil(email) and not Regex.match?(Const.Regex.email(), email),
       do: throw("Invalid email")
@@ -183,7 +188,6 @@ defmodule Ipncore.Domain do
       price(name, years_to_renew),
       validator_host,
       event_size,
-      false,
       nil,
       timestamp,
       channel
@@ -199,6 +203,7 @@ defmodule Ipncore.Domain do
     if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid hostname")
 
     fetch!(name, from_address)
+    Tx.check_fee!(from_address, @price_to_update)
     :ok
   end
 
@@ -237,7 +242,7 @@ defmodule Ipncore.Domain do
         event_id,
         from_address,
         validator_host,
-        1000,
+        @price_to_update,
         timestamp,
         channel
       )
@@ -262,7 +267,19 @@ defmodule Ipncore.Domain do
 
     queryable = from(d in Domain, where: d.name == ^name and d.owner == ^owner)
 
-    Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel)
+    multi
+    |> Ecto.Multi.delete_all(:delete, queryable, prefix: channel)
+    |> DnsRecord.delete_by_root(name, channel)
+  end
+
+  def count_records(%{records: records} = domain, count \\ 1) do
+    %{domain | records: records + count}
+    |> put()
+  end
+
+  def uncount_records(%{records: records} = domain, uncount \\ 1) do
+    %{domain | records: records - uncount}
+    |> put()
   end
 
   def exists?(name, channel) do

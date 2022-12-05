@@ -1,20 +1,20 @@
 defmodule DetsPlus.Ext do
-  defmacro get_handle(pid) do
+  defmacro handle(pid) do
     quote do
-      GenServer.call(unquote(pid), :get_handle)
+      GenServer.call(unquote(pid), :get_handle, 10_000)
     end
   end
 
-  def filter(pid, fun) when is_pid(pid) or is_atom(pid) do
-    Enum.filter(get_handle(pid), fun)
+  def filter(pid, fun) do
+    Enum.filter(handle(pid), fun)
   end
 
-  def reduce_while(pid, acc, fun) when is_pid(pid) or is_atom(pid) do
-    Enum.reduce_while(get_handle(pid), acc, fun)
+  def reduce_while(pid, acc, fun) do
+    Enum.reduce_while(handle(pid), acc, fun)
   end
 
-  def get_multi(pid, items) when is_pid(pid) or is_atom(pid) do
-    Enum.reduce_while(get_handle(pid), {[], []}, fn {k, _v} = x, {keys, acc} = accs ->
+  def get_multi(pid, items) do
+    Enum.reduce_while(handle(pid), {[], []}, fn {k, _v} = x, {keys, acc} = accs ->
       case k in items do
         true ->
           keys = keys ++ [k]
@@ -33,7 +33,7 @@ defmodule DetsPlus.Ext do
   end
 
   def all?(pid, items) do
-    get_handle(pid)
+    handle(pid)
     |> Enum.reduce_while([], fn {k, _v}, keys ->
       case k in items do
         true ->

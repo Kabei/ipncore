@@ -384,6 +384,141 @@
 			"response": []
 		},
 		{
+			"name": "Domain.new (ippan)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\r\n  0,\r\n  \"domain.new\",\r\n  1670200292625,\r\n  [\"ippan\", \"test@mail.com\", \"https://avatar.com\", 2, \"ippan.red\"],\r\n  \"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg\",\r\n  \"xGzMmRJhH6qHPmMbpkzVJUTuvarNUo0M1rEGkizp/VFdUbZc9BDWT1Wf0U/Tp/I129RX/TzJWSVsaAZlLtlrJrfMJYLYzSyoJBv07Wn9tCYalSvqoC7M/T2lue6OejT8/M5ULLHBZzY8g3EIZyjNRuvk++FIb9MCvkbh9o52IXKbWRymzcHNMlZYIa2uvilGrmXl5rapQac8bIbtK+eo3Bn++R9U+ksRloEJPzZiLyqqETRMF7woQeOPhaUnNqhOQOfvvd3oq5JII66W9kW/GsQ96M5kYmispPp6ucv8haOV/uO6Qn9X47Avyitc2BUvHCDI+TF4WPmtZGMNHQG5v37m50e1f6b3ePQD2xDFT68XGHDfJUrkdQlCcFrLd2l55r18hkqgxkTl/SQQybIExGnxWZQmuweG4aksAq3S2UbvyOoTJI22LSMcptWNXIFTME8LIszTqvu9jlELc96GjzqDo1WcelRts+TV8KrqstgXWRFk/zOvBU6WR/mQpnnFbGIYb39r8XuF61qmCpOziLADAI5XtyZxzEzJTaIeSA0Fcy3HWOh/BU5ni22lLAKXP+gh6TGB8DsWbM5JZ2U0bwSViTatI90F8ltonFQW22frV7fa9Ua2gWe3z/sh0GtPYx3gyy3WrlvStT9uWw6lwsjyGGcYFLGg5LSWK0cOlW1KG767UaonZItM0CoF/hkGO0mqXwmvan9oqX6EW7lELeXMadqERJrOrs8BOv5HXxMegibLlSSnxmI1CmylJ8+mVEx0/2RIIzHZ+i7HqGsiKqe3ye5+kfXbe5rt3TH0XvCuBFdnq4A=\"\r\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"event"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Dns.push (pool.my-domian.com)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\r\n  0,\r\n  \"dns.put\",\r\n  1670194398953,\r\n  [\"pool.my-domain.com\", \"a\", \"191.145.20.15\", 86400],\r\n  \"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg\",\r\n  \"nNZiFGfxbrStPtfQuG4maxX5wO38+xr0JQFkU472QQOooJv1HfNS5th5ST+XNGWuqLzN54Y+Xn2lKDddJVxyousZ4tPIOt0PoRLEIW/OTnBZFq0e0yD7qPcnfEM8kwp9p1L4ZVG3k4R/l32Uy8iWRdu3/7StafkxEQO7pJiJAkfmVZuMCSZbIEIqLeg5vP7/oYebz/R2nSP3Z4lKkEzVgd88f4q+Zh0FkavKgQKQcWcLo2Eu7Nion71VkNIw9kcRX8q8PDgyrY0UtqdR0CCJVi0OYdTbJCUJMddEWQ53UmUZhmubA4uunUqLrQtG7rIsmotM9WXSFoK3CYEim/qkEbNqaqV0o1LTNZCDcVNLNQ9Uj+WEwyaPO9kCWmzR6sZrx8pF/ajauyY7KSvHWo+wsIf2SYc8UDdiIfedxK6fXXKP1uSxSzSKsM4Oo4Hnget6PPl58cgIcjOKcBaewYghiRs7IMPm964Cno+iXQw+hf+jPPP6RoeD39BOJq2kxSGcV5yYaQxpyOwT/QpO2ERdht3gXQ0aRNUqO3gEptD0IaYZWmO3Rgom4GcPfPdn4tPIFXVJP976IIjCvJhPZH7OR4oqxjOYwaMnjpqOnNDIwVRvGJsN/gMkk7vcI/t135IjIwdbtLU5nFZtFfOopw4xqFBQt1ULWxz++aCU3ucoG7DZo15JTLmjIHty47cNzIGQcxvjoaiWQz0ec7dUvsbpUQKBNaSjkS+kdUNkmUdBumOelQ1/+bNoXDK8wV4u6DQPFsK9X+xlcUPvOizAnGPYrnLZRikIQOg7GdSfe67XSyUqBXmrojK5mA==\"\r\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"event"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Dns.push (ippan.com)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\r\n  0,\r\n  \"dns.push\",\r\n  1670214113876,\r\n  [\"ippan.com\", \"a\", \"44.203.142.247\", 86400, \"ippan.red\"],\r\n  \"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg\",\r\n  \"zzgJR42IQjzE2RY1lahLN51ID65WMNhiXkd62jJlap7O3KaFpa+rLRvrA9jUl7W7UTsxRKH6+m6RORJtqn0TeVOsRBMEyQ0yV2nJkoXdOM77CDwoBjLHd8yUD/wbH3LCobBsqlJ934e7lbq3Rmrwa3FXR+43zDRV6zdZTf2lc8eaTRuIl/f4mKeFH9aimB352oRospUZFrFiPpVSKfNcanlant9zZfE46djqN3JXAa/Bnx6Xg1CupUf/MIEsCvzbYuB20kS6fNKTvnMnkmMC5fFmv4n3i/bcOnxSPFmnnT/EkY90XELbNVBeL9ZXHOiq8vQ3OsCtqYK1tKLy30sM2LssmL8NRsdV8NBSFP2+5CjpXTVbNyyi74SAZI6bB9fR2V3aHwGh5bKE14VBEJiCX+dou9F9HAPvH0HSxrkD3rFwu0WVGYrUOcq3gIND3gsnIrndti/dYmWqWVRVHxRYIOc605yKyGdszutt86FAFbsGgbBmVaEJJsguFgycJ60XUbnZ255Sk82Bvr1IvLYCft3CnbRn5ZPdDQbotvG9bNMpTE2TpjapU8/We7eFYhvEi/kSaKY4hadd1n2e97ZZe5UtdvjkNU68ORdNUCGLjWEnD1USnRqkvnBu3GprOEgJtP0DiLDwaO3rotFQEwuLxpQTy44V9kjkOWwaY1L/+jRxP94GVQV19Mc7gerWz8g1XcSAs369I0Xlo8QS/5aU241Cl7uOH93pvcbmXvikwydjl8bUC0MWQ8qK/xNWWVbMwlxQxMJe2miQHuYBpaBJYa6FegDfQ9pcAt2heI8dW2S7vjEkuIA=\"\r\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"event"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Dns.push (ippan.com 2)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\r\n  0,\r\n  \"dns.push\",\r\n  1670214140848,\r\n  [\"ippan.com\", \"a\", \"191.145.20.15\", 86400, \"ippan.red\"],\r\n  \"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg\",\r\n  \"jJb/o35tj+cCi2X7MPOfrolWjHqblcLyM34cSVc5c9R8jP7oqV62sLvF/xGEsWdU5RfvnTYKZPZRHR0NBFVgbqREj17cCC6Orcpz/IlK7LhiN68fyoHk5DCUD43tUHHI1X/3njlPeme1hWbSiIz7yJoPJVfYhts7/hbJuHNqEZc5++kURiSk/ddNN69L55t0N3yX6xNFpCaaaV5aGSqy040rUtmkW6SzsHUP+wb+KFiGRZyraj4QnM4zQN9jsP4VjoXUqdKTBj3J4uEcmVcGWkPpe30UxUR2i6Yaw6zz+birasNGN4/0jqlFrWLvjsyorTGMGhi9Z9yU7Q14btTX97Mzrs5Xr4wuzWkvUCHMskcjesx175vY7XvfXSx+y4mUQi2znNtz7IsUrorF2qrABI+8iU3Q6FVOwx4RBXHMQ5WGneGDBKprWmzdnNkaTiYpS1hp5w626kKR5lhzPP5/s5BkBdnVIIS2wTjaQ6OHWZP2Ni+WbRhiJlP7BgEP40niv1cx0NBzUK5TG+Gv7zC5XxmOWcjZLm79UbvWWhXXzqPZhuENfJ4VTosInimuEHP6+txHgqkleaAa9enQRN2Jw7cKNnYV81WCiWHShHoIhyBIJpNfCoc3oiu6gb/JtVXF7G3TZkiXexQ9upvZmhDGtkj4z6bGz6/gjDwsZDmeRmKOyoy1sM+pgcqjpmVO7f5icCbWUM5xa3MJ9OIRprXn9LjilmgQDnd1D1hSikFvgde+G15sabpIliQl9YgycDSfp74SdYXUZugbeKaS8dyct7la9TZwSIaJgb3/8+wkELhkSA==\"\r\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"event"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Dns.drop (pool.my-domain.com)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\r\n  0,\r\n  \"dns.drop\",\r\n  1670214169148,\r\n  [\"ippan.com\", \"a\"],\r\n  \"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg\",\r\n  \"d5AwkY6Dl4o6j1RBRsUNIaqXRAl3H8WJf/hQ8jfW1akvrFV4piATIiUNjRAEcNAyaZx4rku5eSZi9tTwZW0MkWPAm5znoOi1MK8rNFYlTOdqPcU4xHI2W54MYVLY/XipS363UH6fjVM96dMql0iLmzB5zcSJ4DdOvfprokSu+Gvq617AmopUMfSvOzGMrMdbxWFJCcaiuvGGhkTUqudv8s7D1W186M1i97Lfbirtb4IbxAos3UbetyOhlZpadHNMY0zu+ojqhrW72B0refizG3/Vdl2pp+czM0jtQQ1fsdC2p2+DVh2JMyvyj+Z++5dBC1GXfk5g1tbQYq0pQ830hRKN2OlxWSwMyWjmFxQrHJPYI1REX0HX1FzeS0xOgVhNq/h1ZWU0+E0hS38iWWXfzZdMya52NpWXA1s9ihMpIW9ncYkKUymMX2H9f5svF/QYVHJP5kPpdH9tnz9hUVqCtOzEUKwXNUZP6FFBGVCI+QKKdnAoCT9F9GtsxY5mJeijXEdYBBfAnjIxJOaqTJZhx5JaVmnQwSETHn2/hViiPlysSjZzVJUndOBiDETi7w3sJXn62xm7Obq/k4/igFweeCMT4tciz97Usk5zvEdKF62iM1blW8/waSSc8xTMpUTrTr14nWosLoMqgEJ3Gf/8b0Rr800E0RGtR4dnEyuN5llDTutz013UHw7hRNE8La9XRuG4nur6RvL5eUn+9gfRoDFoehEd2E/vmhzcfQ/E58w78PUhskO9ZLIqjQvVtxaprDneL/hRcyeHqoedICl05e5YE7krQUvWxlKG4GLdZNMQ+vmkkA==\"\r\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost/event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"path": [
+						"event"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Domain.update (my-domain)",
 			"request": {
 				"method": "POST",
@@ -411,13 +546,13 @@
 			"response": []
 		},
 		{
-			"name": "domain.delete (ippan.red)",
+			"name": "Domain.delete (ippan)",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "[\r\n  0,\r\n  \"domain.delete\",\r\n  1670012890209,\r\n  [\"my-domain\"],\r\n  \"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg\",\r\n  \"bGSokpRlh5PX0/TmRSmM0FDm/VHbbs4cf8OaRFK1BkstVdFULOoliTKn/kON9M9Lb81+oDKHYz2Ro2a+KrKuffUYM5bnIXJotluNfG+4qN6dIjLtJQMEpLuNQxqfNrynxZjfdVSdCisBcWqKQWQZpFpRvD5RluEtjbm49gdisiNb+qmI3yZbLbpKLh1ZEoE0fjakwyXQ/FIYQo7875Ttd692lR4EDzm8NhqF1lpcMCSbGrepY4tmlrWxzt95OnrTzSRpJjcZ+BMC0qFxhC5U5jP7F/YqXXQLqzDGFtX3uNfxctBtxyax/Pd0e5FC14dC3N1TLGNirrXFslB7qk23JpPDRMDb5ro6bVkeZvOITPs22UnfTdIG0qa91xFWIK0aIrxApRMXolNslcM/BgToMZmtJo9YSCqwKLRFob7AMyIrO2zXmAmpMTFaVpy3ypq8xLe73nu7rTyfXHaa90rpGmN518Kth5d84xXYvHlMmlMcxrlSjyX9WGVnENOQ44DltA6WVPcV5C/xADUFU/sMRrqOwpGDXrs7+37moYZzlljKUp+xSvWHYukrLkNR2uZN1ALlP0OgqJiBNH71pj7ffXaMdaUSqcr8yo3SltT36X5c0mNVgWyhZnKlGdo33th+J6WB010xmJYyWy1URIM/rs9so6XJkk9Ry8E2E7LhFT3u27LcFgb6LISdAxtImCJGbsUt8/M5BOIvwjakEaYqZBC1Vstbyx3c8qwKZD/XSSQvja2f0jkZTJ2Z8PrxZPkCDHAyKRb07h+kyEccttqAwzlqeXmgZeJjbUzbUrKFR+FSedUL5vrf5UA=\"\r\n]",
+					"raw": "[\r\n  0,\r\n  \"domain.delete\",\r\n  1670209358822,\r\n  [\"ippan\"],\r\n  \"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg\",\r\n  \"57zq0TbD3qv6qM10KIISeXlXr6GXqyT1HMT5mbzpj98lK1b6Pn2090zf2zVM1s28F5JDDyo0WdzbmLpJrj80P+kg3tmzCRoUmabDHR60+rQoxOs+0ndLcsJCZnPyUlReVtJMHXZY6l6Py89jmUtoPiW7MPl7KnimJkK7WtQ+jAstrUmeV3rsgWSGIZYa+955v63SM3ibZhSKHaw3hvPZwUxeZcDEmNYeO9Rm3te9xc+3ni/bDdz/Ubo2a13d19s6Dty+Vp4i+1h2GvPD16fY/9wDMbdAXQiikf5zJ14OolNez9e3+PjyFf2AUvFOFhrtuNeSN9Utrjuq9+prlL9v73jjGKf9a7XMwrPAY9lnyfTjpI9jqVzjJO1F1IdNGqX1qOAidE0Hm2GcMWGuJe10/RHz2yeWarx9D+85r16+Knso6L96jZWdTNOy+ahBIki7oTqK+uSq9cZBAeRCE0h9QwDKW3d4h8ptL3G6HsnrIKLq7s9tpvrp71JIOg8mrojM0Kt00xfi/UmiJEovec8ztDXlvNOh/gUpmmEoUJ+uFN0cdKBmTPVCFq1NqDkDgote/rtPVHM8R9FaxSbSXQhn64V2m0FRZz0huCENZdO1G+du8SVnddPYNGycolcYattOXNWhpsSNE/KlRfRW79wqDnKQLkxHY15fVMK65aCW/F6Bz6dzosxs6nxrSB36hJ1omqgQhq5YNB3Zc/PM85aU9H16+CsnuJa6EyP5/F/yHzp3N1nNR7Sb2x+W20qa4B09720ueHgMn1MFTNhhznfC3W5dHoeJY1ZlTHY/3Q5ROtxE\"\r\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -492,7 +627,7 @@
 			"response": []
 		},
 		{
-			"name": "balance.lock (W2 GBP)",
+			"name": "Balance.lock (W2 GBP)",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -519,7 +654,7 @@
 			"response": []
 		},
 		{
-			"name": "balance.lock (W2 GBP unlock)",
+			"name": "Balance.lock (W2 GBP unlock)",
 			"request": {
 				"method": "POST",
 				"header": [],

@@ -8,8 +8,9 @@ defmodule Ipncore.Application do
     Block,
     Balance,
     Chain,
-    DNSS,
+    DNS,
     Domain,
+    DnsRecord,
     Event,
     Migration,
     Repo,
@@ -53,7 +54,8 @@ defmodule Ipncore.Application do
            {:ok, _pid} <- Balance.open(),
            {:ok, _pid} <- Token.open(),
            {:ok, _pid} <- Validator.open(),
-           {:ok, _pid} <- Domain.open() do
+           {:ok, _pid} <- Domain.open(),
+           {:ok, _pid} <- DnsRecord.open() do
         Platform.start()
       else
         err -> throw(err)
@@ -66,7 +68,8 @@ defmodule Ipncore.Application do
       children = [
         Repo,
         RepoWorker,
-        dns_server(),
+        dns_udp_server(),
+        dns_tcp_server(),
         # imp_client(),
         http_server(),
         https_server()
@@ -92,6 +95,7 @@ defmodule Ipncore.Application do
     Token.close()
     Validator.close()
     Domain.close()
+    DnsRecord.close()
   end
 
   defp migration_start do
@@ -119,11 +123,18 @@ defmodule Ipncore.Application do
     {Ipncore.IMP.Client, opts}
   end
 
-  defp dns_server do
+  defp dns_udp_server do
     opts = Application.get_env(@otp_app, :dns)
     ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0})
     port = Keyword.get(opts, :port, 53)
-    {DNSS, [ip_address, port]}
+    {DNS.UdpServer, [ip_address, port]}
+  end
+
+  defp dns_tcp_server do
+    opts = Application.get_env(@otp_app, :dns)
+    ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0})
+    port = Keyword.get(opts, :port, 53)
+    {DNS.TcpServer, [ip_address, port]}
   end
 
   defp http_server do

@@ -5,6 +5,17 @@ defmodule Ipncore.Wallet do
   @file_extension ".db"
   @partitions 16
 
+  defmacrop get_base(hash) do
+    quote do
+      <<first::8, _rest::binary>> = unquote(hash)
+      number = rem(first, @partitions)
+
+      [@base, to_string(number)]
+      |> IO.iodata_to_binary()
+      |> String.to_existing_atom()
+    end
+  end
+
   def open do
     folder_path = Application.get_env(:ipncore, :wallet_path, "data/wallets")
     File.mkdir_p(folder_path)
@@ -84,13 +95,5 @@ defmodule Ipncore.Wallet do
 
   def exists?(address_hash) do
     DetsPlus.member?(get_base(address_hash), address_hash)
-  end
-
-  defp get_base(<<first::8, _rest::binary>>) do
-    number = rem(first, @partitions)
-
-    [@base, to_string(number)]
-    |> IO.iodata_to_binary()
-    |> String.to_existing_atom()
   end
 end

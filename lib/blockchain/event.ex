@@ -1,6 +1,19 @@
 defmodule Ipncore.Event do
   use Ecto.Schema
-  alias Ipncore.{Address, Balance, Domain, Repo, RepoWorker, Token, Tx, Validator, Wallet}
+
+  alias Ipncore.{
+    Address,
+    Balance,
+    Domain,
+    DnsRecord,
+    Repo,
+    RepoWorker,
+    Token,
+    Tx,
+    Validator,
+    Wallet
+  }
+
   import Ipnutils.Macros, only: [deftypes: 1]
   # import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query
@@ -20,14 +33,13 @@ defmodule Ipncore.Event do
       {212, "tx.sendmulti"},
       {213, "tx.refund"},
       {214, "tx.jackpot"},
-      # only validators
       {215, "tx.reward"},
       {216, "tx.burned"},
       {250, "balance.lock"},
       {400, "domain.new"},
       {401, "domain.update"},
       {402, "domain.delete"},
-      {410, "dns.put"},
+      {410, "dns.push"},
       {411, "dns.drop"},
       {1000, "pubkey.new"}
     ]
@@ -51,6 +63,7 @@ defmodule Ipncore.Event do
   @version Application.compile_env(:ipncore, :event_version)
   @threshold_timeout Application.compile_env(:ipncore, :event_threshold_timeout)
   @max_size Application.compile_env(:ipncore, :event_max_size)
+  @imposible Default.imposible_address()
   # @max_signatures Application.compile_env(:ipncore, :event_max_signatures, 5)
 
   @base :ev
@@ -98,26 +111,6 @@ defmodule Ipncore.Event do
 
   def timeout, do: @threshold_timeout
 
-  defmacrop mempool_push!(hash, time, type_number, from_address, body, signature, size) do
-    quote do
-      case Mempool.push!(
-             unquote(hash),
-             unquote(time),
-             unquote(type_number),
-             unquote(from_address),
-             unquote(body),
-             unquote(signature),
-             unquote(size)
-           ) do
-        true ->
-          {:ok, unquote(hash)}
-
-        false ->
-          throw("Error in pushing mempool")
-      end
-    end
-  end
-
   @spec check(pos_integer, String.t(), pos_integer, term, String.t(), String.t()) ::
           {:ok, binary} | {:error, String.t()}
   def check(@version, "pubkey.new" = type_name, time, [pubkey] = body, sig64) do
@@ -134,11 +127,13 @@ defmodule Ipncore.Event do
       size = byte_size(body_text) + byte_size(signature)
       from_address = Address.hash(pubkey)
 
+      if @imposible == from_address, do: throw("Imposible address")
+
       if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
 
       if Wallet.has_key?(from_address), do: throw("Pubkey already exists")
 
-      mempool_push!(hash, time, type_number, from_address, body, signature, size)
+      Mempool.push!(hash, time, type_number, from_address, body, signature, size)
     catch
       x -> {:error, x}
     end
@@ -233,11 +228,18 @@ defmodule Ipncore.Event do
           [to_address, token_id, value] = body
           Balance.check_lock!(from_address, Address.from_text(to_address), token_id, value)
 
+        "dns.push" ->
+          [name, type, value, ttl | _validator_host] = body
+          DnsRecord.check_push!(name, type, from_address, value, ttl)
+
+        "dns.drop" ->
+          DnsRecord.check_drop!(body, from_address)
+
         _ ->
           throw("Invalid Match Type")
       end
 
-      mempool_push!(hash, time, type_number, from_address, body, signature, size)
+      Mempool.push!(hash, time, type_number, from_address, body, signature, size)
     rescue
       ex ->
         {:error, Exception.format(:error, ex, __STACKTRACE__)}
@@ -368,7 +370,7 @@ defmodule Ipncore.Event do
           Domain.event_delete!(multi, host, from_address, channel)
 
         "tx.send" ->
-          [token, to_address, amount, validator_host, refundable, memo] = body
+          [token, to_address, amount, validator_host, memo] = body
 
           Tx.send!(
             multi,
@@ -379,7 +381,6 @@ defmodule Ipncore.Event do
             amount,
             validator_host,
             size,
-            refundable,
             memo,
             time,
             channel
@@ -392,6 +393,25 @@ defmodule Ipncore.Event do
         "balance.lock" ->
           [to_address, token_id, value] = body
           Balance.lock!(multi, Address.from_text(to_address), token_id, value, time, channel)
+
+        "dns.push" ->
+          [name, type, value, ttl, validator_host] = body
+
+          DnsRecord.event_push!(
+            multi,
+            hash,
+            from_address,
+            name,
+            type,
+            value,
+            ttl,
+            validator_host,
+            time,
+            channel
+          )
+
+        "dns.drop" ->
+          DnsRecord.event_drop!(multi, body, channel)
       end
 
     put!({hash, time, next_index, @version, type_number, from_address, body, signature})

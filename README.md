@@ -79,7 +79,7 @@ Events are requests made by users and automatic operations by the system that af
 |```GET```|```/blockchain/txs```|List of transactions|✅
 |```GET```|```/blockchain/tx/:hash16```|Details transaction queried by hash|✅
 <!-- |```GET```|```/channel```|List of channel|❌ -->
-|```GET```|```/txo```|List of output transactions|❌
+|```GET```|```/txo```|List of output transactions|✅
 <!-- |```GET```|```/txi```|List of input transactions|❌ -->
 |```GET```|```/blockchain/tokens```|List of tokens|✅
 |```GET```|```/blockchain/token/:token/:channel```|Token details|✅

@@ -109,7 +109,7 @@ defmodule Ipncore.Balance do
 
     from(txo in Txo,
       join: ev in Event,
-      on: ev.id == txo.txid,
+      on: ev.hash == txo.txid,
       join: tx in Tx,
       on: tx.id == txo.txid,
       select: %{

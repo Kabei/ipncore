@@ -13,6 +13,7 @@ defmodule Ipncore.Address do
     |> ByteUtils.zeros_pad_leading(160)
   end
 
+  def from_text(""), do: nil
   def from_text(x), do: throw("Error convert address text to bin #{x}")
 
   def to_text([]), do: []
@@ -26,6 +27,7 @@ defmodule Ipncore.Address do
   end
 
   def to_text("1x" <> _rest = x), do: x
+  def to_text(nil), do: ""
   def to_text(_), do: throw("Error convert address bin to text")
 
   def hash(pubkey) do

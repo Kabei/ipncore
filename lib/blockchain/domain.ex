@@ -332,6 +332,7 @@ defmodule Ipncore.Domain do
       name: d.name,
       email: d.email,
       avatar: d.avatar,
+      owner: d.owner,
       records: d.records,
       created_at: d.created_at,
       renewed_at: d.renewed_at,

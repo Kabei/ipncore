@@ -1,7 +1,7 @@
 defmodule Ipncore.Explorer.Router do
   use Plug.Router
 
-  import Ipncore.WebTools, only: [json: 2, send_error: 2, send_result: 2]
+  import Ipncore.WebTools, only: [json: 2, send_result: 2]
   import Ipnutils.Filters
   import Ipncore.PostDeliver, only: [serve_video: 3]
 
@@ -235,7 +235,7 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/domain" do
+  get "/blockchain/domains" do
     resp = Domain.all(conn.params)
     send_result(conn, resp)
   end

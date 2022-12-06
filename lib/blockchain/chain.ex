@@ -75,7 +75,7 @@ defmodule Ipncore.Chain do
   def next_index do
     case get(:next_index) do
       nil -> 0
-      n -> n + 1
+      n -> n
     end
   end
 

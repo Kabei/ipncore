@@ -184,20 +184,18 @@ defmodule Ipncore.Explorer.Router do
   # end
 
   get "/blockchain/status" do
-    genesis_time = Chain.genesis_time()
     # channel = Channel.get(channel_id)
     token = Token.fetch!(Default.token())
     last_block = Chain.last_block()
 
     resp = %{
-      owner: Platform.address58(),
-      token: Default.token(),
-      height: last_block.height,
-      genesis_time: genesis_time,
-      iit: Chain.get_time(),
       coins: token.supply,
-      # ev_count: channel.tx_count,
-      next_index: Chain.next_index()
+      height: last_block.height,
+      last_hash: Event.encode_id(last_block.hash),
+      time: Chain.get_time(),
+      owner: Platform.address58(),
+      token: Default.token()
+      # ev_count: channel.tx_count
     }
 
     send_result(conn, resp)

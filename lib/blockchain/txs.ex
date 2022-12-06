@@ -3,7 +3,7 @@ defmodule Ipncore.Tx do
   require Logger
   import Ecto.Query, only: [from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
-  alias Ipncore.{Address, Balance, Block, Txo, Balance, Token, Validator, Repo}
+  alias Ipncore.{Address, Balance, Block, Event, Txo, Balance, Token, Validator, Repo}
   alias __MODULE__
 
   @unit_time Default.unit_time()

@@ -74,7 +74,7 @@ Events are requests made by users and automatic operations by the system that af
 |-|-|-|-|
 |```GET```|```/blockchain/blocks```|List of blocks|✅
 |```GET```|```/blockchain/block/:hash16```|A block|✅
-|```GET```|```/blockchain/events```|List of events|❌
+|```GET```|```/blockchain/events```|List of events|✅
 |```GET```|```/blockchain/event/:hash16```|Event detail|❌
 |```GET```|```/blockchain/txs```|List of transactions|❌
 |```GET```|```/blockchain/tx/:hash16```|Details transaction queried by hash|❌

@@ -1,0 +1,64 @@
+{
+	"info": {
+		"_postman_id": "5ef5bb23-16ba-4901-8549-c97ac9d536a6",
+		"name": "IPNCORE BLOCKCHAIN API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Blocks",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/blocks",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"blocks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Block",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/block/7ded3373e0651e2704dfd311bafdbee447f5985bd45bc932e5ab9964b4045de4",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"block",
+						"7ded3373e0651e2704dfd311bafdbee447f5985bd45bc932e5ab9964b4045de4"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Events",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"events"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -8,7 +8,7 @@ defmodule Ipncore.Explorer.Router do
   alias Ipncore.{
     Address,
     Block,
-    Channel,
+    # Channel,
     Event,
     Tx,
     Txo,
@@ -183,17 +183,20 @@ defmodule Ipncore.Explorer.Router do
   #   send_result(conn, resp)
   # end
 
-  get "/blockchain/status/:channel_id" do
+  get "/blockchain/status" do
     genesis_time = Chain.genesis_time()
-    channel = Channel.get(channel_id)
-    token = Token.one(Default.token(), channel_id)
+    # channel = Channel.get(channel_id)
+    token = Token.fetch!(Default.token())
+    last_block = Chain.last_block()
 
     resp = %{
-      blocks: channel.block_count,
+      owner: Platform.address58(),
+      token: Default.token(),
+      height: last_block.height,
       genesis_time: genesis_time,
       iit: Chain.get_time(),
       coins: token.supply,
-      tx_count: channel.tx_count,
+      # ev_count: channel.tx_count,
       next_index: Chain.next_index()
     }
 

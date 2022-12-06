@@ -15,7 +15,7 @@ defmodule Ipncore.Explorer.Router do
   plug(:match)
   plug(:dispatch)
 
-  get "/blocks" do
+  get "/blockchain/blocks" do
     params = conn.params
 
     resp = Block.all(params)
@@ -23,19 +23,21 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/channel" do
+  get "/blockchain/events" do
     params = conn.params
-    resp = Block.all(params)
+
+    resp = Event.all(params)
+
     send_result(conn, resp)
   end
 
-  get "/txs" do
+  get "/blockchain/txs" do
     params = conn.params
     resp = Tx.all(params)
     send_result(conn, resp)
   end
 
-  get "/txo" do
+  get "/blockchain/txo" do
     params = conn.params
     resp = Txo.all(params)
     send_result(conn, resp)
@@ -47,29 +49,29 @@ defmodule Ipncore.Explorer.Router do
   #   send_result(conn, resp)
   # end
 
-  get "/tokens" do
+  get "/blockchain/tokens" do
     params = conn.params
     resp = Token.all(params)
     send_result(conn, resp)
   end
 
-  get "/token/:token/:channel" do
+  get "/blockchain/token/:token/:channel" do
     resp = Token.one(token, channel, conn.params)
     send_result(conn, resp)
   end
 
-  get "/validators" do
+  get "/blockchain/validators" do
     params = conn.params
     resp = Validator.all(params)
     send_result(conn, resp)
   end
 
-  get "/validators/:hostname/:channel" do
+  get "/blockchain/validators/:hostname/:channel" do
     resp = Validator.one(hostname, channel, conn.params)
     send_result(conn, resp)
   end
 
-  get "/search" do
+  get "/blockchain/search" do
     params = conn.params
 
     case params do
@@ -136,25 +138,25 @@ defmodule Ipncore.Explorer.Router do
     end
   end
 
-  get "/balance/:address58/:token" do
+  get "/blockchain/balance/:address58/:token" do
     address = Base58Check.decode(address58)
     resp = Balance.fetch_balance(address, token, Default.channel())
     send_result(conn, resp)
   end
 
-  get "/balance/:address58" do
+  get "/blockchain/balance/:address58" do
     address = Base58Check.decode(address58)
     resp = Balance.all_balance(address, conn.params)
     send_result(conn, resp)
   end
 
-  get "/activity/:address58" do
+  get "/blockchain/activity/:address58" do
     resp = Balance.activity(address58, conn.params)
 
     send_result(conn, resp)
   end
 
-  get "/channel/:channel_id" do
+  get "/blockchain/channel/:channel_id" do
     resp =
       case Channel.get(channel_id) do
         nil ->
@@ -167,7 +169,7 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/status/:channel_id" do
+  get "/blockchain/status/:channel_id" do
     genesis_time = Chain.genesis_time()
     channel = Channel.get(channel_id)
     token = Token.one(Default.token(), channel_id)
@@ -184,7 +186,7 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/block/:hash16" when byte_size(hash16) == 64 do
+  get "/blockchain/block/:hash16" when byte_size(hash16) == 64 do
     hash = Base.decode16!(hash16, case: :mixed)
 
     resp = Block.get(%{"hash" => hash})
@@ -192,13 +194,13 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/block/height/:height" do
+  get "/blockchain/block/height/:height" do
     resp = Block.get(%{"height" => height})
 
     send_result(conn, resp)
   end
 
-  get "/tx/:hash16" when byte_size(hash16) == 64 do
+  get "/blockchain/tx/:hash16" when byte_size(hash16) == 64 do
     hash = Base.decode16!(hash16, case: :mixed)
 
     resp = Tx.one(hash, conn.params)
@@ -206,12 +208,7 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/events" do
-    resp = Event.all(conn.params)
-    send_result(conn, resp)
-  end
-
-  get "/event/:evid" do
+  get "/blockchain/event/:evid" do
     id = Event.decode_id(evid)
 
     resp = Event.one(id, filter_channel(conn.params, Default.channel()))
@@ -275,7 +272,7 @@ defmodule Ipncore.Explorer.Router do
   #   end
   # end
 
-  post "/event" do
+  post "/blockchain/event" do
     # IO.inspect(conn)
     %{"_json" => body} = conn.params
     # IO.inspect(body)

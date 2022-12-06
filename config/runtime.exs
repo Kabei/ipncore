@@ -46,9 +46,9 @@ config :ipncore, :https,
 
 # database
 config :ipncore, Ipncore.Repo,
-  hostname: "core.ippan.net",
-  username: "ippan",
-  database: "ippancore_beta",
+  hostname: "localhost",
+  username: "kambei",
+  database: "ippan",
   password: "NdgPPUWiSXF1EQbC5Pqm",
   port: 5432,
   pool_size: 20,

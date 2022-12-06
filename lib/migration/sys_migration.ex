@@ -37,8 +37,8 @@ defmodule Ipncore.Migration.System do
       )
       """,
       "INSERT INTO sys.env(key, value, added, updated_at) VALUES('version', #{version}, #{time}, #{time})"
-    ] ++
-      create_functions()
+    ]
+      # create_functions()
 
     # ++ trigger_approved()
   end
@@ -86,108 +86,108 @@ defmodule Ipncore.Migration.System do
   #   ]
   # end
 
-  defp create_functions do
-    [
-      """
-      CREATE OR REPLACE FUNCTION sys.utxo(
-      _indexes bytea[],
-      _schema character varying)
-      RETURNS TABLE(id bytea, tid bytea, type TEXT, value bigint, address bytea) 
-      LANGUAGE 'plpgsql'
-      COST 100
-      VOLATILE PARALLEL UNSAFE
-      ROWS 1000
+  # defp create_functions do
+  #   [
+  #     """
+  #     CREATE OR REPLACE FUNCTION sys.utxo(
+  #     _indexes bytea[],
+  #     _schema character varying)
+  #     RETURNS TABLE(id bytea, tid bytea, type TEXT, value bigint, address bytea) 
+  #     LANGUAGE 'plpgsql'
+  #     COST 100
+  #     VOLATILE PARALLEL UNSAFE
+  #     ROWS 1000
 
-      AS $BODY$
-      BEGIN
+  #     AS $BODY$
+  #     BEGIN
 
-      execute ('SET search_path to ' || _schema);
-      return query SELECT a.id, a.tid, a.type, a.value, a.address
-      FROM txo as a
-      WHERE a.id = ANY (_indexes::bytea[]) and a.avail=TRUE ORDER BY a.id ASC;
+  #     execute ('SET search_path to ' || _schema);
+  #     return query SELECT a.id, a.tid, a.type, a.value, a.address
+  #     FROM txo as a
+  #     WHERE a.id = ANY (_indexes::bytea[]) and a.avail=TRUE ORDER BY a.id ASC;
 
-      END
-      $BODY$;
-      """,
-      """
-      CREATE OR REPLACE FUNCTION sys.uoutputs(
-      _address bytea[],
-      _tid bytea,
-      _total bigint,
-      _schema character varying)
-      RETURNS TABLE(id bytea, address bytea, tid bytea, type TEXT, val bigint, bal bigint) 
-      LANGUAGE 'plpgsql'
-      COST 100
-      VOLATILE PARALLEL UNSAFE
-      ROWS 1000
+  #     END
+  #     $BODY$;
+  #     """,
+  #     """
+  #     CREATE OR REPLACE FUNCTION sys.uoutputs(
+  #     _address bytea[],
+  #     _tid bytea,
+  #     _total bigint,
+  #     _schema character varying)
+  #     RETURNS TABLE(id bytea, address bytea, tid bytea, type TEXT, val bigint, bal bigint) 
+  #     LANGUAGE 'plpgsql'
+  #     COST 100
+  #     VOLATILE PARALLEL UNSAFE
+  #     ROWS 1000
 
-      AS $BODY$
-      BEGIN
-      bal := 0;
+  #     AS $BODY$
+  #     BEGIN
+  #     bal := 0;
 
-      execute ('SET search_path to ' || _schema);
-      FOR id, address, tid, type, val, bal IN
-      (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."type" AS "type", t0."value" AS "value",
-      SUM(t0."value") OVER (
-      ORDER BY t0."id" ASC rows between unbounded preceding and current row) AS "bal"
-      FROM txo AS t0
-      WHERE (t0.avail = true) AND (t0."tid" = _tid) AND (t0."address" = ANY(_address::bytea[])) AND bal < _total
-      GROUP BY t0.id, t0.tid, t0.value, t0.address
-      ORDER BY t0."id" ASC)
-      LOOP
-      RETURN NEXT;
-      EXIT WHEN bal >= _total;
-      END LOOP;
-      END
-      $BODY$;
-      """
-      # ,
-      # """
-      # CREATE OR REPLACE FUNCTION sys.uoutputs_multi(
-      #   _address bytea[],
-      #   _tid bytea,
-      #   _total bigint,
-      #   _prefix character varying)
-      #   RETURNS TABLE(id bytea, address bytea, tid bytea, type TEXT, val bigint, channel character varying, bal bigint)
-      #   LANGUAGE 'plpgsql'
-      #   COST 100
-      #   VOLATILE PARALLEL UNSAFE
-      #   ROWS 1000
+  #     execute ('SET search_path to ' || _schema);
+  #     FOR id, address, tid, type, val, bal IN
+  #     (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."type" AS "type", t0."value" AS "value",
+  #     SUM(t0."value") OVER (
+  #     ORDER BY t0."id" ASC rows between unbounded preceding and current row) AS "bal"
+  #     FROM txo AS t0
+  #     WHERE (t0.avail = true) AND (t0."tid" = _tid) AND (t0."address" = ANY(_address::bytea[])) AND bal < _total
+  #     GROUP BY t0.id, t0.tid, t0.value, t0.address
+  #     ORDER BY t0."id" ASC)
+  #     LOOP
+  #     RETURN NEXT;
+  #     EXIT WHEN bal >= _total;
+  #     END LOOP;
+  #     END
+  #     $BODY$;
+  #     """
+  #     # ,
+  #     # """
+  #     # CREATE OR REPLACE FUNCTION sys.uoutputs_multi(
+  #     #   _address bytea[],
+  #     #   _tid bytea,
+  #     #   _total bigint,
+  #     #   _prefix character varying)
+  #     #   RETURNS TABLE(id bytea, address bytea, tid bytea, type TEXT, val bigint, channel character varying, bal bigint)
+  #     #   LANGUAGE 'plpgsql'
+  #     #   COST 100
+  #     #   VOLATILE PARALLEL UNSAFE
+  #     #   ROWS 1000
 
-      # AS $BODY$
-      # declare
-      # _schema character varying;
+  #     # AS $BODY$
+  #     # declare
+  #     # _schema character varying;
 
-      # BEGIN
-      # bal := 0;
+  #     # BEGIN
+  #     # bal := 0;
 
-      # FOR _schema IN (
-      # SELECT a.table_schema
-      # FROM information_schema.tables as a
-      # WHERE a.table_type='BASE TABLE' and a.table_name='txo' and a.table_schema LIKE _prefix||'%'
-      # )
-      # LOOP
+  #     # FOR _schema IN (
+  #     # SELECT a.table_schema
+  #     # FROM information_schema.tables as a
+  #     # WHERE a.table_type='BASE TABLE' and a.table_name='txo' and a.table_schema LIKE _prefix||'%'
+  #     # )
+  #     # LOOP
 
-      # execute ('SET search_path to ' ||'"'|| _schema ||'"');
-      # FOR id, address, tid, val, channel, bal IN
-      # (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."type" AS "type", t0."value" AS "value",
-      # _schema as "channel",SUM(t0."value") OVER (
-      # ORDER BY t0."id" ASC rows between unbounded preceding and current row) AS "bal"
-      # FROM txo AS t0
-      # LEFT OUTER JOIN txi AS t1 ON (t1."oid" = t0."id")
+  #     # execute ('SET search_path to ' ||'"'|| _schema ||'"');
+  #     # FOR id, address, tid, val, channel, bal IN
+  #     # (SELECT t0."id" AS "id", t0."address" AS "address", t0."tid" AS "tid", t0."type" AS "type", t0."value" AS "value",
+  #     # _schema as "channel",SUM(t0."value") OVER (
+  #     # ORDER BY t0."id" ASC rows between unbounded preceding and current row) AS "bal"
+  #     # FROM txo AS t0
+  #     # LEFT OUTER JOIN txi AS t1 ON (t1."oid" = t0."id")
 
-      # WHERE (t0.avail = true) AND (t0."tid" = _tid) AND (t0."address" = ANY(_address::bytea[])) AND (t1."oid" IS NULL) AND bal < _total
-      # GROUP BY t0.id, t0.tid, t0.value, t0.address
-      # ORDER BY t0."id" ASC)
-      # LOOP
-      # RETURN NEXT;
-      # EXIT WHEN bal >= _total;
-      # END LOOP;
+  #     # WHERE (t0.avail = true) AND (t0."tid" = _tid) AND (t0."address" = ANY(_address::bytea[])) AND (t1."oid" IS NULL) AND bal < _total
+  #     # GROUP BY t0.id, t0.tid, t0.value, t0.address
+  #     # ORDER BY t0."id" ASC)
+  #     # LOOP
+  #     # RETURN NEXT;
+  #     # EXIT WHEN bal >= _total;
+  #     # END LOOP;
 
-      # END LOOP;
-      # END
-      # $BODY$;
-      # """
-    ]
-  end
+  #     # END LOOP;
+  #     # END
+  #     # $BODY$;
+  #     # """
+  #   ]
+  # end
 end

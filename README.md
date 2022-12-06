@@ -72,24 +72,27 @@ Events are requests made by users and automatic operations by the system that af
 
 |Method|Route|Description|Status|
 |-|-|-|-|
-|```GET```|```/blocks```|List of blocks|✅
-|```GET```|```/channel```|List of channel|✅
-|```GET```|```/txs```|List of transactions|✅
-|```GET```|```/txo```|List of output transactions|✅
-|```GET```|```/txi```|List of input transactions|✅
-|```GET```|```/tokens```|List of tokens|✅
-|```GET```|```/token/:token/:channel```|Token details|✅
-|```GET```|```/validators```|List of validators|✅
-|```GET```|```/validators/:hostname/:channel```|Validator details|✅
-|```GET```|```/search```|Search result|✅
-|```GET```|```/balance/:address58```|Balance of an address|✅
-|```GET```|```/activity/:address58```|List of events of an address|✅
-|```GET```|```/channel/:channel_id```|Details of a channel|✅
-|```GET```|```/status/:channel_id```|Channel status|✅
-|```GET```|```/block/:hash16```|Details of the block queried by hash|✅
-|```GET```|```/block/height/:height```|Details of the block queried by height|✅
-|```GET```|```/tx/:hash16```|Details transaction queried by hash|✅
-|```POST```|```/event```|Create an event|✅
+|```GET```|```/blockchain/blocks```|List of blocks|✅
+|```GET```|```/blockchain/block/:hash16```|A block|✅
+|```GET```|```/blockchain/events```|List of events|❌
+|```GET```|```/blockchain/event/:hash16```|Event detail|❌
+|```GET```|```/blockchain/txs```|List of transactions|❌
+|```GET```|```/blockchain/tx/:hash16```|Details transaction queried by hash|❌
+<!-- |```GET```|```/channel```|List of channel|❌ -->
+|```GET```|```/txo```|List of output transactions|❌
+<!-- |```GET```|```/txi```|List of input transactions|❌ -->
+|```GET```|```/blockchain/tokens```|List of tokens|❌
+|```GET```|```/blockchain/token/:token/:channel```|Token details|❌
+|```GET```|```/blockchain/validators```|List of validators|❌
+|```GET```|```/blockchain/validators/:hostname/:channel```|Validator details|❌
+|```GET```|```/blockchain/search```|Search result|❌
+|```GET```|```/blockchain/balance/:address58```|Balance of an address|❌
+|```GET```|```/blockchain/activity/:address58```|List of events of an address|❌
+<!-- |```GET```|```/blockchain/channel/:channel_id```|Details of a channel|❌ -->
+|```GET```|```/blockchain/status/:channel_id```|Channel status|❌
+|```GET```|```/blockchain/block/:hash16```|Details of the block queried by hash|❌
+|```GET```|```/blockchain/block/height/:height```|Details of the block queried by height|❌
+|```POST```|```/event```|Create an event|❌
 
 ## DNS Record Type support
 

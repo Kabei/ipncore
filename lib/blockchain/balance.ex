@@ -144,7 +144,7 @@ defmodule Ipncore.Balance do
         value: x.value,
         memo: x.memo,
         time: x.time,
-        fee: x.otype == @output_reason_fee,
+        fee: x.reason == @output_reason_fee,
         received: address == x.to
       }
     end)

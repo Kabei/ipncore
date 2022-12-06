@@ -293,7 +293,7 @@ defmodule Ipncore.Tx do
   def one(txid, params) do
     from(tx in Tx,
       join: ev in Event,
-      on: ev.id == tx.id,
+      on: ev.hash == tx.id,
       where: tx.id == ^txid,
       select: map_select(),
       limit: 1
@@ -305,7 +305,7 @@ defmodule Ipncore.Tx do
   def one_by_hash(hash, params) do
     from(tx in Tx,
       join: ev in Event,
-      on: ev.id == tx.id,
+      on: ev.hash == tx.id,
       where: ev.hash == ^hash,
       select: map_select(),
       limit: 1
@@ -315,7 +315,7 @@ defmodule Ipncore.Tx do
   end
 
   def all(params) do
-    from(tx in Tx, join: ev in Event, on: ev.id == tx.id)
+    from(tx in Tx, join: ev in Event, on: ev.hash == tx.id)
     |> filter_index(params)
     |> filter_select(params)
     |> filter_offset(params)

@@ -20,12 +20,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -47,12 +47,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -74,12 +74,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -101,12 +101,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -128,12 +128,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -155,12 +155,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -182,12 +182,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -209,12 +209,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -236,12 +236,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -263,12 +263,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -290,12 +290,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -317,12 +317,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -344,12 +344,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -371,12 +371,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -398,12 +398,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -425,12 +425,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -452,12 +452,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -479,12 +479,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -506,12 +506,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -533,12 +533,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -560,12 +560,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -587,12 +587,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -614,12 +614,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -641,12 +641,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}
@@ -668,12 +668,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://{{HOST}}/event",
-					"protocol": "http",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
 					"host": [
-						"{{HOST}}"
+						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
+						"blockchain",
 						"event"
 					]
 				}

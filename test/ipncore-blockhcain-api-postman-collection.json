@@ -43,6 +43,26 @@
 			"response": []
 		},
 		{
+			"name": "Block height",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/block/height/6",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"block",
+						"height",
+						"6"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "Events",
 			"request": {
 				"method": "GET",
@@ -55,6 +75,294 @@
 					"path": [
 						"blockchain",
 						"events"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Event",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event/df6f78c9b61ee69b62f116a641f03080b45077ca4277079adb960e67e2ccb168",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"event",
+						"df6f78c9b61ee69b62f116a641f03080b45077ca4277079adb960e67e2ccb168"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Txs",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/txs",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"txs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Tx",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/tx/d419fde49b0a510899eddf3ff5d96bda55aae80f03c57dfa4bd9057c4bcdb2f7",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"tx",
+						"d419fde49b0a510899eddf3ff5d96bda55aae80f03c57dfa4bd9057c4bcdb2f7"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Txo",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/txo",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"txo"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Tokens",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/tokens",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"tokens"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Token",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/token/IPN/DEV-NET",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"token",
+						"IPN",
+						"DEV-NET"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validators",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/validators",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"validators"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validator",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/validators/ippan.red/DEV-NET",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"validators",
+						"ippan.red",
+						"DEV-NET"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Balance",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/balance/1x3dcvB6nq1uPqwG3W6njMhNwGmhrg",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"balance",
+						"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Activity",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/activity/1x3dcvB6nq1uPqwG3W6njMhNwGmhrg",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"activity",
+						"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/status",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Domains",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/domains",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"domains"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Domain name",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/domain/ippan",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"domain",
+						"ippan"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Dns",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/dns",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"dns"
+					],
+					"query": [
+						{
+							"key": "type",
+							"value": "a",
+							"disabled": true
+						},
+						{
+							"key": "domain",
+							"value": "ippan.com",
+							"disabled": true
+						},
+						{
+							"key": "q",
+							"value": "ippan",
+							"disabled": true
+						},
+						{
+							"key": "root",
+							"value": "ippan",
+							"disabled": true
+						},
+						{
+							"key": "value",
+							"value": "44.203.142.247",
+							"disabled": true
+						}
 					]
 				}
 			},

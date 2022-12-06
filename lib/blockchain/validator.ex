@@ -208,7 +208,7 @@ defmodule Ipncore.Validator do
       name: v.name,
       owner: v.owner,
       fee: v.fee,
-      percent: v.percent,
+      fee_type: v.fee_type,
       created_at: v.created_at,
       updated_at: v.updated_at
     })

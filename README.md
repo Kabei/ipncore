@@ -76,13 +76,13 @@ Events are requests made by users and automatic operations by the system that af
 |```GET```|```/blockchain/block/:hash16```|A block|✅
 |```GET```|```/blockchain/events```|List of events|✅
 |```GET```|```/blockchain/event/:hash16```|Event detail|❌
-|```GET```|```/blockchain/txs```|List of transactions|❌
-|```GET```|```/blockchain/tx/:hash16```|Details transaction queried by hash|❌
+|```GET```|```/blockchain/txs```|List of transactions|✅
+|```GET```|```/blockchain/tx/:hash16```|Details transaction queried by hash|✅
 <!-- |```GET```|```/channel```|List of channel|❌ -->
 |```GET```|```/txo```|List of output transactions|❌
 <!-- |```GET```|```/txi```|List of input transactions|❌ -->
-|```GET```|```/blockchain/tokens```|List of tokens|❌
-|```GET```|```/blockchain/token/:token/:channel```|Token details|❌
+|```GET```|```/blockchain/tokens```|List of tokens|✅
+|```GET```|```/blockchain/token/:token/:channel```|Token details|✅
 |```GET```|```/blockchain/validators```|List of validators|❌
 |```GET```|```/blockchain/validators/:hostname/:channel```|Validator details|❌
 |```GET```|```/blockchain/search```|Search result|❌

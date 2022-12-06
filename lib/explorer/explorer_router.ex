@@ -4,7 +4,7 @@ defmodule Ipncore.Explorer.Router do
   import Ipncore.WebTools, only: [json: 2, send_error: 2, send_result: 2]
   import Ipnutils.Filters
   import Ipncore.PostDeliver, only: [serve_video: 3]
-  alias Ipncore.{Block, Channel, Event, Tx, Txo, Token, Balance, Chain, Validator}
+  alias Ipncore.{Address, Block, Channel, Event, Tx, Txo, Token, Balance, Chain, Validator, Domain, DnsRecord}
 
   if Mix.env() == :dev do
     use Plug.Debugger
@@ -105,7 +105,7 @@ defmodule Ipncore.Explorer.Router do
               end
 
             Regex.match?(Const.Regex.address(), query) ->
-              address = Base58Check.decode(query)
+              address = Address.from_text(query)
 
               case Balance.fetch_balance(address, Default.token(), Default.channel()) do
                 nil ->
@@ -139,13 +139,13 @@ defmodule Ipncore.Explorer.Router do
   end
 
   get "/blockchain/balance/:address58/:token" do
-    address = Base58Check.decode(address58)
+    address = Address.from_text(address58)
     resp = Balance.fetch_balance(address, token, Default.channel())
     send_result(conn, resp)
   end
 
   get "/blockchain/balance/:address58" do
-    address = Base58Check.decode(address58)
+    address = Address.from_text(address58)
     resp = Balance.all_balance(address, conn.params)
     send_result(conn, resp)
   end

@@ -26,10 +26,10 @@ defmodule Ipncore.Tx do
   defmacro map_select do
     quote do
       %{
-        id: tx.id,
+        id: fragment("encode(?, 'hex')", tx.id),
         out_count: tx.out_count,
         time: ev.time,
-        token_value: ev.time,
+        token_value: tx.token_value,
         fee: tx.fee,
         memo: tx.memo
       }
@@ -299,7 +299,6 @@ defmodule Ipncore.Tx do
       limit: 1
     )
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
-    |> transform()
   end
 
   def one_by_hash(hash, params) do
@@ -311,7 +310,6 @@ defmodule Ipncore.Tx do
       limit: 1
     )
     |> Repo.one(prefix: filter_channel(params, Default.channel()))
-    |> transform()
   end
 
   def all(params) do
@@ -323,7 +321,6 @@ defmodule Ipncore.Tx do
     |> filter_limit(params, 50, 100)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
-    |> filter_map()
   end
 
   defp filter_index(query, %{"hash" => hash}) do
@@ -386,13 +383,5 @@ defmodule Ipncore.Tx do
       _ ->
         order_by(query, [tx], desc: fragment("length(?)", tx.id), desc: tx.id)
     end
-  end
-
-  defp filter_map(data) do
-    Enum.map(data, fn x -> transform(x) end)
-  end
-
-  defp transform(x) do
-    x
   end
 end

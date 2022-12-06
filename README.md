@@ -88,7 +88,7 @@ Events are requests made by users and automatic operations by the system that af
 |```GET```|```/blockchain/activity/:address58```|List of events of an address|✅
 <!-- |```GET```|```/blockchain/channel```|List of channel|❌ -->
 <!-- |```GET```|```/blockchain/channel/:channel_id```|Details of a channel|❌ -->
-|```GET```|```/blockchain/status```|Blockchain status|❌
+|```GET```|```/blockchain/status```|Blockchain status|✅
 |```GET```|```/blockchain/domains```|List of domains|✅
 |```GET```|```/blockchain/domain/:name```|Details domain|✅
 |```GET```|```/blockchain/dns```|List of DNS records|✅

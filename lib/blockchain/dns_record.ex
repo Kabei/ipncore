@@ -224,6 +224,7 @@ defmodule Ipncore.DnsRecord do
     |> filter_domain(params)
     |> filter_type(params)
     |> filter_root(params)
+    |> filter_value(params)
     |> filter_search(params)
     |> filter_select(params)
     |> filter_limit(params)
@@ -248,6 +249,12 @@ defmodule Ipncore.DnsRecord do
   end
 
   defp filter_root(query, _), do: query
+
+  defp filter_value(query, %{"value" => value}) do
+    where(query, [dr], dr.value == ^value)
+  end
+
+  defp filter_value(query, _), do: query
 
   defp filter_search(query, %{"q" => q}) do
     q = "%#{q}%"

@@ -192,8 +192,8 @@ defmodule Ipncore.Explorer.Router do
       coins: token.supply,
       height: last_block.height,
       last_hash: Event.encode_id(last_block.hash),
-      time: Chain.get_time(),
       owner: Platform.address58(),
+      time: Chain.get_time(),
       token: Default.token()
       # ev_count: channel.tx_count
     }

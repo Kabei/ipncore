@@ -558,8 +558,8 @@ defmodule Ipncore.Event do
 
   def one(hash, channel) do
     from(ev in Event, where: ev.hash == ^hash)
+    |> select([ev], map_select())
     |> Repo.one(prefix: channel)
-    |> transform()
   end
 
   # def one_by_hash(hash, channel) do

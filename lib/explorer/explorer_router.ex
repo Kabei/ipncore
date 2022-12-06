@@ -4,7 +4,21 @@ defmodule Ipncore.Explorer.Router do
   import Ipncore.WebTools, only: [json: 2, send_error: 2, send_result: 2]
   import Ipnutils.Filters
   import Ipncore.PostDeliver, only: [serve_video: 3]
-  alias Ipncore.{Address, Block, Channel, Event, Tx, Txo, Token, Balance, Chain, Validator, Domain, DnsRecord}
+
+  alias Ipncore.{
+    Address,
+    Block,
+    Channel,
+    Event,
+    Tx,
+    Txo,
+    Token,
+    Balance,
+    Chain,
+    Validator,
+    Domain,
+    DnsRecord
+  }
 
   if Mix.env() == :dev do
     use Plug.Debugger
@@ -156,18 +170,18 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/channel/:channel_id" do
-    resp =
-      case Channel.get(channel_id) do
-        nil ->
-          send_error(conn, 404)
+  # get "/blockchain/channel/:channel_id" do
+  #   resp =
+  #     case Channel.get(channel_id) do
+  #       nil ->
+  #         send_error(conn, 404)
 
-        channel ->
-          json(conn, channel)
-      end
+  #       channel ->
+  #         json(conn, channel)
+  #     end
 
-    send_result(conn, resp)
-  end
+  #   send_result(conn, resp)
+  # end
 
   get "/blockchain/status/:channel_id" do
     genesis_time = Chain.genesis_time()
@@ -216,61 +230,21 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  # get "/tx/:txid" do
-  #   id = Event.decode_id(txid)
+  get "/blockchain/dns" do
+    resp = DnsRecord.all(conn.params)
+    send_result(conn, resp)
+  end
 
-  #   resp = Tx.one(id, conn.params)
+  get "/blockchain/domain" do
+    resp = Domain.all(conn.params)
+    send_result(conn, resp)
+  end
 
-  #   send_result(conn, resp)
-  # end
-
-  # post "/utxo" do
-  #   params = conn.params
-
-  #   case params do
-  #     %{"address" => address, "channel" => channel, "token" => token, "total" => total} = params ->
-  #       IO.inspect(params)
-
-  #       x =
-  #         if(is_list(address),
-  #           do: Enum.map(address, &Base58Check.decode(&1)),
-  #           else: [Base58Check.decode(address)]
-  #         )
-
-  #       result = Utxo.fetch_by_address_multi(x, token, total, channel)
-  #       json(conn, result)
-
-  #     %{"address" => address, "token" => token, "total" => total} = params ->
-  #       IO.inspect(params)
-
-  #       x =
-  #         if(is_list(address),
-  #           do: Enum.map(address, &Base58Check.decode(&1)),
-  #           else: [Base58Check.decode(address)]
-  #         )
-
-  #       result = Utxo.fetch_by_address(x, token, total, Default.channel())
-  #       json(conn, result)
-
-  #     _ ->
-  #       send_error(conn, 400)
-  #   end
-  # end
-
-  # post "/tx" do
-  #   # IO.puts(inspect(conn))
-  #   params = conn.params
-  #   IO.inspect(params)
-
-  #   case Tx.begin_processing(params) do
-  #     {:ok, tx} ->
-  #       # Ipncore.IMP.Client.publish("tx:" <> tx.index, params)
-  #       json(conn, %{"index" => Tx.encode_index(tx.index)})
-
-  #     err ->
-  #       send_error(conn, err)
-  #   end
-  # end
+  get "/blockchain/domain/:name" do
+    params = conn.params
+    resp = Domain.one(name, filter_channel(params, Default.channel()), params)
+    send_result(conn, resp)
+  end
 
   post "/blockchain/event" do
     # IO.inspect(conn)

@@ -83,15 +83,15 @@ Events are requests made by users and automatic operations by the system that af
 <!-- |```GET```|```/txi```|List of input transactions|❌ -->
 |```GET```|```/blockchain/tokens```|List of tokens|✅
 |```GET```|```/blockchain/token/:token/:channel```|Token details|✅
-|```GET```|```/blockchain/validators```|List of validators|❌
-|```GET```|```/blockchain/validators/:hostname/:channel```|Validator details|❌
+|```GET```|```/blockchain/validators```|List of validators|✅
+|```GET```|```/blockchain/validators/:hostname/:channel```|Validator details|✅
 |```GET```|```/blockchain/search```|Search result|❌
-|```GET```|```/blockchain/balance/:address58```|Balance of an address|❌
+|```GET```|```/blockchain/balance/:address58```|Balance of an address|✅
 |```GET```|```/blockchain/activity/:address58```|List of events of an address|❌
 <!-- |```GET```|```/blockchain/channel/:channel_id```|Details of a channel|❌ -->
 |```GET```|```/blockchain/status/:channel_id```|Channel status|❌
 |```GET```|```/blockchain/block/:hash16```|Details of the block queried by hash|❌
-|```GET```|```/blockchain/block/height/:height```|Details of the block queried by height|❌
+|```GET```|```/blockchain/block/height/:height```|Details of the block queried by height|✅
 |```POST```|```/event```|Create an event|❌
 
 ## DNS Record Type support

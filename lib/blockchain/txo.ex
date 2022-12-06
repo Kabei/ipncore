@@ -140,7 +140,7 @@ defmodule Ipncore.Txo do
 
   defp transform(txos, _) do
     Enum.map(txos, fn x ->
-      %{x | id: Event.encode_id(x.id), from: Address.to_text(x.from), to: Address.to_text(x.to)}
+      %{x | txid: Event.encode_id(x.txid), from: Address.to_text(x.from), to: Address.to_text(x.to)}
     end)
   end
 end

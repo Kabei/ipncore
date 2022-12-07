@@ -20,6 +20,7 @@ defmodule Ipncore.Validator do
   schema "validator" do
     field(:name, :string)
     field(:owner, :binary)
+    field(:avatar, :string)
     field(:fee_type, :integer)
     field(:fee, :float)
     field(:enabled, :boolean, default: true)

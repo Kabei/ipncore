@@ -23,7 +23,7 @@ defmodule Test do
 
   # alias Ipncore.{Address, Block, Event, Token, Balance, Tx, Txo, Domain, DnsRecord, Validator}
 
-  # {osk, opk, oaddr, oaddr58} = Test.owner_seed |> Test.wallet()
+  # {opk, osk, oaddr, oaddr58} = Test.owner_seed |> Test.wallet()
   # {pk, sk, addr, addr58} = Test.seed() |> Test.wallet()
   # {pk2, sk2, addr2, addr2_58} = Test.seed2() |> Test.wallet()
   def wallet(seed) do

@@ -24,7 +24,10 @@ defmodule Ipncore.Txo do
   end
 
   def all(params) do
-    from(Txo)
+    from(txo in Txo,
+      join: ev in Event,
+      on: ev.hash == txo.txid
+    )
     |> filter_index(params)
     |> filter_address(params)
     |> filter_token(params)
@@ -91,26 +94,28 @@ defmodule Ipncore.Txo do
   end
 
   defp filter_select(query, %{"fmt" => "list"}) do
-    select(query, [o], [
+    select(query, [o, ev], [
       o.txid,
       o.ix,
       o.from,
       o.to,
       o.token,
       o.reason,
-      o.value
+      o.value,
+      ev.time
     ])
   end
 
   defp filter_select(query, _params) do
-    select(query, [o], %{
+    select(query, [o, ev], %{
       txid: o.txid,
       ix: o.ix,
       token: o.token,
       from: o.from,
       to: o.to,
       reason: o.reason,
-      value: o.value
+      value: o.value,
+      time: ev.time
     })
   end
 
@@ -140,7 +145,12 @@ defmodule Ipncore.Txo do
 
   defp transform(txos, _) do
     Enum.map(txos, fn x ->
-      %{x | txid: Event.encode_id(x.txid), from: Address.to_text(x.from), to: Address.to_text(x.to)}
+      %{
+        x
+        | txid: Event.encode_id(x.txid),
+          from: Address.to_text(x.from),
+          to: Address.to_text(x.to)
+      }
     end)
   end
 end

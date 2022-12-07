@@ -369,6 +369,7 @@ defmodule Ipncore.Token do
       tk.owner,
       tk.decimals,
       tk.supply,
+      tk.avatar,
       tk.props
     ])
   end
@@ -402,13 +403,14 @@ defmodule Ipncore.Token do
 
   defp transform(nil), do: nil
 
-  defp transform([id, name, owner, decimals, supply, props]),
+  defp transform([id, name, owner, decimals, supply, avatar, props]),
     do: [
       id,
       name,
       Address.to_text(owner),
       decimals,
       supply,
+      avatar,
       props
     ]
 

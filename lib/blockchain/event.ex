@@ -176,8 +176,8 @@ defmodule Ipncore.Event do
           Token.check_delete!(token_id, from_address)
 
         "validator.new" ->
-          [hostname, name, _owner, fee_type, fee | _rest] = body
-          Validator.check_new!(hostname, name, from_address, fee_type, fee)
+          [hostname, name, _owner, avatar, fee_type, fee | _rest] = body
+          Validator.check_new!(hostname, name, from_address, avatar, fee_type, fee)
 
         "validator.update" ->
           [hostname | _rest] = body
@@ -280,7 +280,7 @@ defmodule Ipncore.Event do
           multi
 
         "token.new" ->
-          [token_id, owner, name, decimals, symbol, props] = body
+          [token_id, owner, name, decimals, symbol, avatar, props] = body
 
           Token.new!(
             multi,
@@ -290,6 +290,7 @@ defmodule Ipncore.Event do
             name,
             decimals,
             symbol,
+            avatar,
             props,
             time,
             channel
@@ -304,7 +305,7 @@ defmodule Ipncore.Event do
           Token.event_delete!(multi, token_id, from_address, channel)
 
         "validator.new" ->
-          [hostname, name, owner, fee_type, fee] = body
+          [hostname, name, owner, avatar, fee_type, fee] = body
 
           Validator.new!(
             multi,
@@ -312,6 +313,7 @@ defmodule Ipncore.Event do
             hostname,
             name,
             Address.from_text(owner),
+            avatar,
             fee_type,
             fee,
             time,

@@ -104,22 +104,24 @@ defmodule Ipncore.Validator do
     end
   end
 
-  def check_new!(host, name, from_address, fee_type, fee) do
+  def check_new!(host, name, from_address, avatar, fee_type, fee) do
     if not Regex.match?(Const.Regex.domain(), host), do: throw("Invalid domain")
     if String.length(name) > 100, do: throw("Invalid name length")
     if not Platform.owner?(from_address), do: throw("Operation not allowed")
     unless fee_type >= 0 and fee_type <= 2, do: throw("Invalid fee_type")
     if not is_float(fee), do: throw("Invalid Fee value")
+    if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
     exists!(host)
 
     :ok
   end
 
-  def new!(multi, _from_address, host, name, owner, fee_type, fee, timestamp, channel) do
+  def new!(multi, _from_address, host, name, owner, avatar, fee_type, fee, timestamp, channel) do
     validator = %{
       host: host,
       name: name,
       owner: owner,
+      avatar: avatar,
       fee_type: fee_type,
       fee: fee,
       created_at: timestamp,
@@ -147,6 +149,7 @@ defmodule Ipncore.Validator do
       |> MapUtil.validate_length("name", 100)
       |> MapUtil.validate_value("fee", :gt, 0)
       |> MapUtil.validate_range("fee_type", 0..2)
+      |> MapUtil.validate_length("avatar", 255)
       |> MapUtil.to_atoms()
       |> Map.put(:updated_at, timestamp)
 

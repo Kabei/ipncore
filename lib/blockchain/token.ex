@@ -13,6 +13,7 @@ defmodule Ipncore.Token do
           symbol: String.t(),
           enabled: boolean(),
           owner: binary(),
+          avatar: String.t(),
           supply: pos_integer(),
           burned: pos_integer(),
           props: Map.t() | nil,
@@ -36,6 +37,7 @@ defmodule Ipncore.Token do
     field(:decimals, :integer)
     field(:symbol, :string)
     field(:owner, :binary)
+    field(:avatar, :string)
     field(:supply, :integer, default: 0)
     field(:burned, :integer, default: 0)
     field(:props, :map)
@@ -209,6 +211,7 @@ defmodule Ipncore.Token do
         name,
         decimals,
         symbol,
+        avatar,
         props,
         timestamp,
         channel
@@ -220,12 +223,15 @@ defmodule Ipncore.Token do
       |> MapUtil.validate_value("maxSupply", :lte, 0)
       |> MapUtil.validate_any("opts", ["burn", "coinbase", "lock"])
 
+    if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
+
     token = %{
       id: token_id,
       name: name,
       owner: owner,
       decimals: decimals,
       symbol: symbol,
+      avatar: avatar,
       props: props || %{},
       enabled: true,
       supply: 0,
@@ -253,6 +259,7 @@ defmodule Ipncore.Token do
       |> MapUtil.require_only(@edit_fields)
       |> Map.take(@edit_fields)
       |> MapUtil.validate_length("name", 100)
+      |> MapUtil.validate_length("avatar", 255)
       |> MapUtil.validate_address("owner")
       |> MapUtil.to_atoms()
       |> Map.put(:updated_at, timestamp)

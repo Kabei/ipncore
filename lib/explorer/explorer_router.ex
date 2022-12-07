@@ -195,7 +195,9 @@ defmodule Ipncore.Explorer.Router do
       owner: Platform.address58(),
       time: Chain.get_time(),
       token: Default.token()
-      # ev_count: channel.tx_count
+      # ev_count: 
+      # token_count:
+      # domain_count:
     }
 
     send_result(conn, resp)

@@ -48,13 +48,13 @@ defmodule Test do
     [@version, "pubkey.new", time, body, sig64]
   end
 
-  # Test.token_new(osk, oaddr58, Default.token, oaddr58, Default.token_name, 9, Default.token_symbol, %{"opts" => ["burn", "coinbase", "lock"]})
-  # Test.token_new(osk, oaddr58, "GBP", oaddr58, "Great British Pound", 5, "£", %{"opts" => ["burn", "coinbase", "lock"]})
-  # Test.token_new(osk, oaddr58, "USD", oaddr58, "US Dollar", 5, "$", %{"opts" => ["burn", "coinbase", "lock"]})
-  def token_new(sk, from58, token_id, owner58, name, decimals, symbol, props) do
+  # Test.token_new(osk, oaddr58, Default.token, oaddr58, Default.token_name, 9, Default.token_symbol, "https://avatar.com", %{"opts" => ["burn", "coinbase", "lock"]})
+  # Test.token_new(osk, oaddr58, "GBP", oaddr58, "Great British Pound", 5, "£", "https://avatar.com", %{"opts" => ["burn", "coinbase", "lock"]})
+  # Test.token_new(osk, oaddr58, "USD", oaddr58, "US Dollar", 5, "$", "https://avatar.com", %{"opts" => ["burn", "coinbase", "lock"]})
+  def token_new(sk, from58, token_id, owner58, name, decimals, symbol, avatar, props) do
     type_number = Event.type_index("token.new")
     time = :erlang.system_time(@unit_time)
-    body = [token_id, owner58, name, decimals, symbol, props]
+    body = [token_id, owner58, name, decimals, symbol, avatar, props]
     hash = Event.calc_hash(type_number, body, time)
 
     sig64 = signature64(sk, hash)
@@ -81,11 +81,11 @@ defmodule Test do
     [@version, "token.delete", time, body, from58, sig64]
   end
 
-  # Test.validator_new(osk, oaddr58, "ippan.red", "My Pool", oaddr58, 2, 1.0)
-  def validator_new(sk, from58, hostname, name, owner58, fee_type, fee) do
+  # Test.validator_new(osk, oaddr58, "ippan.red", "My Pool", oaddr58, "https://avatar.com", 2, 1.0)
+  def validator_new(sk, from58, hostname, name, owner58, avatar, fee_type, fee) do
     type_number = Event.type_index("validator.new")
     time = :erlang.system_time(@unit_time)
-    body = [hostname, name, owner58, fee_type, fee]
+    body = [hostname, name, owner58, avatar, fee_type, fee]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
 

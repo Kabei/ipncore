@@ -378,6 +378,7 @@ defmodule Ipncore.Token do
       id: tk.id,
       name: tk.name,
       owner: tk.owner,
+      avatar: tk.avatar,
       decimals: tk.decimals,
       symbol: tk.symbol,
       supply: tk.supply,

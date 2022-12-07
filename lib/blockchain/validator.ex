@@ -211,6 +211,7 @@ defmodule Ipncore.Validator do
       host: v.host,
       name: v.name,
       owner: v.owner,
+      avatar: v.avatar,
       fee: v.fee,
       fee_type: v.fee_type,
       created_at: v.created_at,

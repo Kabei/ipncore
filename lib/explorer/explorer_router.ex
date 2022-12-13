@@ -238,7 +238,7 @@ defmodule Ipncore.Explorer.Router do
   end
 
   get "/blockchain/dns/:domain/:type" do
-    channel = filter_channel(params, Default.channel())
+    channel = filter_channel(conn.params, Default.channel())
     resp = DnsRecord.one(domain, type, channel)
     send_result(conn, resp)
   end

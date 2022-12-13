@@ -118,6 +118,13 @@ Events are requests made by users and automatic operations by the system that af
 |```Less than 9```|75.000|
 |```Rest```|5.000|
 
+### Validator fee types
+|||
+|-|-|
+|0|```by size```|
+|1|```percent```|
+|2|```fixed price```|
+
 ### Updating operations
 - All fee prices to update 1.000 nIPN
 - Time to wait update again (20 minutes)

@@ -565,12 +565,6 @@ defmodule Ipncore.Event do
     |> transform()
   end
 
-  # def one_by_hash(hash, channel) do
-  #   from(ev in Event, where: ev.hash == ^hash)
-  #   |> Repo.one(prefix: channel)
-  #   |> transform()
-  # end
-
   def all(params) do
     from(ev in Event)
     |> filter_time(params)

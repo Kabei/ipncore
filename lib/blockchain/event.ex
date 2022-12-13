@@ -522,7 +522,7 @@ defmodule Ipncore.Event do
   #   |> ByteUtils.zeros_pad_leading(104)
   # end
 
-  defmacro map_select do
+  defmacrop map_select do
     quote do
       %{
         hash: fragment("encode(?, 'hex')", ev.hash),

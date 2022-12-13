@@ -92,6 +92,7 @@ Events are requests made by users and automatic operations by the system that af
 |```GET```|```/blockchain/domains```|List of domains|✅
 |```GET```|```/blockchain/domain/:name```|Details domain|✅
 |```GET```|```/blockchain/dns```|List of DNS records|✅
+|```GET```|```/blockchain/dns/:domain/:type```|Show a DNS records|✅
 <!-- |```GET```|```/blockchain/dns/:domain```|List of dns records by domain|❌
 |```GET```|```/blockchain/dns/:domain/:type```|Deatil of dns records|❌ -->
 |```GET```|```/blockchain/search```|Search result|❌

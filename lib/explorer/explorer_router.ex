@@ -227,7 +227,6 @@ defmodule Ipncore.Explorer.Router do
 
   get "/blockchain/event/:evid" do
     id = Event.decode_id(evid)
-
     resp = Event.one(id, filter_channel(conn.params, Default.channel()))
 
     send_result(conn, resp)
@@ -235,6 +234,11 @@ defmodule Ipncore.Explorer.Router do
 
   get "/blockchain/dns" do
     resp = DnsRecord.all(conn.params)
+    send_result(conn, resp)
+  end
+
+  get "/blockchain/dns/:domain/:type" do
+    resp = DnsRecord.all(%{conn.params | "domain" => domain, "type" => type})
     send_result(conn, resp)
   end
 

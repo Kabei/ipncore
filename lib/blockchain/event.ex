@@ -562,6 +562,7 @@ defmodule Ipncore.Event do
     from(ev in Event, where: ev.hash == ^hash)
     |> select([ev], map_select())
     |> Repo.one(prefix: channel)
+    |> transform()
   end
 
   # def one_by_hash(hash, channel) do
@@ -625,7 +626,7 @@ defmodule Ipncore.Event do
     Base.decode16!(id, case: :lower)
   end
 
-  defp transform(nil), do: []
+  defp transform(nil), do: nil
   defp transform([]), do: []
 
   defp transform(x) do

@@ -10,8 +10,9 @@ defmodule Ipncore.DnsRecord do
   @filename "dns.db"
   @dns_types ~w(a aaaa cname ptr mx txt srv caa ns soa)
   @dns_types_multi_records ~w(a aaaa)a
-  @max_domain_size 100
-  @dns_max_ttl 2_147_483_647
+  @max_domain_size 50
+  @min_ttl 300
+  @max_ttl 2_147_483_647
   @max_records 50
   @max_dns_record_items 3
   @max_bytes_value 255
@@ -51,7 +52,7 @@ defmodule Ipncore.DnsRecord do
   end
 
   def check_push!(domain_name, type, from_address, value, ttl)
-      when is_binary(domain_name) and is_binary(value) and ttl >= 0 and ttl <= @dns_max_ttl do
+      when is_binary(domain_name) and is_binary(value) and ttl >= @min_ttl and ttl <= @max_ttl do
     if type not in @dns_types, do: throw("DNS record type not supported")
     if byte_size(domain_name) > @max_domain_size, do: throw("DNS record domain size exceeded")
     if byte_size(value) > @max_bytes_value, do: throw("DNS record value size exceeded")

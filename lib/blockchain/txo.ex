@@ -39,13 +39,6 @@ defmodule Ipncore.Txo do
     |> transform(params)
   end
 
-  defp filter_index(query, %{"hash" => hash16}) do
-    hash = Base.decode16!(hash16, case: :mixed)
-
-    sub = from(ev in Event, where: ev.hash == ^hash, select: ev.id)
-    where(query, [txo], txo.txid == subquery(sub))
-  end
-
   defp filter_index(query, %{"txid" => txid}) do
     txid = Event.decode_id(txid)
 
@@ -64,9 +57,10 @@ defmodule Ipncore.Txo do
     where(query, [txo], txo.to == ^bin_address)
   end
 
-  defp filter_address(query, %{"address" => address}) do
-    bin_address = Address.from_text(address)
-    where(query, [txo], txo.to == ^bin_address or txo.address == ^bin_address)
+  defp filter_address(query, %{"from" => from_address, "to" => to_address}) do
+    to_address = Address.from_text(to_address)
+    from_address = Address.from_text(from_address)
+    where(query, [txo], txo.from == ^from_address and txo.to == ^to_address)
   end
 
   defp filter_address(query, _params), do: query
@@ -82,7 +76,6 @@ defmodule Ipncore.Txo do
     |> join(:inner, [o], tk in Token, on: tk.id == o.token)
     |> select([o, tk], %{
       txid: o.txid,
-      ix: o.ix,
       from: o.from,
       to: o.to,
       token: o.token,
@@ -96,7 +89,6 @@ defmodule Ipncore.Txo do
   defp filter_select(query, %{"fmt" => "list"}) do
     select(query, [o, ev], [
       o.txid,
-      o.ix,
       o.from,
       o.to,
       o.token,
@@ -109,7 +101,6 @@ defmodule Ipncore.Txo do
   defp filter_select(query, _params) do
     select(query, [o, ev], %{
       txid: o.txid,
-      ix: o.ix,
       token: o.token,
       from: o.from,
       to: o.to,
@@ -130,10 +121,9 @@ defmodule Ipncore.Txo do
   end
 
   defp transform(txos, %{"fmt" => "list"}) do
-    Enum.map(txos, fn [id, ix, token, from, to, reason, value] ->
+    Enum.map(txos, fn [id, token, from, to, reason, value] ->
       [
         Event.encode_id(id),
-        ix,
         token,
         Address.to_text(from),
         Address.to_text(to),

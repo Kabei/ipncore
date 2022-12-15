@@ -74,7 +74,7 @@ defmodule Ipncore.Txo do
   defp filter_select(query, %{"show" => "props"}) do
     query
     |> join(:inner, [o], tk in Token, on: tk.id == o.token)
-    |> select([o, tk], %{
+    |> select([o, ev, tk], %{
       txid: o.txid,
       from: o.from,
       to: o.to,

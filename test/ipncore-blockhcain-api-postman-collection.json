@@ -86,14 +86,14 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event/df6f78c9b61ee69b62f116a641f03080b45077ca4277079adb960e67e2ccb168",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event/fcb2d2f1ec281614293d3265485673e0d1f97022dd8fd911a7c4f19ef5a0ff7a",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
 						"event",
-						"df6f78c9b61ee69b62f116a641f03080b45077ca4277079adb960e67e2ccb168"
+						"fcb2d2f1ec281614293d3265485673e0d1f97022dd8fd911a7c4f19ef5a0ff7a"
 					]
 				}
 			},
@@ -149,6 +149,13 @@
 					"path": [
 						"blockchain",
 						"txo"
+					],
+					"query": [
+						{
+							"key": "to",
+							"value": "1x3dcvB6nq1uPqwG3W6njMhNwGmhrg",
+							"disabled": true
+						}
 					]
 				}
 			},
@@ -236,7 +243,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/balance/1x3dcvB6nq1uPqwG3W6njMhNwGmhrg",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/balance/1x3dcvB6nq1uPqwG3W6njMhNwGmhrg?show=all",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
@@ -244,6 +251,12 @@
 						"blockchain",
 						"balance",
 						"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg"
+					],
+					"query": [
+						{
+							"key": "show",
+							"value": "all"
+						}
 					]
 				}
 			},
@@ -324,7 +337,7 @@
 			"response": []
 		},
 		{
-			"name": "Dns",
+			"name": "DNS Records",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -363,6 +376,26 @@
 							"value": "44.203.142.247",
 							"disabled": true
 						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DNS Record",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/dns/ippan.com/a",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"dns",
+						"ippan.com",
+						"a"
 					]
 				}
 			},

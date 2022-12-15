@@ -565,8 +565,16 @@ defmodule Ipncore.Event do
     |> transform()
   end
 
+  def one(hash, time, channel) do
+    from(ev in Event, where: ev.hash == ^hash and ev.time == ^time)
+    |> select([ev], map_select())
+    |> Repo.one(prefix: channel)
+    |> transform()
+  end
+
   def all(params) do
     from(ev in Event)
+    |> filter_block(params)
     |> filter_time(params)
     |> filter_offset(params)
     |> filter_limit(params, 10, 1000)
@@ -575,6 +583,12 @@ defmodule Ipncore.Event do
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
     |> filter_map()
   end
+
+  defp filter_block(query, %{"block" => block}) do
+    where(query, [ev], ev.block_index == ^block)
+  end
+
+  defp filter_block(query, _), do: query
 
   defp filter_time(query, %{"from" => from_time, "to" => to_time}) do
     where(query, [ev], ev.time >= ^from_time and ev.time <= ^to_time)

@@ -4,7 +4,7 @@ defmodule Ipncore.DNS.UdpServer do
   """
 
   # @callback handle(DNS.Record.t(), {:inet.ip(), :inet.port()}) :: DNS.Record.t()
-
+  require Logger
   use GenServer
 
   @doc """
@@ -26,10 +26,15 @@ defmodule Ipncore.DNS.UdpServer do
   end
 
   def handle_info({:udp, client, ip, wtv, data}, state) do
-    record = DNS.Record.decode(data)
-    response = Ipncore.DNS.handle(record, client)
+    try do
+      record = DNS.Record.decode(data)
+      response = Ipncore.DNS.handle(record, client)
+      Socket.Datagram.send!(state.socket, DNS.Record.encode(response), {ip, wtv})
+    rescue
+      e ->
+        Logger.error(Exception.format(:error, e, __STACKTRACE__))
+    end
 
-    Socket.Datagram.send!(state.socket, DNS.Record.encode(response), {ip, wtv})
     {:noreply, state}
   end
 end

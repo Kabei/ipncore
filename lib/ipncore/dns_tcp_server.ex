@@ -30,7 +30,7 @@ defmodule Ipncore.DNS.TcpServer do
       e ->
         Logger.error(Exception.format(:error, e, __STACKTRACE__))
     catch
-      e ->
+      _x ->
         IO.puts("Error DNS")
     end
 
@@ -39,4 +39,5 @@ defmodule Ipncore.DNS.TcpServer do
 
   def handle_info({:tcp_closed, _}, state), do: {:stop, :normal, state}
   def handle_info({:tcp_error, _}, state), do: {:stop, :normal, state}
+  def handle_info(_, state), do: {:noreply, state}
 end

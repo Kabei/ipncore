@@ -70,7 +70,7 @@ defmodule Ipncore.DNS.TcpHandler do
 
   # TCP callbacks
   def handle_info({:tcp, socket, data}, state) do
-    Logger.error("Tcp: #{inspect(data)}")
+    Logger.info("Tcp: #{inspect(data)}")
     try do
       record = DNS.Record.decode(data)
       response = Ipncore.DNS.handle(record, socket)

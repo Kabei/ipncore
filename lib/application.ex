@@ -69,7 +69,7 @@ defmodule Ipncore.Application do
         Repo,
         RepoWorker,
         dns_udp_server(),
-        dns_tcp_server(),
+        # dns_tcp_server(),
         # imp_client(),
         http_server(),
         https_server()

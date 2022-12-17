@@ -26,12 +26,12 @@ defmodule Ipncore.DNS.TcpServer do
       response = Ipncore.DNS.handle(record, socket)
 
       :ok = :gen_tcp.send(socket, DNS.Record.encode(response))
-    catch
-      e ->
-        IO.puts("Error DNS")
     rescue
       e ->
         Logger.error(Exception.format(:error, e, __STACKTRACE__))
+    catch
+      e ->
+        IO.puts("Error DNS")
     end
 
     {:noreply, state}

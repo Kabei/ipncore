@@ -147,7 +147,7 @@ defmodule Ipncore.Tx do
       }
     )
 
-    amount_dec = calc_amount_dec(amount, token.decimals)
+    amount_dec = calc_amount_dec(amount + fee_total, token.decimals)
 
     tx = %{
       id: txid,

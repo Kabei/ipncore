@@ -34,11 +34,15 @@ defmodule Ipncore.DNS.TcpServer do
   end
 
   defp loop_acceptor(listen_socket) do
-    {:ok, socket} = :gen_tcp.accept(listen_socket)
+    case :gen_tcp.accept(listen_socket) do
+      {:ok, socket} ->
+        {:ok, pid} = GenServer.start(Ipncore.DNS.TcpClient, socket)
+        :gen_tcp.controlling_process(socket, pid)
 
-    {:ok, pid} = GenServer.start(Ipncore.DNS.TcpClient, socket)
+      _ ->
+        :error
+    end
 
-    :gen_tcp.controlling_process(socket, pid)
     loop_acceptor(listen_socket)
   end
 

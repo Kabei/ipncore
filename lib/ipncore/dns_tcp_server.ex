@@ -42,7 +42,7 @@ defmodule Ipncore.DNS.TcpServer do
     loop_acceptor(listen_socket)
   end
 
-  def handle_info({:accept, ip, port}, %{socket: socket} = state) do
+  def handle_info({:accept, ip, port}, state) do
     spawn(fn ->
       accept(ip, port)
     end)
@@ -92,7 +92,7 @@ defmodule Ipncore.DNS.TcpClient do
     {:noreply, state}
   end
 
-  def handle_info({:tcp_closed, _socket}, state) do
+  def handle_info({:tcp_closed, _socket}, _state) do
     Process.exit(self(), :normal)
   end
 

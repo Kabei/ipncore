@@ -2,25 +2,27 @@ defmodule Ipncore.DNS.TcpServer do
   require Logger
   use GenServer
 
+  # def start_link([ip, port]) do
+  #   GenServer.start_link(__MODULE__, [ip, port])
+  # end
+
+  # def init([ip, port]) do
+  #   {:ok, socket} = :gen_tcp.listen(port, [:binary, active: false])
+  #   send(self(), :accept)
+
+  #   IO.puts("DNS Server listening at TCP #{Inet.to_str(ip)}:#{port}")
+  #   {:ok, %{port: port, socket: socket}}
+  # end
+
   def start_link([ip, port]) do
-    GenServer.start_link(__MODULE__, [ip, port])
-  end
-
-  def init([ip, port]) do
-    {:ok, socket} = :gen_tcp.listen(port, [:binary, active: false])
-    send(self(), :accept)
-
-    IO.puts("DNS Server listening at TCP #{Inet.to_str(ip)}:#{port}")
-    {:ok, %{port: port, socket: socket}}
-  end
-
-  def start_link(port) do
     Task.start_link(__MODULE__, :accept, [port])
   end
 
-  def accept(port) do
+  def accept([ip, port]) do
     {:ok, listen_socket} =
       :gen_tcp.listen(port, [:binary, packet: :raw, active: :once, reuseaddr: true])
+
+    IO.puts("DNS Server listening at TCP #{Inet.to_str(ip)}:#{port}")
 
     loop_acceptor(listen_socket)
   end

@@ -22,18 +22,14 @@ defmodule Ipncore.DNS.TcpServer do
 
   def handle_info({:tcp, socket, data}, state) do
     try do
-      case DNS.Record.decode(data) do
-        {:error, _} ->
-          :error
+      record = DNS.Record.decode(data)
+      response = Ipncore.DNS.handle(record, socket)
 
-        record ->
-          response = Ipncore.DNS.handle(record, socket)
-
-          :ok = :gen_tcp.send(socket, DNS.Record.encode(response))
-      end
+      :ok = :gen_tcp.send(socket, DNS.Record.encode(response))
     rescue
-      e ->
-        Logger.error(Exception.format(:error, e, __STACKTRACE__))
+      MatchError ->
+        IO.puts("Error DNS MatchError")
+        # Logger.error(Exception.format(:error, e, __STACKTRACE__))
     catch
       _x ->
         IO.puts("Error DNS")

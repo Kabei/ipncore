@@ -67,7 +67,6 @@ defmodule Ipncore.DNS.TcpClient do
   end
 
   # TCP callbacks
-
   def handle_info(:accept, %{socket: socket} = state) do
     {:ok, _} = :gen_tcp.accept(socket)
 
@@ -82,8 +81,9 @@ defmodule Ipncore.DNS.TcpClient do
       :ok = :gen_tcp.send(socket, DNS.Record.encode(response))
     rescue
       MatchError ->
-        IO.puts("Error DNS MatchError")
+        # IO.puts("Error DNS MatchError")
         # Logger.error(Exception.format(:error, e, __STACKTRACE__))
+        :error
     catch
       _x ->
         IO.puts("Error DNS")
@@ -92,18 +92,12 @@ defmodule Ipncore.DNS.TcpClient do
     {:noreply, state}
   end
 
-  def handle_info({:tcp_closed, _socket}, _state) do
-    Process.exit(self(), :normal)
+  def handle_info({:tcp_closed, _socket}, state) do
+    # Process.exit(self(), :normal)
+    {:stop, :normal, state}
   end
 
   def handle_info({:tcp_error, _}, state), do: {:stop, :normal, state}
 
   def handle_info(_, state), do: {:noreply, state}
-
-  # GenServer callbacks
-
-  def handle_cast({:send, data}, %{socket: socket} = state) do
-    :gen_tcp.send(socket, data)
-    {:noreply, state}
-  end
 end

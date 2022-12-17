@@ -26,7 +26,7 @@ defmodule Ipncore.DNS.TcpServer do
 
   def accept(ip, port) do
     {:ok, listen_socket} =
-      :gen_tcp.listen(port, [:binary, packet: :raw, active: :once, reuseaddr: true])
+      :gen_tcp.listen(port, [:binary, packet: :raw, active: false, reuseaddr: true])
 
     IO.puts("DNS Server listening at TCP #{Inet.to_str(ip)}:#{port}")
 

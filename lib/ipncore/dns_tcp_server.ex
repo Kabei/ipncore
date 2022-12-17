@@ -76,12 +76,13 @@ defmodule Ipncore.DNS.TcpClient do
     {:noreply, state}
   end
 
-  def handle_info({:tcp_error, _}, state), do: {:stop, :normal, state}
-  def handle_info(_, state), do: {:noreply, state}
-
   def handle_info({:tcp_closed, _socket}, state) do
     Process.exit(self(), :normal)
   end
+
+  def handle_info({:tcp_error, _}, state), do: {:stop, :normal, state}
+
+  def handle_info(_, state), do: {:noreply, state}
 
   # GenServer callbacks
 

@@ -22,10 +22,15 @@ defmodule Ipncore.DNS.TcpServer do
 
   def handle_info({:tcp, socket, data}, state) do
     try do
-      record = DNS.Record.decode(data)
-      response = Ipncore.DNS.handle(record, socket)
+      case DNS.Record.decode(data) do
+        {:error, _} ->
+          :error
 
-      :ok = :gen_tcp.send(socket, DNS.Record.encode(response))
+        record ->
+          response = Ipncore.DNS.handle(record, socket)
+
+          :ok = :gen_tcp.send(socket, DNS.Record.encode(response))
+      end
     rescue
       e ->
         Logger.error(Exception.format(:error, e, __STACKTRACE__))

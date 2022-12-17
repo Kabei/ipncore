@@ -79,6 +79,7 @@ defmodule Ipncore.Txo do
       from: o.from,
       to: o.to,
       token: o.token,
+      time: ev.time,
       reason: o.reason,
       value: o.value,
       decimals: tk.decimals,

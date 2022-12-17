@@ -94,7 +94,7 @@ defmodule Ipncore.Tx do
   def send!(
         multi,
         txid,
-        token,
+        token_id,
         from_address,
         to_address,
         amount,
@@ -106,6 +106,7 @@ defmodule Ipncore.Tx do
       ) do
     if not is_nil(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
 
+    token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
     fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
     validator_address = validator.owner
@@ -117,7 +118,7 @@ defmodule Ipncore.Tx do
         from: from_address,
         to: to_address,
         value: amount,
-        token: token,
+        token: token_id,
         reason: @output_reason_send
       },
       %{
@@ -133,23 +134,25 @@ defmodule Ipncore.Tx do
 
     Balance.update!(
       [
-        {from_address, token},
-        {to_address, token},
+        {from_address, token_id},
+        {to_address, token_id},
         {from_address, @token},
         {validator_address, @token}
       ],
       %{
-        {from_address, token} => -(amount + fee_total),
-        {to_address, token} => amount,
+        {from_address, token_id} => -(amount + fee_total),
+        {to_address, token_id} => amount,
         {from_address, @token} => -fee_total,
         {validator_address, @token} => fee_total
       }
     )
 
+    amount_dec = calc_amount_dec(amount, token.decimals)
+
     tx = %{
       id: txid,
       fee: fee_total,
-      token_value: Map.put(Map.new(), token, amount),
+      token_value: Map.put(Map.new(), token_id, amount_dec),
       out_count: length(outputs),
       memo: memo
     }
@@ -282,6 +285,11 @@ defmodule Ipncore.Tx do
   defp calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
   defp calc_fees(_, _, _, _), do: throw("Wrong fee type")
+
+  defp calc_amount_dec(amount, decimals) do
+    amount / :math.pow(10, decimals)
+    # |> :erlang.float_to_binary([:compact, decimals: 18])
+  end
 
   defp multi_insert(multi, tx, channel) do
     Ecto.Multi.insert_all(multi, :tx, Tx, [tx],

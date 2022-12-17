@@ -26,7 +26,7 @@ defmodule Ipncore.DNS.TcpServer do
 
   def accept(ip, port) do
     {:ok, listen_socket} =
-      :gen_tcp.listen(port, [:binary, packet: :raw, active: :once, reuseaddr: true])
+      :gen_tcp.listen(port, [:binary, packet: :raw, active: false, reuseaddr: true])
 
     IO.puts("DNS Server listening at TCP #{Inet.to_str(ip)}:#{port}")
 
@@ -36,7 +36,7 @@ defmodule Ipncore.DNS.TcpServer do
   defp loop_acceptor(listen_socket) do
     case :gen_tcp.accept(listen_socket) do
       {:ok, socket} ->
-        {:ok, pid} = GenServer.start(Ipncore.DNS.TcpClient, socket)
+        {:ok, pid} = GenServer.start(Ipncore.DNS.TcpHandler, socket)
         :gen_tcp.controlling_process(socket, pid)
 
       _ ->
@@ -55,25 +55,22 @@ defmodule Ipncore.DNS.TcpServer do
   end
 end
 
-defmodule Ipncore.DNS.TcpClient do
+defmodule Ipncore.DNS.TcpHandler do
   use GenServer
+  require Logger
 
   def start_link(socket) do
     GenServer.start_link(__MODULE__, socket)
   end
 
   def init(socket) do
+    :inet.setopts(socket, active: true)
     {:ok, %{socket: socket}}
   end
 
   # TCP callbacks
-  def handle_info(:accept, %{socket: socket} = state) do
-    {:ok, _} = :gen_tcp.accept(socket)
-
-    {:noreply, state}
-  end
-
   def handle_info({:tcp, socket, data}, state) do
+    Logger.error("Tcp: #{inspect(data)}")
     try do
       record = DNS.Record.decode(data)
       response = Ipncore.DNS.handle(record, socket)
@@ -81,7 +78,7 @@ defmodule Ipncore.DNS.TcpClient do
       :ok = :gen_tcp.send(socket, DNS.Record.encode(response))
     rescue
       MatchError ->
-        # IO.puts("Error DNS MatchError")
+        IO.puts("Error DNS MatchError")
         # Logger.error(Exception.format(:error, e, __STACKTRACE__))
         :error
     catch
@@ -89,15 +86,19 @@ defmodule Ipncore.DNS.TcpClient do
         IO.puts("Error DNS")
     end
 
+    # :inet.setopts(socket, active: :once)
     {:noreply, state}
   end
 
+  @impl true
   def handle_info({:tcp_closed, _socket}, state) do
-    # Process.exit(self(), :normal)
-    {:stop, :normal, state}
+    Logger.info("Socket is closed")
+    {:stop, {:shutdown, "Socket is closed"}, state}
   end
 
-  def handle_info({:tcp_error, _}, state), do: {:stop, :normal, state}
-
-  def handle_info(_, state), do: {:noreply, state}
+  @impl true
+  def handle_info({:tcp_error, _socket, reason}, state) do
+    Logger.error("Tcp error: #{inspect(reason)}")
+    {:stop, {:shutdown, "Tcp error: #{inspect(reason)}"}, state}
+  end
 end

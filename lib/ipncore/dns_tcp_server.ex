@@ -58,16 +58,12 @@ end
 defmodule Ipncore.DNS.TcpClient do
   use GenServer
 
-  def start_link(socket, opts \\ []) do
-    GenServer.start_link(__MODULE__, socket, opts)
+  def start_link(socket) do
+    GenServer.start_link(__MODULE__, socket)
   end
 
   def init(socket) do
     %{socket: socket}
-  end
-
-  def send(pid, data) do
-    GenServer.cast(pid, {:send, data})
   end
 
   # TCP callbacks

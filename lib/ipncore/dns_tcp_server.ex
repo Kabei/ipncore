@@ -63,6 +63,7 @@ defmodule Ipncore.DNS.TcpHandler do
     GenServer.start_link(__MODULE__, socket)
   end
 
+  @impl true
   def init(socket) do
     :inet.setopts(socket, active: true)
     {:ok, %{socket: socket}}

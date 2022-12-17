@@ -15,10 +15,16 @@ defmodule Ipncore.DNS.TcpServer do
   # end
 
   def start_link([ip, port]) do
-    Task.start_link(__MODULE__, :accept, [port])
+    GenServer.start_link(__MODULE__, [ip, port])
   end
 
-  def accept([ip, port]) do
+  def init([ip, port]) do
+    send(self(), {:accept, ip, port})
+
+    {:ok, %{ip: ip, port: port}}
+  end
+
+  def accept(ip, port) do
     {:ok, listen_socket} =
       :gen_tcp.listen(port, [:binary, packet: :raw, active: :once, reuseaddr: true])
 
@@ -34,6 +40,14 @@ defmodule Ipncore.DNS.TcpServer do
 
     :gen_tcp.controlling_process(socket, pid)
     loop_acceptor(listen_socket)
+  end
+
+  def handle_info({:accept, ip, port}, %{socket: socket} = state) do
+    spawn(fn ->
+      accept(ip, port)
+    end)
+
+    {:noreply, state}
   end
 end
 

@@ -124,9 +124,9 @@ defmodule Ipncore.Balance do
         time: ev.time
       }
     )
+    |> filter_operation(address, params)
     |> filter_token(params)
     |> Tx.filter_date(params)
-    |> filter_operation(address, params)
     |> filter_reason(params)
     |> filter_type(params)
     |> filter_limit(params, 50, 100)
@@ -176,7 +176,9 @@ defmodule Ipncore.Balance do
     where(query, [s], s.from == ^address)
   end
 
-  defp filter_operation(query, _, _), do: query
+  defp filter_operation(query, address, _) do
+    where(query, [s], s.from == ^address or s.to == ^address)
+  end
 
   defp activity_sort(query, params) do
     case Map.get(params, "sort") do

@@ -613,10 +613,10 @@ defmodule Ipncore.Event do
   defp sort(query, params) do
     case Map.get(params, "sort") do
       "oldest" ->
-        order_by(query, [ev], asc: fragment("length(?)", ev.hash), asc: ev.hash)
+        order_by(query, [ev], asc: ev.time, desc: ev.hash)
 
       _ ->
-        order_by(query, [ev], desc: fragment("length(?)", ev.hash), desc: ev.hash)
+        order_by(query, [ev], desc: ev.time, asc: ev.hash)
     end
   end
 

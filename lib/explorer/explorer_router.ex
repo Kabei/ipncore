@@ -184,7 +184,7 @@ defmodule Ipncore.Explorer.Router do
   # end
 
   get "/blockchain/status" do
-    channel = Default.channel()
+    # channel = Default.channel()
     token_id = Default.token()
     token = Token.fetch!(token_id)
     last_block = Chain.last_block()

@@ -188,13 +188,14 @@ defmodule Ipncore.Event do
           Validator.check_delete!(hostname, from_address)
 
         "domain.new" ->
-          [name, email, avatar, years_to_renew, validator_host] = body
+          [name, email, avatar, title, years_to_renew, validator_host] = body
 
           Domain.check_new!(
             name,
             from_address,
             email,
             avatar,
+            title,
             years_to_renew,
             validator_host,
             size
@@ -337,7 +338,7 @@ defmodule Ipncore.Event do
           Validator.event_delete!(multi, hostname, from_address, channel)
 
         "domain.new" ->
-          [name, email, avatar, years_to_renew, validator_host] = body
+          [name, email, avatar, title, years_to_renew, validator_host] = body
 
           Domain.new!(
             multi,
@@ -346,6 +347,7 @@ defmodule Ipncore.Event do
             name,
             email,
             avatar,
+            title,
             years_to_renew,
             validator_host,
             size,

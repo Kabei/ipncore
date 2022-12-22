@@ -133,7 +133,7 @@ defmodule Ipncore.DnsRecord do
 
     put(object)
 
-    Domain.count_records(domain, count)
+    multi = Domain.count_records(multi, domain, channel, count)
 
     struct = %{
       domain: domain_name,
@@ -179,7 +179,7 @@ defmodule Ipncore.DnsRecord do
         end
       end)
 
-    Domain.uncount_records(domain, n)
+    multi = Domain.uncount_records(multi, domain, channel, n)
 
     queryable = from(dr in DnsRecord, where: dr.domain == ^domain_name)
     Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel, returning: false)
@@ -192,7 +192,7 @@ defmodule Ipncore.DnsRecord do
     {val, _ttl} = lookup(domain_name, type)
     DetsPlus.delete(@base, {domain_name, type})
     n = if is_list(val), do: length(val), else: 1
-    Domain.uncount_records(domain, n)
+    multi = Domain.uncount_records(multi, domain, channel, n)
 
     queryable = from(dr in DnsRecord, where: dr.domain == ^domain_name and dr.type == ^type)
     Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel, returning: false)

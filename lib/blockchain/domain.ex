@@ -10,7 +10,7 @@ defmodule Ipncore.Domain do
   @base :domain
   @filename "domain.db"
   # @fields ~w(name owner email avatar)
-  @edit_fields ~w(enabled owner email avatar)
+  @edit_fields ~w(enabled owner email avatar title)
   @max_characters 25
   @token Default.token()
   @renewed_time 31_536_000_000
@@ -19,6 +19,7 @@ defmodule Ipncore.Domain do
   @primary_key {:name, :string, []}
   schema "domain" do
     field(:owner, :binary)
+    field(:title, :string)
     field(:email, :string)
     field(:avatar, :string)
     field(:enabled, :boolean, default: true)
@@ -126,7 +127,7 @@ defmodule Ipncore.Domain do
     # |> Enum.join(".")
   end
 
-  def check_new!(name, from_address, email, avatar, years_to_renew, validator_host, size) do
+  def check_new!(name, from_address, email, avatar, title, years_to_renew, validator_host, size) do
     if years_to_renew not in 1..2, do: throw("Invalid years to renew")
     if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid name")
     if @max_characters < byte_size(name), do: throw("Max characters is 25")
@@ -158,6 +159,7 @@ defmodule Ipncore.Domain do
         name,
         email,
         avatar,
+        title,
         years_to_renew,
         validator_host,
         event_size,
@@ -166,6 +168,7 @@ defmodule Ipncore.Domain do
       ) do
     domain = %{
       name: name,
+      title: title,
       email: email,
       avatar: avatar,
       enabled: true,
@@ -221,6 +224,7 @@ defmodule Ipncore.Domain do
       params
       |> MapUtil.require_only(@edit_fields)
       |> Map.take(@edit_fields)
+      |> MapUtil.validate_length("title", 64)
       |> MapUtil.validate_length("avatar", 255)
       |> MapUtil.validate_email("email")
       |> MapUtil.validate_boolean("enabled")
@@ -272,14 +276,26 @@ defmodule Ipncore.Domain do
     |> DnsRecord.delete_by_root(name, channel)
   end
 
-  def count_records(%{records: records} = domain, count \\ 1) do
+  def count_records(multi, %{records: records} = domain, channel_id, count \\ 1) do
     %{domain | records: records + count}
     |> put()
+
+    query = from(d in Doamin, where: d.name == ^domain.name)
+
+    Ecto.Multi.update_all(multi, :records, query, [inc: [records: count]],
+      returning: false,
+      prefix: channel_id
+    )
   end
 
-  def uncount_records(%{records: records} = domain, uncount \\ 1) do
+  def uncount_records(multi, %{records: records} = domain, channel_id, uncount \\ 1) do
     %{domain | records: records - uncount}
     |> put()
+
+    Ecto.Multi.update_all(multi, :records, query, [inc: [records: -count]],
+      returning: false,
+      prefix: channel_id
+    )
   end
 
   def exists?(name, channel) do
@@ -330,6 +346,7 @@ defmodule Ipncore.Domain do
   defp filter_select(query, _) do
     select(query, [d], %{
       name: d.name,
+      title: d.title,
       email: d.email,
       avatar: d.avatar,
       owner: d.owner,

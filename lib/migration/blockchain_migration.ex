@@ -104,6 +104,7 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".domain(
           name varchar(25) NOT NULL,
           owner bytea NOT NULL,
+          title varchar(64),
           email varchar(64),
           avatar varchar,
           enabled bool DEFAULT TRUE,

@@ -183,10 +183,10 @@ defmodule Ipncore.Balance do
   defp activity_sort(query, params) do
     case Map.get(params, "sort") do
       "oldest" ->
-        order_by(query, [s], asc: fragment("length(?)", s.txid), asc: s.xtid, asc: s.ix)
+        order_by(query, [s, ev], asc: ev.block_index, asc: ev.time, desc: ev.hash, desc: s.ix)
 
       _ ->
-        order_by(query, [s], desc: fragment("length(?)", s.txid), desc: s.txid, asc: s.ix)
+        order_by(query, [s, ev], desc: ev.block_index, desc: ev.time, asc: ev.hash, asc: s.ix)
     end
   end
 

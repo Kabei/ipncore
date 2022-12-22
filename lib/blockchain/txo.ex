@@ -113,11 +113,17 @@ defmodule Ipncore.Txo do
 
   defp sort(query, params) do
     case Map.get(params, "sort") do
-      "newest" ->
-        order_by(query, [txo, ev], desc: ev.time, asc: txo.txid, asc: txo.ix)
+      "oldest" ->
+        order_by(query, [txo, ev], asc: ev.time, desc: txo.txid, asc: txo.ix)
+
+      "most_value" ->
+        order_by(query, [txo], desc: tx.value)
+
+      "less_value" ->
+        order_by(query, [txo], asc: tx.value)
 
       _ ->
-        order_by(query, [txo, ev], asc: ev.time, desc: txo.txid, asc: txo.ix)
+        order_by(query, [txo, ev], desc: ev.time, asc: txo.txid, asc: txo.ix)
     end
   end
 

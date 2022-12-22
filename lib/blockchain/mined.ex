@@ -19,7 +19,7 @@ defmodule Ipncore.Mined do
             fragment("substring(?::bytea from 1 for ?)", txo.id, ^byte_size(bindex)) == ^bindex,
         select: txo.address,
         distinct: true,
-        order_by: [asc: fragment("length(?)", txo.address), asc: txo.address]
+        order_by: [asc: txo.address]
       )
       |> Repo.all(prefix: channel)
 

@@ -380,16 +380,10 @@ defmodule Ipncore.Tx do
   defp sort(query, params) do
     case Map.get(params, "sort") do
       "oldest" ->
-        order_by(query, [tx], asc: fragment("length(?)", tx.id), asc: tx.id)
-
-      "most_value" ->
-        order_by(query, [tx], desc: tx.amount)
-
-      "less_value" ->
-        order_by(query, [tx], asc: tx.amount)
+        order_by(query, [_tx, ev], asc: ev.block_index, asc: ev.time, desc: ev.hash)
 
       _ ->
-        order_by(query, [tx], desc: fragment("length(?)", tx.id), desc: tx.id)
+        order_by(query, [_tx, ev], desc: ev.block_index, desc: ev.time, asc: ev.hash)
     end
   end
 end

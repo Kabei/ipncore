@@ -189,7 +189,7 @@ defmodule Ipncore.Explorer.Router do
     token = Token.fetch!(token_id)
     last_block = Chain.last_block()
     coins = Tx.calc_amount_dec(token.supply, token.decimals)
-    events = Event.fetch_count(channel)
+    events = Chain.events()
 
     resp = %{
       coins: coins,

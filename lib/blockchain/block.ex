@@ -174,20 +174,20 @@ defmodule Ipncore.Block do
     MerkleTree.root(hashes)
   end
 
-  def fetch_count(channel) do
-    if Regex.match?(Const.Regex.channel(), channel) do
-      %{rows: [[count]]} =
-        Ecto.Adapters.SQL.query!(
-          Ipncore.Repo,
-          "SELECT n_live_tup FROM pg_stat_user_tables WHERE schemaname = $1 AND relname = $2 LIMIT 1",
-          [channel, "block"]
-        )
+  # def fetch_count(channel) do
+  #   if Regex.match?(Const.Regex.channel(), channel) do
+  #     %{rows: [[count]]} =
+  #       Ecto.Adapters.SQL.query!(
+  #         Ipncore.Repo,
+  #         "SELECT n_live_tup FROM pg_stat_user_tables WHERE schemaname = $1 AND relname = $2 LIMIT 1",
+  #         [channel, "block"]
+  #       )
 
-      count
-    else
-      0
-    end
-  end
+  #     count
+  #   else
+  #     0
+  #   end
+  # end
 
   def fetch_genesis do
     from(b in Block, where: b.height == 0 and b.type == @block_type_genesis, limit: 1)

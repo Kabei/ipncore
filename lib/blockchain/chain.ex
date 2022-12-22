@@ -3,7 +3,7 @@ defmodule Ipncore.Chain do
   # use GenServer
   alias Ipncore.{Block, IIT, Repo, BlockValidator}
 
-  @compile {:inline, get_time: 0, genesis_time: 0, last_block: 0}
+  @compile {:inline, get_time: 0, genesis_time: 0, last_block: 0, events: 0}
   @base :chain
   @table :chain
   @filename "chain.db"
@@ -117,6 +117,14 @@ defmodule Ipncore.Chain do
     put(:genesis_time, block.time)
   end
 
+  def events do
+    get(:events, 0)
+  end
+
+  def add_events(events) do
+    put(:events, get(:events, 0) + events)
+  end
+
   def start do
     Logger.info("Chain starting")
 
@@ -171,6 +179,7 @@ defmodule Ipncore.Chain do
         end
 
         put_last_block(block)
+        add_events(block.ev_count)
         sync()
 
         Ecto.Multi.new()

@@ -117,10 +117,10 @@ defmodule Ipncore.Txo do
         order_by(query, [txo, ev], asc: ev.time, desc: txo.txid, asc: txo.ix)
 
       "most_value" ->
-        order_by(query, [txo], desc: tx.value)
+        order_by(query, [txo], desc: txo.value)
 
       "less_value" ->
-        order_by(query, [txo], asc: tx.value)
+        order_by(query, [txo], asc: txo.value)
 
       _ ->
         order_by(query, [txo, ev], desc: ev.time, asc: txo.txid, asc: txo.ix)

@@ -63,6 +63,11 @@ defmodule Ipncore.Txo do
     where(query, [txo], txo.from == ^from_address and txo.to == ^to_address)
   end
 
+  defp filter_address(query, %{"activity" => address}) do
+    address = Address.from_text(address)
+    where(query, [txo], txo.from == ^address or txo.to == ^address)
+  end
+
   defp filter_address(query, _params), do: query
 
   defp filter_token(query, %{"token" => token}) do

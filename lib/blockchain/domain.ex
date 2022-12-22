@@ -282,7 +282,7 @@ defmodule Ipncore.Domain do
     %{domain | records: records + count}
     |> put()
 
-    query = from(d in Doamin, where: d.name == ^name)
+    query = from(d in Domain, where: d.name == ^name)
 
     Ecto.Multi.update_all(multi, :records, query, [inc: [records: count]],
       returning: false,
@@ -294,7 +294,7 @@ defmodule Ipncore.Domain do
     %{domain | records: records - uncount}
     |> put()
 
-    query = from(d in Doamin, where: d.name == ^name)
+    query = from(d in Domain, where: d.name == ^name)
 
     Ecto.Multi.update_all(multi, :records, query, [inc: [records: -uncount]],
       returning: false,

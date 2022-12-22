@@ -560,6 +560,21 @@ defmodule Ipncore.Event do
     end
   end
 
+  def fetch_count(channel) do
+    if Regex.match?(Const.Regex.channel(), channel) do
+      %{rows: [[count]]} =
+        Ecto.Adapters.SQL.query!(
+          Ipncore.Repo,
+          "SELECT n_live_tup FROM pg_stat_user_tables WHERE schemaname = $1 AND relname = $2 LIMIT 1",
+          [channel, "event"]
+        )
+
+      count
+    else
+      0
+    end
+  end
+
   def one(hash, channel) do
     from(ev in Event, where: ev.hash == ^hash)
     |> select([ev], map_select())

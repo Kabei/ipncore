@@ -135,7 +135,8 @@ defmodule Test do
     [@version, "tx.send", time, body, from58, sig64]
   end
 
-  # Test.domain_new(sk, addr58, "my-domain", "test@mail.com", "https://avatar.com", "my-domain-1", 2, "ippan.red")
+  # Test.domain_new(sk, addr58, "my-domain", "test@mail.com", "https://avatar.com", "my-domain-title", 2, "ippan.red")
+  # Test.domain_new(sk, addr58, "ippan", "test@mail.com", "https://avatar.com", "IPPAN", 2, "ippan.red")
   def domain_new(sk, from58, name, email, avatar, title, years_to_renew, validator_host) do
     type_number = Event.type_index("domain.new")
     time = :erlang.system_time(@unit_time)

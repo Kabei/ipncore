@@ -12,6 +12,7 @@ defmodule Ipncore.Domain do
   # @fields ~w(name owner email avatar)
   @edit_fields ~w(enabled owner email avatar title)
   @max_characters 25
+  @max_title_characters 64
   @token Default.token()
   @renewed_time 31_536_000_000
   @price_to_update 1000
@@ -131,6 +132,7 @@ defmodule Ipncore.Domain do
     if years_to_renew not in 1..2, do: throw("Invalid years to renew")
     if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid name")
     if @max_characters < byte_size(name), do: throw("Max characters is 25")
+    if @max_title_characters < String.length(title), do: throw("Max characters is 64")
 
     if not is_nil(email) and not Regex.match?(Const.Regex.email(), email),
       do: throw("Invalid email")
@@ -276,11 +278,11 @@ defmodule Ipncore.Domain do
     |> DnsRecord.delete_by_root(name, channel)
   end
 
-  def count_records(multi, %{records: records} = domain, channel_id, count \\ 1) do
+  def count_records(multi, %{name: name, records: records} = domain, channel_id, count \\ 1) do
     %{domain | records: records + count}
     |> put()
 
-    query = from(d in Doamin, where: d.name == ^domain.name)
+    query = from(d in Doamin, where: d.name == ^name)
 
     Ecto.Multi.update_all(multi, :records, query, [inc: [records: count]],
       returning: false,
@@ -288,11 +290,13 @@ defmodule Ipncore.Domain do
     )
   end
 
-  def uncount_records(multi, %{records: records} = domain, channel_id, uncount \\ 1) do
+  def uncount_records(multi, %{name: name, records: records} = domain, channel_id, uncount \\ 1) do
     %{domain | records: records - uncount}
     |> put()
 
-    Ecto.Multi.update_all(multi, :records, query, [inc: [records: -count]],
+    query = from(d in Doamin, where: d.name == ^name)
+
+    Ecto.Multi.update_all(multi, :records, query, [inc: [records: -uncount]],
       returning: false,
       prefix: channel_id
     )

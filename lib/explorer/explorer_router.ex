@@ -241,6 +241,18 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
+  head "/blockchain/domain/:domain" do
+    resp = Domain.exists?(domain)
+
+    case resp do
+      true ->
+        send_resp(conn, 409, "")
+
+      false ->
+        send_resp(conn, 200, "")
+    end
+  end
+
   get "/blockchain/dns/:domain/:type" do
     channel = filter_channel(conn.params, Default.channel())
     resp = DnsRecord.one(domain, type, channel)

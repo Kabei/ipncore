@@ -10,7 +10,7 @@ defmodule Plug.Cors do
     |> merge_resp_headers([
       {"access-control-allow-headers",
        "Authorization, Content-Type, Accept, Origin, User-Agent, Accept-Encoding, Cache-Control, Keep-Alive"},
-      {"access-control-allow-methods", "GET, POST, OPTIONS"},
+      {"access-control-allow-methods", "GET, POST, HEAD, OPTIONS"},
       {"server", "IPNcore"}
     ])
   end

@@ -58,6 +58,10 @@ defmodule Ipncore.Domain do
     DetsPlus.insert(@base, x)
   end
 
+  def exists?(x) do
+    DetsPlus.member?(@base, x)
+  end
+
   def exists!(x) do
     case DetsPlus.member?(@base, x) do
       false ->
@@ -123,14 +127,15 @@ defmodule Ipncore.Domain do
     domain
     |> String.split(".")
     |> Enum.take(-2)
-    |> List.first()
+    |> Enum.join(".")
 
+    # |> List.first()
     # |> Enum.join(".")
   end
 
   def check_new!(name, from_address, email, avatar, title, years_to_renew, validator_host, size) do
     if years_to_renew not in 1..2, do: throw("Invalid years to renew")
-    if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid name")
+    if not Regex.match?(Const.Regex.domain(), name), do: throw("Invalid domain")
     if @max_characters < byte_size(name), do: throw("Max characters is 25")
     if @max_title_characters < String.length(title), do: throw("Max characters is 64")
 
@@ -205,7 +210,7 @@ defmodule Ipncore.Domain do
 
   def check_update!(name, from_address) do
     if is_nil(name), do: throw("No hostname")
-    if not Regex.match?(Const.Regex.hostname(), name), do: throw("Invalid hostname")
+    if not Regex.match?(Const.Regex.domain(), name), do: throw("Invalid domain")
 
     fetch!(name, from_address)
     Tx.check_fee!(from_address, @price_to_update)
@@ -311,10 +316,10 @@ defmodule Ipncore.Domain do
     x = String.length(name)
 
     cond do
-      x <= 5 ->
+      x <= 7 ->
         100_000
 
-      x <= 8 ->
+      x <= 10 ->
         75_000
 
       true ->

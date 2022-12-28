@@ -29,6 +29,7 @@ defmodule Ipncore.Token do
   @edit_fields ~w(name owner)
   @props ~w{maxSupply opts}
   @token Default.token()
+  @max_decimals 18
 
   @primary_key {:id, :string, []}
   schema "token" do
@@ -223,7 +224,7 @@ defmodule Ipncore.Token do
       |> MapUtil.validate_value("maxSupply", :lte, 0)
       |> MapUtil.validate_any("opts", ["burn", "coinbase", "lock"])
 
-    if decimals < 0 and decimals > 18, do: throw("Invalid decimals")
+    if decimals < 0 and decimals > @max_decimals, do: throw("Invalid decimals")
     if String.length(symbol) > 2, do: throw("Invalid symbol length")
     if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
 

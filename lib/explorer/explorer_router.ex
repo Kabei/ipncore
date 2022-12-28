@@ -236,9 +236,28 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/dns" do
-    resp = DnsRecord.all(conn.params)
-    send_result(conn, resp)
+  head "/blockchain/token/:token" do
+    resp = Token.exists?(token)
+
+    case resp do
+      true ->
+        send_resp(conn, 409, "")
+
+      false ->
+        send_resp(conn, 200, "")
+    end
+  end
+
+  head "/blockchain/validator/:validator" do
+    resp = Validator.exists?(validator)
+
+    case resp do
+      true ->
+        send_resp(conn, 409, "")
+
+      false ->
+        send_resp(conn, 200, "")
+    end
   end
 
   head "/blockchain/domain/:domain" do
@@ -251,6 +270,11 @@ defmodule Ipncore.Explorer.Router do
       false ->
         send_resp(conn, 200, "")
     end
+  end
+
+  get "/blockchain/dns" do
+    resp = DnsRecord.all(conn.params)
+    send_result(conn, resp)
   end
 
   get "/blockchain/dns/:domain/:type" do

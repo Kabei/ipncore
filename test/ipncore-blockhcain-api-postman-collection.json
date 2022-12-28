@@ -75,6 +75,13 @@
 					"path": [
 						"blockchain",
 						"events"
+					],
+					"query": [
+						{
+							"key": "block",
+							"value": "5",
+							"disabled": true
+						}
 					]
 				}
 			},
@@ -154,6 +161,16 @@
 						{
 							"key": "to",
 							"value": "1x3dcvB6nq1uPqwG3W6njMhNwGmhrg",
+							"disabled": true
+						},
+						{
+							"key": "show",
+							"value": "props",
+							"disabled": true
+						},
+						{
+							"key": "txid",
+							"value": "d419fde49b0a510899eddf3ff5d96bda55aae80f03c57dfa4bd9057c4bcdb2f7",
 							"disabled": true
 						}
 					]
@@ -396,6 +413,63 @@
 						"dns",
 						"ippan.com",
 						"a"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Domain Exists",
+			"request": {
+				"method": "HEAD",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/domain/ippan",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"domain",
+						"ippan"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Token Exists",
+			"request": {
+				"method": "HEAD",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/token/ipn",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"token",
+						"ipn"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validator Exists",
+			"request": {
+				"method": "HEAD",
+				"header": [],
+				"url": {
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/validator/ippan.red",
+					"host": [
+						"{{PROTOCOL}}{{HOST}}"
+					],
+					"path": [
+						"blockchain",
+						"validator",
+						"ippan.red"
 					]
 				}
 			},

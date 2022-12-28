@@ -151,6 +151,10 @@ defmodule Ipncore.Token do
     end
   end
 
+  def exists?(x) do
+    DetsPlus.member?(@base, x)
+  end
+
   def exists!(x) do
     case DetsPlus.member?(@base, x) do
       false ->

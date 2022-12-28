@@ -79,6 +79,10 @@ defmodule Ipncore.Validator do
     end
   end
 
+  def exists?(x) do
+    DetsPlus.member?(@base, x)
+  end
+
   def exists!(x) do
     case DetsPlus.lookup(@base, x) do
       [] ->

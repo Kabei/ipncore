@@ -443,14 +443,14 @@
 				"method": "HEAD",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/token/ipn",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/token/IPN",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
 						"token",
-						"ipn"
+						"IPN"
 					]
 				}
 			},

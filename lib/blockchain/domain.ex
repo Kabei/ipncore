@@ -338,11 +338,17 @@ defmodule Ipncore.Domain do
   def all(params) do
     from(d in Domain, where: d.enabled)
     |> filter_host(params)
+    |> filter_owner(params)
+    |> filter_email(params)
     |> filter_select(params)
     |> filter_limit(params)
     |> filter_offset(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
     |> filter_map()
+  end
+
+  defp filter_host(query, %{"name" => name}) do
+    where(query, [d], d.name == ^name)
   end
 
   defp filter_host(query, %{"q" => q}) do
@@ -351,6 +357,18 @@ defmodule Ipncore.Domain do
   end
 
   defp filter_host(query, _), do: query
+
+  defp filter_owner(query, %{"owner" => owner}) do
+    where(query, [d], d.owner == ^owner)
+  end
+
+  defp filter_owner(query, _), do: query
+
+  defp filter_email(query, %{"email" => email}) do
+    where(query, [d], d.email == ^email)
+  end
+
+  defp filter_email(query, _), do: query
 
   defp filter_select(query, _) do
     select(query, [d], %{

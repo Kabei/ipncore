@@ -359,7 +359,8 @@ defmodule Ipncore.Domain do
   defp filter_host(query, _), do: query
 
   defp filter_owner(query, %{"owner" => owner}) do
-    where(query, [d], d.owner == ^owner)
+    bin_owner = Address.from_text(owner)
+    where(query, [d], d.owner == ^bin_owner)
   end
 
   defp filter_owner(query, _), do: query

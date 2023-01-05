@@ -316,10 +316,10 @@ defmodule Ipncore.Domain do
     x = String.length(name)
 
     cond do
-      x <= 7 ->
+      x <= 9 ->
         100_000
 
-      x <= 10 ->
+      x <= 12 ->
         75_000
 
       true ->

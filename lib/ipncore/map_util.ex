@@ -1,5 +1,7 @@
 defmodule MapUtil do
   alias Ipncore.Address
+  import Ipncore.Util
+
   ## util functions
   def to_keywords(params) do
     Enum.map(params, fn {k, v} -> {k, v} end)
@@ -35,7 +37,7 @@ defmodule MapUtil do
   def validate_email(map, key) do
     email = Map.get(map, key)
 
-    if !is_nil(email) and not Regex.match?(Const.Regex.email(), email),
+    if not empty?(email) and not Regex.match?(Const.Regex.email(), email),
       do: throw("Invalid #{key}")
 
     map
@@ -44,7 +46,7 @@ defmodule MapUtil do
   def validate_hostname(map, key) do
     val = Map.get(map, key)
 
-    if not is_nil(val) and not Regex.match?(Const.Regex.hostname(), val),
+    if not empty?(val) and not Regex.match?(Const.Regex.hostname(), val),
       do: throw("Invalid #{key}")
 
     map
@@ -53,7 +55,7 @@ defmodule MapUtil do
   def validate_address(map, key) do
     val = Map.get(map, key)
 
-    if not is_nil(val) and not Regex.match?(Const.Regex.address(), val),
+    if not empty?(val) and not Regex.match?(Const.Regex.address(), val),
       do: throw("Invalid address #{key}")
 
     map
@@ -61,27 +63,27 @@ defmodule MapUtil do
 
   def validate_format(map, key, regex) do
     val = Map.get(map, key)
-    if not is_nil(val) and not Regex.match?(regex, val), do: throw("Invalid #{key}")
+    if not empty?(val) and not Regex.match?(regex, val), do: throw("Invalid #{key}")
 
     map
   end
 
   def validate_boolean(map, key) do
     val = Map.get(map, key)
-    if not is_nil(val) and not is_boolean(val), do: throw("Invalid #{key}")
+    if not empty?(val) and not is_boolean(val), do: throw("Invalid #{key}")
     map
   end
 
   def validate_integer(map, key) do
     val = Map.get(map, key)
-    if not is_nil(val) and not is_integer(val), do: throw("Invalid #{key}")
+    if not empty?(val) and not is_integer(val), do: throw("Invalid #{key}")
     map
   end
 
   def validate_value(map, key, op, value) do
     val = Map.get(map, key)
 
-    (not is_nil(val) and
+    (not empty?(val) and
        case op do
          :gt -> val > value
          :eq -> val == value
@@ -100,14 +102,14 @@ defmodule MapUtil do
 
   def validate_range(map, key, range) do
     val = Map.get(map, key)
-    if not is_nil(val) and val not in range, do: throw("Invalid range #{key}")
+    if not empty?(val) and val not in range, do: throw("Invalid range #{key}")
     map
   end
 
   def validate_any(map, key, list) when is_list(list) do
     val = Map.get(map, key)
 
-    if not is_nil(val) and not Enum.any?(val, fn x -> x in list end),
+    if not empty?(val) and not Enum.any?(val, fn x -> x in list end),
       do: throw("Invalid range #{key}")
 
     map
@@ -122,21 +124,21 @@ defmodule MapUtil do
 
   def validate_bytes(map, key, _x.._y = range) do
     val = Map.get(map, key)
-    if not is_nil(val) and byte_size(val) not in range, do: throw("Invalid max length #{key}")
+    if not empty?(val) and byte_size(val) not in range, do: throw("Invalid max length #{key}")
 
     map
   end
 
   def validate_bytes(map, key, size, _) do
     val = Map.get(map, key)
-    if not is_nil(val) and byte_size(val) > size, do: throw("Invalid max length #{key}")
+    if not empty?(val) and byte_size(val) > size, do: throw("Invalid max length #{key}")
 
     map
   end
 
   def validate_length(map, key, _x.._y = range) do
     val = Map.get(map, key)
-    if not is_nil(val) and String.length(val) not in range, do: throw("Invalid max length #{key}")
+    if not empty?(val) and String.length(val) not in range, do: throw("Invalid max length #{key}")
 
     map
   end

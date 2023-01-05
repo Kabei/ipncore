@@ -2,6 +2,7 @@ defmodule Ipncore.Domain do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
+  import Ipncore.Util
   alias Ipncore.{Address, Database, DnsRecord, Repo, Tx}
   alias __MODULE__
 
@@ -139,11 +140,11 @@ defmodule Ipncore.Domain do
     if @max_characters < byte_size(name), do: throw("Max characters is 25")
     if @max_title_characters < String.length(title), do: throw("Max characters is 64")
 
-    if not is_nil(email) and not Regex.match?(Const.Regex.email(), email),
+    if not empty?(email) and not Regex.match?(Const.Regex.email(), email),
       do: throw("Invalid email")
 
     if String.length(name) > 100, do: throw("Invalid name length")
-    if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
+    if not empty?(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
 
     exists!(name)
 
@@ -209,8 +210,8 @@ defmodule Ipncore.Domain do
   end
 
   def check_update!(name, from_address) do
-    if is_nil(name), do: throw("No hostname")
-    if not Regex.match?(Const.Regex.domain(), name), do: throw("Invalid domain")
+    if empty?(name) or not Regex.match?(Const.Regex.domain(), name),
+      do: throw("Invalid domain")
 
     fetch!(name, from_address)
     Tx.check_fee!(from_address, @price_to_update)

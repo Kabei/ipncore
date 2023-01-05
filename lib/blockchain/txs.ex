@@ -3,6 +3,7 @@ defmodule Ipncore.Tx do
   require Logger
   import Ecto.Query, only: [from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
+  import Ipncore.Util
   alias Ipncore.{Address, Balance, Block, Event, Txo, Balance, Token, Validator, Repo}
   alias __MODULE__
 
@@ -104,7 +105,7 @@ defmodule Ipncore.Tx do
         timestamp,
         channel
       ) do
-    if not is_nil(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
+    if not empty?(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
 
     token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
@@ -164,7 +165,7 @@ defmodule Ipncore.Tx do
   end
 
   def check_coinbase!(from_address, token_id, memo) do
-    if not is_nil(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
+    if not empty?(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
 
     token = Token.fetch!(token_id, from_address)
     unless Token.check_opts(token, "coinbase"), do: throw("Operation not allowed")

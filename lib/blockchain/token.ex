@@ -2,6 +2,7 @@ defmodule Ipncore.Token do
   use Ecto.Schema
   import Ecto.Query, only: [from: 2, where: 3, order_by: 3, select: 3]
   import Ipnutils.Filters
+  import Ipncore.Util
   import Ipnutils.Macros, only: [deftypes: 1]
   alias Ipncore.{Address, Repo, Database}
   alias __MODULE__
@@ -230,7 +231,7 @@ defmodule Ipncore.Token do
 
     if decimals < 0 and decimals > @max_decimals, do: throw("Invalid decimals")
     if String.length(symbol) > 2, do: throw("Invalid symbol length")
-    if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
+    if not empty?(avatar) or String.length(avatar) > 255, do: throw("Invalid avatar length")
 
     token = %{
       id: token_id,
@@ -259,7 +260,7 @@ defmodule Ipncore.Token do
 
   def event_update!(multi, from_address, token_id, params, timestamp, channel)
       when is_map(params) do
-    if is_nil(token_id), do: throw("Bad format token ID")
+    if empty?(token_id), do: throw("Bad format token ID")
 
     map_params =
       params

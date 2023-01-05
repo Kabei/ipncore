@@ -2,6 +2,7 @@ defmodule Ipncore.Validator do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
+  import Ipncore.Util
   alias Ipncore.{Address, Database, Repo}
   alias __MODULE__
 
@@ -115,7 +116,7 @@ defmodule Ipncore.Validator do
     if not Platform.owner?(from_address), do: throw("Operation not allowed")
     unless fee_type >= 0 and fee_type <= 2, do: throw("Invalid fee_type")
     if not is_float(fee), do: throw("Invalid Fee value")
-    if !is_nil(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
+    if not empty?(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
     exists!(host)
 
     :ok

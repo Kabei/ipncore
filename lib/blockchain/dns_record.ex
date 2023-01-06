@@ -189,9 +189,11 @@ defmodule Ipncore.DnsRecord do
   def event_drop!(multi, [domain_name, type], channel) do
     domain_root = Domain.extract_root(domain_name)
     domain = Domain.fetch!(domain_root)
+    query_name = to_charlist(domain_name)
+    atype = String.to_atom(type)
 
-    {val, _ttl} = lookup(domain_name, type)
-    DetsPlus.delete(@base, {domain_name, type})
+    {val, _ttl} = lookup(query_name, atype)
+    DetsPlus.delete(@base, {query_name, atype})
     n = if is_list(val), do: length(val), else: 1
     multi = Domain.uncount_records(multi, domain, channel, n)
 

@@ -51,6 +51,8 @@ defmodule Ipncore.DnsRecord do
     end
   end
 
+  def exists?(domain, type), do: DetsPlus.member?(@base, {domain, type})
+
   def check_push!(domain_name, type, from_address, value, ttl)
       when is_binary(domain_name) and is_binary(value) and ttl >= @min_ttl and ttl <= @max_ttl do
     if type not in @dns_types, do: throw("DNS record type not supported")
@@ -108,7 +110,7 @@ defmodule Ipncore.DnsRecord do
           to_charlist(val)
       end
 
-    {object, count} =
+    {object, count, exists} =
       cond do
         # allow push multiple records
         replace == false ->
@@ -116,18 +118,18 @@ defmodule Ipncore.DnsRecord do
             {values, _} when is_list(values) ->
               n = length(values)
               if n >= @max_dns_record_items, do: throw("Invalid max values in dns record")
-              {{{query_name, type_atom}, values ++ [value], ttl, domain_root}, n + 1}
+              {{{query_name, type_atom}, values ++ [value], ttl, domain_root}, n + 1, true}
 
             {result, _} ->
-              {{{query_name, type_atom}, [result, value], ttl, domain_root}, 2}
+              {{{query_name, type_atom}, [result, value], ttl, domain_root}, 2, true}
 
             _ ->
-              {{{query_name, type_atom}, value, ttl, domain_root}, 1}
+              {{{query_name, type_atom}, value, ttl, domain_root}, 1, false}
           end
 
         # single records
         true ->
-          {{{query_name, type_atom}, value, ttl, domain_root}, 1}
+          {{{query_name, type_atom}, value, ttl, domain_root}, 1, exists?(query_name, type_atom)}
       end
 
     multi =
@@ -156,12 +158,25 @@ defmodule Ipncore.DnsRecord do
     # Add multi upsert
     case replace do
       true ->
-        query = from(dr in DnsRecord, where: dr.domain == ^domain_name and dr.type == ^type)
+        case exists do
+          true ->
+            query = from(dr in DnsRecord, where: dr.domain == ^domain_name and dr.type == ^type)
 
-        Ecto.Multi.update_all(multi, :dns, query, [set: [value: struct.value, ttl: struct.ttl]],
-          prefix: channel,
-          returning: false
-        )
+            Ecto.Multi.update_all(
+              multi,
+              :dns,
+              query,
+              [set: [value: struct.value, ttl: struct.ttl]],
+              prefix: channel,
+              returning: false
+            )
+
+          false ->
+            Ecto.Multi.insert_all(multi, :dns, DnsRecord, [struct],
+              prefix: channel,
+              returning: false
+            )
+        end
 
       false ->
         Ecto.Multi.insert_all(multi, :dns, DnsRecord, [struct], prefix: channel, returning: false)

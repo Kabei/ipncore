@@ -314,13 +314,17 @@ defmodule Ipncore.Domain do
   end
 
   defp price(name, years_to_renew) do
-    x = String.length(name)
+    x =
+      name
+      |> String.split(".")
+      |> List.first()
+      |> String.length()
 
     cond do
-      x <= 9 ->
+      x <= 5 ->
         100_000
 
-      x <= 12 ->
+      x <= 8 ->
         75_000
 
       true ->

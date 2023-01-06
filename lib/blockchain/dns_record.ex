@@ -76,6 +76,7 @@ defmodule Ipncore.DnsRecord do
         ttl,
         validator_host,
         timestamp,
+        replace,
         channel
       ) do
     type_atom = String.to_atom(type)
@@ -101,7 +102,7 @@ defmodule Ipncore.DnsRecord do
     {object, count} =
       cond do
         # allow push multiple records
-        type_atom in @dns_types_multi_records ->
+        replace == false and type_atom in @dns_types_multi_records ->
           case lookup(query_name, type_atom) do
             {values, _} when is_list(values) ->
               n = length(values)

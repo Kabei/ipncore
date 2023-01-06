@@ -39,8 +39,9 @@ defmodule Ipncore.Event do
       {400, "domain.new"},
       {401, "domain.update"},
       {402, "domain.delete"},
-      {410, "dns.push"},
-      {411, "dns.drop"},
+      {410, "dns.set"},
+      {411, "dns.push"},
+      {412, "dns.drop"},
       {1000, "pubkey.new"}
     ]
   else
@@ -229,6 +230,10 @@ defmodule Ipncore.Event do
           [to_address, token_id, value] = body
           Balance.check_lock!(from_address, Address.from_text(to_address), token_id, value)
 
+        "dns.set" ->
+          [name, type, value, ttl | _validator_host] = body
+          DnsRecord.check_push!(name, type, from_address, value, ttl)
+
         "dns.push" ->
           [name, type, value, ttl | _validator_host] = body
           DnsRecord.check_push!(name, type, from_address, value, ttl)
@@ -398,6 +403,23 @@ defmodule Ipncore.Event do
           [to_address, token_id, value] = body
           Balance.lock!(multi, Address.from_text(to_address), token_id, value, time, channel)
 
+        "dns.set" ->
+          [name, type, value, ttl, validator_host] = body
+
+          DnsRecord.event_push!(
+            multi,
+            hash,
+            from_address,
+            name,
+            type,
+            value,
+            ttl,
+            validator_host,
+            time,
+            true,
+            channel
+          )
+
         "dns.push" ->
           [name, type, value, ttl, validator_host] = body
 
@@ -411,6 +433,7 @@ defmodule Ipncore.Event do
             ttl,
             validator_host,
             time,
+            false,
             channel
           )
 

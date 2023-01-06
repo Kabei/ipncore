@@ -176,6 +176,16 @@ defmodule Test do
     [@version, "balance.lock", time, body, from58, sig64]
   end
 
+  # Test.dns_set(sk, addr58, "ippan.com", "a", "191.145.20.15", 86400, "ippan.red")
+  def dns_set(sk, from58, domain, type, value, ttl, validator_host) do
+    type_number = Event.type_index("dns.set")
+    time = :erlang.system_time(@unit_time)
+    body = [domain, type, value, ttl, validator_host]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "dns.set", time, body, from58, sig64]
+  end
+  
   # Test.dns_push(sk, addr58, "ippan.com", "a", "44.203.142.247", 86400, "ippan.red")
   # Test.dns_push(sk, addr58, "ippan.com", "a", "191.145.20.15", 86400, "ippan.red")
   def dns_push(sk, from58, domain, type, value, ttl, validator_host) do

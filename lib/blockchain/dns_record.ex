@@ -84,6 +84,15 @@ defmodule Ipncore.DnsRecord do
     domain = Domain.fetch!(domain_root)
     query_name = to_charlist(domain_name)
 
+    replace =
+      case replace do
+        true ->
+          true
+
+        false ->
+          type_atom not in @dns_types_multi_records
+      end
+
     value =
       case type_atom do
         :a ->
@@ -102,7 +111,7 @@ defmodule Ipncore.DnsRecord do
     {object, count} =
       cond do
         # allow push multiple records
-        replace == false and type_atom in @dns_types_multi_records ->
+        replace == false ->
           case lookup(query_name, type_atom) do
             {values, _} when is_list(values) ->
               n = length(values)
@@ -145,7 +154,18 @@ defmodule Ipncore.DnsRecord do
     }
 
     # Add multi upsert
-    Ecto.Multi.insert_all(multi, :dns, DnsRecord, [struct], prefix: channel, returning: false)
+    case replace do
+      true ->
+        query = from(dr in DnsRecord, where: dr.domain == ^domain_name and dr.type == ^type)
+
+        Ecto.Multi.update_all(multi, :dns, query, [set: [value: struct.value, ttl: struct.ttl]],
+          prefix: channel,
+          returning: false
+        )
+
+      false ->
+        Ecto.Multi.insert_all(multi, :dns, DnsRecord, [struct], prefix: channel, returning: false)
+    end
   end
 
   def check_drop!([domain_name], from_address) do

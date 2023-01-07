@@ -6,7 +6,7 @@ defmodule Ipncore.Balance do
   alias __MODULE__
 
   # @output_reason_send "S"
-  @output_reason_fee "%"
+  # @output_reason_fee "%"
 
   @base :balances
 
@@ -110,8 +110,10 @@ defmodule Ipncore.Balance do
     from(txo in Txo,
       join: ev in Event,
       on: ev.hash == txo.txid,
-      join: tx in Tx,
-      on: tx.id == txo.txid,
+      join: tk in Token,
+      on: tk.id == txo.token,
+      # join: tx in Tx,
+      # on: tx.id == txo.txid,
       select: %{
         id: txo.txid,
         type: ev.type,
@@ -120,7 +122,8 @@ defmodule Ipncore.Balance do
         from: txo.from,
         to: txo.to,
         value: txo.value,
-        memo: tx.memo,
+        decimal: tk.decimal,
+        # memo: tx.memo,
         time: ev.time
       }
     )
@@ -136,16 +139,13 @@ defmodule Ipncore.Balance do
     |> Enum.map(fn x ->
       %{
         id: Event.encode_id(x.id),
-        type: Event.type_name(x.type),
-        reason: x.reason,
-        token: x.token,
         from: Address.to_text(x.from),
-        to: Address.to_text(x.to),
-        value: x.value,
-        memo: x.memo,
+        reason: x.reason,
         time: x.time,
-        fee: x.reason == @output_reason_fee,
-        received: address == x.to
+        to: Address.to_text(x.to),
+        token: x.token,
+        type: Event.type_name(x.type),
+        value: Tx.calc_amount_dec(x.value, x.decimal)
       }
     end)
   end

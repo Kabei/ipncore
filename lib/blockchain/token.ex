@@ -370,17 +370,17 @@ defmodule Ipncore.Token do
 
   defp filter_index(query, _params), do: query
 
-  defp filter_select(query, %{"fmt" => "array"}) do
-    select(query, [tk], [
-      tk.id,
-      tk.name,
-      tk.owner,
-      tk.decimals,
-      tk.supply,
-      tk.avatar,
-      tk.props
-    ])
-  end
+  # defp filter_select(query, %{"fmt" => "array"}) do
+  #   select(query, [tk], [
+  #     tk.id,
+  #     tk.name,
+  #     tk.owner,
+  #     tk.decimals,
+  #     tk.supply,
+  #     tk.avatar,
+  #     tk.props
+  #   ])
+  # end
 
   defp filter_select(query, _params) do
     select(query, [tk], %{
@@ -411,16 +411,16 @@ defmodule Ipncore.Token do
 
   defp transform(nil), do: nil
 
-  defp transform([id, name, owner, decimals, supply, avatar, props]),
-    do: [
-      id,
-      name,
-      Address.to_text(owner),
-      decimals,
-      supply,
-      avatar,
-      props
-    ]
+  # defp transform([id, name, owner, decimals, supply, avatar, props]),
+  #   do: [
+  #     id,
+  #     name,
+  #     Address.to_text(owner),
+  #     decimals,
+  #     supply,
+  #     avatar,
+  #     props
+  #   ]
 
   defp transform(x), do: %{x | owner: Address.to_text(x.owner)}
 end

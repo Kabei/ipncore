@@ -561,17 +561,17 @@ defmodule Ipncore.Event do
     end
   end
 
-  defmacro export_select do
-    quote do
-      [
-        ev.vsn,
-        ev.type,
-        ev.body,
-        ev.sigs,
-        ev.time
-      ]
-    end
-  end
+  # defmacro export_select do
+  #   quote do
+  #     [
+  #       ev.vsn,
+  #       ev.type,
+  #       ev.body,
+  #       ev.sigs,
+  #       ev.time
+  #     ]
+  #   end
+  # end
 
   def exists!(x) do
     case DetsPlus.member?(@base, x) do
@@ -644,9 +644,9 @@ defmodule Ipncore.Event do
 
   defp filter_time(query, _), do: query
 
-  defp filter_select(query, %{"fmt" => "export"}) do
-    select(query, [ev], export_select())
-  end
+  # defp filter_select(query, %{"fmt" => "export"}) do
+  #   select(query, [ev], export_select())
+  # end
 
   defp filter_select(query, _), do: select(query, [ev], map_select())
 
@@ -678,7 +678,6 @@ defmodule Ipncore.Event do
   defp transform([]), do: []
 
   defp transform(x) do
-    # %{x | hash: encode_id(x.hash), type: type_name(x.type)}
     %{x | type: type_name(x.type)}
   end
 end

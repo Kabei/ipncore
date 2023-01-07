@@ -289,7 +289,7 @@ defmodule Ipncore.Tx do
 
   def calc_amount_dec(amount, decimals) do
     amount / :math.pow(10, decimals)
-    |> :erlang.float_to_binary([:compact, decimals: 18])
+    # |> :erlang.float_to_binary([:compact, decimals: 18])
   end
 
   defp multi_insert(multi, tx, channel) do

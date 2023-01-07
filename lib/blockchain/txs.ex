@@ -3,7 +3,7 @@ defmodule Ipncore.Tx do
   require Logger
   import Ecto.Query, only: [from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
-  import Ipncore.Util
+  import Ipncore.Util, only: [empty?: 1]
   alias Ipncore.{Address, Balance, Block, Event, Txo, Balance, Token, Validator, Repo}
   alias __MODULE__
 
@@ -148,7 +148,7 @@ defmodule Ipncore.Tx do
       }
     )
 
-    amount_dec = calc_amount_dec(amount + fee_total, token.decimals)
+    amount_dec = Util.to_decimal(amount + fee_total, token.decimals)
 
     tx = %{
       id: txid,
@@ -286,14 +286,7 @@ defmodule Ipncore.Tx do
   defp calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
   defp calc_fees(_, _, _, _), do: throw("Wrong fee type")
-
-  def calc_amount_dec(amount, 0), do: amount
-
-  def calc_amount_dec(amount, decimals) do
-    amount / :math.pow(10, decimals)
-    # |> :erlang.float_to_binary([:compact, decimals: 18])
-  end
-
+  
   defp multi_insert(multi, tx, channel) do
     Ecto.Multi.insert_all(multi, :tx, Tx, [tx],
       prefix: channel,

@@ -2,7 +2,7 @@ defmodule Ipncore.Balance do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Repo, Token, Tx, Txo, Event, Address}
+  alias Ipncore.{Repo, Token, Tx, Txo, Event, Address, Util}
   alias __MODULE__
 
   # @output_reason_send "S"
@@ -112,8 +112,6 @@ defmodule Ipncore.Balance do
       on: ev.hash == txo.txid,
       join: tk in Token,
       on: tk.id == txo.token,
-      # join: tx in Tx,
-      # on: tx.id == txo.txid,
       select: %{
         id: txo.txid,
         type: ev.type,
@@ -123,7 +121,6 @@ defmodule Ipncore.Balance do
         to: txo.to,
         value: txo.value,
         decimals: tk.decimals,
-        # memo: tx.memo,
         time: ev.time
       }
     )
@@ -145,7 +142,7 @@ defmodule Ipncore.Balance do
         to: Address.to_text(x.to),
         token: x.token,
         type: Event.type_name(x.type),
-        value: Tx.calc_amount_dec(x.value, x.decimals)
+        value: Util.to_decimal(x.value, x.decimals)
       }
     end)
   end

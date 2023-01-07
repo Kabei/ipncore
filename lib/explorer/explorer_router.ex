@@ -17,7 +17,8 @@ defmodule Ipncore.Explorer.Router do
     Chain,
     Validator,
     Domain,
-    DnsRecord
+    DnsRecord,
+    Util
   }
 
   if Mix.env() == :dev do
@@ -188,7 +189,7 @@ defmodule Ipncore.Explorer.Router do
     token_id = Default.token()
     token = Token.fetch!(token_id)
     last_block = Chain.last_block()
-    coins = Tx.calc_amount_dec(token.supply, token.decimals)
+    coins = Util.to_decimal(token.supply, token.decimals)
     events = Chain.events()
 
     resp = %{

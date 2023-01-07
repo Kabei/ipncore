@@ -1,6 +1,6 @@
 defmodule Ipncore.Txo do
   use Ecto.Schema
-  alias Ipncore.{Address, Event, Repo, Token, Tx}
+  alias Ipncore.{Address, Event, Repo, Token}
   import Ecto.Query, only: [from: 2, where: 3, order_by: 3, select: 3, join: 5]
   import Ipnutils.Filters
   alias __MODULE__
@@ -141,7 +141,7 @@ defmodule Ipncore.Txo do
         time: x.time,
         to: Address.to_text(x.to),
         token: x.token,
-        value: Tx.calc_amount_dec(x.value, x.decimals)
+        value: Util.to_decimal(x.value, x.decimals)
       }
     end)
   end

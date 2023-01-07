@@ -6,4 +6,11 @@ defmodule Ipncore.Util do
   #   def empty?(0), do: true
   #   def empty?(false), do: true
   def empty?(_), do: false
+
+  def to_decimal(number, 0), do: number
+
+  def to_decimal(number, decimals) do
+    number / :math.pow(10, decimals)
+    # |> :erlang.float_to_binary([:compact, decimals: 18])
+  end
 end

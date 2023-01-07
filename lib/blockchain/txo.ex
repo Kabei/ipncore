@@ -1,6 +1,6 @@
 defmodule Ipncore.Txo do
   use Ecto.Schema
-  alias Ipncore.{Address, Event, Repo, Token}
+  alias Ipncore.{Address, Event, Repo, Token, Util}
   import Ecto.Query, only: [from: 2, where: 3, order_by: 3, select: 3, join: 5]
   import Ipnutils.Filters
   alias __MODULE__

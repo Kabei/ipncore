@@ -4,7 +4,7 @@ defmodule Ipncore.Tx do
   import Ecto.Query, only: [from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
   import Ipncore.Util, only: [empty?: 1]
-  alias Ipncore.{Address, Balance, Block, Event, Txo, Balance, Token, Validator, Repo}
+  alias Ipncore.{Address, Balance, Block, Event, Txo, Balance, Token, Validator, Repo, Util}
   alias __MODULE__
 
   @unit_time Default.unit_time()

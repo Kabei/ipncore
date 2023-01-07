@@ -287,6 +287,8 @@ defmodule Ipncore.Tx do
 
   defp calc_fees(_, _, _, _), do: throw("Wrong fee type")
 
+  def calc_amount_dec(amount, 0), do: amount
+
   def calc_amount_dec(amount, decimals) do
     amount / :math.pow(10, decimals)
     # |> :erlang.float_to_binary([:compact, decimals: 18])

@@ -92,7 +92,7 @@ defmodule Ipncore.Txo do
     query
     |> join(:inner, [o], tk in Token, on: tk.id == o.token)
     |> select([o, ev, tk], %{
-      txid: o.txid,
+      id: o.txid,
       from: o.from,
       to: o.to,
       token: o.token,
@@ -135,12 +135,12 @@ defmodule Ipncore.Txo do
   defp transform(txos, _) do
     Enum.map(txos, fn x ->
       %{
-        txid: x.txid,
-        from: x.from,
-        to: x.to,
-        token: x.token,
-        time: x.time,
+        from: Address.to_text(x.from),
+        id: Event.encode_id(x.id),
         reason: x.reason,
+        time: x.time,
+        to: Address.to_text(x.to),
+        token: x.token,
         value: Tx.calc_amount_dec(x.value, x.decimals)
       }
     end)

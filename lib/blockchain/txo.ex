@@ -76,7 +76,19 @@ defmodule Ipncore.Txo do
 
   defp filter_token(query, _params), do: query
 
-  defp filter_select(query, %{"show" => "props"}) do
+  # defp filter_select(query, %{"fmt" => "list"}) do
+  #   select(query, [o, ev], [
+  #     o.txid,
+  #     o.from,
+  #     o.to,
+  #     o.token,
+  #     o.reason,
+  #     o.value,
+  #     ev.time
+  #   ])
+  # end
+
+  defp filter_select(query, _params) do
     query
     |> join(:inner, [o], tk in Token, on: tk.id == o.token)
     |> select([o, ev, tk], %{
@@ -87,32 +99,7 @@ defmodule Ipncore.Txo do
       time: ev.time,
       reason: o.reason,
       value: o.value,
-      decimals: tk.decimals,
-      symbol: tk.symbol
-    })
-  end
-
-  defp filter_select(query, %{"fmt" => "list"}) do
-    select(query, [o, ev], [
-      o.txid,
-      o.from,
-      o.to,
-      o.token,
-      o.reason,
-      o.value,
-      ev.time
-    ])
-  end
-
-  defp filter_select(query, _params) do
-    select(query, [o, ev], %{
-      txid: o.txid,
-      token: o.token,
-      from: o.from,
-      to: o.to,
-      reason: o.reason,
-      value: o.value,
-      time: ev.time
+      decimals: tk.decimals
     })
   end
 
@@ -132,26 +119,29 @@ defmodule Ipncore.Txo do
     end
   end
 
-  defp transform(txos, %{"fmt" => "list"}) do
-    Enum.map(txos, fn [id, token, from, to, reason, value] ->
-      [
-        Event.encode_id(id),
-        token,
-        Address.to_text(from),
-        Address.to_text(to),
-        reason,
-        value
-      ]
-    end)
-  end
+  # defp transform(txos, %{"fmt" => "list"}) do
+  #   Enum.map(txos, fn [id, token, from, to, reason, value] ->
+  #     [
+  #       Event.encode_id(id),
+  #       token,
+  #       Address.to_text(from),
+  #       Address.to_text(to),
+  #       reason,
+  #       value
+  #     ]
+  #   end)
+  # end
 
   defp transform(txos, _) do
     Enum.map(txos, fn x ->
       %{
-        x
-        | txid: Event.encode_id(x.txid),
-          from: Address.to_text(x.from),
-          to: Address.to_text(x.to)
+        txid: x.txid,
+        from: x.from,
+        to: x.to,
+        token: x.token,
+        time: x.time,
+        reason: x.reason,
+        value: Tx.calc_amount_dec(x.value, x.decimals)
       }
     end)
   end

@@ -122,7 +122,7 @@ defmodule Ipncore.Balance do
         from: txo.from,
         to: txo.to,
         value: txo.value,
-        decimal: tk.decimal,
+        decimals: tk.decimals,
         # memo: tx.memo,
         time: ev.time
       }
@@ -145,7 +145,7 @@ defmodule Ipncore.Balance do
         to: Address.to_text(x.to),
         token: x.token,
         type: Event.type_name(x.type),
-        value: Tx.calc_amount_dec(x.value, x.decimal)
+        value: Tx.calc_amount_dec(x.value, x.decimals)
       }
     end)
   end

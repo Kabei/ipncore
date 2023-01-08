@@ -200,6 +200,7 @@ defmodule Ipncore.Domain do
       validator_host,
       event_size,
       nil,
+      true,
       timestamp,
       channel
     )

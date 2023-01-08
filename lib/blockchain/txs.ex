@@ -124,6 +124,7 @@ defmodule Ipncore.Tx do
         validator_host,
         event_size,
         memo,
+        fee_enabled,
         timestamp,
         channel
       ) do
@@ -131,44 +132,73 @@ defmodule Ipncore.Tx do
 
     token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
-    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size, fee_enabled)
     validator_address = validator.owner
 
-    outputs = [
-      %{
-        txid: txid,
-        ix: 0,
-        from: from_address,
-        to: to_address,
-        value: amount,
-        token: token_id,
-        reason: @output_reason_send
-      },
-      %{
-        txid: txid,
-        ix: 1,
-        token: @token,
-        from: from_address,
-        to: validator_address,
-        value: fee_total,
-        reason: @output_reason_fee
-      }
-    ]
+    if fee_enabled do
+      outputs = [
+        %{
+          txid: txid,
+          ix: 0,
+          from: from_address,
+          to: to_address,
+          value: amount,
+          token: token_id,
+          reason: @output_reason_send
+        },
+        %{
+          txid: txid,
+          ix: 1,
+          token: @token,
+          from: from_address,
+          to: validator_address,
+          value: fee_total,
+          reason: @output_reason_fee
+        }
+      ]
 
-    Balance.update!(
-      [
-        {from_address, token_id},
-        {to_address, token_id},
-        {from_address, @token},
-        {validator_address, @token}
-      ],
-      %{
-        {from_address, token_id} => -(amount + fee_total),
-        {to_address, token_id} => amount,
-        {from_address, @token} => -fee_total,
-        {validator_address, @token} => fee_total
-      }
-    )
+      Balance.update!(
+        [
+          {from_address, token_id},
+          {to_address, token_id},
+          {from_address, @token},
+          {validator_address, @token}
+        ],
+        %{
+          {from_address, token_id} => -(amount + fee_total),
+          {to_address, token_id} => amount,
+          {from_address, @token} => -fee_total,
+          {validator_address, @token} => fee_total
+        }
+      )
+
+      outputs
+    else
+      outputs = [
+        %{
+          txid: txid,
+          ix: 0,
+          from: from_address,
+          to: to_address,
+          value: amount,
+          token: token_id,
+          reason: @output_reason_refund
+        }
+      ]
+
+      Balance.update!(
+        [
+          {from_address, token_id},
+          {to_address, token_id}
+        ],
+        %{
+          {from_address, token_id} => -(amount + fee_total),
+          {to_address, token_id} => amount
+        }
+      )
+
+      outputs
+    end
 
     amount_dec = Util.to_decimal(amount + fee_total, token.decimals)
 
@@ -286,6 +316,7 @@ defmodule Ipncore.Tx do
           validator_host,
           event_size,
           memo,
+          false,
           timestamp,
           channel
         )
@@ -330,15 +361,17 @@ defmodule Ipncore.Tx do
   # 0 -> by size
   # 1 -> by percent
   # 2 -> fixed price
-  defp calc_fees(0, fee_amount, _tx_amount, size),
+  defp calc_fees(_fee_type, _fee_amount, _tx_amount, _size, false), do: 0
+
+  defp calc_fees(0, fee_amount, _tx_amount, size, _true),
     do: trunc(fee_amount) * size
 
-  defp calc_fees(1, fee_amount, tx_amount, _size),
+  defp calc_fees(1, fee_amount, tx_amount, _size, _true),
     do: :math.ceil(tx_amount * (fee_amount / 100)) |> trunc()
 
-  defp calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
+  defp calc_fees(2, fee_amount, _tx_amount, _size, _true), do: trunc(fee_amount)
 
-  defp calc_fees(_, _, _, _), do: throw("Wrong fee type")
+  defp calc_fees(_, _, _, _, _), do: throw("Wrong fee type")
 
   defp multi_insert(multi, tx, channel) do
     Ecto.Multi.insert_all(multi, :tx, Tx, [tx],

@@ -185,7 +185,7 @@ defmodule Test do
     sig64 = signature64(sk, hash)
     [@version, "dns.set", time, body, from58, sig64]
   end
-  
+
   # Test.dns_push(sk, addr58, "ippan.com", "a", "44.203.142.247", 86400, "ippan.red")
   # Test.dns_push(sk, addr58, "ippan.com", "a", "191.145.20.15", 86400, "ippan.red")
   def dns_push(sk, from58, domain, type, value, ttl, validator_host) do
@@ -206,7 +206,7 @@ defmodule Test do
     sig64 = signature64(sk, hash)
     [@version, "dns.drop", time, body, from58, sig64]
   end
-  
+
   # Test.dns_drop(sk, addr58, "ippan.com", "a")
   def dns_drop(sk, from58, domain, type) do
     type_number = Event.type_index("dns.drop")
@@ -215,6 +215,16 @@ defmodule Test do
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
     [@version, "dns.drop", time, body, from58, sig64]
+  end
+
+  # Test.tx_refund(sk2, addr2_58, 1500000000, "97385af5e091a7feca8f32f34c8f107c2c243c8e61075607ac183dfbd6995a25")
+  def tx_refund(sk, from58, domain, type) do
+    type_number = Event.type_index("tx.refund")
+    time = :erlang.system_time(@unit_time)
+    body = [ev_time, ev_hash]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "tx.refund", time, body, from58, sig64]
   end
 
   defp signature64(sk, hash) do

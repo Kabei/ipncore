@@ -228,8 +228,8 @@ defmodule Ipncore.Event do
           Tx.check_coinbase!(from_address, token, memo)
 
         "tx.refund" ->
-          [tx_hash, tx_time] = body
-          Tx.check_refund!(from_address, Base.decode16!(tx_hash), tx_time)
+          [tx_time, tx_hash] = body
+          Tx.check_refund!(from_address, tx_time, Base.decode16!(tx_hash))
 
         "balance.lock" ->
           [to_address, token_id, value] = body
@@ -405,8 +405,8 @@ defmodule Ipncore.Event do
           Tx.coinbase!(multi, hash, token, from_address, outputs, memo, time, channel)
 
         "tx.refund" ->
-          [tx_hash, tx_time] = body
-          Tx.refund!(multi, hash, from_address, Base.decode16!(tx_hash), tx_time, size, channel)
+          [tx_time, tx_hash] = body
+          Tx.refund!(multi, hash, from_address, tx_time, Base.decode16!(tx_hash), size, time, channel)
 
         "balance.lock" ->
           [to_address, token_id, value] = body

@@ -52,7 +52,7 @@ defmodule Ipncore.Tx do
       do: throw("Invalid address to send")
 
     validator = Validator.fetch!(validator_host)
-    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size, true)
 
     Balance.check!({from_address, token}, amount + fee_total)
     :ok

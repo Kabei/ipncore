@@ -582,7 +582,9 @@ defmodule Ipncore.Event do
   #   end
   # end
 
-  def lookup()
+  def lookup(x) do
+    DetsPlus.lookup(@base, x)
+  end
 
   def exists!(x) do
     case DetsPlus.member?(@base, x) do

@@ -94,23 +94,23 @@ defmodule Ipncore.Tx do
 
   def check_refund!(from_address, tx_time, tx_hash) do
     case Event.lookup({tx_time, tx_hash}) do
-      nil ->
-        throw("Event does not exist")
-
-      {_time_hash, _block_index, _version, type_number, from, _body, _signature} ->
+      [{_time_hash, _block_index, _version, type_number, from, _body, _signature}] ->
         cond do
           from != from_address ->
             throw("Action is not allowed")
 
-            type_number == 211 ->
+          type_number == 211 ->
             :ok
 
-            type_number == 212 ->
+          type_number == 212 ->
             throw("Invalid event-type to refund")
 
           true ->
             throw("Invalid event-type to refund")
         end
+
+      _ ->
+        throw("Event does not exist")
     end
   end
 
@@ -269,7 +269,7 @@ defmodule Ipncore.Tx do
   end
 
   def refund!(multi, hash, from_address, tx_time, tx_hash, event_size, timestamp, channel) do
-    {_time_hash, _block_index, _version, type_number, _from, body, _signature} =
+    [{_time_hash, _block_index, _version, type_number, _from, body, _signature}] =
       Event.lookup({tx_time, tx_hash})
 
     case type_number do

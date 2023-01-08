@@ -218,7 +218,7 @@ defmodule Test do
   end
 
   # Test.tx_refund(sk2, addr2_58, 1500000000, "97385af5e091a7feca8f32f34c8f107c2c243c8e61075607ac183dfbd6995a25")
-  def tx_refund(sk, from58, domain, type) do
+  def tx_refund(sk, from58, ev_time, ev_hash) do
     type_number = Event.type_index("tx.refund")
     time = :erlang.system_time(@unit_time)
     body = [ev_time, ev_hash]

@@ -13,7 +13,7 @@ defmodule Ipncore.Tx do
   @output_reason_send "S"
   @output_reason_coinbase "C"
   @output_reason_fee "%"
-  # @output_reason_refund "R"
+  @output_reason_refund "R"
   @memo_max_size 100
 
   @primary_key {:id, :binary, []}
@@ -90,6 +90,28 @@ defmodule Ipncore.Tx do
     if fee_total <= 0, do: throw("Invalid fee amount to send")
     Balance.check!({from_address, @token}, fee_total)
     :ok
+  end
+
+  def check_refund!(from_address, tx_time, tx_hash) do
+    case Event.lookup({tx_time, tx_hash}) do
+      nil ->
+        throw("Event does not exist")
+
+      {_time_hash, _block_index, _version, type_number, from, _body, _signature} ->
+        cond do
+          from != from_address ->
+            throw("Action is not allowed")
+
+          type == 211 ->
+            :ok
+
+          type == 212 ->
+            throw("Invalid event-type to refund")
+
+          true ->
+            throw("Invalid event-type to refund")
+        end
+    end
   end
 
   def send!(
@@ -246,6 +268,37 @@ defmodule Ipncore.Tx do
     |> Balance.multi_upsert(:balances, outputs, timestamp, channel)
   end
 
+  def refund!(multi, hash, from_address, tx_time, tx_hash, event_size, timestamp, channel) do
+    {_time_hash, _block_index, _version, type_number, from, body, _signature} =
+      Event.lookup({tx_time, tx_hash})
+
+    case type_number do
+      211 ->
+        [token, to_address, amount, validator_host, memo] = body
+
+        send!(
+          multi,
+          hash,
+          token,
+          from_address,
+          Address.from_text(to_address),
+          amount,
+          validator_host,
+          event_size,
+          memo,
+          timestamp,
+          channel
+        )
+
+      212 ->
+        # refund to tx.sendmulti not support yet
+        throw("Invalid event-type to refund")
+
+      _ ->
+        throw("Invalid event-type to refund")
+    end
+  end
+
   defp outputs_extract_coinbase!(txid, txos, token) do
     {txos, key_entries, entries, amount, _ix} =
       Enum.reduce(txos, {[], [], %{}, 0, 0}, fn [address, value],
@@ -286,7 +339,7 @@ defmodule Ipncore.Tx do
   defp calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
   defp calc_fees(_, _, _, _), do: throw("Wrong fee type")
-  
+
   defp multi_insert(multi, tx, channel) do
     Ecto.Multi.insert_all(multi, :tx, Tx, [tx],
       prefix: channel,

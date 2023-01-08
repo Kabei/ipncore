@@ -134,7 +134,7 @@ defmodule Ipncore.Event do
 
       if Wallet.has_key?(from_address), do: throw("Pubkey already exists")
 
-      Mempool.push!(hash, time, type_number, from_address, body, signature, size)
+      Mempool.push!(time, hash, type_number, from_address, body, signature, size)
     catch
       x -> {:error, x}
     end
@@ -163,6 +163,7 @@ defmodule Ipncore.Event do
 
       if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
 
+      # new_body =
       case type_name do
         "token.new" ->
           token_id = List.first(body)
@@ -226,6 +227,10 @@ defmodule Ipncore.Event do
           [token, _outputs, memo] = body
           Tx.check_coinbase!(from_address, token, memo)
 
+        "tx.refund" ->
+          [tx_hash, tx_time] = body
+          Tx.check_refund!(from_address, Base.decode16!(tx_hash), tx_time)
+
         "balance.lock" ->
           [to_address, token_id, value] = body
           Balance.check_lock!(from_address, Address.from_text(to_address), token_id, value)
@@ -245,7 +250,7 @@ defmodule Ipncore.Event do
           throw("Invalid Match Type")
       end
 
-      Mempool.push!(hash, time, type_number, from_address, body, signature, size)
+      Mempool.push!(time, hash, type_number, from_address, body, signature, size)
     rescue
       ex ->
         {:error, Exception.format(:error, ex, __STACKTRACE__)}
@@ -399,6 +404,10 @@ defmodule Ipncore.Event do
           [token, outputs, memo] = body
           Tx.coinbase!(multi, hash, token, from_address, outputs, memo, time, channel)
 
+        "tx.refund" ->
+          [tx_hash, tx_time] = body
+          Tx.refund!(multi, hash, from_address, Base.decode16!(tx_hash), tx_time, size, channel)
+
         "balance.lock" ->
           [to_address, token_id, value] = body
           Balance.lock!(multi, Address.from_text(to_address), token_id, value, time, channel)
@@ -441,7 +450,7 @@ defmodule Ipncore.Event do
           DnsRecord.event_drop!(multi, body, channel)
       end
 
-    put!({hash, time, next_index, @version, type_number, from_address, body, signature})
+    put!({{hash, time}, next_index, @version, type_number, from_address, body, signature})
 
     case result do
       :ok ->
@@ -572,6 +581,8 @@ defmodule Ipncore.Event do
   #     ]
   #   end
   # end
+
+  def lookup()
 
   def exists!(x) do
     case DetsPlus.member?(@base, x) do

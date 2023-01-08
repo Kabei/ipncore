@@ -53,7 +53,7 @@ defmodule Mempool do
 
   def size, do: :ets.info(@table, :size)
 
-  def push!(hash, time, type_number, from, body, signature, size) do
+  def push!(time, hash, type_number, from, body, signature, size) do
     thread = assign_worker_thread(from)
 
     # :ets.fun2ms(fn {{hash, time}, _thread, type, from, _body, _sigs, _size} = x when hash == 0 or type == 1 and from == 2 -> x end)

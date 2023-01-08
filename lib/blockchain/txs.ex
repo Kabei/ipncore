@@ -135,70 +135,71 @@ defmodule Ipncore.Tx do
     fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size, fee_enabled)
     validator_address = validator.owner
 
-    if fee_enabled do
-      outputs = [
-        %{
-          txid: txid,
-          ix: 0,
-          from: from_address,
-          to: to_address,
-          value: amount,
-          token: token_id,
-          reason: @output_reason_send
-        },
-        %{
-          txid: txid,
-          ix: 1,
-          token: @token,
-          from: from_address,
-          to: validator_address,
-          value: fee_total,
-          reason: @output_reason_fee
-        }
-      ]
+    outputs =
+      if fee_enabled do
+        outputs = [
+          %{
+            txid: txid,
+            ix: 0,
+            from: from_address,
+            to: to_address,
+            value: amount,
+            token: token_id,
+            reason: @output_reason_send
+          },
+          %{
+            txid: txid,
+            ix: 1,
+            token: @token,
+            from: from_address,
+            to: validator_address,
+            value: fee_total,
+            reason: @output_reason_fee
+          }
+        ]
 
-      Balance.update!(
-        [
-          {from_address, token_id},
-          {to_address, token_id},
-          {from_address, @token},
-          {validator_address, @token}
-        ],
-        %{
-          {from_address, token_id} => -(amount + fee_total),
-          {to_address, token_id} => amount,
-          {from_address, @token} => -fee_total,
-          {validator_address, @token} => fee_total
-        }
-      )
+        Balance.update!(
+          [
+            {from_address, token_id},
+            {to_address, token_id},
+            {from_address, @token},
+            {validator_address, @token}
+          ],
+          %{
+            {from_address, token_id} => -(amount + fee_total),
+            {to_address, token_id} => amount,
+            {from_address, @token} => -fee_total,
+            {validator_address, @token} => fee_total
+          }
+        )
 
-      outputs
-    else
-      outputs = [
-        %{
-          txid: txid,
-          ix: 0,
-          from: from_address,
-          to: to_address,
-          value: amount,
-          token: token_id,
-          reason: @output_reason_refund
-        }
-      ]
+        outputs
+      else
+        outputs = [
+          %{
+            txid: txid,
+            ix: 0,
+            from: from_address,
+            to: to_address,
+            value: amount,
+            token: token_id,
+            reason: @output_reason_refund
+          }
+        ]
 
-      Balance.update!(
-        [
-          {from_address, token_id},
-          {to_address, token_id}
-        ],
-        %{
-          {from_address, token_id} => -(amount + fee_total),
-          {to_address, token_id} => amount
-        }
-      )
+        Balance.update!(
+          [
+            {from_address, token_id},
+            {to_address, token_id}
+          ],
+          %{
+            {from_address, token_id} => -(amount + fee_total),
+            {to_address, token_id} => amount
+          }
+        )
 
-      outputs
-    end
+        outputs
+      end
 
     amount_dec = Util.to_decimal(amount + fee_total, token.decimals)
 

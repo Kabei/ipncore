@@ -229,7 +229,7 @@ defmodule Ipncore.Event do
 
         "tx.refund" ->
           [tx_time, tx_hash] = body
-          Tx.check_refund!(from_address, tx_time, Base.decode16!(tx_hash))
+          Tx.check_refund!(from_address, tx_time, decode_id(tx_hash))
 
         "balance.lock" ->
           [to_address, token_id, value] = body
@@ -407,7 +407,7 @@ defmodule Ipncore.Event do
 
         "tx.refund" ->
           [tx_time, tx_hash] = body
-          Tx.refund!(multi, hash, from_address, tx_time, Base.decode16!(tx_hash), size, time, channel)
+          Tx.refund!(multi, hash, from_address, tx_time, decode_id(tx_hash), size, time, channel)
 
         "balance.lock" ->
           [to_address, token_id, value] = body
@@ -681,11 +681,11 @@ defmodule Ipncore.Event do
   end
 
   def encode_id(id) do
-    Base.encode16(id, case: :lower)
+    Base.encode16(id, case: :mixed)
   end
 
   def decode_id(id) do
-    Base.decode16!(id, case: :lower)
+    Base.decode16!(id, case: :mixed)
   end
 
   defp transform(nil), do: nil

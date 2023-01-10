@@ -52,7 +52,7 @@ defmodule Ipncore.Tx do
       do: throw("Invalid address to send")
 
     validator = Validator.fetch!(validator_host)
-    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size, true)
+    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
 
     Balance.check!({from_address, token}, amount + fee_total)
     :ok
@@ -73,7 +73,7 @@ defmodule Ipncore.Tx do
       do: throw("Invalid address to send")
 
     validator = Validator.fetch!(validator_host)
-    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size, true)
+    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
 
     Balance.check_multi!([{from_address, token}, {from_address, @token}], %{
       {from_address, token} => amount,
@@ -132,7 +132,7 @@ defmodule Ipncore.Tx do
 
     token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
-    fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size, fee_enabled)
+    fee_total = if fee_enabled, do: calc_fees(validator.fee_type, validator.fee, amount, event_size), else: 0
     validator_address = validator.owner
 
     outputs =
@@ -362,17 +362,17 @@ defmodule Ipncore.Tx do
   # 0 -> by size
   # 1 -> by percent
   # 2 -> fixed price
-  defp calc_fees(_fee_type, _fee_amount, _tx_amount, _size, false), do: 0
+  defp calc_fees(_fee_type, _fee_amount, _tx_amount, _size), do: 0
 
-  defp calc_fees(0, fee_amount, _tx_amount, size, _true),
+  defp calc_fees(0, fee_amount, _tx_amount, size),
     do: trunc(fee_amount) * size
 
-  defp calc_fees(1, fee_amount, tx_amount, _size, _true),
+  defp calc_fees(1, fee_amount, tx_amount, _size),
     do: :math.ceil(tx_amount * (fee_amount / 100)) |> trunc()
 
-  defp calc_fees(2, fee_amount, _tx_amount, _size, _true), do: trunc(fee_amount)
+  defp calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
-  defp calc_fees(_, _, _, _, _), do: throw("Wrong fee type")
+  defp calc_fees(_, _, _, _), do: throw("Wrong fee type")
 
   defp multi_insert(multi, tx, channel) do
     Ecto.Multi.insert_all(multi, :tx, Tx, [tx],

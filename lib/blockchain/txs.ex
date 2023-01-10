@@ -16,6 +16,7 @@ defmodule Ipncore.Tx do
   @output_reason_refund "R"
   @memo_max_size 100
   @base_refunds :refunds
+  @filename_refunds "refunds.db"
 
   @primary_key {:id, :binary, []}
   schema "tx" do
@@ -26,15 +27,9 @@ defmodule Ipncore.Tx do
   end
 
   def open do
-    dir_path = Application.get_env(:ipncore, :refunds_path, "data")
-    File.mkdir_p(dir_path)
-    filename = Path.join(dir_path, "refunds.db")
-
-    DetsPlus.open_file(@base_refunds,
-      file: filename,
-      auto_save_memory: 1_000_000_000,
-      auto_save: 5_000
-    )
+    dir_path = Default.data_dir()
+    filename = Path.join([dir_path, @filename_refunds])
+    DetsPlus.open_file(@base_refunds, file: filename, auto_save: 5_000)
   end
 
   def close do
@@ -350,27 +345,31 @@ defmodule Ipncore.Tx do
   def refund!(multi, hash, from_address, tx_time, tx_hash, event_size, timestamp, channel) do
     check_refund_exists!(tx_time, tx_hash)
 
-    [{_hash, _time, _block_index, _version, type_number, to_address, body, _signature}] =
+    [{hash, time, _block_index, _version, type_number, to_address, body, _signature}] =
       Event.lookup(tx_hash, tx_time)
 
     case type_number do
       211 ->
         [token, _my_to_address, amount, validator_host, memo] = body
 
-        send!(
-          multi,
-          hash,
-          token,
-          from_address,
-          Address.from_text(to_address),
-          amount,
-          validator_host,
-          event_size,
-          memo,
-          false,
-          timestamp,
-          channel
-        )
+        multi =
+          send!(
+            multi,
+            hash,
+            token,
+            from_address,
+            Address.from_text(to_address),
+            amount,
+            validator_host,
+            event_size,
+            memo,
+            false,
+            timestamp,
+            channel
+          )
+
+        put_refund!(time, hash)
+        multi
 
       212 ->
         # refund to tx.sendmulti not support yet

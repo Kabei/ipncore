@@ -96,6 +96,7 @@ defmodule Ipncore.Application do
     Balance.close()
     Token.close()
     Validator.close()
+    Tx.close()
     Domain.close()
     DnsRecord.close()
   end

@@ -98,7 +98,7 @@ defmodule Ipncore.Tx do
         [_token, my_to_address, _amount, _validator_host, _memo] = body
 
         cond do
-          from == from_address or my_to_address != from_address ->
+          from == from_address or Address.from_text(my_to_address) != from_address ->
             throw("Action is not allowed")
 
           type_number == 211 ->

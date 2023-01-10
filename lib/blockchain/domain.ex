@@ -12,8 +12,10 @@ defmodule Ipncore.Domain do
   @filename "domain.db"
   # @fields ~w(name owner email avatar)
   @edit_fields ~w(enabled owner email avatar title)
-  @max_characters 25
+  @max_characters 50
   @max_title_characters 64
+  @max_email_characters 100
+  @max_avatar_characters 255
   @token Default.token()
   @renewed_time 31_536_000_000
   @price_to_update 1000
@@ -140,11 +142,12 @@ defmodule Ipncore.Domain do
     if @max_characters < byte_size(name), do: throw("Max characters is 25")
     if @max_title_characters < String.length(title), do: throw("Max characters is 64")
 
-    if not empty?(email) and not Regex.match?(Const.Regex.email(), email),
+    if not empty?(email) and not Regex.match?(Const.Regex.email(), email) and
+    @max_email_characters < String.length(email),
       do: throw("Invalid email")
 
     if String.length(name) > 100, do: throw("Invalid name length")
-    if not empty?(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
+    if not empty?(avatar) and String.length(avatar) > @max_avatar_characters, do: throw("Invalid avatar length")
 
     exists!(name)
 

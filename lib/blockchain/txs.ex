@@ -345,7 +345,7 @@ defmodule Ipncore.Tx do
   def refund!(multi, hash, from_address, tx_time, tx_hash, event_size, timestamp, channel) do
     check_refund_exists!(tx_time, tx_hash)
 
-    [{hash, time, _block_index, _version, type_number, to_address, body, _signature}] =
+    [{_hash, _time, _block_index, _version, type_number, to_address, body, _signature}] =
       Event.lookup(tx_hash, tx_time)
 
     case type_number do
@@ -368,7 +368,7 @@ defmodule Ipncore.Tx do
             channel
           )
 
-        put_refund!(time, hash)
+        put_refund!(tx_time, tx_hash)
         multi
 
       212 ->

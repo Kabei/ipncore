@@ -367,8 +367,6 @@ defmodule Ipncore.Tx do
   # 0 -> by size
   # 1 -> by percent
   # 2 -> fixed price
-  defp calc_fees(_fee_type, _fee_amount, _tx_amount, _size), do: 0
-
   defp calc_fees(0, fee_amount, _tx_amount, size),
     do: trunc(fee_amount) * size
 

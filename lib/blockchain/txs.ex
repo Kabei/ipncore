@@ -94,15 +94,18 @@ defmodule Ipncore.Tx do
 
   def check_refund!(from_address, tx_time, tx_hash) do
     case Event.lookup(tx_hash, tx_time) do
-      [{_hash, _time, _block_index, _version, type_number, from, _body, _signature}] ->
+      [{_hash, _time, _block_index, _version, type_number, from, body, _signature}] ->
+        [_token, my_to_address, _amount, _validator_host, _memo] = body
+
         cond do
-          from == from_address ->
+          from == from_address or my_to_address != from_address ->
             throw("Action is not allowed")
 
           type_number == 211 ->
             :ok
 
           type_number == 212 ->
+            # not support yet
             throw("Invalid event-type to refund")
 
           true ->
@@ -110,7 +113,7 @@ defmodule Ipncore.Tx do
         end
 
       _ ->
-        throw("Event does not exist")
+        throw("Transaction does not exist")
     end
   end
 
@@ -310,7 +313,7 @@ defmodule Ipncore.Tx do
 
     case type_number do
       211 ->
-        [token, _to_address, amount, validator_host, memo] = body
+        [token, my_to_address, amount, validator_host, memo] = body
 
         send!(
           multi,

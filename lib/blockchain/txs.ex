@@ -96,7 +96,7 @@ defmodule Ipncore.Tx do
     case Event.lookup(tx_hash, tx_time) do
       [{_hash, _time, _block_index, _version, type_number, from, _body, _signature}] ->
         cond do
-          from != from_address ->
+          from == from_address ->
             throw("Action is not allowed")
 
           type_number == 211 ->

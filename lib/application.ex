@@ -17,6 +17,7 @@ defmodule Ipncore.Application do
     RepoWorker,
     Validator,
     Token,
+    Tx,
     Wallet
   }
 
@@ -54,6 +55,7 @@ defmodule Ipncore.Application do
            {:ok, _pid} <- Balance.open(),
            {:ok, _pid} <- Token.open(),
            {:ok, _pid} <- Validator.open(),
+           {:ok, _pid} <- Tx.open(),
            {:ok, _pid} <- Domain.open(),
            {:ok, _pid} <- DnsRecord.open() do
         Platform.start()

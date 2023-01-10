@@ -15,6 +15,7 @@ defmodule Ipncore.Tx do
   @output_reason_fee "%"
   @output_reason_refund "R"
   @memo_max_size 100
+  @base_refunds :refunds
 
   @primary_key {:id, :binary, []}
   schema "tx" do
@@ -22,6 +23,43 @@ defmodule Ipncore.Tx do
     field(:token_value, :map)
     field(:fee, :integer, default: 0)
     field(:memo, :string)
+  end
+
+  def open do
+    dir_path = Application.get_env(:ipncore, :refunds_path, "data")
+    File.mkdir_p(dir_path)
+    filename = Path.join(dir_path, "refunds.db")
+
+    DetsPlus.open_file(@base_refunds,
+      file: filename,
+      auto_save_memory: 1_000_000_000,
+      auto_save: 5_000
+    )
+  end
+
+  def close do
+    DetsPlus.close(@base_refunds)
+  end
+
+  def refund_exists?(time, hash) do
+    DetsPlus.member?(@base_refunds, {time, hash})
+  end
+
+  def check_refund_exists!(time, hash) do
+    case DetsPlus.member?(@base_refunds, {time, hash}) do
+      true -> throw("Refund already exists")
+      false -> :ok
+    end
+  end
+
+  def put_refund!(time, hash) do
+    case DetsPlus.insert_new(@base_refunds, {time, hash}) do
+      false ->
+        throw("Refund already exists")
+
+      true ->
+        true
+    end
   end
 
   defmacro map_select do
@@ -93,6 +131,8 @@ defmodule Ipncore.Tx do
   end
 
   def check_refund!(from_address, tx_time, tx_hash) do
+    check_refund_exists!(tx_time, tx_hash)
+
     case Event.lookup(tx_hash, tx_time) do
       [{_hash, _time, _block_index, _version, type_number, from, body, _signature}] ->
         [_token, my_to_address, _amount, _validator_host, _memo] = body
@@ -308,7 +348,9 @@ defmodule Ipncore.Tx do
   end
 
   def refund!(multi, hash, from_address, tx_time, tx_hash, event_size, timestamp, channel) do
-    [{_hash, _time, _block_index, _version, type_number, to_address, body, _signature}] =
+    check_refund_exists!(tx_time, tx_hash)
+
+    [{hash, time, _block_index, _version, type_number, to_address, body, _signature}] =
       Event.lookup(tx_hash, tx_time)
 
     case type_number do

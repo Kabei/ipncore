@@ -177,16 +177,12 @@ defmodule Ipncore.Tx do
 
     token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
-
-    fee_total =
-      if refund,
-        do: calc_fees(validator.fee_type, validator.fee, amount, event_size),
-        else: 0
-
     validator_address = validator.owner
 
-    outputs =
+    {outputs, fee_total} =
       if not refund do
+        fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+
         Balance.update!(
           [
             {from_address, token_id},
@@ -202,7 +198,7 @@ defmodule Ipncore.Tx do
           }
         )
 
-        [
+        outputs = [
           %{
             txid: txid,
             ix: 0,
@@ -222,6 +218,8 @@ defmodule Ipncore.Tx do
             reason: @output_reason_fee
           }
         ]
+
+        {outptus, fee_total}
       else
         Balance.update!(
           [
@@ -234,7 +232,7 @@ defmodule Ipncore.Tx do
           }
         )
 
-        [
+        outputs = [
           %{
             txid: txid,
             ix: 0,
@@ -245,14 +243,14 @@ defmodule Ipncore.Tx do
             reason: @output_reason_refund
           }
         ]
-      end
 
-    amount_dec = Util.to_decimal(amount + fee_total, token.decimals)
+        {outputs, 0}
+      end
 
     tx = %{
       id: txid,
       fee: fee_total,
-      token_value: Map.put(Map.new(), token_id, amount_dec),
+      token_value: token_values(outputs, token.decimals),
       out_count: length(outputs),
       memo: memo
     }
@@ -261,6 +259,20 @@ defmodule Ipncore.Tx do
     |> multi_insert(tx, channel)
     |> Txo.multi_insert_all(:txo, outputs, channel)
     |> Balance.multi_upsert(:balances, outputs, timestamp, channel)
+  end
+
+  defp token_values(outputs, decimals) do
+    Enum.reduce(outputs, %{}, fn %{token: token, value: new_value}, acc ->
+      value_dec = Util.to_decimal(new_value, decimals)
+
+      case Map.get(acc, token) do
+        nil ->
+          Map.put(acc, token, value_dec)
+
+        old_value ->
+          Map.put(acc, token, old_value + value_dec)
+      end
+    end)
   end
 
   def check_coinbase!(from_address, token_id, memo) do

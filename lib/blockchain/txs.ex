@@ -366,7 +366,7 @@ defmodule Ipncore.Tx do
             validator_host,
             event_size,
             memo,
-            false,
+            true,
             timestamp,
             channel
           )

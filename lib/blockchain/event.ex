@@ -396,7 +396,7 @@ defmodule Ipncore.Event do
             validator_host,
             size,
             memo,
-            true,
+            false,
             time,
             channel
           )

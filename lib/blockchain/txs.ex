@@ -41,9 +41,12 @@ defmodule Ipncore.Tx do
   end
 
   def check_refund_exists!(time, hash) do
-    case refund_exists?(@base_refunds, {time, hash}) do
-      true -> throw("Refund already exists")
-      false -> :ok
+    case refund_exists?(time, hash) do
+      true ->
+        throw("Refund already exists")
+
+      false ->
+        :ok
     end
   end
 

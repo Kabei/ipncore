@@ -154,7 +154,8 @@ defmodule Ipncore.Balance do
   defp filter_token(query, _), do: query
 
   defp filter_type(query, %{"type" => type}) do
-    where(query, [_o, s], s.type == ^Event.type_index(type))
+    ev_type = Event.type_index(type) || ""
+    where(query, [_o, ev], ev.type == ^ev_type)
   end
 
   defp filter_type(query, _), do: query

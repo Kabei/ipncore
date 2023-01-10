@@ -31,6 +31,7 @@ defmodule Ipncore.Txo do
     |> filter_index(params)
     |> filter_address(params)
     |> filter_token(params)
+    |> filter_reason(params)
     |> filter_offset(params)
     |> filter_limit(params, 50, 100)
     |> filter_select(params)
@@ -75,6 +76,12 @@ defmodule Ipncore.Txo do
   end
 
   defp filter_token(query, _params), do: query
+
+  defp filter_reason(query, %{"reason" => reason}) do
+    where(query, [txo], txo.reason == ^reason)
+  end
+
+  defp filter_reason(query, _), do: query
 
   # defp filter_select(query, %{"fmt" => "list"}) do
   #   select(query, [o, ev], [

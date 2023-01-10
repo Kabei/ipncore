@@ -498,22 +498,22 @@ defmodule Ipncore.Tx do
 
   defp filter_index(query, _), do: query
 
-  def filter_date(query, %{"date_from" => from_date, "date_to" => to_date}) do
-    date_start = Utils.from_date_to_time(from_date, :start, @unit_time)
+  def filter_date(query, %{"dateStart" => start_date, "dateEnd" => end_date}) do
+    date_start = Utils.from_date_to_time(start_date, :start, @unit_time)
 
-    date_end = Utils.from_date_to_time(to_date, :end, @unit_time)
+    date_end = Utils.from_date_to_time(end_date, :end, @unit_time)
 
     where(query, [_tx, ev], ev.time >= ^date_start and ev.time <= ^date_end)
   end
 
-  def filter_date(query, %{"date_from" => from_date}) do
-    date_start = Utils.from_date_to_time(from_date, :start, @unit_time)
+  def filter_date(query, %{"dateStart" => start_date}) do
+    date_start = Utils.from_date_to_time(start_date, :start, @unit_time)
 
     where(query, [_tx, ev], ev.time >= ^date_start)
   end
 
-  def filter_date(query, %{"date_to" => to_date}) do
-    date_end = Utils.from_date_to_time(to_date, :end, @unit_time)
+  def filter_date(query, %{"dateEnd" => end_date}) do
+    date_end = Utils.from_date_to_time(end_date, :end, @unit_time)
 
     where(query, [_tx, ev], ev.time <= ^date_end)
   end

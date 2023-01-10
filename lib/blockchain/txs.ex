@@ -305,12 +305,12 @@ defmodule Ipncore.Tx do
   end
 
   def refund!(multi, hash, from_address, tx_time, tx_hash, event_size, timestamp, channel) do
-    [{_hash, _time, _block_index, _version, type_number, _from, body, _signature}] =
+    [{_hash, _time, _block_index, _version, type_number, to_address, body, _signature}] =
       Event.lookup(tx_hash, tx_time)
 
     case type_number do
       211 ->
-        [token, to_address, amount, validator_host, memo] = body
+        [token, _to_address, amount, validator_host, memo] = body
 
         send!(
           multi,

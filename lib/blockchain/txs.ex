@@ -313,7 +313,7 @@ defmodule Ipncore.Tx do
 
     case type_number do
       211 ->
-        [token, my_to_address, amount, validator_host, memo] = body
+        [token, _my_to_address, amount, validator_host, memo] = body
 
         send!(
           multi,

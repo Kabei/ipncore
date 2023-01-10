@@ -451,7 +451,7 @@ defmodule Ipncore.Event do
           DnsRecord.event_drop!(multi, body, channel)
       end
 
-    put!({{hash, time}, next_index, @version, type_number, from_address, body, signature})
+    put!({hash, time, next_index, @version, type_number, from_address, body, signature})
 
     case result do
       :ok ->
@@ -587,6 +587,22 @@ defmodule Ipncore.Event do
     DetsPlus.lookup(@base, x)
   end
 
+  def lookup(hash, timestamp) do
+    case DetsPlus.lookup(@base, hash) do
+      [{_hash, time, _block_index, _version, _type_number, _from, _body, _signature}] = event ->
+        cond do
+          time == timestamp ->
+            event
+
+          true ->
+            nil
+        end
+
+      [] ->
+        nil
+    end
+  end
+
   def exists!(x) do
     case DetsPlus.member?(@base, x) do
       false ->
@@ -681,7 +697,7 @@ defmodule Ipncore.Event do
   end
 
   def encode_id(id) do
-    Base.encode16(id, case: :mixed)
+    Base.encode16(id, case: :lower)
   end
 
   def decode_id(id) do

@@ -93,8 +93,8 @@ defmodule Ipncore.Tx do
   end
 
   def check_refund!(from_address, tx_time, tx_hash) do
-    case Event.lookup({tx_time, tx_hash}) do
-      [{_time_hash, _block_index, _version, type_number, from, _body, _signature}] ->
+    case Event.lookup(tx_hash, tx_time) do
+      [{_hash, _time, _block_index, _version, type_number, from, _body, _signature}] ->
         cond do
           from != from_address ->
             throw("Action is not allowed")
@@ -132,7 +132,12 @@ defmodule Ipncore.Tx do
 
     token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
-    fee_total = if fee_enabled, do: calc_fees(validator.fee_type, validator.fee, amount, event_size), else: 0
+
+    fee_total =
+      if fee_enabled,
+        do: calc_fees(validator.fee_type, validator.fee, amount, event_size),
+        else: 0
+
     validator_address = validator.owner
 
     outputs =
@@ -300,8 +305,8 @@ defmodule Ipncore.Tx do
   end
 
   def refund!(multi, hash, from_address, tx_time, tx_hash, event_size, timestamp, channel) do
-    [{_time_hash, _block_index, _version, type_number, _from, body, _signature}] =
-      Event.lookup({tx_time, tx_hash})
+    [{_hash, _time, _block_index, _version, type_number, _from, body, _signature}] =
+      Event.lookup(tx_hash, tx_time)
 
     case type_number do
       211 ->

@@ -28,8 +28,8 @@ defmodule Ipncore.Tx do
 
   def open do
     dir_path = Default.data_dir()
-    filename = Path.join([dir_path, @filename_refunds])
-    DetsPlus.open_file(@base_refunds, file: filename, auto_save: 5_000)
+    refunds_file = Path.join([dir_path, @filename_refunds])
+    DetsPlus.open_file(@base_refunds, file: refunds_file, auto_save: 5_000)
   end
 
   def close do
@@ -41,14 +41,14 @@ defmodule Ipncore.Tx do
   end
 
   def check_refund_exists!(time, hash) do
-    case DetsPlus.member?(@base_refunds, {time, hash}) do
+    case refund_exists?(@base_refunds, {time, hash}) do
       true -> throw("Refund already exists")
       false -> :ok
     end
   end
 
   def put_refund!(time, hash) do
-    case DetsPlus.insert_new(@base_refunds, {time, hash}) do
+    case DetsPlus.insert_new(@base_refunds, {{time, hash}}) do
       false ->
         throw("Refund already exists")
 

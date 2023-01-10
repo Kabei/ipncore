@@ -7,14 +7,18 @@ defmodule Ipncore.Tx do
   alias Ipncore.{Address, Balance, Block, Event, Txo, Balance, Token, Validator, Repo, Util}
   alias __MODULE__
 
+  # global
   @unit_time Default.unit_time()
   @token Default.token()
   @imposible Default.imposible_address()
+  # reasons
   @output_reason_send "S"
   @output_reason_coinbase "C"
   @output_reason_fee "%"
   @output_reason_refund "R"
+  # limits
   @memo_max_size 100
+  # refund
   @base_refunds :refunds
   @filename_refunds "refunds.db"
 
@@ -165,7 +169,7 @@ defmodule Ipncore.Tx do
         validator_host,
         event_size,
         memo,
-        fee_enabled,
+        refund,
         timestamp,
         channel
       ) do
@@ -175,15 +179,30 @@ defmodule Ipncore.Tx do
     validator = Validator.fetch!(validator_host)
 
     fee_total =
-      if fee_enabled,
+      if refund,
         do: calc_fees(validator.fee_type, validator.fee, amount, event_size),
         else: 0
 
     validator_address = validator.owner
 
     outputs =
-      if fee_enabled do
-        outputs = [
+      if not refund do
+        Balance.update!(
+          [
+            {from_address, token_id},
+            {to_address, token_id},
+            {from_address, @token},
+            {validator_address, @token}
+          ],
+          %{
+            {from_address, token_id} => -(amount + fee_total),
+            {to_address, token_id} => amount,
+            {from_address, @token} => -fee_total,
+            {validator_address, @token} => fee_total
+          }
+        )
+
+        [
           %{
             txid: txid,
             ix: 0,
@@ -203,25 +222,19 @@ defmodule Ipncore.Tx do
             reason: @output_reason_fee
           }
         ]
-
+      else
         Balance.update!(
           [
             {from_address, token_id},
-            {to_address, token_id},
-            {from_address, @token},
-            {validator_address, @token}
+            {to_address, token_id}
           ],
           %{
-            {from_address, token_id} => -(amount + fee_total),
-            {to_address, token_id} => amount,
-            {from_address, @token} => -fee_total,
-            {validator_address, @token} => fee_total
+            {from_address, token_id} => -amount,
+            {to_address, token_id} => amount
           }
         )
 
-        outputs
-      else
-        outputs = [
+        [
           %{
             txid: txid,
             ix: 0,
@@ -232,19 +245,6 @@ defmodule Ipncore.Tx do
             reason: @output_reason_refund
           }
         ]
-
-        Balance.update!(
-          [
-            {from_address, token_id},
-            {to_address, token_id}
-          ],
-          %{
-            {from_address, token_id} => -(amount + fee_total),
-            {to_address, token_id} => amount
-          }
-        )
-
-        outputs
       end
 
     amount_dec = Util.to_decimal(amount + fee_total, token.decimals)

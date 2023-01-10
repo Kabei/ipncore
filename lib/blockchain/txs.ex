@@ -219,7 +219,7 @@ defmodule Ipncore.Tx do
           }
         ]
 
-        {outptus, fee_total}
+        {outputs, fee_total}
       else
         Balance.update!(
           [

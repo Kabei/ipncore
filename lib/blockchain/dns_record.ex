@@ -9,12 +9,12 @@ defmodule Ipncore.DnsRecord do
   @base :dns
   @filename "dns.db"
   @dns_types ~w(a aaaa cname ptr mx txt srv caa ns soa)
-  @dns_types_multi_records ~w(a aaaa)a
+  @dns_types_multi_records ~w(a aaaa txt)a
   @max_domain_size 50
   @min_ttl 300
   @max_ttl 2_147_483_647
   @max_records 50
-  @max_dns_record_items 3
+  @max_dns_record_items 5
   @max_bytes_value 255
   @price 500
 
@@ -95,20 +95,20 @@ defmodule Ipncore.DnsRecord do
           type_atom not in @dns_types_multi_records
       end
 
-    value =
-      case type_atom do
-        :a ->
-          Inet.to_ip(val)
+    {_, _, _, _, value} = :dnslib.resource('#{domain_name} IN #{ttl} #{val}')
+      # case type_atom do
+      #   :a ->
+      #     Inet.to_ip(val)
 
-        :aaaa ->
-          Inet.to_ip(val)
+      #   :aaaa ->
+      #     Inet.to_ip(val)
 
-        :txt ->
-          to_charlist(val)
+      #   :txt ->
+      #     to_charlist(val)
 
-        _ ->
-          to_charlist(val)
-      end
+      #   _ ->
+      #     to_charlist(val)
+      # end
 
     {object, count, exists} =
       cond do

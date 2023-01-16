@@ -14,7 +14,6 @@ defmodule Ipncore.Domain do
   @edit_fields ~w(enabled owner email avatar title)
   @max_characters 50
   @max_title_characters 64
-  @max_email_characters 100
   @max_avatar_characters 255
   @token Default.token()
   @renewed_time 31_536_000_000
@@ -138,16 +137,17 @@ defmodule Ipncore.Domain do
 
   def check_new!(name, from_address, email, avatar, title, years_to_renew, validator_host, size) do
     if years_to_renew not in 1..2, do: throw("Invalid years to renew")
-    if not Regex.match?(Const.Regex.domain(), name), do: throw("Invalid domain")
+    if not Regex.match?(Const.Regex.ippan_domain(), name), do: throw("Invalid domain")
     if @max_characters < byte_size(name), do: throw("Max characters is 25")
     if @max_title_characters < String.length(title), do: throw("Max characters is 64")
 
-    if not empty?(email) and not Regex.match?(Const.Regex.email(), email) and
-    @max_email_characters < String.length(email),
-      do: throw("Invalid email")
+    if not empty?(email) and not Regex.match?(Const.Regex.email(), email),
+       do: throw("Invalid email")
 
     if String.length(name) > 100, do: throw("Invalid name length")
-    if not empty?(avatar) and String.length(avatar) > @max_avatar_characters, do: throw("Invalid avatar length")
+
+    if not empty?(avatar) and String.length(avatar) > @max_avatar_characters,
+      do: throw("Invalid avatar length")
 
     exists!(name)
 
@@ -214,7 +214,7 @@ defmodule Ipncore.Domain do
   end
 
   def check_update!(name, from_address) do
-    if empty?(name) or not Regex.match?(Const.Regex.domain(), name),
+    if empty?(name) or not Regex.match?(Const.Regex.ippan_domain(), name),
       do: throw("Invalid domain")
 
     fetch!(name, from_address)
@@ -286,6 +286,43 @@ defmodule Ipncore.Domain do
     multi
     |> Ecto.Multi.delete_all(:delete, queryable, prefix: channel)
     |> DnsRecord.delete_by_root(name, channel)
+  end
+
+  def check_renew!(name, from_address, years_to_renew, validator_host, time, size) do
+    if empty?(name) or not Regex.match?(Const.Regex.ippan_domain(), name),
+      do: throw("Invalid domain")
+
+    domain = fetch!(name, from_address)
+
+    if domain.renewed_at > time or domain.renewed_at > time + years_to_renew * @renewed_time,
+      do: throw("Invalid renew domain")
+
+    Tx.check_send!(
+      from_address,
+      Platform.address(),
+      @token,
+      price(name, years_to_renew),
+      validator_host,
+      size
+    )
+
+    :ok
+  end
+
+  def event_renew!(
+        multi,
+        event_id,
+        from_address,
+        name,
+        years_to_renew,
+        validator_host,
+        event_size,
+        timestamp,
+        channel
+      ) do
+    domain = fetch!(name, from_address)
+
+    
   end
 
   def count_records(multi, %{name: name, records: records} = domain, channel_id, count \\ 1) do

@@ -37,7 +37,9 @@ defmodule Ipncore.MixProject do
     [
       # {:xxhash, "~> 0.3.1"},
       {:cbor, "~> 1.0.0"},
-      {:dns, "~> 2.4.0"},
+      # {:dns, "~> 2.4.0"},
+      {:socket, "~> 0.3.13"},
+      {:dnslib, github: "lateio/dnslib"},
       {:socket, "~> 0.3"},
       {:sntp, "~> 0.2.0"},
       {:jason, "~> 1.4"},

@@ -34,11 +34,12 @@ defmodule Ipncore.Event do
       {213, "tx.refund"},
       {214, "tx.jackpot"},
       {215, "tx.reward"},
-      {216, "tx.burned"},
+      {216, "tx.burn"},
       {250, "balance.lock"},
       {400, "domain.new"},
       {401, "domain.update"},
       {402, "domain.delete"},
+      {403, "domain.renew"},
       {410, "dns.set"},
       {411, "dns.push"},
       {412, "dns.drop"},
@@ -47,19 +48,6 @@ defmodule Ipncore.Event do
   else
     {false, false}
   end
-
-  # defstatus do
-  #   [
-  #     {0, "no processed"},
-  #     {1, "pending"},
-  #     {2, "approved"},
-  #     {3, "complete"},
-  #     {-1, "cancelled"},
-  #     {-2, "timeout"}
-  #   ]
-  # else
-  #   {false, false}
-  # end
 
   @version Application.compile_env(:ipncore, :event_version)
   @threshold_timeout Application.compile_env(:ipncore, :event_threshold_timeout)
@@ -76,7 +64,6 @@ defmodule Ipncore.Event do
   # 2 - json
   # 3 - xml
   # 4 - cbor
-
   @type t :: %__MODULE__{
           hash: binary(),
           time: pos_integer(),
@@ -149,7 +136,7 @@ defmodule Ipncore.Event do
 
       body_text = Jason.encode!(body)
 
-      from_address = Address.from_text(address)
+      from_address = Address.from_text!(address)
       hash = calc_hash(type_number, body_text, time)
 
       # check if already exists
@@ -189,6 +176,30 @@ defmodule Ipncore.Event do
           [hostname] = body
           Validator.check_delete!(hostname, from_address)
 
+        "tx.send" ->
+          [token, to_address, amount, validator_host | _rest] = body
+
+          Tx.check_send!(
+            from_address,
+            Address.from_text!(to_address),
+            token,
+            amount,
+            validator_host,
+            size
+          )
+
+        "tx.coinbase" ->
+          [token, _outputs, memo] = body
+          Tx.check_coinbase!(from_address, token, memo)
+
+        "tx.refund" ->
+          [tx_time, tx_hash] = body
+          Tx.check_refund!(from_address, tx_time, decode_id(tx_hash))
+
+        "balance.lock" ->
+          [to_address, token_id, value] = body
+          Balance.check_lock!(from_address, Address.from_text!(to_address), token_id, value)
+
         "domain.new" ->
           [name, email, avatar, title, years_to_renew, validator_host] = body
 
@@ -210,30 +221,6 @@ defmodule Ipncore.Event do
         "domain.delete" ->
           [host] = body
           Domain.check_delete!(host, from_address)
-
-        "tx.send" ->
-          [token, to_address, amount, validator_host | _rest] = body
-
-          Tx.check_send!(
-            from_address,
-            Address.from_text(to_address),
-            token,
-            amount,
-            validator_host,
-            size
-          )
-
-        "tx.coinbase" ->
-          [token, _outputs, memo] = body
-          Tx.check_coinbase!(from_address, token, memo)
-
-        "tx.refund" ->
-          [tx_time, tx_hash] = body
-          Tx.check_refund!(from_address, tx_time, decode_id(tx_hash))
-
-        "balance.lock" ->
-          [to_address, token_id, value] = body
-          Balance.check_lock!(from_address, Address.from_text(to_address), token_id, value)
 
         "dns.set" ->
           [name, type, value, ttl | _validator_host] = body
@@ -297,7 +284,7 @@ defmodule Ipncore.Event do
             multi,
             token_id,
             from_address,
-            Address.from_text(owner),
+            Address.from_text!(owner),
             name,
             decimals,
             symbol,
@@ -323,7 +310,7 @@ defmodule Ipncore.Event do
             from_address,
             hostname,
             name,
-            Address.from_text(owner),
+            Address.from_text!(owner),
             avatar,
             fee_type,
             fee,
@@ -346,6 +333,36 @@ defmodule Ipncore.Event do
         "validator.delete" ->
           [hostname] = body
           Validator.event_delete!(multi, hostname, from_address, channel)
+
+        "tx.send" ->
+          [token, to_address, amount, validator_host, memo] = body
+
+          Tx.send!(
+            multi,
+            hash,
+            token,
+            from_address,
+            Address.from_text!(to_address),
+            amount,
+            validator_host,
+            size,
+            memo,
+            false,
+            time,
+            channel
+          )
+
+        "tx.coinbase" ->
+          [token, outputs, memo] = body
+          Tx.coinbase!(multi, hash, token, from_address, outputs, memo, time, channel)
+
+        "tx.refund" ->
+          [tx_time, tx_hash] = body
+          Tx.refund!(multi, hash, from_address, tx_time, decode_id(tx_hash), size, time, channel)
+
+        "balance.lock" ->
+          [to_address, token_id, value] = body
+          Balance.lock!(multi, Address.from_text!(to_address), token_id, value, time, channel)
 
         "domain.new" ->
           [name, email, avatar, title, years_to_renew, validator_host] = body
@@ -383,35 +400,9 @@ defmodule Ipncore.Event do
           [host] = body
           Domain.event_delete!(multi, host, from_address, channel)
 
-        "tx.send" ->
-          [token, to_address, amount, validator_host, memo] = body
-
-          Tx.send!(
-            multi,
-            hash,
-            token,
-            from_address,
-            Address.from_text(to_address),
-            amount,
-            validator_host,
-            size,
-            memo,
-            false,
-            time,
-            channel
-          )
-
-        "tx.coinbase" ->
-          [token, outputs, memo] = body
-          Tx.coinbase!(multi, hash, token, from_address, outputs, memo, time, channel)
-
-        "tx.refund" ->
-          [tx_time, tx_hash] = body
-          Tx.refund!(multi, hash, from_address, tx_time, decode_id(tx_hash), size, time, channel)
-
-        "balance.lock" ->
-          [to_address, token_id, value] = body
-          Balance.lock!(multi, Address.from_text(to_address), token_id, value, time, channel)
+        "domain.renew" ->
+          [days] = body
+          Domain.event_renew!(multi, :timer.hours(24 * days), channel)
 
         "dns.set" ->
           [name, type, value, ttl, validator_host] = body
@@ -514,20 +505,10 @@ defmodule Ipncore.Event do
     |> Crypto.hash3()
   end
 
-  # def calc_hash(event) do
-  #   [
-  #     to_string(event.vsn),
-  #     to_string(event.type),
-  #     Jason.encode!(event.body),
-  #     to_string(event.time)
-  #   ]
-  #   |> Crypto.hash3()
-  # end
-
   def check_signatures!(hash, sigs) do
     {addresses, byte_size} =
       Enum.reduce(sigs, {[], 0}, fn [address, signature], {acc_addr, acc_size} ->
-        bin_address = Address.from_text(address)
+        bin_address = Address.from_text!(address)
 
         case Wallet.get(bin_address) do
           nil ->
@@ -647,7 +628,7 @@ defmodule Ipncore.Event do
     |> filter_block(params)
     |> filter_time(params)
     |> filter_offset(params)
-    |> filter_limit(params, 10, 1000)
+    |> filter_limit(params, 20, 100)
     |> filter_select(params)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))

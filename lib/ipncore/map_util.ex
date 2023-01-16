@@ -158,7 +158,7 @@ defmodule MapUtil do
         map
 
       val ->
-        Map.put(map, key, Address.from_text(val))
+        Map.put(map, key, Address.from_text!(val))
     end
   end
 

@@ -1,4 +1,4 @@
-defmodule Ipncore.DNS.UdpServer do
+defmodule Ipncore.DNS.Server do
   @moduledoc """
   DNS server based on `GenServer`.
   """
@@ -21,14 +21,12 @@ defmodule Ipncore.DNS.UdpServer do
     socket = Socket.UDP.open!(port, as: :binary, mode: :active, local: [address: ip])
     IO.puts("DNS Server listening at UDP #{Inet.to_str(ip)}:#{port}")
 
-    # accept_loop(socket, handler)
     {:ok, %{port: port, socket: socket}}
   end
 
   def handle_info({:udp, client, ip, wtv, data}, state) do
     try do
-      record = DNS.Record.decode(data)
-      response = Ipncore.DNS.handle(record, client)
+      response = Ipncore.DNS.handle(data, client)
       Socket.Datagram.send!(state.socket, DNS.Record.encode(response), {ip, wtv})
     rescue
       e ->

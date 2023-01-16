@@ -47,17 +47,18 @@ Events are requests made by users and automatic operations by the system that af
 |210|```tx.coinbase```|Creation of coins by the token owner|✅|
 |211|```tx.send```|Send a simple payment|✅|
 |212|```tx.sendmulti```|Send payment to multiple recipients|❌|
-|213|```tx.refund```|Returns a transaction made by the payer|❌|
+|213|```tx.refund```|Return a transaction without paying a fee|❌|
 |214|```tx.jackpot```|Jackpot event|❌|
 |215|```tx.reward```|Reward core validators|❌|
-|216|```tx.burned```|Coin destruction|❌|
+|216|```tx.burn```|Coin destruction|❌|
 |250|```balance.lock```|balance lock|✅|
 |400|```domain.new```|Register a new domain|✅|
 |401|```domain.update```|Update a domain|✅|
 |402|```domain.delete```|Delete a domain|✅|
+|403|```domain.renew```|Renew a domain|❌|
 |410|```dns.set```|Create or replace a DNS Record|✅|
-|410|```dns.push```|Put a DNS Record|✅|
-|411|```dns.drop```|Drop a DNS Record|✅|
+|411|```dns.push```|Put a DNS Record|✅|
+|412|```dns.drop```|Drop a DNS Record|✅|
 |1000|```pubkey.new```|Public key registration|✅|
 
 ## Network server

@@ -82,5 +82,12 @@ config :ipncore, :ntp_servers, [
   'time.windows.com'
 ]
 
+config :ipncore, :dns_resolve_timeout, 5_000
+
+config :ipncore, :dns_resolve_nameservers, [
+  {{1, 1, 1, 1}, 53},
+  {{8, 8, 8, 8}, 53}
+]
+
 # deliver max file size
 config :ipncore, :max_file_size, 1_000_000_000

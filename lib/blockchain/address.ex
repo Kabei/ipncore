@@ -1,4 +1,5 @@
 defmodule Ipncore.Address do
+  def from_text(nil), do: nil
   def from_text([]), do: []
 
   def from_text([x | rest]) do
@@ -14,7 +15,20 @@ defmodule Ipncore.Address do
   end
 
   def from_text(""), do: nil
-  def from_text(x), do: throw("Error convert address text to bin #{x}")
+  def from_text(x) when byte_size(x) == 20, do: x
+  def from_text(x), do: x
+
+  def from_text!(x) do
+    result = from_text(x)
+
+    cond do
+      is_nil(result) or x == [] or x == "" or result == x ->
+        throw("Error convert address text to bin #{x}")
+
+      true ->
+        result
+    end
+  end
 
   def to_text([]), do: []
 
@@ -27,8 +41,21 @@ defmodule Ipncore.Address do
   end
 
   def to_text("1x" <> _rest = x), do: x
-  def to_text(nil), do: ""
-  def to_text(_), do: throw("Error convert address bin to text")
+  def to_text(nil), do: nil
+  def to_text(""), do: ""
+  def to_text(x), do: x
+
+  def to_text!(x) do
+    result = to_text(x)
+
+    cond do
+      is_nil(result) or x == [] or x == "" or result == x ->
+        throw("Error convert address bin to text #{x}")
+
+      true ->
+        result
+    end
+  end
 
   def hash(pubkey) do
     :crypto.hash(:ripemd160, pubkey)

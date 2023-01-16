@@ -401,7 +401,7 @@ defmodule Ipncore.Tx do
                                                 {acc_txos, acc_keys, acc_entries, acc_amount,
                                                  acc_ix} ->
         if value <= 0, do: throw("Output has value zero")
-        bin_address = Address.from_text(address)
+        bin_address = Address.from_text!(address)
 
         output = %{
           txid: txid,

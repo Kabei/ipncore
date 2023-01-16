@@ -120,7 +120,7 @@ defmodule Ipncore.Explorer.Router do
               end
 
             Regex.match?(Const.Regex.address(), query) ->
-              address = Address.from_text(query)
+              address = Address.from_text!(query)
 
               case Balance.fetch_balance(address, Default.token(), Default.channel()) do
                 nil ->
@@ -154,13 +154,13 @@ defmodule Ipncore.Explorer.Router do
   end
 
   get "/blockchain/balance/:address58/:token" do
-    address = Address.from_text(address58)
+    address = Address.from_text!(address58)
     resp = Balance.fetch_balance(address, token, Default.channel())
     send_result(conn, resp)
   end
 
   get "/blockchain/balance/:address58" do
-    address = Address.from_text(address58)
+    address = Address.from_text!(address58)
     resp = Balance.all_balance(address, conn.params)
     send_result(conn, resp)
   end

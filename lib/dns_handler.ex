@@ -8,6 +8,7 @@ defmodule Ipncore.DNS do
   require Logger
 
   @regex ~r/^(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy)$/
+
   defmacro nx_domain(domain_list, type) do
     quote do
       %{:dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in}) | Return_code: 3}
@@ -17,6 +18,19 @@ defmodule Ipncore.DNS do
   defmacro not_implemented(domain_list, type) do
     quote do
       %{:dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in}) | Return_code: 4}
+    end
+  end
+
+  defmacrop anwser_from_remote(request, dns_rr) do
+    quote do
+      Enum.map(unquote(dns_rr), fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm,
+                                    _func} ->
+        rvalue = answer(value)
+        answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
+
+        :dnsmsg.add_response_answer(unquote(request), answer)
+        |> :dnsmsg.response()
+      end)
     end
   end
 
@@ -40,11 +54,11 @@ defmodule Ipncore.DNS do
     {:ok, bin} =
       case DnsRecord.lookup(domain, type) do
         nil ->
-          nx_domain()
+          nx_domain(domain_list, type)
 
         {values, ttl} when is_list(values) ->
           Enum.reduce(values, request, fn x, acc ->
-            rvalue = answer_response(value)
+            rvalue = answer_response(type, value)
             answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
 
             :dnsmsg.add_response_answer(acc, answer)
@@ -74,36 +88,24 @@ defmodule Ipncore.DNS do
       timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
 
       case :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout) do
-        {:ok, {:dnsrec, header, query, _anlist, dns_rr, _arlist}} ->
-          Enum.map(dns_rr, fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm, _func} ->
-            rvalue = answer(value)
-            answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
+        {:ok, {:dnsrec, _header, _query, _anlist, dns_rr, _arlist}} ->
+          anwser_from_remote(request, dns_rr)
 
-            :dnsmsg.add_response_answer(request, answer)
-            |> :dnsmsg.response()
-          end)
-
-        {:error, {:noquery, {:dnsrec, header, query, dns_rr, _nslist, _arlist}}} ->
-          Enum.map(dns_rr, fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm, _func} ->
-            rvalue = answer(value)
-            answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
-
-            :dnsmsg.add_response_answer(request, answer)
-            |> :dnsmsg.response()
-          end)
+        {:error, {:noquery, {:dnsrec, _header, _query, dns_rr, _nslist, _arlist}}} ->
+          anwser_from_remote(request, dns_rr)
 
         {:error, :timeout} ->
-          nx_domain()
+          nx_domain(domain_list, type)
 
         {:error, :nxdomain} ->
-          nx_domain()
+          nx_domain(domain_list, type)
 
         {:error, _} ->
-          nx_domain()
+          nx_domain(domain_list, type)
       end
     rescue
       FunctionClauseError ->
-        not_implemented()
+        not_implemented(domain_list, type)
     end
   end
 

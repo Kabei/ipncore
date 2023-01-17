@@ -77,7 +77,7 @@ defmodule Ipncore.DNS do
     bin
   end
 
-  defp proxy_resolve(record, {domain_list, type, _}) do
+  defp proxy_resolve(request, {domain_list, type, _}) do
     try do
       domain = Enum.join(domain_list, ".") |> to_charlist()
       tnumber = type_to_number(type)

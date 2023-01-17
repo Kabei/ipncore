@@ -21,12 +21,12 @@ defmodule Ipncore.DNS do
     end
   end
 
-  defmacrop anwser_from_remote(request, dns_rr) do
+  defmacrop anwser_from_remote(request, domain, type, dns_rr) do
     quote do
       Enum.map(unquote(dns_rr), fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm,
                                     _func} ->
         rvalue = answer(value)
-        answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
+        answer = :dnslib.resource('#{unquote(domain)} IN #{ttl} #{unquote(type)} #{rvalue}')
 
         :dnsmsg.add_response_answer(unquote(request), answer)
         |> :dnsmsg.response()
@@ -58,7 +58,7 @@ defmodule Ipncore.DNS do
 
         {values, ttl} when is_list(values) ->
           Enum.reduce(values, request, fn x, acc ->
-            rvalue = answer_response(type, value)
+            rvalue = answer_response(type, x)
             answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
 
             :dnsmsg.add_response_answer(acc, answer)
@@ -89,10 +89,10 @@ defmodule Ipncore.DNS do
 
       case :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout) do
         {:ok, {:dnsrec, _header, _query, _anlist, dns_rr, _arlist}} ->
-          anwser_from_remote(request, dns_rr)
+          anwser_from_remote(request, domain, type, dns_rr)
 
         {:error, {:noquery, {:dnsrec, _header, _query, dns_rr, _nslist, _arlist}}} ->
-          anwser_from_remote(request, dns_rr)
+          anwser_from_remote(request, domain, type, dns_rr)
 
         {:error, :timeout} ->
           nx_domain(domain_list, type)
@@ -115,7 +115,7 @@ defmodule Ipncore.DNS do
   defp answer_response(_type, value) when is_tuple(value),
     do: Tuple.to_list(value) |> Enum.join(" ")
 
-  defp answer_response(_type, _value), do: value
+  defp answer_response(_type, value), do: value
 
   defp type_to_number(:a), do: 1
   defp type_to_number(:ns), do: 2

@@ -25,7 +25,7 @@ defmodule Ipncore.DNS do
     quote do
       Enum.map(unquote(dns_rr), fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm,
                                     _func} ->
-        rvalue = answer(value)
+        rvalue = answer_response(type, value)
         answer = :dnslib.resource('#{unquote(domain)} IN #{ttl} #{unquote(type)} #{rvalue}')
 
         :dnsmsg.add_response_answer(unquote(request), answer)
@@ -66,7 +66,7 @@ defmodule Ipncore.DNS do
           |> :dnsmsg.response()
 
         {value, ttl} ->
-          rvalue = answer(value)
+          rvalue = answer_response(value)
           answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
 
           :dnsmsg.add_response_answer(request, answer)

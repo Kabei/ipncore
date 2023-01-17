@@ -8,8 +8,17 @@ defmodule Ipncore.DNS do
   require Logger
 
   @regex ~r/^(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy)$/
-  @nx_domain %{:dnsmsg.new(%{}, {domain_list, type, :in}) | Return_code: 3}
-  @not_implemented %{:dnsmsg.new(%{}, {domain_list, type, :in}) | Return_code: 4}
+  defmacro nx_domain do
+    quote do
+      %{:dnsmsg.new(%{}, {domain_list, type, :in}) | Return_code: 3}
+    end
+  end
+
+  defmacro not_implemented do
+    quote do
+      %{:dnsmsg.new(%{}, {domain_list, type, :in}) | Return_code: 4}
+    end
+  end
 
   def handle(data, _cl) do
     Logger.info(fn -> "#{inspect(data)}" end)
@@ -31,16 +40,16 @@ defmodule Ipncore.DNS do
     {:ok, bin} =
       case DnsRecord.lookup(domain, type) do
         nil ->
-          @nx_domain
+          nx_domain()
 
         {values, ttl} when is_list(values) ->
-            Enum.reduce(values, request, fn x, acc ->
-              rvalue = answer_response(value)
-              answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
+          Enum.reduce(values, request, fn x, acc ->
+            rvalue = answer_response(value)
+            answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
 
-              :dnsmsg.add_response_answer(acc, answer)
-            end)
-            |> :dnsmsg.response()
+            :dnsmsg.add_response_answer(acc, answer)
+          end)
+          |> :dnsmsg.response()
 
         {value, ttl} ->
           rvalue = answer(value)
@@ -55,41 +64,46 @@ defmodule Ipncore.DNS do
   end
 
   defp proxy_resolve(record, {domain_list, type, _}) do
-    domain = Enum.join(domain_list, ".") |> to_charlist()
-    tnumber = type_to_number(type)
+    try do
+      domain = Enum.join(domain_list, ".") |> to_charlist()
+      tnumber = type_to_number(type)
 
-    nameservers =
-      Application.get_env(:ipncore, :dns_nameservers, [{"1.1.1.1", 53}, {"8.8.8.8", 53}])
+      nameservers =
+        Application.get_env(:ipncore, :dns_nameservers, [{"1.1.1.1", 53}, {"8.8.8.8", 53}])
 
-    timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
+      timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
 
-    case :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout) do
-      {:ok, {:dnsrec, header, query, _anlist, dns_rr, _arlist}} ->
-        Enum.map(dns_rr, fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm, _func} ->
-          rvalue = answer(value)
-          answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
+      case :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout) do
+        {:ok, {:dnsrec, header, query, _anlist, dns_rr, _arlist}} ->
+          Enum.map(dns_rr, fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm, _func} ->
+            rvalue = answer(value)
+            answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
 
-          :dnsmsg.add_response_answer(request, answer)
-          |> :dnsmsg.response()
-        end)
+            :dnsmsg.add_response_answer(request, answer)
+            |> :dnsmsg.response()
+          end)
 
-      {:error, {:noquery, {:dnsrec, header, query, dns_rr, _nslist, _arlist}}} ->
-        Enum.map(dns_rr, fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm, _func} ->
-          rvalue = answer(value)
-          answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
+        {:error, {:noquery, {:dnsrec, header, query, dns_rr, _nslist, _arlist}}} ->
+          Enum.map(dns_rr, fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm, _func} ->
+            rvalue = answer(value)
+            answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
 
-          :dnsmsg.add_response_answer(request, answer)
-          |> :dnsmsg.response()
-        end)
+            :dnsmsg.add_response_answer(request, answer)
+            |> :dnsmsg.response()
+          end)
 
-      {:error, :timeout} ->
-        @nx_domain
+        {:error, :timeout} ->
+          nx_domain()
 
-      {:error, :nxdomain} ->
-        @nx_domain
+        {:error, :nxdomain} ->
+          nx_domain()
 
-      {:error, _} ->
-        @nx_domain
+        {:error, _} ->
+          nx_domain()
+      end
+    rescue
+      FunctionClauseError ->
+        not_implemented()
     end
   end
 

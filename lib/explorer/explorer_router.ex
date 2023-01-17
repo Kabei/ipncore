@@ -307,7 +307,7 @@ defmodule Ipncore.Explorer.Router do
     # Logger.info(inspect(conn))
 
     case get_resp_header(conn, "accept") do
-      "application/dns-message" ->
+      ["application/dns-message"] ->
         {:ok, request_body, _} = read_body(conn)
 
         case request_body do
@@ -323,6 +323,9 @@ defmodule Ipncore.Explorer.Router do
             |> merge_resp_headers(@dns_headers)
             |> send_resp(200, response_body)
         end
+
+      _ ->
+        send_resp(conn, 400, "")
     end
 
     # Logger.info(inspect(request_body))

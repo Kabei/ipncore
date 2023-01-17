@@ -112,6 +112,10 @@ defmodule Ipncore.Balance do
       on: ev.hash == txo.txid,
       join: tk in Token,
       on: tk.id == txo.token,
+      left_join: d in Domain,
+      on: d.owner == txo.to,
+      left_join: fd in Domain,
+      on: d.owner == txo.from,
       select: %{
         id: txo.txid,
         type: ev.type,
@@ -121,11 +125,13 @@ defmodule Ipncore.Balance do
         to: txo.to,
         value: txo.value,
         decimals: tk.decimals,
-        time: ev.time
+        time: ev.time,
+        domain_to: d.owner
+        domain_from: df.owner
       }
     )
     |> filter_operation(address, params)
-    |> filter_token(params)
+    |> filter_check_domain(params)
     |> Tx.filter_date(params)
     |> filter_reason(params)
     |> filter_type(params)
@@ -136,10 +142,10 @@ defmodule Ipncore.Balance do
     |> Enum.map(fn x ->
       %{
         id: Event.encode_id(x.id),
-        from: Address.to_text(x.from),
+        from: x.domain_from || Address.to_text(x.from),
         reason: x.reason,
         time: x.time,
-        to: Address.to_text(x.to),
+        to: x.domain_to || Address.to_text(x.to),
         token: x.token,
         type: Event.type_name(x.type),
         value: Util.to_decimal(x.value, x.decimals)

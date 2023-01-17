@@ -102,7 +102,7 @@ defmodule Ipncore.DNS do
 
   defp local_resolve!(query_id, {domain_list, type, _} = query) do
     domain = Enum.join(domain_list, ".") |> to_charlist()
-    Logger.info("DNS-Query | #{domain} #{type}")
+    Logger.debug("DNS-Query | #{domain} #{type}")
 
     resources =
       case DnsRecord.lookup(domain, type) do
@@ -159,7 +159,7 @@ defmodule Ipncore.DNS do
   defp proxy_resolve!(query_id, {domain_list, type, _} = query) do
     domain = Enum.join(domain_list, ".") |> to_charlist()
     tnumber = type_to_number(type)
-    Logger.info("DNS-Query | #{domain} #{type}")
+    Logger.debug("DNS-Query | #{domain} #{type}")
 
     opts = Application.get_env(:ipncore, :dns_resolve_opts, @default_dns_resolve_opts)
 

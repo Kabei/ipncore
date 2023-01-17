@@ -34,7 +34,7 @@ defmodule Ipncore.RepoWorker do
   # handle_info/2 receives generic messages from the Task processes
   @impl true
   def handle_info({_task, {:ok, result}}, state) do
-    Logger.info("#{inspect(result)} Job Done.")
+    Logger.debug("#{inspect(result)} Job Done.")
     {:noreply, state}
   end
 

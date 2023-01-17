@@ -62,7 +62,8 @@ defmodule Ipncore.DNS do
   defp local_resolve(request, {domain_list, type, _}) do
     domain = Enum.join(domain_list, ".") |> to_charlist()
 
-    {:ok, _bin_length, resp} =
+    # {:ok, _bin_length, resp} =
+    resp =
       case DnsRecord.lookup(domain, type) do
         nil ->
           nx_domain(domain_list, type)

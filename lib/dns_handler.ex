@@ -87,7 +87,7 @@ defmodule Ipncore.DNS do
     # |> :dnswire.to_binary()
 
     {:ok, resBinLen, resIolist} = :dnswire.to_iolist(resp)
-    resBin = iolist_to_binary(resIolist)
+    resBin = IO.iodata_to_binary(resIolist)
     resBinLen = byte_size(resBin)
     {:ok, response, <<"Trailing">>} = :dnswire.from_binary(<<resBin::binary, "Trailing">>)
 

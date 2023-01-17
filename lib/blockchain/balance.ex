@@ -114,7 +114,7 @@ defmodule Ipncore.Balance do
       on: tk.id == txo.token,
       left_join: d in Domain,
       on: d.owner == txo.to,
-      left_join: fd in Domain,
+      left_join: df in Domain,
       on: d.owner == txo.from,
       select: %{
         id: txo.txid,

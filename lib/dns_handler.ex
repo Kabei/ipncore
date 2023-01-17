@@ -55,7 +55,7 @@ defmodule Ipncore.DNS do
   end
 
   defp local_resolve(request, {domain_list, type, _}) do
-    domain = Enum.join(domain_list, ".")
+    domain = Enum.join(domain_list, ".") |> to_charlist()
 
     {:ok, _, bin} =
       case DnsRecord.lookup(domain, type) do

@@ -62,7 +62,7 @@ defmodule Ipncore.DNS do
   defp local_resolve(request, {domain_list, type, _}) do
     domain = Enum.join(domain_list, ".") |> to_charlist()
 
-    {:ok, _bin_length, bin} =
+    {:ok, _bin_length, resp} =
       case DnsRecord.lookup(domain, type) do
         nil ->
           nx_domain(domain_list, type)
@@ -83,9 +83,15 @@ defmodule Ipncore.DNS do
           :dnsmsg.add_response_answer(request, answer)
           |> :dnsmsg.response()
       end
-      |> :dnswire.to_binary()
 
-    bin
+    # |> :dnswire.to_binary()
+
+    {:ok, resBinLen, resIolist} = :dnswire.to_iolist(resp)
+    resBin = iolist_to_binary(resIolist)
+    resBinLen = byte_size(resBin)
+    {:ok, response, <<"Trailing">>} = :dnswire.from_binary(<<resBin::binary, "Trailing">>)
+
+    response
   end
 
   defp proxy_resolve(request, {domain_list, type, _}) do

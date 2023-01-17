@@ -54,7 +54,7 @@ defmodule Ipncore.DNS do
           proxy_resolve(request, question)
       end
 
-    Logger.info(fn -> "#{inspect(response)}" end)
+    Logger.info(fn -> "Response | #{inspect(response)}" end)
 
     response
   end
@@ -62,7 +62,7 @@ defmodule Ipncore.DNS do
   defp local_resolve(request, {domain_list, type, _}) do
     domain = Enum.join(domain_list, ".") |> to_charlist()
 
-    {:ok, _, bin} =
+    {:ok, _bin_length, bin} =
       case DnsRecord.lookup(domain, type) do
         nil ->
           nx_domain(domain_list, type)
@@ -89,41 +89,44 @@ defmodule Ipncore.DNS do
   end
 
   defp proxy_resolve(request, {domain_list, type, _}) do
-    try do
-      domain = Enum.join(domain_list, ".") |> to_charlist()
-      tnumber = type_to_number(type)
+    # try do
+    domain = Enum.join(domain_list, ".") |> to_charlist()
+    tnumber = type_to_number(type)
 
-      nameservers =
-        Application.get_env(:ipncore, :dns_resolve_nameservers, @default_dns_nameservers)
+    nameservers =
+      Application.get_env(:ipncore, :dns_resolve_nameservers, @default_dns_nameservers)
 
-      timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
+    timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
 
-      {:ok, _, bin} =
-        case :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout) do
-          {:ok, {:dnsrec, _header, _query, _anlist, dns_rr, _arlist}} ->
-            anwser_from_remote(request, domain, type, dns_rr)
+    r = :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout)
+    IO.inspect(r)
 
-          {:error, {:noquery, {:dnsrec, _header, _query, dns_rr, _nslist, _arlist}}} ->
-            anwser_from_remote(request, domain, type, dns_rr)
+    {:ok, _bin_length, bin} =
+      case r do
+        {:ok, {:dnsrec, _header, _query, _anlist, dns_rr, _arlist}} ->
+          anwser_from_remote(request, domain, type, dns_rr)
 
-          {:error, :timeout} ->
-            nx_domain(domain_list, type)
+        {:error, {:noquery, {:dnsrec, _header, _query, dns_rr, _nslist, _arlist}}} ->
+          anwser_from_remote(request, domain, type, dns_rr)
 
-          {:error, :nxdomain} ->
-            nx_domain(domain_list, type)
+        {:error, :timeout} ->
+          nx_domain(domain_list, type)
 
-          {:error, _} ->
-            nx_domain(domain_list, type)
-        end
-        |> :dnswire.to_binary()
+        {:error, :nxdomain} ->
+          nx_domain(domain_list, type)
 
-      bin
-    rescue
-      FunctionClauseError ->
-        not_implemented(domain_list, type)
-        |> :dnswire.to_binary()
-        |> elem(2)
-    end
+        {:error, _} ->
+          nx_domain(domain_list, type)
+      end
+      |> :dnswire.to_binary()
+
+    bin
+    # rescue
+    #   FunctionClauseError ->
+    #     not_implemented(domain_list, type)
+    #     |> :dnswire.to_binary()
+    #     |> elem(2)
+    # end
   end
 
   defp answer_response(:a, value), do: :inet.ntoa(value)

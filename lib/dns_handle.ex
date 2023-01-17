@@ -23,7 +23,7 @@ defmodule Ipncore.DNS do
   def handle(data, _cl) do
     Logger.info(fn -> "#{inspect(data)}" end)
     {:ok, request, _} = :dnswire.from_binary(data)
-    question = {domain_list, type, _} = request.Questions |> hd()
+    question = {domain_list, type, _} = request[:Questions} |> hd()
 
     case Regex.match(@regex, List.last(domain_list)) do
       true ->

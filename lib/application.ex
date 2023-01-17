@@ -130,14 +130,14 @@ defmodule Ipncore.Application do
     opts = Application.get_env(@otp_app, :dns)
     ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0})
     port = Keyword.get(opts, :port, 53)
-    {DNS.UdpServer, [ip_address, port]}
+    {DNS.Server, [ip_address, port]}
   end
 
   defp dns_udp_ipv6_server do
     opts = Application.get_env(@otp_app, :dns6)
     ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0, 0, 0, 0, 0})
     port = Keyword.get(opts, :port, 53)
-    {DNS.UdpServer, [ip_address, port]}
+    {DNS.Server, [ip_address, port]}
   end
 
   defp http_server do

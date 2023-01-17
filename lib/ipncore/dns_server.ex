@@ -27,7 +27,7 @@ defmodule Ipncore.DNS.Server do
   def handle_info({:udp, client, ip, wtv, data}, state) do
     try do
       response = Ipncore.DNS.handle(data, client)
-      Socket.Datagram.send!(state.socket, DNS.Record.encode(response), {ip, wtv})
+      Socket.Datagram.send!(state.socket, response, {ip, wtv})
     rescue
       e ->
         Logger.error(Exception.format(:error, e, __STACKTRACE__))

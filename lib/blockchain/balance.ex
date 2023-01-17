@@ -195,7 +195,7 @@ defmodule Ipncore.Balance do
   end
 
   defp transform(nil), do: nil
-  defp transform([])), do: []
+  defp transform([]), do: []
 
   defp transform(x) when is_list(x) do
     Enum.map(x, &%{&1 | to: Address.to_text(&1.address)})

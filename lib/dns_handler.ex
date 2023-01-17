@@ -57,7 +57,7 @@ defmodule Ipncore.DNS do
   defp local_resolve(request, {domain_list, type, _}) do
     domain = Enum.join(domain_list, ".")
 
-    {:ok, bin} =
+    {:ok, _, bin} =
       case DnsRecord.lookup(domain, type) do
         nil ->
           nx_domain(domain_list, type)
@@ -93,7 +93,7 @@ defmodule Ipncore.DNS do
 
       timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
 
-      {:ok, bin} =
+      {:ok, _, bin} =
         case :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout) do
           {:ok, {:dnsrec, _header, _query, _anlist, dns_rr, _arlist}} ->
             anwser_from_remote(request, domain, type, dns_rr)
@@ -117,7 +117,7 @@ defmodule Ipncore.DNS do
       FunctionClauseError ->
         not_implemented(domain_list, type)
         |> :dnswire.to_binary()
-        |> elem(1)
+        |> elem(2)
     end
   end
 

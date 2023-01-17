@@ -22,6 +22,22 @@ config :ipncore, :dns,
   ip: '0.0.0.0',
   port: 53
 
+config :ipncore, :dns6,
+  ip: '::',
+  port: 53
+
+config :ipncore, :dns_tls,
+  ip: {0, 0, 0, 0},
+  port: 853,
+  transport_options: [
+    certfile: Path.join(cert_dir, "cert.pem"),
+    cacertfile: Path.join(cert_dir, "cacert.pem"),
+    keyfile: Path.join(cert_dir, "key.pem"),
+    send_timeout: 15_000
+  ],
+  num_acceptors: 10,
+  read_timeout: :infinity
+
 # IMP config
 config :ipncore, :imp_client,
   host: "us2.ippan.net",
@@ -82,12 +98,19 @@ config :ipncore, :ntp_servers, [
   'time.windows.com'
 ]
 
-config :ipncore, :dns_resolve_timeout, 5_000
-
-config :ipncore, :dns_resolve_nameservers, [
-  {{1, 1, 1, 1}, 53},
-  {{8, 8, 8, 8}, 53}
-]
+config :ipncore, :dns_resolve_opts,
+  alt_nameservers: [
+    {{8, 8, 8, 8}, 53},
+    {{1, 0, 0, 1}, 53},
+    {{208, 67, 220, 220}, 53}
+  ],
+  nameservers: [
+    {{1, 1, 1, 1}, 53},
+    {{8, 8, 4, 4}, 53},
+    {{9, 9, 9, 9}, 53},
+    {{208, 67, 222, 222}, 53}
+  ],
+  timeout: 5_000
 
 # deliver max file size
 config :ipncore, :max_file_size, 1_000_000_000

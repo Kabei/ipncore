@@ -71,6 +71,7 @@ defmodule Ipncore.Application do
         Repo,
         RepoWorker,
         dns_udp_server(),
+        dns_tls_server(),
         # dns_udp_ipv6_server(),
         # imp_client(),
         http_server(),
@@ -130,14 +131,24 @@ defmodule Ipncore.Application do
     opts = Application.get_env(@otp_app, :dns)
     ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0})
     port = Keyword.get(opts, :port, 53)
-    {DNS.Server, [ip_address, port]}
+    {DNS.Server, [ip: ip_address, port: port]}
+  end
+
+  def dns_tls_server do
+    tls_opts = Application.get_env(@otp_app, :dns_tls) || throw("Invalid TLS Options")
+
+    {
+      ThousandIsland,
+      [handler_module: Ipncore.DNS.TlsServer, transport_module: ThousandIsland.Transports.SSL] ++
+        tls_opts
+    }
   end
 
   defp dns_udp_ipv6_server do
     opts = Application.get_env(@otp_app, :dns6)
     ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0, 0, 0, 0, 0})
     port = Keyword.get(opts, :port, 53)
-    {DNS.Server, [ip_address, port]}
+    {DNS.Server, [ip: ip_address, port: port]}
   end
 
   defp http_server do

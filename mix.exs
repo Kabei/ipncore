@@ -50,6 +50,7 @@ defmodule Ipncore.MixProject do
       {:download, "~> 0.0.0"},
       # {:httpoison, "~> 1.7"},
       {:dets_plus, "~> 2.1"},
+      {:thousand_island, "~> 0.5.15"},
 
       {:ntrukem, path: "../ntrukem"},
       {:falcon, path: "../falcon"},

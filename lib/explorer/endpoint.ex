@@ -11,9 +11,9 @@ defmodule Ipncore.Endpoint do
       :urlencoded,
       # Increase to 4MB max upload
       {:multipart, length: 4_000_000},
-      :json
+      {:json, json_decoder: Jason}
     ],
-    json_decoder: Jason
+    pass: ["*/*"]
   )
 
   plug(Plug.Cors)

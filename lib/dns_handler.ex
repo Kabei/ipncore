@@ -9,6 +9,8 @@ defmodule Ipncore.DNS do
 
   @regex ~r/^(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy)$/
 
+  @default_dns_nameservers [{{1, 1, 1, 1}, 53}, {{8, 8, 8, 8}, 53}]
+
   defmacro nx_domain(domain_list, type) do
     quote do
       %{:dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in}) | Return_code: 3}
@@ -82,8 +84,7 @@ defmodule Ipncore.DNS do
       domain = Enum.join(domain_list, ".") |> to_charlist()
       tnumber = type_to_number(type)
 
-      nameservers =
-        Application.get_env(:ipncore, :dns_nameservers, [{"1.1.1.1", 53}, {"8.8.8.8", 53}])
+      nameservers = Application.get_env(:ipncore, :dns_nameservers, @default_dns_nameservers)
 
       timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
 

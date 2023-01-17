@@ -131,7 +131,7 @@ defmodule Ipncore.Balance do
       }
     )
     |> filter_operation(address, params)
-    |> filter_check_domain(params)
+    |> filter_token(params)
     |> Tx.filter_date(params)
     |> filter_reason(params)
     |> filter_type(params)

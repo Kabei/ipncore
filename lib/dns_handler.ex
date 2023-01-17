@@ -45,13 +45,18 @@ defmodule Ipncore.DNS do
     {:ok, request, _} = :dnswire.from_binary(data)
     question = {domain_list, _type, _} = request[:Questions] |> hd()
 
-    case Regex.match?(@regex, List.last(domain_list)) do
-      true ->
-        local_resolve(request, question)
+    response =
+      case Regex.match?(@regex, List.last(domain_list)) do
+        true ->
+          local_resolve(request, question)
 
-      false ->
-        proxy_resolve(request, question)
-    end
+        false ->
+          proxy_resolve(request, question)
+      end
+
+    Logger.info(fn -> "#{inspect(response)}" end)
+
+    response
   end
 
   defp local_resolve(request, {domain_list, type, _}) do

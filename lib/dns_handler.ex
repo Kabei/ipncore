@@ -93,22 +93,26 @@ defmodule Ipncore.DNS do
 
       timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
 
-      case :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout) do
-        {:ok, {:dnsrec, _header, _query, _anlist, dns_rr, _arlist}} ->
-          anwser_from_remote(request, domain, type, dns_rr)
+      {:ok, bin} =
+        case :inet_res.resolve(domain, :in, tnumber, [nameservers: nameservers], timeout) do
+          {:ok, {:dnsrec, _header, _query, _anlist, dns_rr, _arlist}} ->
+            anwser_from_remote(request, domain, type, dns_rr)
 
-        {:error, {:noquery, {:dnsrec, _header, _query, dns_rr, _nslist, _arlist}}} ->
-          anwser_from_remote(request, domain, type, dns_rr)
+          {:error, {:noquery, {:dnsrec, _header, _query, dns_rr, _nslist, _arlist}}} ->
+            anwser_from_remote(request, domain, type, dns_rr)
 
-        {:error, :timeout} ->
-          nx_domain(domain_list, type)
+          {:error, :timeout} ->
+            nx_domain(domain_list, type)
 
-        {:error, :nxdomain} ->
-          nx_domain(domain_list, type)
+          {:error, :nxdomain} ->
+            nx_domain(domain_list, type)
 
-        {:error, _} ->
-          nx_domain(domain_list, type)
-      end
+          {:error, _} ->
+            nx_domain(domain_list, type)
+        end
+        |> :dnswire.to_binary()
+
+      bin
     rescue
       FunctionClauseError ->
         not_implemented(domain_list, type)

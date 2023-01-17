@@ -126,7 +126,7 @@ defmodule Ipncore.Balance do
         value: txo.value,
         decimals: tk.decimals,
         time: ev.time,
-        domain_to: d.owner
+        domain_to: d.owner,
         domain_from: df.owner
       }
     )

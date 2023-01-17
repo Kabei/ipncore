@@ -116,6 +116,8 @@ defmodule Ipncore.DNS do
     rescue
       FunctionClauseError ->
         not_implemented(domain_list, type)
+        |> :dnswire.to_binary()
+        |> elem(1)
     end
   end
 

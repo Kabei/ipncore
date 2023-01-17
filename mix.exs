@@ -39,7 +39,7 @@ defmodule Ipncore.MixProject do
       {:cbor, "~> 1.0.0"},
       # {:dns, "~> 2.4.0"},
       {:socket, "~> 0.3.13"},
-      {:dnslib, github: "lateio/dnslib"},
+      {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
       {:socket, "~> 0.3"},
       {:sntp, "~> 0.2.0"},
       {:jason, "~> 1.4"},
@@ -50,7 +50,7 @@ defmodule Ipncore.MixProject do
       {:download, "~> 0.0.0"},
       # {:httpoison, "~> 1.7"},
       {:dets_plus, "~> 2.1"},
-
+      
       {:ntrukem, path: "../ntrukem"},
       {:falcon, path: "../falcon"},
       {:ipnutils, path: "../ipnutils"},

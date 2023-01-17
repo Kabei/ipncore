@@ -66,7 +66,7 @@ defmodule Ipncore.DNS do
           |> :dnsmsg.response()
 
         {value, ttl} ->
-          rvalue = answer_response(value)
+          rvalue = answer_response(type, value)
           answer = :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
 
           :dnsmsg.add_response_answer(request, answer)

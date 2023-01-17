@@ -39,7 +39,7 @@ defmodule Ipncore.DNS do
     {:ok, request, _} = :dnswire.from_binary(data)
     question = {domain_list, _type, _} = request[:Questions] |> hd()
 
-    case Regex.match(@regex, List.last(domain_list)) do
+    case Regex.match?(@regex, List.last(domain_list)) do
       true ->
         local_resolve(request, question)
 

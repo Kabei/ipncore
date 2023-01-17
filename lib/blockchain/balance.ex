@@ -2,7 +2,7 @@ defmodule Ipncore.Balance do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  alias Ipncore.{Repo, Token, Tx, Txo, Event, Address, Util}
+  alias Ipncore.{Repo, Domain, Token, Tx, Txo, Event, Address, Util}
   alias __MODULE__
 
   # @output_reason_send "S"

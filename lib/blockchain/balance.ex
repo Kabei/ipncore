@@ -126,8 +126,8 @@ defmodule Ipncore.Balance do
         value: txo.value,
         decimals: tk.decimals,
         time: ev.time,
-        domain_to: d.owner,
-        domain_from: df.owner
+        domain_to: d.name,
+        domain_from: df.name
       }
     )
     |> filter_operation(address, params)
@@ -195,9 +195,10 @@ defmodule Ipncore.Balance do
   end
 
   defp transform(nil), do: nil
+  defp transform([])), do: []
 
   defp transform(x) when is_list(x) do
-    Enum.map(x, &%{&1 | address: Address.to_text(&1.address)})
+    Enum.map(x, &%{&1 | to: Address.to_text(&1.address)})
   end
 
   defp transform(x) do

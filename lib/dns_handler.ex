@@ -13,13 +13,16 @@ defmodule Ipncore.DNS do
 
   defmacro nx_domain(domain_list, type) do
     quote do
-      %{:dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in}) | Return_code: 3}
+      %{:dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in}) | Return_code: :name_error}
     end
   end
 
   defmacro not_implemented(domain_list, type) do
     quote do
-      %{:dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in}) | Return_code: 4}
+      %{
+        :dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in})
+        | Return_code: :not_implemented
+      }
     end
   end
 

@@ -25,14 +25,15 @@ defmodule Ipncore.DNS do
 
   defmacrop anwser_from_remote(request, domain, type, dns_rr) do
     quote do
-      Enum.map(unquote(dns_rr), fn {_dns_rr, _domain, _type, _in, _cnt, ttl, value, _tm, _bm,
-                                    _func} ->
+      Enum.reduce(unquote(dns_rr), unquote(request), fn {_dns_rr, _domain, _type, _in, _cnt, ttl,
+                                                         value, _tm, _bm, _func},
+                                                        acc ->
         rvalue = answer_response(unquote(type), value)
         answer = :dnslib.resource('#{unquote(domain)} IN #{ttl} #{unquote(type)} #{rvalue}')
 
-        :dnsmsg.add_response_answer(unquote(request), answer)
-        |> :dnsmsg.response()
+        :dnsmsg.add_response_answer(acc, answer)
       end)
+      |> :dnsmsg.response()
     end
   end
 
@@ -84,7 +85,8 @@ defmodule Ipncore.DNS do
       domain = Enum.join(domain_list, ".") |> to_charlist()
       tnumber = type_to_number(type)
 
-      nameservers = Application.get_env(:ipncore, :dns_nameservers, @default_dns_nameservers)
+      nameservers =
+        Application.get_env(:ipncore, :dns_resolve_nameservers, @default_dns_nameservers)
 
       timeout = Application.get_env(:ipncore, :dns_resolve_timeout, 5_000)
 

@@ -8,22 +8,22 @@ defmodule Ipncore.DNS do
   require Logger
 
   @regex ~r/^(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy)$/
-  defmacro nx_domain do
+  defmacro nx_domain(domain_list, type) do
     quote do
-      %{:dnsmsg.new(%{}, {domain_list, type, :in}) | Return_code: 3}
+      %{:dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in}) | Return_code: 3}
     end
   end
 
-  defmacro not_implemented do
+  defmacro not_implemented(domain_list, type) do
     quote do
-      %{:dnsmsg.new(%{}, {domain_list, type, :in}) | Return_code: 4}
+      %{:dnsmsg.new(%{}, {unquote(domain_list), unquote(type), :in}) | Return_code: 4}
     end
   end
 
   def handle(data, _cl) do
     Logger.info(fn -> "#{inspect(data)}" end)
     {:ok, request, _} = :dnswire.from_binary(data)
-    question = {domain_list, type, _} = request[:Questions] |> hd()
+    question = {domain_list, _type, _} = request[:Questions] |> hd()
 
     case Regex.match(@regex, List.last(domain_list)) do
       true ->

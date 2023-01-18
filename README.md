@@ -80,13 +80,13 @@ Events are requests made by users or automatic operations by the system that aff
     1670285730448, // timestamp
     [ // body start
         "IPN", // token
-        "1x7RKhLSoPHnP1bSx9J4apFkwb5ow", // address to send
-        50, // amount
+        "1x7RKhLSoPHnP1bSx9J4apFkwb5ow", // send to
+        50000, // amount
         "ippan.red", // validator
-        "" // note
+        "shopping" // note
     ], // body end
     "1x3dcvB6nq1uPqwG3W6njMhNwGmhrg", // from
-    "otjBcCaM+KWTiRnI7rRQy8/CZPT/W2YJ0Ji9iUGSdq..." // signature
+    "otjBcCaM+KWTiRnI7rRQy8/CZPT/W2YJ0Ji9iUGSdq..." // signature base64
 ] // end
 ```
 

@@ -1,9 +1,11 @@
 defmodule Ipncore.Endpoint do
   use Plug.Builder
 
-  # if Mix.env() != :prod do
-  plug(Plug.Logger)
-  # end
+  dev = Mix.env() == :dev
+
+  if dev do
+    plug(Plug.Logger)
+  end
 
   # plug(Plug.SSL, rewrite_on: [:x_forwarded_proto, :x_forwarded_host, :x_forwarded_port])
   plug(Plug.Parsers,

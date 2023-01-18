@@ -118,17 +118,18 @@ defmodule Ipncore.Balance do
       on: d.owner == txo.from,
       select: %{
         id: txo.txid,
-        type: ev.type,
-        reason: txo.reason,
-        token: txo.token,
-        from: txo.from,
-        to: txo.to,
-        value: txo.value,
         decimals: tk.decimals,
-        time: ev.time,
         domain_to: d.name,
-        domain_from: df.name
-      }
+        domain_from: df.name,
+        from: txo.from,
+        reason: txo.reason,
+        time: ev.time,
+        token: txo.token,
+        to: txo.to,
+        type: ev.type,
+        value: txo.value
+      },
+      group_by: [txo.txid, txo.token, txo.reason]
     )
     |> filter_operation(address, params)
     |> filter_token(params)

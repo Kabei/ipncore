@@ -6,8 +6,8 @@ defmodule Ipncore.MixProject do
       app: :ipncore,
       version: "0.1.0",
       config_path: "config/config.exs",
-      elixir: "~> 1.12",
-      otp: "~> 23.0",
+      elixir: "~> 1.14",
+      otp: "~> 24.0",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
@@ -36,9 +36,10 @@ defmodule Ipncore.MixProject do
   defp deps do
     [
       # {:xxhash, "~> 0.3.1"},
-      {:cbor, "~> 1.0.0"},
       # {:dns, "~> 2.4.0"},
       # {:socket, "~> 0.3.13"},
+      # {:httpoison, "~> 1.7"},
+      # {:cbor, "~> 1.0.0"},
       {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
       {:socket, "~> 0.3"},
       {:sntp, "~> 0.2.0"},
@@ -48,10 +49,9 @@ defmodule Ipncore.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:benchee, "~> 1.0", only: :dev},
       {:download, "~> 0.0.0"},
-      # {:httpoison, "~> 1.7"},
       {:dets_plus, "~> 2.1"},
       {:thousand_island, "~> 0.5.15"},
-
+      # local deps
       {:ntrukem, path: "../ntrukem"},
       {:falcon, path: "../falcon"},
       {:ipnutils, path: "../ipnutils"},

@@ -6,7 +6,7 @@ defmodule Ipncore.MixProject do
       app: :ipncore,
       version: "0.1.0",
       config_path: "config/config.exs",
-      elixir: "~> 1.14",
+      elixir: "~> 1.13",
       otp: "~> 24.0",
       start_permanent: Mix.env() == :prod,
       deps: deps(),

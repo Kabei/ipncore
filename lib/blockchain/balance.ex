@@ -384,23 +384,27 @@ defmodule Ipncore.Balance do
   defp balance_transform(nil, _, _), do: nil
 
   defp balance_transform([], address, %{"show" => "default"}) do
-    tk = Token.fetch!(@token)
+    case Token.fetch(@token) do
+      nil ->
+        nil
 
-    [
-      %{
-        address: Address.to_text(address),
-        amount: 0,
-        avatar: tk.avatar,
-        locked: false,
-        token: tk.id,
-        decimal: tk.decimals,
-        symbol: tk.symbol,
-        out_count: 0,
-        in_count: 0,
-        tx_count: 0,
-        created_at: 0
-      }
-    ]
+      tk ->
+        [
+          %{
+            address: Address.to_text(address),
+            amount: 0,
+            avatar: tk.avatar,
+            locked: false,
+            token: tk.id,
+            decimal: tk.decimals,
+            symbol: tk.symbol,
+            out_count: 0,
+            in_count: 0,
+            tx_count: 0,
+            created_at: 0
+          }
+        ]
+    end
   end
 
   defp balance_transform(x, _, _) when is_list(x) do

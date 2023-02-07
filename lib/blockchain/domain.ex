@@ -408,10 +408,15 @@ defmodule Ipncore.Domain do
           5_000
       end
 
-    if years > 2 do
-      base
-    else
-      base + 5_000
+    cond do
+      years == 2 ->
+        base + 5_000
+
+      years == 1 ->
+        base
+
+      true ->
+        throw("Invalid domain renewal year")
     end
   end
 

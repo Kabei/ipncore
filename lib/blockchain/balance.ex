@@ -6,6 +6,7 @@ defmodule Ipncore.Balance do
   alias __MODULE__
 
   @base :balances
+  @token Default.token()
 
   schema "balances" do
     field(:address, :binary)
@@ -283,7 +284,7 @@ defmodule Ipncore.Balance do
     |> balance_select(params)
     |> balance_sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
-    |> balance_transform()
+    |> balance_transform(address, params)
   end
 
   defp balance_values(query, address, %{"show" => "all"}) do
@@ -380,16 +381,36 @@ defmodule Ipncore.Balance do
     end
   end
 
-  defp balance_transform(nil), do: nil
+  defp balance_transform(nil, _, _), do: nil
 
-  defp balance_transform(x) when is_list(x) do
+  defp balance_transform([], address, %{"show" => "default"}) do
+    tk = Token.fetch!(@token)
+
+    [
+      %{
+        address: Address.to_text(address),
+        amount: 0,
+        avatar: tk.avatar,
+        locked: false,
+        token: tk.id,
+        decimal: tk.decimals,
+        symbol: tk.symbol,
+        out_count: 0,
+        in_count: 0,
+        tx_count: 0,
+        created_at: 0
+      }
+    ]
+  end
+
+  defp balance_transform(x, _, _) when is_list(x) do
     Enum.map(x, fn x ->
       %{x | address: Address.to_text(x.address)}
       |> Map.delete(:created_at)
     end)
   end
 
-  defp balance_transform(x) do
+  defp balance_transform(x, _, _) do
     %{x | address: Address.to_text(x.address)}
     |> Map.delete(:created_at)
   end

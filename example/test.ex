@@ -114,11 +114,11 @@ defmodule Test do
 
   # Test.tx_coinbase(osk, oaddr58, "IPN", 1_000_000, addr58, "Texto")
   # Test.tx_coinbase(osk, oaddr58, "GBP", 1_000_000, addr2_58, "")
-  def tx_coinbase(sk, from58, token, amount, to_address58, memo) do
+  def tx_coinbase(sk, from58, token, amount, to_address58, note) do
     type_number = Event.type_index("tx.coinbase")
     time = :erlang.system_time(@unit_time)
     outputs = [[to_address58, amount]]
-    body = [token, outputs, memo]
+    body = [token, outputs, note]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
     [@version, "tx.coinbase", time, body, from58, sig64]
@@ -126,10 +126,10 @@ defmodule Test do
 
   # Test.tx_send(sk, Default.token, addr58, addr2_58, 50, "ippan.red", "")
   # Test.tx_send(sk2, "GBP", addr2_58, addr58, 5000, "ippan.red", "")
-  def tx_send(sk, token, from58, to58, amount, validator_host, memo) do
+  def tx_send(sk, token, from58, to58, amount, validator_host, note) do
     type_number = Event.type_index("tx.send")
     time = :erlang.system_time(@unit_time)
-    body = [token, to58, amount, validator_host, memo]
+    body = [token, to58, amount, validator_host, note]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
     [@version, "tx.send", time, body, from58, sig64]
@@ -164,6 +164,16 @@ defmodule Test do
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
     [@version, "domain.delete", time, body, from58, sig64]
+  end
+
+  # Test.domain_renew(sk, addr58, "ippan.com", 1, "ippan.red")
+  def domain_renew(sk, from58, hostname, years_to_renew, validator_host) do
+    type_number = Event.type_index("domain.renew")
+    time = :erlang.system_time(@unit_time)
+    body = [hostname, years_to_renew, validator_host]
+    hash = Event.calc_hash(type_number, body, time)
+    sig64 = signature64(sk, hash)
+    [@version, "domain.renew", time, body, from58, sig64]
   end
 
   # Test.balance_lock(osk, oaddr58, addr2_58, "GBP", true)

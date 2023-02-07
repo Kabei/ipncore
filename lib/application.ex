@@ -135,7 +135,7 @@ defmodule Ipncore.Application do
   end
 
   def dns_tls_server do
-    tls_opts = Application.get_env(@otp_app, :dns_tls) || throw("Invalid TLS Options")
+    tls_opts = Application.get_env(@otp_app, :dns_tls) || throw("DNS-over-TLS options not found")
 
     {
       ThousandIsland,

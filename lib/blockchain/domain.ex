@@ -17,6 +17,8 @@ defmodule Ipncore.Domain do
   @max_avatar_characters 255
   @token Default.token()
   @renewed_time 31_536_000_000
+  @max_renewed_time 63_072_000_000
+
   @price_to_update 1000
 
   @primary_key {:name, :string, []}
@@ -142,7 +144,7 @@ defmodule Ipncore.Domain do
     if @max_title_characters < String.length(title), do: throw("Max characters is 64")
 
     if not empty?(email) and not Regex.match?(Const.Regex.email(), email),
-       do: throw("Invalid email")
+      do: throw("Invalid email")
 
     if String.length(name) > 100, do: throw("Invalid name length")
 
@@ -234,8 +236,8 @@ defmodule Ipncore.Domain do
       ) do
     map_params =
       params
-      |> MapUtil.require_only(@edit_fields)
       |> Map.take(@edit_fields)
+      |> MapUtil.validate_not_empty()
       |> MapUtil.validate_length("title", 64)
       |> MapUtil.validate_length("avatar", 255)
       |> MapUtil.validate_email("email")
@@ -288,14 +290,17 @@ defmodule Ipncore.Domain do
     |> DnsRecord.delete_by_root(name, channel)
   end
 
-  def check_renew!(name, from_address, years_to_renew, validator_host, time, size) do
+  def check_renew!(name, from_address, years_to_renew, validator_host, timestamp, size) do
     if empty?(name) or not Regex.match?(Const.Regex.ippan_domain(), name),
       do: throw("Invalid domain")
 
     domain = fetch!(name, from_address)
 
-    if domain.renewed_at > time or domain.renewed_at > time + years_to_renew * @renewed_time,
-      do: throw("Invalid renew domain")
+    if timestamp > domain.renewed_at, do: throw("Domain renewal invalid")
+
+    renew = :timer.hours(24 * 365 * years_to_renew)
+    result = domain.renewed_at + renew - timestamp
+    if result > @max_renewed_time, do: throw("Renewal exceeded")
 
     Tx.check_send!(
       from_address,
@@ -321,8 +326,38 @@ defmodule Ipncore.Domain do
         channel
       ) do
     domain = fetch!(name, from_address)
+    renew = :timer.hours(24 * 365 * years_to_renew)
+    result = domain.renewed_at + renew - timestamp
+    if result > @max_renewed_time, do: throw("Renewal exceeded")
 
-    
+    multi =
+      Tx.send!(
+        multi,
+        event_id,
+        @token,
+        from_address,
+        Platform.address(),
+        price(name, years_to_renew),
+        validator_host,
+        event_size,
+        nil,
+        false,
+        timestamp,
+        channel
+      )
+
+    put(%{domain | renewed_at: result, updated_at: timestamp})
+
+    queryable = from(d in Domain, where: d.name == ^name and d.owner == ^from_address)
+
+    multi
+    |> Ecto.Multi.update_all(
+      :update,
+      queryable,
+      [set: [renewed_at: result, updated_at: timestamp]],
+      returning: false,
+      prefix: channel
+    )
   end
 
   def count_records(multi, %{name: name, records: records} = domain, channel_id, count \\ 1) do
@@ -354,24 +389,30 @@ defmodule Ipncore.Domain do
     |> Repo.exists?(prefix: channel)
   end
 
-  defp price(name, years_to_renew) do
+  defp price(name, years) do
     x =
       name
       |> String.split(".")
       |> List.first()
       |> String.length()
 
-    cond do
-      x <= 5 ->
-        100_000
+    base =
+      cond do
+        x <= 5 ->
+          100_000
 
-      x <= 8 ->
-        75_000
+        x <= 8 ->
+          75_000
 
-      true ->
-        5_000
+        true ->
+          5_000
+      end
+
+    if years > 2 do
+      base
+    else
+      base + 5_000
     end
-    |> Kernel.*(years_to_renew)
   end
 
   def one(hostname, channel, params \\ %{}) do

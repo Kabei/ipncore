@@ -5,9 +5,6 @@ defmodule Ipncore.Balance do
   alias Ipncore.{Repo, Domain, Token, Tx, Txo, Event, Address, Util}
   alias __MODULE__
 
-  # @output_reason_send "S"
-  # @output_reason_fee "%"
-
   @base :balances
 
   schema "balances" do
@@ -35,11 +32,12 @@ defmodule Ipncore.Balance do
     CubDB.stop(@base)
   end
 
-  defmacrop balance_select() do
+  defmacrop balance_select do
     quote do
       %{
         address: b.address,
         amount: b.amount,
+        avatar: tk.avatar,
         locked: b.locked,
         token: b.token,
         decimal: tk.decimals,
@@ -106,52 +104,26 @@ defmodule Ipncore.Balance do
 
   def activity(address58, params) do
     address = Address.from_text(address58)
+    channel = Default.channel()
 
     from(txo in Txo,
+      as: :txo,
       join: ev in Event,
       on: ev.hash == txo.txid,
       join: tk in Token,
-      on: tk.id == txo.token,
-      left_join: d in Domain,
-      on: d.owner == txo.to,
-      left_join: df in Domain,
-      on: d.owner == txo.from,
-      select: %{
-        id: txo.txid,
-        decimals: tk.decimals,
-        domain_to: d.name,
-        domain_from: df.name,
-        from: txo.from,
-        reason: txo.reason,
-        time: ev.time,
-        token: txo.token,
-        to: txo.to,
-        type: ev.type,
-        value: txo.value
-      },
-      group_by: [txo.txid, txo.token, txo.reason]
+      on: tk.id == txo.token
     )
     |> filter_operation(address, params)
     |> filter_token(params)
     |> Tx.filter_date(params)
     |> filter_reason(params)
     |> filter_type(params)
+    |> filter_activity_select(params, channel)
     |> filter_limit(params, 50, 100)
     |> filter_offset(params)
     |> activity_sort(params)
-    |> Repo.all(prefix: filter_channel(params, Default.channel()))
-    |> Enum.map(fn x ->
-      %{
-        id: Event.encode_id(x.id),
-        from: x.domain_from || Address.to_text(x.from),
-        reason: x.reason,
-        time: x.time,
-        to: x.domain_to || Address.to_text(x.to),
-        token: x.token,
-        type: Event.type_name(x.type),
-        value: Util.to_decimal(x.value, x.decimals)
-      }
-    end)
+    |> Repo.all(prefix: channel)
+    |> activity_transform(address, params)
   end
 
   defp filter_token(query, %{"token" => token}) do
@@ -193,6 +165,87 @@ defmodule Ipncore.Balance do
       _ ->
         order_by(query, [s, ev], desc: ev.block_index, desc: ev.time, asc: ev.hash, asc: s.ix)
     end
+  end
+
+  defp filter_activity_select(query, %{"show" => "domains"}, _channel) do
+    q1 =
+      from(d in Domain,
+        where: d.owner == parent_as(:txo).to,
+        limit: 1,
+        order_by: d.created_at,
+        select: [:name, :owner]
+      )
+
+    q2 =
+      from(d in Domain,
+        where: d.owner == parent_as(:txo).from,
+        limit: 1,
+        order_by: d.created_at,
+        select: [:name, :owner]
+      )
+
+    query
+    |> join(:left_lateral, [txo], dt in subquery(q1), on: dt.owner == txo.to)
+    |> join(:left_lateral, [txo], df in subquery(q2), on: df.owner == txo.from)
+    |> select([txo, ev, tk, dt, df], %{
+      id: txo.txid,
+      decimals: tk.decimals,
+      domain_to: dt.name,
+      domain_from: df.name,
+      from: txo.from,
+      reason: txo.reason,
+      time: ev.time,
+      token: txo.token,
+      to: txo.to,
+      type: ev.type,
+      value: txo.value
+    })
+  end
+
+  defp filter_activity_select(query, _, _) do
+    select(query, [txo, ev, tk], %{
+      id: txo.txid,
+      decimals: tk.decimals,
+      from: txo.from,
+      reason: txo.reason,
+      time: ev.time,
+      token: txo.token,
+      to: txo.to,
+      type: ev.type,
+      value: txo.value
+    })
+  end
+
+  defp activity_transform(data, address, %{"show" => "domains"}) do
+    Enum.map(data, fn x ->
+      %{
+        id: Event.encode_id(x.id),
+        from: x.domain_from || Address.to_text(x.from),
+        reason: x.reason,
+        received: address == x.to,
+        time: x.time,
+        to: x.domain_to || Address.to_text(x.to),
+        token: x.token,
+        type: Event.type_name(x.type),
+        value: Util.to_decimal(x.value, x.decimals)
+      }
+    end)
+  end
+
+  defp activity_transform(data, address, _) do
+    Enum.map(data, fn x ->
+      %{
+        id: Event.encode_id(x.id),
+        from: Address.to_text(x.from),
+        reason: x.reason,
+        received: address == x.to,
+        time: x.time,
+        to: Address.to_text(x.to),
+        token: x.token,
+        type: Event.type_name(x.type),
+        value: Util.to_decimal(x.value, x.decimals)
+      }
+    end)
   end
 
   defp transform(nil), do: nil
@@ -249,6 +302,7 @@ defmodule Ipncore.Balance do
         select: %{
           address: ^address,
           amount: fragment("0::NUMERIC"),
+          avatar: tk.avatar,
           locked: fragment("FALSE"),
           token: tk.id,
           decimal: tk.decimals,

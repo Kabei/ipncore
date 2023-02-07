@@ -30,8 +30,9 @@ defmodule MapUtil do
 
   ## Validation functions
   def validate_not_empty(nil), do: throw("Error value is empty")
-  def validate_not_empty(%{}), do: throw("Error value is empty")
-  def validate_not_empty(map), do: map
+  def validate_not_empty(x) when x == %{}, do: throw("Error value is empty")
+  def validate_not_empty(map) when is_map(map), do: map
+  def validate_not_empty(_), do: throw("Error value is empty")
 
   def validate_email(map, key) do
     email = Map.get(map, key)
@@ -84,11 +85,11 @@ defmodule MapUtil do
 
     (not is_nil(val) and
        case op do
-         :gt -> val > value
-         :eq -> val == value
-         :lt -> val < value
-         :gte -> val >= value
-         :lte -> val <= value
+         :gt -> value > val
+         :eq -> value == val
+         :lt -> value < val
+         :gte -> value >= val
+         :lte -> value <= val
        end)
     |> case do
       true ->

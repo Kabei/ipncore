@@ -1,57 +1,21 @@
 defmodule Mempool do
-  @table :mempool
+  use ETSTable,
+    name: :mempool,
+    ets_opts: [
+      :ordered_set,
+      :public,
+      :named_table,
+      read_concurrency: true,
+      write_concurrency: true
+    ]
+
   @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
-
-  def open do
-    :ets.whereis(@table)
-    |> case do
-      :undefined ->
-        :ets.new(@table, [
-          :ordered_set,
-          :public,
-          :named_table,
-          read_concurrency: true,
-          write_concurrency: true
-        ])
-
-      _ ->
-        :ok
-    end
-  end
 
   defmacrop assign_worker_thread(from) do
     quote do
       rem(:binary.last(unquote(from)), @total_threads)
     end
   end
-
-  # defmacrop assign_worker_thread(type, from, [first_body | _rest_body]) do
-  #   quote do
-  #     type_name = Ipncore.Event.type_name(unquote(type))
-
-  #     target =
-  #       case type_name do
-  #         "tx." <> _ ->
-  #           unquote(from)
-
-  #         _ ->
-  #           unquote(first_body)
-  #       end
-
-  #     :binary.last(target)
-  #     |> rem(@total_threads)
-  #   end
-  # end
-
-  # defmacrop assign_worker_thread(_type, from, _) do
-  #   quote do
-  #     unquote(from)
-  #     |> :binary.last()
-  #     |> rem(@total_threads)
-  #   end
-  # end
-
-  def size, do: :ets.info(@table, :size)
 
   def push!(time, hash, type_number, from, body, signature, size) do
     thread = assign_worker_thread(from)
@@ -82,27 +46,8 @@ defmodule Mempool do
     end
   end
 
-  def get(time, hash) do
-    case :ets.lookup(@table, {time, hash}) do
-      [obj] -> obj
-      _ -> nil
-    end
-  end
-
-  def last do
-    case :ets.last(@table) do
-      :"$end_of_table" ->
-        nil
-
-      key ->
-        case :ets.lookup(@table, key) do
-          [val] ->
-            val
-
-          _ ->
-            nil
-        end
-    end
+  def lookup(time, hash) do
+    lookup({time, hash})
   end
 
   def select(thread, timestamp) do
@@ -112,20 +57,31 @@ defmodule Mempool do
        [{:andalso, {:==, :"$3", thread}, {:"=<", :"$1", timestamp}}], [:"$_"]}
     ]
 
-    :ets.select(@table, fun)
+    select(fun)
   end
 
-  def select_delete(timestamp) do
-    # :ets.fun2ms(fn {{time, _hash}, thread, _type, _from, _body, _sigs, _size} = x when and time <= 0 -> true end)
+  def select_delete_timestamp(timestamp) do
+    # :ets.fun2ms(fn {{time, _hash}, _thread, _type, _from, _body, _sigs, _size} when time <= 0 -> true end)
     fun = [
-      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$1", timestamp}],
-       [true]}
+      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$1", timestamp}], [true]}
     ]
 
-    :ets.select_delete(@table, fun)
+    select_delete(fun)
   end
 
-  def delete(key) do
-    :ets.delete(@table, key)
+  def all do
+    :ets.foldl(fn elem, acc -> acc ++ to_map(elem) end, [], @table)
+  end
+
+  def to_map({{time, hash}, type_number, from, body, signature, size}) do
+    %{
+      body: body,
+      from: Address.to_text(from),
+      hash: Base.decode16!(hash, case: :lower),
+      size: size,
+      signature: Base.decode64!(signature),
+      type: Event.type_name(type_number),
+      timestamp: time
+    }
   end
 end

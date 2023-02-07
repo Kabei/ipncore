@@ -11,13 +11,25 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/blocks",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/blocks?lmt=100&start=10",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
 						"blocks"
+					],
+					"query": [
+						{
+							"key": "lmt",
+							"value": "100",
+							"description": "limit items"
+						},
+						{
+							"key": "start",
+							"value": "10",
+							"description": "offset"
+						}
 					]
 				}
 			},
@@ -80,6 +92,11 @@
 						{
 							"key": "block",
 							"value": "5",
+							"disabled": true
+						},
+						{
+							"key": "sort",
+							"value": "newest",
 							"disabled": true
 						}
 					]
@@ -164,13 +181,26 @@
 							"disabled": true
 						},
 						{
-							"key": "show",
-							"value": "props",
+							"key": "txid",
+							"value": "d419fde49b0a510899eddf3ff5d96bda55aae80f03c57dfa4bd9057c4bcdb2f7",
+							"description": "hash",
 							"disabled": true
 						},
 						{
-							"key": "txid",
-							"value": "d419fde49b0a510899eddf3ff5d96bda55aae80f03c57dfa4bd9057c4bcdb2f7",
+							"key": "lmt",
+							"value": "30",
+							"description": "limit",
+							"disabled": true
+						},
+						{
+							"key": "start",
+							"value": "0",
+							"description": "offset",
+							"disabled": true
+						},
+						{
+							"key": "from",
+							"value": "1x3dcvB6nq1uPqwG3W6njMhNwGmhrg",
 							"disabled": true
 						}
 					]
@@ -272,7 +302,18 @@
 					"query": [
 						{
 							"key": "show",
-							"value": "all"
+							"value": "all",
+							"description": "Show all balances including unused"
+						},
+						{
+							"key": "lmt",
+							"value": "10",
+							"disabled": true
+						},
+						{
+							"key": "start",
+							"value": "0",
+							"disabled": true
 						}
 					]
 				}
@@ -285,14 +326,36 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/activity/1x3dcvB6nq1uPqwG3W6njMhNwGmhrg",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/activity/1x2JkymgzLFdWDVa9m9Q6BfXkVSUi3?show=domains&lmt=30&start=0&dateStart=2023-01-01&dateEnd=2023-01-10",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
 						"activity",
-						"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg"
+						"1x2JkymgzLFdWDVa9m9Q6BfXkVSUi3"
+					],
+					"query": [
+						{
+							"key": "show",
+							"value": "domains"
+						},
+						{
+							"key": "lmt",
+							"value": "30"
+						},
+						{
+							"key": "start",
+							"value": "0"
+						},
+						{
+							"key": "dateStart",
+							"value": "2023-01-01"
+						},
+						{
+							"key": "dateEnd",
+							"value": "2023-01-10"
+						}
 					]
 				}
 			},
@@ -329,6 +392,18 @@
 					"path": [
 						"blockchain",
 						"domains"
+					],
+					"query": [
+						{
+							"key": "owner",
+							"value": "1x2JkymgzLFdWDVa9m9Q6BfXkVSUi3",
+							"disabled": true
+						},
+						{
+							"key": "email",
+							"value": "contact@ippan.com",
+							"disabled": true
+						}
 					]
 				}
 			},
@@ -340,14 +415,14 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/domain/ippan",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/domain/ippan.ipn",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
 						"domain",
-						"ippan"
+						"ippan.ipn"
 					]
 				}
 			},
@@ -375,16 +450,11 @@
 						},
 						{
 							"key": "domain",
-							"value": "ippan.com",
+							"value": "ippan.ipn",
 							"disabled": true
 						},
 						{
 							"key": "q",
-							"value": "ippan",
-							"disabled": true
-						},
-						{
-							"key": "root",
 							"value": "ippan",
 							"disabled": true
 						},
@@ -419,26 +489,26 @@
 			"response": []
 		},
 		{
-			"name": "Domain Exists",
+			"name": "Domain check",
 			"request": {
 				"method": "HEAD",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/domain/ippan",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/domain/ippan.ipn",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
 						"domain",
-						"ippan"
+						"ippan.ipn"
 					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "Token Exists",
+			"name": "Token check",
 			"request": {
 				"method": "HEAD",
 				"header": [],
@@ -457,7 +527,7 @@
 			"response": []
 		},
 		{
-			"name": "Validator Exists",
+			"name": "Validator check",
 			"request": {
 				"method": "HEAD",
 				"header": [],

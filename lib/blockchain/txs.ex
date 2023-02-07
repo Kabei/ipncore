@@ -423,15 +423,21 @@ defmodule Ipncore.Tx do
     {txos, key_entries, entries, token_value, amount}
   end
 
-  # 0 -> by size
-  # 1 -> by percent
-  # 2 -> fixed price
+  @doc """
+   Fee types:
+   0 -> by size
+   1 -> by percent
+   2 -> fixed price
+  """
+  # by size
   defp calc_fees(0, fee_amount, _tx_amount, size),
     do: trunc(fee_amount) * size
 
+  # by percent
   defp calc_fees(1, fee_amount, tx_amount, _size),
     do: :math.ceil(tx_amount * (fee_amount / 100)) |> trunc()
 
+  # fixed price
   defp calc_fees(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
   defp calc_fees(_, _, _, _), do: throw("Wrong fee type")

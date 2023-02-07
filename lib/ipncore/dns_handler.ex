@@ -244,6 +244,7 @@ defmodule Ipncore.DNS do
   defp type_to_number(:rrsig), do: 46
   defp type_to_number(:nsec), do: 47
   defp type_to_number(:dnskey), do: 48
+  defp type_to_number(:spf), do: 99
   defp type_to_number(:all), do: 255
   defp type_to_number(:uri), do: 256
   defp type_to_number(:caa), do: 257

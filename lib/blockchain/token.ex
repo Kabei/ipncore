@@ -27,7 +27,7 @@ defmodule Ipncore.Token do
   @base :token
   @filename "token.db"
   # @fields ~w(id name creator decimals symbol owner props)
-  @edit_fields ~w(name owner)
+  @edit_fields ~w(avatar name owner)
   @props ~w{maxSupply opts}
   @token Default.token()
   @max_decimals 18
@@ -224,14 +224,14 @@ defmodule Ipncore.Token do
       ) do
     props =
       (props || %{})
-      |> MapUtil.require_only(@props)
       |> Map.take(@props)
-      |> MapUtil.validate_value("maxSupply", :lte, 0)
+      |> MapUtil.validate_not_empty()
+      |> MapUtil.validate_value("maxSupply", :gt, 0)
       |> MapUtil.validate_any("opts", ["burn", "coinbase", "lock"])
 
     if decimals < 0 and decimals > @max_decimals, do: throw("Invalid decimals")
     if String.length(symbol) > 2, do: throw("Invalid symbol length")
-    if not empty?(avatar) or String.length(avatar) > 255, do: throw("Invalid avatar length")
+    if String.length(avatar) > 255, do: throw("Invalid avatar length")
 
     token = %{
       id: token_id,
@@ -264,8 +264,8 @@ defmodule Ipncore.Token do
 
     map_params =
       params
-      |> MapUtil.require_only(@edit_fields)
       |> Map.take(@edit_fields)
+      |> MapUtil.validate_not_empty()
       |> MapUtil.validate_length("name", 100)
       |> MapUtil.validate_length("avatar", 255)
       |> MapUtil.validate_address("owner")
@@ -356,6 +356,7 @@ defmodule Ipncore.Token do
   def all(params) do
     from(tk in Token, where: tk.enabled)
     |> filter_index(params)
+    |> filter_search(params)
     |> filter_offset(params)
     |> filter_limit(params, 50, 100)
     |> filter_select(params)
@@ -369,6 +370,13 @@ defmodule Ipncore.Token do
   end
 
   defp filter_index(query, _params), do: query
+
+  defp filter_search(query, %{"q" => q}) do
+    q = "%#{q}%"
+    where(query, [tk], ilike(tk.id, ^q) or ilike(tk.name, ^q))
+  end
+
+  defp filter_search(query, _), do: query
 
   # defp filter_select(query, %{"fmt" => "array"}) do
   #   select(query, [tk], [

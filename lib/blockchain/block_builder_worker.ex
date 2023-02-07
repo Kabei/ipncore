@@ -49,7 +49,7 @@ defmodule BlockBuilderWork do
 
       IO.inspect("Events: #{length(events)}")
 
-      Mempool.select_delete(timestamp)
+      Mempool.select_delete_timestamp(timestamp)
 
       case events do
         [] ->

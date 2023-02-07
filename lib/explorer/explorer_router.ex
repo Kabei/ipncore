@@ -8,7 +8,6 @@ defmodule Ipncore.Explorer.Router do
   alias Ipncore.{
     Address,
     Block,
-    # Channel,
     Event,
     Tx,
     Txo,
@@ -87,8 +86,8 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/validators/:hostname/:channel" do
-    resp = Validator.one(hostname, channel, conn.params)
+  get "/blockchain/validators/:hostname" do
+    resp = Validator.one(hostname, conn.params)
     send_result(conn, resp)
   end
 
@@ -203,6 +202,7 @@ defmodule Ipncore.Explorer.Router do
       events: events,
       height: last_block.height,
       last_hash: Event.encode_id(last_block.hash),
+      name: Application.get_env(:ipncore, :channel),
       owner: Platform.address58(),
       time: Chain.get_time(),
       token: token_id
@@ -302,11 +302,22 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  post "/dns-query" do
-    # require Logger
-    # Logger.info(inspect(conn))
+  get "/blockchain/mempool" do
+    send_result(conn, Mempool.all())
+  end
 
-    case get_resp_header(conn, "accept") do
+  get "/blockchain/mempool/:timestamp/:hash16" do
+    hash = Base.decode16(hash16, case: :mixed)
+
+    resp =
+      Mempool.lookup({timestamp, hash})
+      |> Mempool.to_map()
+
+    send_result(conn, resp)
+  end
+
+  post "/dns-query" do
+    case get_req_header(conn, "accept") do
       ["application/dns-message"] ->
         {:ok, request_body, _} = read_body(conn)
 
@@ -327,8 +338,6 @@ defmodule Ipncore.Explorer.Router do
       _ ->
         send_resp(conn, 400, "")
     end
-
-    # Logger.info(inspect(request_body))
   end
 
   post "/blockchain/event" do

@@ -122,6 +122,9 @@ defmodule Ipncore.Event do
       if Wallet.has_key?(from_address), do: throw("Pubkey already exists")
 
       Mempool.push!(time, hash, type_number, from_address, body, signature, size)
+    rescue
+      ex ->
+        {:error, Exception.format(:error, ex, __STACKTRACE__)}
     catch
       x -> {:error, x}
     end
@@ -221,6 +224,18 @@ defmodule Ipncore.Event do
         "domain.delete" ->
           [host] = body
           Domain.check_delete!(host, from_address)
+
+        "domain.renew" ->
+          [host, years_to_renew, validator_host] = body
+
+          Domain.check_renew!(
+            host,
+            from_address,
+            years_to_renew,
+            validator_host,
+            time,
+            size
+          )
 
         "dns.set" ->
           [name, type, value, ttl | _validator_host] = body
@@ -401,8 +416,19 @@ defmodule Ipncore.Event do
           Domain.event_delete!(multi, host, from_address, channel)
 
         "domain.renew" ->
-          [days] = body
-          Domain.event_renew!(multi, :timer.hours(24 * days), channel)
+          [host, years_to_renew, validator_host] = body
+
+          Domain.event_renew!(
+            multi,
+            hash,
+            from_address,
+            host,
+            years_to_renew,
+            validator_host,
+            size,
+            time,
+            channel
+          )
 
         "dns.set" ->
           [name, type, value, ttl, validator_host] = body

@@ -35,7 +35,7 @@ config :ipncore, :dns_tls,
     keyfile: Path.join(cert_dir, "key.pem"),
     send_timeout: 15_000
   ],
-  num_acceptors: 10,
+  num_acceptors: 20,
   read_timeout: :infinity
 
 # IMP config

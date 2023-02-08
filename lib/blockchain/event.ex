@@ -101,7 +101,7 @@ defmodule Ipncore.Event do
 
   @spec check(pos_integer, String.t(), pos_integer, term, String.t(), String.t()) ::
           {:ok, binary} | {:error, String.t()}
-  def check(@version, "pubkey.new" = type_name, time, [pubkey] = body, sig64) do
+  def check(@version, "pubkey.new" = type_name, time, [pubkey64] = body, sig64) do
     try do
       type_number = type_index(type_name)
       if type_name == false, do: throw("Type invalid")
@@ -112,8 +112,12 @@ defmodule Ipncore.Event do
       exists!(hash)
 
       signature = Base.decode64!(sig64)
+      pubkey = Base.decode64!(pubkey64)
       size = byte_size(body_text) + byte_size(signature)
       from_address = Address.hash(pubkey)
+      # IO.inspect("Address:")
+      # IO.inspect(Address.to_text(from_address))
+      # IO.inspect("Hash: #{Base.encode16(hash, case: :lower)}")
 
       if @imposible == from_address, do: throw("Imposible address")
 

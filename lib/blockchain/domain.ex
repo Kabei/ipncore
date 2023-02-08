@@ -298,7 +298,7 @@ defmodule Ipncore.Domain do
 
     if timestamp > domain.renewed_at, do: throw("Domain renewal invalid")
 
-    renew = :timer.hours(24 * 365 * years_to_renew)
+    renew = :timer.hours(24) * 365 * years_to_renew
     result = domain.renewed_at + renew - timestamp
     if result > @max_renewed_time, do: throw("Renewal exceeded")
 
@@ -326,9 +326,11 @@ defmodule Ipncore.Domain do
         channel
       ) do
     domain = fetch!(name, from_address)
-    renew = :timer.hours(24 * 365 * years_to_renew)
+    renew = :timer.hours(24) * 365 * years_to_renew
     result = domain.renewed_at + renew - timestamp
     if result > @max_renewed_time, do: throw("Renewal exceeded")
+
+    new_value = domain.renewed_at + renew
 
     multi =
       Tx.send!(
@@ -346,7 +348,7 @@ defmodule Ipncore.Domain do
         channel
       )
 
-    put(%{domain | renewed_at: result, updated_at: timestamp})
+    put(%{domain | renewed_at: new_value, updated_at: timestamp})
 
     queryable = from(d in Domain, where: d.name == ^name and d.owner == ^from_address)
 
@@ -354,7 +356,7 @@ defmodule Ipncore.Domain do
     |> Ecto.Multi.update_all(
       :update,
       queryable,
-      [set: [renewed_at: result, updated_at: timestamp]],
+      [set: [renewed_at: new_value, updated_at: timestamp]],
       returning: false,
       prefix: channel
     )

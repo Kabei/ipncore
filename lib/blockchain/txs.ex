@@ -17,7 +17,7 @@ defmodule Ipncore.Tx do
   @output_reason_fee "%"
   @output_reason_refund "R"
   # limits
-  @memo_max_size 100
+  @memo_max_size 30
   # refund
   @base_refunds :refunds
   @filename_refunds "refunds.db"

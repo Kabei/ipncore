@@ -17,7 +17,7 @@ defmodule Ipncore.Tx do
   @output_reason_fee "%"
   @output_reason_refund "R"
   # limits
-  @memo_max_size 30
+  @note_max_size 30
   # refund
   @base_refunds :refunds
   @filename_refunds "refunds.db"
@@ -137,7 +137,7 @@ defmodule Ipncore.Tx do
 
     case Event.lookup(tx_hash, tx_time) do
       [{_hash, _time, _block_index, _version, type_number, from, body, _signature}] ->
-        [_token, my_to_address, _amount, _validator_host, _memo] = body
+        [_token, my_to_address, _amount, _validator_host, _note] = body
 
         cond do
           from == from_address or Address.from_text(my_to_address) != from_address ->
@@ -168,12 +168,12 @@ defmodule Ipncore.Tx do
         amount,
         validator_host,
         event_size,
-        memo,
+        note,
         refund,
         timestamp,
         channel
       ) do
-    if not empty?(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
+    if not empty?(note) and byte_size(note) > @note_max_size, do: throw("Invalid note size")
 
     token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
@@ -183,20 +183,12 @@ defmodule Ipncore.Tx do
       if not refund do
         fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
 
-        Balance.update!(
-          [
-            {from_address, token_id},
-            {to_address, token_id},
-            {from_address, @token},
-            {validator_address, @token}
-          ],
-          %{
-            {from_address, token_id} => -(amount + fee_total),
-            {to_address, token_id} => amount,
-            {from_address, @token} => -fee_total,
-            {validator_address, @token} => fee_total
-          }
-        )
+        Balance.update!([
+          {{from_address, token_id}, -amount},
+          {{to_address, token_id}, amount},
+          {{from_address, @token}, -fee_total},
+          {{validator_address, @token}, fee_total}
+        ])
 
         outputs = [
           %{
@@ -221,16 +213,10 @@ defmodule Ipncore.Tx do
 
         {outputs, fee_total}
       else
-        Balance.update!(
-          [
-            {from_address, token_id},
-            {to_address, token_id}
-          ],
-          %{
-            {from_address, token_id} => -amount,
-            {to_address, token_id} => amount
-          }
-        )
+        Balance.update!([
+          {{from_address, token_id}, -amount},
+          {{to_address, token_id}, amount}
+        ])
 
         outputs = [
           %{
@@ -252,7 +238,7 @@ defmodule Ipncore.Tx do
       fee: fee_total,
       token_value: token_values(outputs, token.decimals),
       out_count: length(outputs),
-      memo: memo
+      memo: note
     }
 
     multi
@@ -275,8 +261,8 @@ defmodule Ipncore.Tx do
     end)
   end
 
-  def check_coinbase!(from_address, token_id, memo) do
-    if not empty?(memo) and byte_size(memo) > @memo_max_size, do: throw("Invalid memo size")
+  def check_coinbase!(from_address, token_id, note) do
+    if not empty?(note) and byte_size(note) > @note_max_size, do: throw("Invalid note size")
 
     token = Token.fetch!(token_id, from_address)
     unless Token.check_opts(token, "coinbase"), do: throw("Operation not allowed")
@@ -290,24 +276,24 @@ defmodule Ipncore.Tx do
         token_id,
         from_address,
         init_outputs,
-        memo,
+        note,
         timestamp,
         channel
       ) do
-    {outputs, keys_entries, entries, token_value, amount} =
+    {outputs, entries, token_value, amount} =
       outputs_extract_coinbase!(txid, init_outputs, token_id)
 
     # check max supply
     token = Token.fetch!(token_id, from_address)
     new_supply = Token.check_max_supply!(token, amount)
 
-    Balance.update!(keys_entries, entries)
+    Balance.update!(entries)
 
     tx = %{
       id: txid,
       fee: 0,
       token_value: token_value,
-      memo: memo,
+      memo: note,
       out_count: length(outputs)
     }
 
@@ -324,13 +310,10 @@ defmodule Ipncore.Tx do
     validator = Validator.fetch!(validator_host)
     validator_address = validator.owner
 
-    Balance.update!(
-      [{from_address, @token}, {validator_address, @token}],
-      %{
-        {from_address, @token} => -fee_amount,
-        {validator_address, @token} => fee_amount
-      }
-    )
+    Balance.update!([
+      {{from_address, @token}, -fee_amount},
+      {{validator_address, @token}, fee_amount}
+    ])
 
     outputs = [
       %{
@@ -365,7 +348,7 @@ defmodule Ipncore.Tx do
 
     case type_number do
       211 ->
-        [token, _my_to_address, amount, validator_host, memo] = body
+        [token, _my_to_address, amount, validator_host, note] = body
 
         multi =
           send!(
@@ -377,7 +360,7 @@ defmodule Ipncore.Tx do
             amount,
             validator_host,
             event_size,
-            memo,
+            note,
             true,
             timestamp,
             channel
@@ -396,11 +379,10 @@ defmodule Ipncore.Tx do
   end
 
   defp outputs_extract_coinbase!(txid, txos, token) do
-    {txos, key_entries, entries, amount, _ix} =
-      Enum.reduce(txos, {[], [], %{}, 0, 0}, fn [address, value],
-                                                {acc_txos, acc_keys, acc_entries, acc_amount,
-                                                 acc_ix} ->
-        if value <= 0, do: throw("Output has value zero")
+    {txos, entries, amount, _ix} =
+      Enum.reduce(txos, {[], [], 0, 0}, fn [address, value],
+                                           {acc_outputs, acc_entries, acc_amount, acc_ix} ->
+        if value <= 0, do: throw("An amount has value zero")
         bin_address = Address.from_text!(address)
 
         output = %{
@@ -412,23 +394,20 @@ defmodule Ipncore.Tx do
           value: value
         }
 
-        entry = {bin_address, token}
-        acc_entries = Map.put(acc_entries, entry, value)
+        entry = {{bin_address, token}, value}
 
-        {acc_txos ++ [output], acc_keys ++ [entry], acc_entries, acc_amount + value, acc_ix + 1}
+        {acc_outputs ++ [output], acc_entries ++ [entry], acc_amount + value, acc_ix + 1}
       end)
 
     token_value = Map.new() |> Map.put(token, amount)
 
-    {txos, key_entries, entries, token_value, amount}
+    {txos, entries, token_value, amount}
   end
 
-  @doc """
-   Fee types:
-   0 -> by size
-   1 -> by percent
-   2 -> fixed price
-  """
+  #  Fee types:
+  #  0 -> by size
+  #  1 -> by percent
+  #  2 -> fixed price
   # by size
   defp calc_fees(0, fee_amount, _tx_amount, size),
     do: trunc(fee_amount) * size

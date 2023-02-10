@@ -5,6 +5,7 @@ defmodule Match do
   @hostname ~r/^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
   @wallet_address ~r/(1x)[1-9A-HJ-NP-Za-km-z]{1,}+$/
   @domain ~r/^[A-Za-z0-9][A-Za-z0-9-]{1,61}[A-Za-z0-9]\.[A-Za-z]{1,}$/
+  @subdomain ~r/^([a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?[.])+$/
   @ippan_domain ~r/^[a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1}\.(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy)$/
   @hashtag ~r/(?:$|)#[A-Za-z0-9\-\.\_]+(?:$|)/
   @base58 ~r/^[1-9A-HJ-NP-Za-km-z]+$/
@@ -14,6 +15,7 @@ defmodule Match do
 
   def hostname?(x), do: Regex.match?(@hostname, x)
   def domain?(x), do: Regex.match?(@domain, x)
+  def subdomain?(x), do: Regex.match?(@subdomain, x)
   def ippan_domain?(x), do: Regex.match?(@ippan_domain, x)
   def url?(x), do: Regex.match?(@url, x)
   def email?(x), do: Regex.match?(@email, x)
@@ -21,5 +23,7 @@ defmodule Match do
   def base58(x), do: Regex.match?(@base58, x)
   def base62(x), do: Regex.match?(@base62, x)
   def domain_link(x), do: Regex.match?(@domain_link, x)
+  def phone?(x), do: Regex.match?(@phone, x)
+  def wallet_address?(x), do: Regex.match?(@wallet_address, x)
   def username(x), do: Regex.match?(@username, x)
 end

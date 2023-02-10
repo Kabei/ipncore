@@ -306,7 +306,7 @@ defmodule Ipncore.Domain do
       from_address,
       Platform.address(),
       @token,
-      price(name, years_to_renew),
+      priceRenew(years_to_renew),
       validator_host,
       size
     )
@@ -339,7 +339,7 @@ defmodule Ipncore.Domain do
         @token,
         from_address,
         Platform.address(),
-        price(name, years_to_renew),
+        priceRenew(years_to_renew),
         validator_host,
         event_size,
         nil,
@@ -410,16 +410,12 @@ defmodule Ipncore.Domain do
           5_000
       end
 
-    cond do
-      years == 2 ->
-        base + 5_000
+    base + years * 5_000
+    # throw("Invalid domain renewal year")
+  end
 
-      years == 1 ->
-        base
-
-      true ->
-        throw("Invalid domain renewal year")
-    end
+  defp priceRenew(years) do
+    years * 5_000
   end
 
   def one(hostname, channel, params \\ %{}) do

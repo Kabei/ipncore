@@ -60,6 +60,18 @@ defmodule Ipncore.DnsRecord do
     if byte_size(value) > @max_bytes_value, do: throw("DNS record value size exceeded")
 
     domain_root = Domain.extract_root(domain_name)
+
+    # check subdomain if exists
+    case String.replace_suffix(domain_name, domain_root, "") do
+      "" ->
+        :ok
+
+      subdomain ->
+        if not Match.subdomain?(subdomain), do: throw("Invalid subdomain")
+
+        :ok
+    end
+
     domain = Domain.fetch!(domain_root, from_address)
     if @max_records < domain.records, do: throw("Max record exceeded")
 

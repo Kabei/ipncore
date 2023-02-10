@@ -70,6 +70,7 @@ defmodule Ipncore.Balance do
 
       true ->
         Enum.each(map_balance_to_check, fn {key, amount} ->
+          if amount == 0, do: throw("Zero value")
           case Map.get(map_result, key) do
             {_m, true} -> throw("Balance is locked")
             {x, _false} when x >= amount -> true
@@ -80,26 +81,27 @@ defmodule Ipncore.Balance do
   end
 
   @doc """
-  keys = [{address, token}, ...]
-  keys_values = %{{address, token} => integer_postive_or_negative, ...}
+  keys_and_values = [{{address, token}, positive_amount}, ...]
   """
-  @spec update!(List.t(), Map.t()) :: :ok
-  def update!(keys, keys_values) do
-    CubDB.get_and_update_multi(@base, keys, fn entries ->
-      new_balances =
-        for key <- keys, into: %{} do
-          {old_val, old_locked} = Map.get(entries, key, {0, false})
-          new_val = Map.get(keys_values, key)
+  @spec update!(List.t()) :: :ok
+  def update!(keys_and_values) do
+    CubDB.transaction(@base, fn tx ->
+      tx =
+        Enum.reduce(keys_and_values, tx, fn {key, new_val}, acc_tx ->
+          {old_val, block} = CubDB.Tx.get(acc_tx, key) || {0, false}
 
-          if old_locked, do: throw("Address is locked")
+          if new_val == 0, do: throw("Zero value")
+          if block, do: throw("Address is locked")
 
-          if old_val < 0 and new_val < old_val,
+          val = old_val + new_val
+
+          if val < 0,
             do: throw("Insufficient balance")
 
-          {key, {old_val + new_val, old_locked}}
-        end
+          CubDB.Tx.put(acc_tx, key, {val, block})
+        end)
 
-      {:ok, new_balances, []}
+      {:commit, tx, :ok}
     end)
   end
 
@@ -377,7 +379,7 @@ defmodule Ipncore.Balance do
         order_by(query, [b], asc: b.amount)
 
       _ ->
-        order_by(query, [_b, tk], desc: tk.created_at)
+        order_by(query, [_b, tk], asc: tk.created_at)
     end
   end
 

@@ -150,6 +150,8 @@ defmodule Ipncore.Event do
       exists!(hash)
       signature = Base.decode64!(sig64)
 
+      # IO.inspect(Base.encode16(hash, case: :lower))
+
       size = byte_size(body_text) + byte_size(signature)
       if size > @max_size, do: throw("Body size exceeded")
 
@@ -196,8 +198,8 @@ defmodule Ipncore.Event do
           )
 
         "tx.coinbase" ->
-          [token, _outputs, memo] = body
-          Tx.check_coinbase!(from_address, token, memo)
+          [token, _outputs, note] = body
+          Tx.check_coinbase!(from_address, token, note)
 
         "tx.refund" ->
           [tx_time, tx_hash] = body
@@ -354,7 +356,7 @@ defmodule Ipncore.Event do
           Validator.event_delete!(multi, hostname, from_address, channel)
 
         "tx.send" ->
-          [token, to_address, amount, validator_host, memo] = body
+          [token, to_address, amount, validator_host, note] = body
 
           Tx.send!(
             multi,
@@ -365,15 +367,15 @@ defmodule Ipncore.Event do
             amount,
             validator_host,
             size,
-            memo,
+            note,
             false,
             time,
             channel
           )
 
         "tx.coinbase" ->
-          [token, outputs, memo] = body
-          Tx.coinbase!(multi, hash, token, from_address, outputs, memo, time, channel)
+          [token, outputs, note] = body
+          Tx.coinbase!(multi, hash, token, from_address, outputs, note, time, channel)
 
         "tx.refund" ->
           [tx_time, tx_hash] = body

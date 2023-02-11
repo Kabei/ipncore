@@ -6,7 +6,7 @@ defmodule Match do
   @wallet_address ~r/(1x)[1-9A-HJ-NP-Za-km-z]{1,}+$/
   @domain ~r/^[A-Za-z0-9][A-Za-z0-9-]{1,61}[A-Za-z0-9]\.[A-Za-z]{1,}$/
   @subdomain ~r/^([a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?[.])+$/
-  @ippan_domain ~r/^[a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1}\.(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy|ops|avatar|ultra|more|daddy|bro|sister|fck|tribe|mogul|tequila|gpt|soho|voice|eye|hodl|linux|youxi|we|genius|ciao|ok|dns|cyborg|replicant|air|amigo|bbq|burger|diamond|invest|jewel|pop|rap|rice|rod|soft|tkt|toy|vida|zoom|papi|hola|)$/
+  @ippan_domain ~r/^[a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1}\.(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy|ops|avatar|ultra|more|daddy|bro|sister|fck|tribe|mogul|tequila|gpt|soho|voice|eye|hodl|linux|youxi|we|genius|ciao|ok|dns|cyborg|replicant|air|amigo|bbq|burger|diamond|invest|jewel|pop|rap|rice|rod|soft|tkt|toy|vida|zoom|papi|hola)$/
   @hashtag ~r/(?:$|)#[A-Za-z0-9\-\.\_]+(?:$|)/
   @base58 ~r/^[1-9A-HJ-NP-Za-km-z]+$/
   @base62 ~r/^[0-9A-Za-z]+$/

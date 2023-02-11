@@ -7,7 +7,7 @@ defmodule Ipncore.DNS do
   alias Ipncore.DnsRecord
   require Logger
 
-  @regex ~r/^(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy)$/
+  @regex ~r/^(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy|ops|avatar|ultra|more|daddy|bro|sister|fck|tribe|mogul|tequila|gpt|soho|voice|eye|hodl|linux|youxi|we|genius|ciao|ok|dns|cyborg|replicant|air|amigo|bbq|burger|diamond|invest|jewel|pop|rap|rice|rod|soft|tkt|toy|vida|zoom|papi|hola)$/
 
   @default_dns_resolve_opts [
     alt_nameservers: [
@@ -71,9 +71,9 @@ defmodule Ipncore.DNS do
   end
 
   def handle(data, _cl) do
-    # Logger.info(data)
     {:ok, %{ID: query_id, Questions: questions}, _} = :dnswire.from_binary(data)
     question = {domain_list, type, _} = questions |> hd()
+    # Logger.info(inspect(domain_list))
 
     response =
       try do

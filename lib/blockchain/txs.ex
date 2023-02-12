@@ -173,7 +173,7 @@ defmodule Ipncore.Tx do
         timestamp,
         channel
       ) do
-    if not empty?(note) and byte_size(note) > @note_max_size, do: throw("Invalid note size")
+    if not empty?(note) and byte_size(note) > @note_max_size, do: throw("Invalid note")
 
     token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
@@ -251,13 +251,8 @@ defmodule Ipncore.Tx do
     Enum.reduce(outputs, %{}, fn %{token: token, value: new_value}, acc ->
       value_dec = Util.to_decimal(new_value, decimals)
 
-      case Map.get(acc, token) do
-        nil ->
-          Map.put(acc, token, value_dec)
-
-        old_value ->
-          Map.put(acc, token, old_value + value_dec)
-      end
+      old_value = Map.get(acc, token, 0)
+      Map.put(acc, token, old_value + value_dec)
     end)
   end
 
@@ -280,11 +275,12 @@ defmodule Ipncore.Tx do
         timestamp,
         channel
       ) do
+    token = Token.fetch!(token_id, from_address)
+
     {outputs, entries, token_value, amount} =
-      outputs_extract_coinbase!(txid, init_outputs, token_id)
+      outputs_extract_coinbase!(txid, init_outputs, token_id, token.decimals)
 
     # check max supply
-    token = Token.fetch!(token_id, from_address)
     new_supply = Token.check_max_supply!(token, amount)
 
     Balance.update!(entries)
@@ -378,7 +374,7 @@ defmodule Ipncore.Tx do
     end
   end
 
-  defp outputs_extract_coinbase!(txid, txos, token) do
+  defp outputs_extract_coinbase!(txid, txos, token, token_decimals) do
     {txos, entries, amount, _ix} =
       Enum.reduce(txos, {[], [], 0, 0}, fn [address, value],
                                            {acc_outputs, acc_entries, acc_amount, acc_ix} ->
@@ -399,7 +395,7 @@ defmodule Ipncore.Tx do
         {acc_outputs ++ [output], acc_entries ++ [entry], acc_amount + value, acc_ix + 1}
       end)
 
-    token_value = Map.new() |> Map.put(token, amount)
+    token_value = Map.new() |> Map.put(token, Util.to_decimal(amount, token_decimals))
 
     {txos, entries, token_value, amount}
   end

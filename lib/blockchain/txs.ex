@@ -101,12 +101,12 @@ defmodule Ipncore.Tx do
   def check_send!(
         from_address,
         to_address,
-        token,
+        token_id,
         amount,
         validator_host,
         event_size
       )
-      when token != @token do
+      when token_id != @token do
     if amount <= 0, do: throw("Invalid amount to send")
 
     if from_address == to_address or to_address == @imposible,
@@ -114,9 +114,10 @@ defmodule Ipncore.Tx do
 
     validator = Validator.fetch!(validator_host)
     fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
+    Token.exists!(token_id)
 
-    Balance.check_multi!([{from_address, token}, {from_address, @token}], %{
-      {from_address, token} => amount,
+    Balance.check_multi!([{from_address, token_id}, {from_address, @token}], %{
+      {from_address, token_id} => amount,
       {from_address, @token} => fee_total
     })
 
@@ -175,7 +176,6 @@ defmodule Ipncore.Tx do
       ) do
     if not empty?(note) and byte_size(note) > @note_max_size, do: throw("Invalid note")
 
-    token = Token.fetch!(token_id)
     validator = Validator.fetch!(validator_host)
     validator_address = validator.owner
 
@@ -236,7 +236,7 @@ defmodule Ipncore.Tx do
     tx = %{
       id: txid,
       fee: fee_total,
-      token_value: token_values(outputs, token.decimals),
+      token_value: token_values(outputs),
       out_count: length(outputs),
       memo: note
     }
@@ -247,12 +247,13 @@ defmodule Ipncore.Tx do
     |> Balance.multi_upsert(:balances, outputs, timestamp, channel)
   end
 
-  defp token_values(outputs, decimals) do
-    Enum.reduce(outputs, %{}, fn %{token: token, value: new_value}, acc ->
-      value_dec = Util.to_decimal(new_value, decimals)
+  defp token_values(outputs) do
+    Enum.reduce(outputs, %{}, fn %{token: token_id, value: new_value}, acc ->
+      token = Token.fetch!(token_id)
+      value_dec = Util.to_decimal(new_value, token.decimals)
 
-      old_value = Map.get(acc, token, 0)
-      Map.put(acc, token, old_value + value_dec)
+      old_value = Map.get(acc, token_id, 0)
+      Map.put(acc, token_id, old_value + value_dec)
     end)
   end
 

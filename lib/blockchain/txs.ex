@@ -114,7 +114,7 @@ defmodule Ipncore.Tx do
 
     validator = Validator.fetch!(validator_host)
     fee_total = calc_fees(validator.fee_type, validator.fee, amount, event_size)
-    Token.exists!(token_id)
+    Token.fetch!(token_id)
 
     Balance.check_multi!([{from_address, token_id}, {from_address, @token}], %{
       {from_address, token_id} => amount,

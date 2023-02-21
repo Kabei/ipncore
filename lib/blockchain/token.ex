@@ -166,6 +166,16 @@ defmodule Ipncore.Token do
     end
   end
 
+  def not_exists!(x) do
+    case DetsPlus.member?(@base, x) do
+      true ->
+        throw("Token already exists")
+
+      _ ->
+        false
+    end
+  end
+
   def delete!(token_id, owner) do
     case DetsPlus.lookup(@base, token_id) do
       [x] when x.owner == owner ->

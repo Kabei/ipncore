@@ -168,11 +168,11 @@ defmodule Ipncore.Token do
 
   def not_exists!(x) do
     case DetsPlus.member?(@base, x) do
-      true ->
-        throw("Token already exists")
+      false ->
+        throw("Token already not exists")
 
       _ ->
-        false
+        true
     end
   end
 

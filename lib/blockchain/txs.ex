@@ -253,7 +253,7 @@ defmodule Ipncore.Tx do
       value_dec = Util.to_decimal(new_value, token.decimals)
 
       old_value = Map.get(acc, token_id, 0)
-      Map.put(acc, token_id, old_value + value_dec)
+      Map.put(acc, token_id, Decimal.add(old_value, value_dec))
     end)
   end
 

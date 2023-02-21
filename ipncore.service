@@ -1,0 +1,36 @@
+# /etc/systemd/system/ipncore.service
+# systemctl daemon-reload
+# systemctl start ipncore.service
+# systemctl status ipncore.service
+# systemctl enable ipncore.service
+# systemctl disable ipncore.service
+# systemctl restart ipncore.service
+# systemctl stop ipncore.service
+[Unit]
+Description=IPPAN Core Service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+User=root
+Group=root
+Type=simple
+TimeoutStopSec=0
+Environment=MIX_ENV=prod
+WorkingDirectory=/usr/src/ipncore
+ExecStart=elixir --erl "+P 2000000 +A 10" -S mix run --no-halt --no-compile
+ExecStop=/bin/kill -s TERM $MAINPID
+Restart=always
+RestartSec=1
+PIDFile=/run/ipncore/ipncore.pid
+LimitNOFILE=65535
+MemoryDenyWriteExecute=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+
+[Install]
+WantedBy=multi-user.target
+Alias=ipncore.service

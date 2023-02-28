@@ -52,10 +52,10 @@ defmodule Ipncore.MixProject do
       {:dets_plus, "~> 2.1"},
       {:thousand_island, "~> 0.5.15"},
       # local deps
-      {:ntrukem, path: "../ntrukem"},
+      # {:ntrukem, path: "../ntrukem"},
       {:falcon, path: "../falcon"},
-      {:ipnutils, path: "../ipnutils"},
-      {:imp, path: "../imp"}
+      {:ipnutils, path: "../ipnutils"}
+      # {:imp, path: "../imp"}
     ]
   end
 

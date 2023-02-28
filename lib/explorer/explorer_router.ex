@@ -75,8 +75,8 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/token/:token/:channel" do
-    resp = Token.one(token, channel, conn.params)
+  get "/blockchain/token/:token" do
+    resp = Token.one(token, conn.params)
     send_result(conn, resp)
   end
 

@@ -356,10 +356,10 @@ defmodule Ipncore.Token do
     end
   end
 
-  def one(token_id, channel, params \\ %{}) do
+  def one(token_id, params \\ %{}) do
     from(tk in Token, where: tk.id == ^token_id and tk.enabled)
     |> filter_select(params)
-    |> Repo.one(prefix: channel)
+    |> Repo.one(prefix: filter_channel(params, Default.channel()))
     |> transform()
   end
 

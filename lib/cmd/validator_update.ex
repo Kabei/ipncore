@@ -32,7 +32,7 @@ defmodule ValidatorUpdate do
 
     Validator.fetch!(host, from_address)
     |> Map.merge(map_params)
-    |> put()
+    |> Validator.put()
 
     kw_params
   end

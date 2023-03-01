@@ -6,7 +6,6 @@
 defmodule ValidatorNew do
   alias Ipncore.Validator
   import Guards
-  import Ecto.Query
 
   def valid!(host, name, from_address, avatar, fee_type, fee)
       when is_binary(host) and

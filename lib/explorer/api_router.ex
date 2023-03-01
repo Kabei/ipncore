@@ -1,4 +1,4 @@
-defmodule Ipncore.API.Router do
+defmodule Ipncore.Route.Blockchain do
   use Plug.Router
 
   import Ipncore.WebTools, only: [json: 2, send_result: 2]
@@ -411,11 +411,4 @@ defmodule Ipncore.API.Router do
   defp handle_errors(conn, %{kind: _kind, reason: _reason, stack: _stack}) do
     send_resp(conn, conn.status, "Something went wrong")
   end
-end
-
-defmodule Ipncore.API.Scope do
-  use Plug.Router
-  plug(:match)
-  plug(:dispatch)
-  forward("/api", to: Ipncore.API.Router)
 end

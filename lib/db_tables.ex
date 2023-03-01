@@ -164,7 +164,7 @@ defmodule DBTable do
 
       # utils
       defp fetch_key(x) when is_tuple(x) do
-        elem(x, keypos)
+        elem(x, @keypos)
       end
 
       defp fetch_key(x) do

@@ -9,6 +9,8 @@ defmodule Mempool do
       write_concurrency: true
     ]
 
+  alias Ipncore.{Address, Event}
+
   @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
 
   defmacrop assign_worker_thread(from) do
@@ -63,7 +65,8 @@ defmodule Mempool do
   def select_delete_timestamp(timestamp) do
     # :ets.fun2ms(fn {{time, _hash}, _thread, _type, _from, _body, _sigs, _size} when time <= 0 -> true end)
     fun = [
-      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$1", timestamp}], [true]}
+      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$1", timestamp}],
+       [true]}
     ]
 
     select_delete(fun)

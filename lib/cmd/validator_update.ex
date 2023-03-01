@@ -1,7 +1,9 @@
 defmodule ValidatorUpdate do
   alias Ipncore.Validator
   import Guards
-  import Ecto.Query
+  import Ecto.Query, only: [from: 2]
+
+  @edit_fields ~w(name avatar owner fee fee_type)
 
   def valid!(from_address, host, params, timestamp)
       when is_wallet_address(from_address) and is_map(params) and is_positive(timestamp) do

@@ -87,18 +87,18 @@ defmodule DBTable do
       end
 
       def fetch(key) do
-        pid = pid_from_key(address_hash)
+        pid = pid_from_key(key)
 
-        case DetsPlus.lookup(pid, address_hash) do
+        case DetsPlus.lookup(pid, key) do
           [x] -> x
           _ -> nil
         end
       end
 
       def fetch!(key) do
-        pid = pid_from_key(address_hash)
+        pid = pid_from_key(key)
 
-        case DetsPlus.lookup(pid, address_hash) do
+        case DetsPlus.lookup(pid, key) do
           [x] ->
             x
 
@@ -108,7 +108,7 @@ defmodule DBTable do
       end
 
       def fetch_owner!(key, owner) do
-        pid = pid_from_key(address_hash)
+        pid = pid_from_key(key)
 
         case DetsPlus.lookup(pid, host) do
           [x] when x.owner == owner ->

@@ -76,7 +76,7 @@ defmodule DBTable do
       def put_new(x) do
         key = Map.fetch!(x, @keypos)
         pid = pid_from_key(key)
-        DetsPlus.insert_new(pid, {hash, pubkey})
+        DetsPlus.insert_new(pid, x)
       end
 
       def put_new!(x) do

@@ -1,6 +1,6 @@
 defmodule DBTable do
   @moduledoc """
-
+  
   """
 
   defmacro __using__(opts) do
@@ -175,7 +175,7 @@ defmodule DBTable do
         first = :binary.first(key)
         number = rem(first, @shards)
 
-        [name, to_string(number)]
+        [@name, to_string(number)]
         |> IO.iodata_to_binary()
         |> String.to_existing_atom()
       end
@@ -183,7 +183,7 @@ defmodule DBTable do
       defp pid_from_key(key) when is_integer(key) do
         number = rem(key, @shards)
 
-        [name, to_string(number)]
+        [@name, to_string(number)]
         |> IO.iodata_to_binary()
         |> String.to_existing_atom()
       end
@@ -191,7 +191,7 @@ defmodule DBTable do
       defp pid(shard) do
         number = rem(shard, @shards)
 
-        [name, to_string(number)]
+        [@name, to_string(number)]
         |> IO.iodata_to_binary()
         |> String.to_existing_atom()
       end

@@ -5,7 +5,7 @@ defmodule DBTable do
 
   defmacro __using__(opts) do
     quote location: :keep do
-      @opts = unquote(opts)
+      @opts unquote(opts)
       @name Keyword.get(@opts, :name)
       @path Keyword.get(@opts, :path)
       @filename Keyword.get(@opts, :filename, "")

@@ -163,7 +163,7 @@ defmodule Ipncore.Validator do
   end
 
   def check_update!(host, from_address) do
-    fetch!(host, from_address)
+    fetch_owner!(host, from_address)
   end
 
   def event_update!(multi, from_address, host, params, timestamp, channel) when is_map(params) do

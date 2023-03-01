@@ -183,7 +183,7 @@ defmodule Ipncore.Validator do
       map_params
       |> MapUtil.to_keywords()
 
-    fetch!(host, from_address)
+    fetch_owner!(host, from_address)
     |> Map.merge(map_params)
     |> put()
 
@@ -196,7 +196,7 @@ defmodule Ipncore.Validator do
   end
 
   def check_delete!(host, from_address) do
-    fetch!(host, from_address)
+    fetch_owner!(host, from_address)
   end
 
   def event_delete!(multi, host, owner, channel) do

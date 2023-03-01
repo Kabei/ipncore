@@ -192,9 +192,9 @@ defmodule Ipncore.Explorer.Router do
   get "/blockchain/status" do
     # channel = Default.channel()
     token_id = Default.token()
-    token = Token.fetch(token_id)
-    
-    last_block = Chain.last_block()
+    token = Token.fetch(token_id) || %{}
+
+    last_block = Chain.last_block() || %{}
     last_block_height = Map.get(last_block, :height, 0)
     last_block_hash = Map.get(last_block, :hash, "")
 

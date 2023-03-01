@@ -112,7 +112,7 @@ defmodule Ipncore.Application do
   end
 
   defp node_config do
-    opts = Application.get_env(@otp_app, :imp_client)
+    opts = Application.get_env(@otp_app, :https)
     cert_dir = opts[:cert_dir] || :code.priv_dir(@otp_app)
 
     {falcon_pk, _falcon_sk} = Path.join(cert_dir, "falcon.keys") |> Falcon.read_file!()
@@ -122,10 +122,10 @@ defmodule Ipncore.Application do
     Application.put_env(@otp_app, :address58, Address.to_text(address))
   end
 
-  defp imp_client do
-    opts = Application.get_env(@otp_app, :imp_client)
-    {Ipncore.IMP.Client, opts}
-  end
+  # defp imp_client do
+  #   opts = Application.get_env(@otp_app, :imp_client)
+  #   {Ipncore.IMP.Client, opts}
+  # end
 
   defp dns_udp_server do
     opts = Application.get_env(@otp_app, :dns)

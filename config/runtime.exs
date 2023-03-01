@@ -39,12 +39,12 @@ config :ipncore, :dns_tls,
   read_timeout: :infinity
 
 # IMP config
-config :ipncore, :imp_client,
-  host: "us2.ippan.net",
-  port: 8484,
-  cert_dir: cert_dir,
-  node_type: 0,
-  role: :core
+# config :ipncore, :imp_client,
+#   host: "us2.ippan.net",
+#   port: 8484,
+#   cert_dir: cert_dir,
+#   node_type: 0,
+#   role: :core
 
 # HTTP config
 config :ipncore, :http,

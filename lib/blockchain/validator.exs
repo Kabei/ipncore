@@ -6,7 +6,25 @@ defmodule Ipncore.Validator do
   alias Ipncore.{Address, Database, Repo}
   alias __MODULE__
 
-  @behaviour Database
+  # @enforce_keys [:host, :owner]
+  # defstruct host: nil,
+  #           owner: nil,
+  #           name: nil,
+  #           avatar: nil,
+  #           fee: 0,
+  #           fee_type: 0,
+  #           enabled: true,
+  #           created_at: 0,
+  #           updated_at: 0
+
+  use DBTable,
+    name: :validator,
+    path: "validator",
+    keypos: :host,
+    auto_save: 5_000,
+    shards: 8
+
+  # @behaviour Database
 
   # Fee type
   # 0. by size
@@ -16,6 +34,7 @@ defmodule Ipncore.Validator do
   @base :validator
   @filename "validator.db"
   @edit_fields ~w(name avatar owner fee fee_type)
+  @max_name_length 100
 
   @primary_key {:host, :string, []}
   schema "validator" do
@@ -29,92 +48,92 @@ defmodule Ipncore.Validator do
     field(:updated_at, :integer)
   end
 
-  @impl Database
-  def open do
-    dir_path = Default.data_dir()
-    filename = Path.join([dir_path, @filename])
-    DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 5_000)
-  end
+  # @impl Database
+  # def open do
+  #   dir_path = Default.data_dir()
+  #   filename = Path.join([dir_path, @filename])
+  #   DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 5_000)
+  # end
 
-  @impl Database
-  def close do
-    DetsPlus.close(@base)
-  end
+  # @impl Database
+  # def close do
+  #   DetsPlus.close(@base)
+  # end
 
-  @impl Database
-  def put!(x) do
-    case DetsPlus.insert_new(@base, x) do
-      true ->
-        true
+  # @impl Database
+  # def put!(x) do
+  #   case DetsPlus.insert_new(@base, x) do
+  #     true ->
+  #       true
 
-      false ->
-        throw("Validator already exists")
-    end
-  end
+  #     false ->
+  #       throw("Validator already exists")
+  #   end
+  # end
 
-  def put(x) do
-    DetsPlus.insert(@base, x)
-  end
+  # def put(x) do
+  #   DetsPlus.insert(@base, x)
+  # end
 
-  @impl Database
-  def fetch!(x) do
-    case DetsPlus.lookup(@base, x) do
-      [x] ->
-        x
+  # @impl Database
+  # def fetch!(x) do
+  #   case DetsPlus.lookup(@base, x) do
+  #     [x] ->
+  #       x
 
-      _ ->
-        throw("Validator not exists")
-    end
-  end
+  #     _ ->
+  #       throw("Validator not exists")
+  #   end
+  # end
 
-  def fetch!(host, owner) do
-    case DetsPlus.lookup(@base, host) do
-      [x] when x.owner == owner ->
-        x
+  # def fetch!(host, owner) do
+  #   case DetsPlus.lookup(@base, host) do
+  #     [x] when x.owner == owner ->
+  #       x
 
-      [_x] ->
-        throw("Invalid owner")
+  #     [_x] ->
+  #       throw("Invalid owner")
 
-      _ ->
-        throw("Validator not exists")
-    end
-  end
+  #     _ ->
+  #       throw("Validator not exists")
+  #   end
+  # end
 
-  def exists?(x) do
-    DetsPlus.member?(@base, x)
-  end
+  # def exists?(x) do
+  #   DetsPlus.member?(@base, x)
+  # end
 
-  def exists!(x) do
-    case DetsPlus.lookup(@base, x) do
-      [] ->
-        false
+  # def exists!(x) do
+  #   case DetsPlus.lookup(@base, x) do
+  #     [] ->
+  #       false
 
-      _ ->
-        throw("Validator already exists")
-    end
-  end
+  #     _ ->
+  #       throw("Validator already exists")
+  #   end
+  # end
 
-  def delete!(key, owner) do
-    case DetsPlus.lookup(@base, key) do
-      [x] when x.owner == owner ->
-        case DetsPlus.delete(@base, key) do
-          {:error, _} -> throw("Error in the operation")
-          r -> r
-        end
+  # def delete!(key, owner) do
+  #   case DetsPlus.lookup(@base, key) do
+  #     [x] when x.owner == owner ->
+  #       case DetsPlus.delete(@base, key) do
+  #         {:error, _} -> throw("Error in the operation")
+  #         r -> r
+  #       end
 
-      [_x] ->
-        throw("Invalid owner")
+  #     [_x] ->
+  #       throw("Invalid owner")
 
-      _ ->
-        throw("Validator not exists")
-    end
-  end
+  #     _ ->
+  #       throw("Validator not exists")
+  #   end
+  # end
 
   def check_new!(host, name, from_address, avatar, fee_type, fee) do
     if not Regex.match?(Const.Regex.domain(), host), do: throw("Invalid domain")
-    if String.length(name) > 100, do: throw("Invalid name length")
+    if String.length(name) > @max_name_length, do: throw("Invalid name length")
     if not Platform.owner?(from_address), do: throw("Operation not allowed")
-    unless fee_type >= 0 and fee_type <= 2, do: throw("Invalid fee_type")
+    unless fee_type >= 0 and fee_type <= 2, do: throw("Invalid fee type")
     if not is_float(fee), do: throw("Invalid Fee value")
     if not empty?(avatar) and String.length(avatar) > 255, do: throw("Invalid avatar length")
     exists!(host)
@@ -134,7 +153,7 @@ defmodule Ipncore.Validator do
       updated_at: timestamp
     }
 
-    put!(validator)
+    put_new!(validator)
 
     multi
     |> Ecto.Multi.insert_all(:validator, Validator, [validator],
@@ -144,19 +163,19 @@ defmodule Ipncore.Validator do
   end
 
   def check_update!(host, from_address) do
-    fetch!(host, from_address)
+    fetch_owner!(host, from_address)
   end
 
   def event_update!(multi, from_address, host, params, timestamp, channel) when is_map(params) do
     map_params =
       params
       |> Map.take(@edit_fields)
-      |> MapUtil.validate_not_empty()	  
-      |> MapUtil.validate_length("name", 100)
+      |> MapUtil.validate_not_empty()
+      |> MapUtil.validate_length("name", @max_name_length)
       |> MapUtil.validate_value("fee", :gt, 0)
       |> MapUtil.validate_range("fee_type", 0..2)
       |> MapUtil.validate_length("avatar", 255)
-	  |> MapUtil.validate_address("owner")
+      |> MapUtil.validate_address("owner")
       |> MapUtil.to_atoms()
       |> Map.put(:updated_at, timestamp)
 
@@ -164,7 +183,7 @@ defmodule Ipncore.Validator do
       map_params
       |> MapUtil.to_keywords()
 
-    fetch!(host, from_address)
+    fetch_owner!(host, from_address)
     |> Map.merge(map_params)
     |> put()
 
@@ -177,11 +196,11 @@ defmodule Ipncore.Validator do
   end
 
   def check_delete!(host, from_address) do
-    fetch!(host, from_address)
+    fetch_owner!(host, from_address)
   end
 
   def event_delete!(multi, host, owner, channel) do
-    delete!(host, owner)
+    delete_owner!(host, owner)
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^owner)
 

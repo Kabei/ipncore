@@ -1,5 +1,6 @@
 defmodule ValidatorUpdate do
   alias Ipncore.Validator
+  import Guards
 
   def valid!(from_address, host, params, timestamp)
       when is_wallet_address(from_address) and is_map(params) and is_positive(timestamp) do

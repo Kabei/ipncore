@@ -3,7 +3,7 @@ import Config
 # prod = config_env() == :prod
 
 config :ipncore, :central, "ippan.net"
-config :ipncore, :channel, "DEV-NET"
+config :ipncore, :channel, "BETA-NET"
 config :ipncore, :gps_device, "/dev/AMC0"
 
 # environment variables

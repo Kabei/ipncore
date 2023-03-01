@@ -67,9 +67,9 @@ Events are requests made by users or automatic operations by the system that aff
 |401| `domain.update` |Update a domain|✅|
 |402| `domain.delete` |Delete a domain|✅|
 |403| `domain.renew` |Renew a domain|❌|
-|410| `dns.set` |Create or replace a DNS Record|✅|
-|411| `dns.push` |Put a DNS Record|✅|
-|412| `dns.drop` |Drop a DNS Record|✅|
+|410| `dns.new` |Create a DNS Record|✅|
+|411| `dns.update` |Update a DNS Record|✅|
+|412| `dns.delete` |Delete a DNS Record|✅|
 |1000| `pubkey.new` |Public key registration|✅|
 
 ### Body of the event

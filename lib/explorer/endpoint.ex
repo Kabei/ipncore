@@ -20,5 +20,5 @@ defmodule Ipncore.Endpoint do
 
   plug(Plug.Cors)
 
-  plug(Ipncore.Explorer.Router)
+  plug(Ipncore.API.Scope)
 end

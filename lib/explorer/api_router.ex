@@ -1,4 +1,10 @@
-defmodule Ipncore.Explorer.Router do
+defmodule Ipncore.API.Scope do
+  use Plug.Router
+
+  forward("/blockchain", to: Ipncore.API.Router)
+end
+
+defmodule Ipncore.API.Router do
   use Plug.Router
 
   import Ipncore.WebTools, only: [json: 2, send_result: 2]
@@ -35,7 +41,7 @@ defmodule Ipncore.Explorer.Router do
   plug(:match)
   plug(:dispatch)
 
-  get "/blockchain/blocks" do
+  get "/blocks" do
     params = conn.params
 
     resp = Block.all(params)
@@ -43,7 +49,7 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/events" do
+  get "/events" do
     params = conn.params
 
     resp = Event.all(params)
@@ -51,13 +57,13 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/txs" do
+  get "/txs" do
     params = conn.params
     resp = Tx.all(params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/txo" do
+  get "/txo" do
     params = conn.params
     resp = Txo.all(params)
     send_result(conn, resp)
@@ -69,29 +75,29 @@ defmodule Ipncore.Explorer.Router do
   #   send_result(conn, resp)
   # end
 
-  get "/blockchain/tokens" do
+  get "/tokens" do
     params = conn.params
     resp = Token.all(params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/token/:token" do
+  get "/tokens/:token" do
     resp = Token.one(token, conn.params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/validators" do
+  get "/validators" do
     params = conn.params
     resp = Validator.all(params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/validators/:hostname" do
+  get "/validators/:hostname" do
     resp = Validator.one(hostname, conn.params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/search" do
+  get "/search" do
     params = conn.params
 
     case params do
@@ -158,25 +164,25 @@ defmodule Ipncore.Explorer.Router do
     end
   end
 
-  get "/blockchain/balance/:address58/:token" do
+  get "/balance/:address58/:token" do
     address = Address.from_text!(address58)
     resp = Balance.fetch_balance(address, token, Default.channel())
     send_result(conn, resp)
   end
 
-  get "/blockchain/balance/:address58" do
+  get "/balance/:address58" do
     address = Address.from_text!(address58)
     resp = Balance.all_balance(address, conn.params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/activity/:address58" do
+  get "/activity/:address58" do
     resp = Balance.activity(address58, conn.params)
 
     send_result(conn, resp)
   end
 
-  # get "/blockchain/channel/:channel_id" do
+  # get "/channel/:channel_id" do
   #   resp =
   #     case Channel.get(channel_id) do
   #       nil ->
@@ -189,7 +195,7 @@ defmodule Ipncore.Explorer.Router do
   #   send_result(conn, resp)
   # end
 
-  get "/blockchain/status" do
+  get "/status" do
     # channel = Default.channel()
     token_id = Default.token()
     token = Token.fetch(token_id) || %{}
@@ -220,7 +226,7 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/block/:hash16" when byte_size(hash16) == 64 do
+  get "/blocks/:hash16" when byte_size(hash16) == 64 do
     hash = Base.decode16!(hash16, case: :mixed)
 
     resp = Block.get(%{"hash" => hash})
@@ -228,13 +234,13 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/block/height/:height" do
+  get "/blocks/height/:height" do
     resp = Block.get(%{"height" => height})
 
     send_result(conn, resp)
   end
 
-  get "/blockchain/tx/:hash16" when byte_size(hash16) == 64 do
+  get "/txs/:hash16" when byte_size(hash16) == 64 do
     hash = Base.decode16!(hash16, case: :mixed)
 
     resp = Tx.one(hash, conn.params)
@@ -242,14 +248,14 @@ defmodule Ipncore.Explorer.Router do
     send_result(conn, resp)
   end
 
-  get "/blockchain/event/:evid" do
+  get "/event/:evid" do
     id = Event.decode_id(evid)
     resp = Event.one(id, filter_channel(conn.params, Default.channel()))
 
     send_result(conn, resp)
   end
 
-  head "/blockchain/token/:token" do
+  head "/tokens/:token" do
     resp = Token.exists?(token)
 
     case resp do
@@ -261,7 +267,7 @@ defmodule Ipncore.Explorer.Router do
     end
   end
 
-  head "/blockchain/validator/:validator" do
+  head "/validators/:validator" do
     resp = Validator.exists?(validator)
 
     case resp do
@@ -273,7 +279,7 @@ defmodule Ipncore.Explorer.Router do
     end
   end
 
-  head "/blockchain/domain/:domain" do
+  head "/domains/:domain" do
     resp = Domain.exists?(domain)
 
     case resp do
@@ -285,34 +291,34 @@ defmodule Ipncore.Explorer.Router do
     end
   end
 
-  get "/blockchain/dns" do
+  get "/dns" do
     resp = DnsRecord.all(conn.params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/dns/:domain/:type" do
+  get "/dns/:domain/:type" do
     channel = filter_channel(conn.params, Default.channel())
     resp = DnsRecord.one(domain, type, channel)
     send_result(conn, resp)
   end
 
-  get "/blockchain/domains" do
+  get "/domains" do
     resp = Domain.all(conn.params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/domain/:name" do
+  get "/domains/:name" do
     params = conn.params
     channel = filter_channel(params, Default.channel())
     resp = Domain.one(name, channel, params)
     send_result(conn, resp)
   end
 
-  get "/blockchain/mempool" do
+  get "/mempool" do
     send_result(conn, Mempool.all())
   end
 
-  get "/blockchain/mempool/:timestamp/:hash16" do
+  get "/mempool/:timestamp/:hash16" do
     hash = Base.decode16(hash16, case: :mixed)
 
     resp =
@@ -346,7 +352,7 @@ defmodule Ipncore.Explorer.Router do
     end
   end
 
-  post "/blockchain/event" do
+  post "/event" do
     # IO.inspect(conn)
     %{"_json" => body} = conn.params
     # IO.inspect(body)

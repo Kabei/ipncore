@@ -200,7 +200,7 @@ defmodule Ipncore.Validator do
   end
 
   def event_delete!(multi, host, owner, channel) do
-    delete!(host, owner)
+    delete_owner!(host, owner)
 
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^owner)
 

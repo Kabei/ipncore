@@ -193,15 +193,21 @@ defmodule Ipncore.Explorer.Router do
     # channel = Default.channel()
     token_id = Default.token()
     token = Token.fetch(token_id)
+    
     last_block = Chain.last_block()
-    coins = Util.to_decimal(token.supply, token.decimals)
+    last_block_height = Map.get(last_block, :height, 0)
+    last_block_hash = Map.get(last_block, :hash, "")
+
+    token_supply = Map.get(token, :supply, 0)
+    token_decimals = Map.get(token, :decimals, 0)
+    coins = Util.to_decimal(token_supply, token_decimals)
     events = Chain.events()
 
     resp = %{
       coins: coins,
       events: events,
-      height: last_block.height,
-      last_hash: Event.encode_id(last_block.hash),
+      height: last_block_height,
+      last_hash: Event.encode_id(last_block_hash),
       name: Application.get_env(:ipncore, :channel),
       owner: Platform.address58(),
       time: Chain.get_time(),

@@ -1,6 +1,7 @@
 defmodule ValidatorUpdate do
   alias Ipncore.Validator
   import Guards
+  import Ecto.Query
 
   def valid!(from_address, host, params, timestamp)
       when is_wallet_address(from_address) and is_map(params) and is_positive(timestamp) do
@@ -36,7 +37,7 @@ defmodule ValidatorUpdate do
     kw_params
   end
 
-  def multi!(host, from_address, kw_params, multi, chain) do
+  def multi!(multi, host, from_address, kw_params, chain) do
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^from_address)
 
     Ecto.Multi.update_all(multi, :update, queryable, [set: kw_params],

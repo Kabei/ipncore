@@ -20,7 +20,8 @@ defmodule ValidatorNew do
     ) do
       :ok
     else
-      raise ArgumentError
+      _ ->
+        raise ArgumentError
     end
   end
 

@@ -7,7 +7,8 @@ defmodule ValidatorUpdate do
     with true <- Match.domain?(host) do
       Validator.fetch!(host, from_address)
     else
-      raise ArgumentError
+      _ ->
+        raise ArgumentError
     end
   end
 

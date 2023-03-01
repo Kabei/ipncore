@@ -153,7 +153,7 @@ defmodule Ipncore.Validator do
       updated_at: timestamp
     }
 
-    put!(validator)
+    put_new!(validator)
 
     multi
     |> Ecto.Multi.insert_all(:validator, Validator, [validator],

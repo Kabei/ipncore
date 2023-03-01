@@ -110,7 +110,7 @@ defmodule DBTable do
       def fetch_owner!(key, owner) do
         pid = pid_from_key(key)
 
-        case DetsPlus.lookup(pid, host) do
+        case DetsPlus.lookup(pid, key) do
           [x] when x.owner == owner ->
             x
 
@@ -130,7 +130,7 @@ defmodule DBTable do
       def exists!(key) do
         pid = pid_from_key(key)
 
-        case DetsPlus.lookup(pid, x) do
+        case DetsPlus.lookup(pid, key) do
           [] ->
             false
 

@@ -36,7 +36,7 @@ defmodule ValidatorUpdate do
     kw_params
   end
 
-  def multi!(from_address, kw_params, multi, chain) do
+  def multi!(host, from_address, kw_params, multi, chain) do
     queryable = from(v in Validator, where: v.host == ^host and v.owner == ^from_address)
 
     Ecto.Multi.update_all(multi, :update, queryable, [set: kw_params],

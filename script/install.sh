@@ -8,9 +8,15 @@ apt-key add erlang_solutions.asc
 apt-get update
 apt-get install erlang elixir git build-essential -y
 
-git clone --branch event-dev https://kabei@github.com/kabei/ipncore.git
+add-apt-repository ppa:certbot/certbot -y
+apt-get update
+apt install certbot -y
+
+git clone --branch beta https://kabei@github.com/kabei/ipncore.git
 git clone https://kabei@github.com/kabei/ipnutils.git
 git clone https://kabei@github.com/kabei/falcon.git
+
+certbot certonly --standalone -d ippan.uk --non-interactive --agree-tos --email contact@ippan.com
 
 cd ipncore
 mix local.hex --force
@@ -29,7 +35,7 @@ Group=root
 Type=simple
 TimeoutStopSec=0
 Environment=MIX_ENV=prod
-WorkingDirectory=/usr/src/ipncore
+WorkingDirectory=$PWD
 ExecStart=elixir --erl \"+P 2000000 +A 10\" -S mix run --no-halt --no-compile
 ExecStop=/bin/kill -s TERM \$MAINPID
 Restart=always
@@ -48,5 +54,12 @@ WantedBy=multi-user.target
 Alias=ipncore.service
 " > /etc/systemd/system/ipncore.service
 
+systemctl daemon-reload
 ./script/install-db.sh
 ./script/ufw.sh
+
+mkdir -p priv/cert
+cp /etc/letsencrypt/live/ippan.uk/privkey.pem priv/cert/key.pem
+cp /etc/letsencrypt/live/ippan.uk/fullchain.pem priv/cert/cacert.pem
+cp /etc/letsencrypt/live/ippan.uk/cert.pem priv/cert/cert.pem
+# systemctl start ipncore.service

@@ -45,7 +45,7 @@ defmodule ETSTable do
         )
       end
 
-      def all, do: :ets.tab2list(@table)
+      def tab2list, do: :ets.tab2list(@table)
 
       def select(fun) do
         :ets.select(@table, fun)

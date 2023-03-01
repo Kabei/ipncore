@@ -31,7 +31,7 @@ defmodule DBTable do
 
           absolute_path = absolute_path(directory_path, shard)
 
-          DetsPlus.open_file(id,
+          DetsPlus.open_file(pid,
             file: absolute_path,
             auto_save: @auto_save,
             auto_save_memory: @auto_save_memory,

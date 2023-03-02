@@ -205,13 +205,13 @@ defmodule Ipncore.Route.Blockchain do
     end
   end
 
-  get "/balance/:address58/:token" do
+  get "/balances/:address58/:token" do
     address = Address.from_text!(address58)
     resp = Balance.fetch_balance(address, token, Default.channel())
     send_result(conn, resp)
   end
 
-  get "/balance/:address58" do
+  get "/balances/:address58" do
     address = Address.from_text!(address58)
     resp = Balance.all_balance(address, conn.params)
     send_result(conn, resp)
@@ -337,7 +337,7 @@ defmodule Ipncore.Route.Blockchain do
     end
   end
 
-  post "/event" do
+  post "/events" do
     # IO.inspect(conn)
     %{"_json" => body} = conn.params
     # IO.inspect(body)

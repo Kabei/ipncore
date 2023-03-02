@@ -20,13 +20,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -47,13 +47,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -74,13 +74,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -101,13 +101,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -128,13 +128,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -155,13 +155,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -182,13 +182,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -209,13 +209,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -236,13 +236,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -263,13 +263,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -290,13 +290,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -317,13 +317,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -344,13 +344,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -371,13 +371,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -398,13 +398,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -425,13 +425,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -452,13 +452,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -479,13 +479,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -506,13 +506,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -533,13 +533,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -560,13 +560,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -587,13 +587,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -614,13 +614,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -641,13 +641,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -668,13 +668,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},
@@ -695,13 +695,13 @@
 					}
 				},
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/event",
+					"raw": "{{PROTOCOL}}{{HOST}}/blockchain/events",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}"
 					],
 					"path": [
 						"blockchain",
-						"event"
+						"events"
 					]
 				}
 			},

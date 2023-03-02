@@ -46,6 +46,12 @@ config :ipncore, :dns_tls,
 #   node_type: 0,
 #   role: :core
 
+config :ipncore, :node,
+  name: System.get_env("NODE_NAME", "ippan.uk"),
+  port: 5050
+
+# network: :ipv4
+
 # HTTP config
 config :ipncore, :http,
   host: "0.0.0.0",

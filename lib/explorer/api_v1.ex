@@ -3,7 +3,7 @@ defmodule Ipncore.Route.Blockchain do
 
   import Ipncore.WebTools, only: [json: 2, send_result: 2]
   import Ipnutils.Filters
-  import Ipncore.PostDeliver, only: [serve_video: 3]
+  # import Ipncore.PostDeliver, only: [serve_video: 3]
 
   alias Ipncore.{
     Address,
@@ -43,10 +43,31 @@ defmodule Ipncore.Route.Blockchain do
     send_result(conn, resp)
   end
 
+  get "/blocks/:hash16" when byte_size(hash16) == 64 do
+    hash = Base.decode16!(hash16, case: :mixed)
+
+    resp = Block.get(%{"hash" => hash})
+
+    send_result(conn, resp)
+  end
+
+  get "/blocks/height/:height" do
+    resp = Block.get(%{"height" => height})
+
+    send_result(conn, resp)
+  end
+
   get "/events" do
     params = conn.params
 
     resp = Event.all(params)
+
+    send_result(conn, resp)
+  end
+
+  get "/events/:evid" do
+    id = Event.decode_id(evid)
+    resp = Event.one(id, filter_channel(conn.params, Default.channel()))
 
     send_result(conn, resp)
   end
@@ -57,17 +78,19 @@ defmodule Ipncore.Route.Blockchain do
     send_result(conn, resp)
   end
 
+  get "/txs/:hash16" when byte_size(hash16) == 64 do
+    hash = Base.decode16!(hash16, case: :mixed)
+
+    resp = Tx.one(hash, conn.params)
+
+    send_result(conn, resp)
+  end
+
   get "/txo" do
     params = conn.params
     resp = Txo.all(params)
     send_result(conn, resp)
   end
-
-  # get "/txi" do
-  #   params = conn.params
-  #   resp = Txi.all(params)
-  #   send_result(conn, resp)
-  # end
 
   get "/tokens" do
     params = conn.params
@@ -80,6 +103,18 @@ defmodule Ipncore.Route.Blockchain do
     send_result(conn, resp)
   end
 
+  head "/tokens/:token" do
+    resp = Token.exists?(token)
+
+    case resp do
+      true ->
+        send_resp(conn, 409, "")
+
+      false ->
+        send_resp(conn, 200, "")
+    end
+  end
+
   get "/validators" do
     params = conn.params
     resp = Validator.all(params)
@@ -89,6 +124,18 @@ defmodule Ipncore.Route.Blockchain do
   get "/validators/:hostname" do
     resp = Validator.one(hostname, conn.params)
     send_result(conn, resp)
+  end
+
+  head "/validators/:validator" do
+    resp = Validator.exists?(validator)
+
+    case resp do
+      true ->
+        send_resp(conn, 409, "")
+
+      false ->
+        send_resp(conn, 200, "")
+    end
   end
 
   get "/search" do
@@ -212,65 +259,21 @@ defmodule Ipncore.Route.Blockchain do
       owner: Platform.address58(),
       time: Chain.get_time(),
       token: token_id
-      # ev_count: 
-      # token_count:
-      # domain_count:
     }
 
     send_result(conn, resp)
   end
 
-  get "/blocks/:hash16" when byte_size(hash16) == 64 do
-    hash = Base.decode16!(hash16, case: :mixed)
-
-    resp = Block.get(%{"hash" => hash})
-
+  get "/domains" do
+    resp = Domain.all(conn.params)
     send_result(conn, resp)
   end
 
-  get "/blocks/height/:height" do
-    resp = Block.get(%{"height" => height})
-
+  get "/domains/:domain" do
+    params = conn.params
+    channel = filter_channel(params, Default.channel())
+    resp = Domain.one(domain, channel, params)
     send_result(conn, resp)
-  end
-
-  get "/txs/:hash16" when byte_size(hash16) == 64 do
-    hash = Base.decode16!(hash16, case: :mixed)
-
-    resp = Tx.one(hash, conn.params)
-
-    send_result(conn, resp)
-  end
-
-  get "/event/:evid" do
-    id = Event.decode_id(evid)
-    resp = Event.one(id, filter_channel(conn.params, Default.channel()))
-
-    send_result(conn, resp)
-  end
-
-  head "/tokens/:token" do
-    resp = Token.exists?(token)
-
-    case resp do
-      true ->
-        send_resp(conn, 409, "")
-
-      false ->
-        send_resp(conn, 200, "")
-    end
-  end
-
-  head "/validators/:validator" do
-    resp = Validator.exists?(validator)
-
-    case resp do
-      true ->
-        send_resp(conn, 409, "")
-
-      false ->
-        send_resp(conn, 200, "")
-    end
   end
 
   head "/domains/:domain" do
@@ -290,21 +293,9 @@ defmodule Ipncore.Route.Blockchain do
     send_result(conn, resp)
   end
 
-  get "/dns/:domain/:type" do
+  get "/dns/:domain/:type/:index" do
     channel = filter_channel(conn.params, Default.channel())
-    resp = DnsRecord.one(domain, type, channel)
-    send_result(conn, resp)
-  end
-
-  get "/domains" do
-    resp = Domain.all(conn.params)
-    send_result(conn, resp)
-  end
-
-  get "/domains/:name" do
-    params = conn.params
-    channel = filter_channel(params, Default.channel())
-    resp = Domain.one(name, channel, params)
+    resp = DnsRecord.one(domain, type, index, channel)
     send_result(conn, resp)
   end
 
@@ -372,37 +363,37 @@ defmodule Ipncore.Route.Blockchain do
   end
 
   # serve posts
-  get "/p/:id/:stream/:segment" do
-    base = ["http://", Application.get_env(:ipncore, :central)] |> IO.iodata_to_binary()
+  # get "/p/:id/:stream/:segment" do
+  #   base = ["http://", Application.get_env(:ipncore, :central)] |> IO.iodata_to_binary()
 
-    url =
-      [base, "p", id, stream, segment]
-      |> Path.join()
+  #   url =
+  #     [base, "p", id, stream, segment]
+  #     |> Path.join()
 
-    headers = [
-      {"cache-control", "private, max-age=21600"},
-      {"content-type", "video/iso.segment"},
-      {"address", Default.address58()}
-    ]
+  #   headers = [
+  #     {"cache-control", "private, max-age=21600"},
+  #     {"content-type", "video/iso.segment"},
+  #     {"address", Default.address58()}
+  #   ]
 
-    serve_video(conn, url, headers)
-  end
+  #   serve_video(conn, url, headers)
+  # end
 
-  get "/p/:id/:manifest" do
-    base = ["http://", Application.get_env(:ipncore, :central)] |> IO.iodata_to_binary()
+  # get "/p/:id/:manifest" do
+  #   base = ["http://", Application.get_env(:ipncore, :central)] |> IO.iodata_to_binary()
 
-    url =
-      [base, "p", id, manifest]
-      |> Path.join()
+  #   url =
+  #     [base, "p", id, manifest]
+  #     |> Path.join()
 
-    headers = [
-      {"cache-control", "private, max-age=21600"},
-      {"content-type", "application/dash+xml"},
-      {"address", Default.address58()}
-    ]
+  #   headers = [
+  #     {"cache-control", "private, max-age=21600"},
+  #     {"content-type", "application/dash+xml"},
+  #     {"address", Default.address58()}
+  #   ]
 
-    serve_video(conn, url, headers)
-  end
+  #   serve_video(conn, url, headers)
+  # end
 
   match _ do
     send_resp(conn, 404, "oops")

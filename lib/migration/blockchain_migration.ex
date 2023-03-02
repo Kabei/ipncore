@@ -116,13 +116,20 @@ defmodule Ipncore.Migration.Blockchain do
           CONSTRAINT domain_pk PRIMARY KEY (name)
       )
       """,
+      # CREATE TABLE IF NOT EXISTS "#{channel}".dnsrr(
+      #   domain TEXT NOT NULL,
+      #   type TEXT NOT NULL,
+      #   name TEXT NOT NULL,
+      #   data TEXT NOT NULL,
+      #   ttl integer NOT NULL
+      # )
       """
-      CREATE TABLE IF NOT EXISTS "#{channel}".dnsrr(
+      CREATE TABLE IF NOT EXISTS "#{channel}".dns_record(
         domain TEXT NOT NULL,
         type TEXT NOT NULL,
-        name TEXT NOT NULL,
-        data TEXT NOT NULL,
-        ttl integer NOT NULL
+        value TEXT NOT NULL,
+        ttl integer NOT NULL,
+        root TEXT NOT NULL
       )
       """
       # """

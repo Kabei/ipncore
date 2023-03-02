@@ -293,9 +293,9 @@ defmodule Ipncore.Route.Blockchain do
     send_result(conn, resp)
   end
 
-  get "/dns/:domain/:type/:index" do
+  get "/dns/:domain/:type" do
     channel = filter_channel(conn.params, Default.channel())
-    resp = DnsRecord.one(domain, type, index, channel)
+    resp = DnsRecord.one(domain, type, channel)
     send_result(conn, resp)
   end
 

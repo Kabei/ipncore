@@ -117,12 +117,12 @@ defmodule Ipncore.Migration.Blockchain do
       )
       """,
       """
-      CREATE TABLE IF NOT EXISTS "#{channel}".dnsrr(
-        domain TEXT NOT NULL,
-        type TEXT NOT NULL,
-        name TEXT NOT NULL,
-        data TEXT NOT NULL,
-        ttl integer NOT NULL
+      CREATE TABLE IF NOT EXISTS "#{channel}".dns_record(
+        domain varchar NOT NULL,
+        type varchar(5) NOT NULL,
+        value varchar(64) NOT NULL,
+        ttl integer NOT NULL,
+        root varchar(25) NOT NULL
       )
       """
       # """

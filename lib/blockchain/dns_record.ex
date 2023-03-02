@@ -1,4 +1,4 @@
-defmodule Ipncore.DNSRR do
+defmodule Ipncore.DnsRecord do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
@@ -17,15 +17,13 @@ defmodule Ipncore.DNSRR do
   @max_dns_record_items 5
   @max_bytes_size 255
   @price 500
-  @default_name "@"
 
-  schema "dnsrr" do
+  schema "dns_record" do
     field(:domain, :string)
-    field(:name, :string)
     field(:type, :string)
-    field(:index, :integer)
-    field(:data, :string)
+    field(:value, :string)
     field(:ttl, :integer, default: 3600)
+    field(:root, :string)
   end
 
   def open do
@@ -42,25 +40,14 @@ defmodule Ipncore.DNSRR do
     DetsPlus.insert(@base, x)
   end
 
-  def lookup(domain, xname) do
-    DetsPlus.lookup(@base, domain)
+  def lookup(domain, type) do
+    DetsPlus.lookup(@base, {domain, type})
     |> case do
-      [] ->
-        []
+      [{_, value, ttl, _}] ->
+        {value, ttl}
 
-      records ->
-        Enum.filter(records, fn {name, type, _data, _ttl} -> xname == name end)
-    end
-  end
-
-  def lookup(domain, xname, xtype) do
-    DetsPlus.lookup(@base, domain)
-    |> case do
-      [] ->
-        []
-
-      records ->
-        Enum.filter(records, fn {name, type, _data, _ttl} -> xname == name and xtype == type end)
+      _ ->
+        nil
     end
   end
 
@@ -277,7 +264,7 @@ defmodule Ipncore.DNSRR do
     Ecto.Multi.delete_all(multi, :delete_all, queryable, prefix: channel)
   end
 
-  def one(domain, type, index, channel) do
+  def one(domain, type, channel) do
     from(dr in DnsRecord, where: dr.domain == ^domain and dr.type == ^type)
     |> filter_select(nil)
     |> Repo.one(prefix: channel)

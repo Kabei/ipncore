@@ -39,7 +39,7 @@ defmodule Ipncore.Migration.Blockchain do
         fee bigint NOT NULL,
         out_count integer NOT NULL,
         token_value jsonb,
-        memo varchar(100)
+        memo TEXT
       )
       TABLESPACE #{tablespace};
       """,

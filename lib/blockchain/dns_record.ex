@@ -8,8 +8,8 @@ defmodule Ipncore.DnsRecord do
   # @table :dns
   @base :dns
   @filename "dns.db"
-  @dns_types ~w(a ns cname soa ptr mx txt aaaa spf srv ds sshfp rrsig nsec dnskey caa uri hinfo wks)
-  @dns_types_multi_records ~w(a aaaa txt)a
+  @dns_types ~w(A NS CNAME SOA PTR MX TXT AAAA SPF SRV DS SSHFP RRSIG NSEC DNSKEY CAA URI HINFO WKS)
+  @dns_types_multi_records ~w(A AAAA TXT)a
   @max_domain_size 255
   @min_ttl 300
   @max_ttl 2_147_483_647

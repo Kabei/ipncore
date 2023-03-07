@@ -453,7 +453,7 @@ defmodule Ipncore.Tx do
     |> filter_select(params)
     |> filter_offset(params)
     |> filter_date(params)
-    |> filter_limit(params, 50, 100)
+    |> filter_limit(params)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
   end
@@ -481,21 +481,21 @@ defmodule Ipncore.Tx do
   defp filter_index(query, _), do: query
 
   def filter_date(query, %{"dateStart" => start_date, "dateEnd" => end_date}) do
-    date_start = Utils.from_date_to_time(start_date, :start, @unit_time)
+    date_start = Utils.from_date_to_time(start_date, @unit_time)
 
-    date_end = Utils.from_date_to_time(end_date, :end, @unit_time)
+    date_end = Utils.from_date_to_time(end_date, @unit_time)
 
     where(query, [_tx, ev], ev.time >= ^date_start and ev.time <= ^date_end)
   end
 
   def filter_date(query, %{"dateStart" => start_date}) do
-    date_start = Utils.from_date_to_time(start_date, :start, @unit_time)
+    date_start = Utils.from_date_to_time(start_date, @unit_time)
 
     where(query, [_tx, ev], ev.time >= ^date_start)
   end
 
   def filter_date(query, %{"dateEnd" => end_date}) do
-    date_end = Utils.from_date_to_time(end_date, :end, @unit_time)
+    date_end = Utils.from_date_to_time(end_date, @unit_time)
 
     where(query, [_tx, ev], ev.time <= ^date_end)
   end

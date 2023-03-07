@@ -154,7 +154,7 @@ defmodule Ipncore.Channel do
     from(c in Channel, where: c.enabled)
     |> filter_index(params)
     |> filter_offset(params)
-    |> filter_limit(params, 50, 100)
+    |> filter_limit(params)
     |> sort(params)
     |> Repo.all(prefix: "sys")
   end

@@ -8,8 +8,8 @@ defmodule Ipncore.DnsRecord do
   # @table :dns
   @base :dns
   @filename "dns.db"
-  @dns_types ~w(A NS CNAME SOA PTR MX TXT AAAA SPF SRV DS SSHFP RRSIG NSEC DNSKEY CAA URI HINFO WKS)
-  @dns_types_multi_records ~w(A AAAA TXT)a
+  @dns_types ~w(a ns cname soa ptr mx txt aaaa spf srv ds sshfp rrsig nsec dnskey caa uri hinfo wks)
+  @dns_types_multi_records ~w(a aaaa txt)a
   @max_domain_size 255
   @min_ttl 300
   @max_ttl 2_147_483_647
@@ -93,10 +93,10 @@ defmodule Ipncore.DnsRecord do
         replace,
         channel
       ) do
-    type_atom = String.to_atom(type)
+    type_atom = String.downcase(type) |> String.to_atom()
     domain_root = Domain.extract_root(domain_name)
     domain = Domain.fetch!(domain_root)
-    query_name = to_charlist(domain_name)
+    query_name = String.downcase(domain_name)
 
     replace =
       case replace do
@@ -108,19 +108,6 @@ defmodule Ipncore.DnsRecord do
       end
 
     {_, _, _, _, value} = :dnslib.resource('#{domain_name} IN #{ttl} #{type} #{val}')
-    # case type_atom do
-    #   :a ->
-    #     Inet.to_ip(val)
-
-    #   :aaaa ->
-    #     Inet.to_ip(val)
-
-    #   :txt ->
-    #     to_charlist(val)
-
-    #   _ ->
-    #     to_charlist(val)
-    # end
 
     {object, count, exists} =
       cond do
@@ -275,7 +262,7 @@ defmodule Ipncore.DnsRecord do
     |> filter_domain(params)
     |> filter_type(params)
     |> filter_root(params)
-    |> filter_value(params)
+    |> filter_data(params)
     |> filter_search(params)
     |> filter_select(params)
     |> filter_limit(params)
@@ -301,11 +288,11 @@ defmodule Ipncore.DnsRecord do
 
   defp filter_root(query, _), do: query
 
-  defp filter_value(query, %{"value" => value}) do
-    where(query, [dr], dr.value == ^value)
+  defp filter_data(query, %{"data" => data}) do
+    where(query, [dr], dr.value == ^data)
   end
 
-  defp filter_value(query, _), do: query
+  defp filter_data(query, _), do: query
 
   defp filter_search(query, %{"q" => q}) do
     q = "%#{q}%"

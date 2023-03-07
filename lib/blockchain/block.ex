@@ -271,7 +271,7 @@ defmodule Ipncore.Block do
   def all(params) do
     from(Block)
     |> filter_offset(params)
-    |> filter_limit(params, 50, 100)
+    |> filter_limit(params)
     |> sort(params)
     |> filter_select(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))

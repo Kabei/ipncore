@@ -33,7 +33,7 @@ defmodule Ipncore.Txo do
     |> filter_token(params)
     |> filter_reason(params)
     |> filter_offset(params)
-    |> filter_limit(params, 50, 100)
+    |> filter_limit(params)
     |> filter_select(params)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))

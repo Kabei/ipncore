@@ -53,6 +53,7 @@ defmodule Ipncore.Event do
   @threshold_timeout Application.compile_env(:ipncore, :event_threshold_timeout)
   @max_size Application.compile_env(:ipncore, :event_max_size)
   @imposible Default.imposible_address()
+  @unit_time Default.unit_time()
   # @max_signatures Application.compile_env(:ipncore, :event_max_signatures, 5)
 
   @base :ev
@@ -658,9 +659,10 @@ defmodule Ipncore.Event do
   def all(params) do
     from(ev in Event)
     |> filter_block(params)
-    |> filter_time(params)
+    |> filter_type(params)
+    |> filter_date(params)
     |> filter_offset(params)
-    |> filter_limit(params, 20, 100)
+    |> filter_limit(params)
     |> filter_select(params)
     |> sort(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
@@ -673,23 +675,34 @@ defmodule Ipncore.Event do
 
   defp filter_block(query, _), do: query
 
-  defp filter_time(query, %{"from" => from_time, "to" => to_time}) do
-    where(query, [ev], ev.time >= ^from_time and ev.time <= ^to_time)
+  defp filter_type(query, %{"type" => type_name}) do
+    type_number = type_index(type_name)
+    where(query, [ev], ev.type == ^type_number)
   end
 
-  defp filter_time(query, %{"from" => from_time}) do
-    where(query, [ev], ev.time >= ^from_time)
+  defp filter_type(query, _), do: query
+
+  def filter_date(query, %{"dateStart" => start_date, "dateEnd" => end_date}) do
+    date_start = Utils.from_date_to_time(start_date, @unit_time)
+
+    date_end = Utils.from_date_to_time(end_date, @unit_time)
+
+    where(query, [ev], ev.time >= ^date_start and ev.time <= ^date_end)
   end
 
-  defp filter_time(query, %{"to" => to_time}) do
-    where(query, [ev], ev.time <= ^to_time)
+  def filter_date(query, %{"dateStart" => start_date}) do
+    date_start = Utils.from_date_to_time(start_date, @unit_time)
+
+    where(query, [ev], ev.time >= ^date_start)
   end
 
-  defp filter_time(query, _), do: query
+  def filter_date(query, %{"dateEnd" => end_date}) do
+    date_end = Utils.from_date_to_time(end_date, @unit_time)
 
-  # defp filter_select(query, %{"fmt" => "export"}) do
-  #   select(query, [ev], export_select())
-  # end
+    where(query, [ev], ev.time <= ^date_end)
+  end
+
+  def filter_date(query, _), do: query
 
   defp filter_select(query, _), do: select(query, [ev], map_select())
 

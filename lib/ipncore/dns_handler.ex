@@ -25,7 +25,7 @@ defmodule Ipncore.DNS do
 
   @dnswire_opts_binary edns: false, domain_compression: false
 
-  defmacro nx_domain(query_id, domain_list, type) do
+  defmacrop nx_domain(query_id, domain_list, type) do
     quote do
       :dnsmsg.new(
         %{
@@ -42,7 +42,7 @@ defmodule Ipncore.DNS do
     end
   end
 
-  defmacro not_implemented(query_id, domain_list, type) do
+  defmacrop not_implemented(query_id, domain_list, type) do
     quote do
       :dnsmsg.new(
         %{
@@ -101,7 +101,7 @@ defmodule Ipncore.DNS do
   end
 
   defp local_resolve!(query_id, {domain_list, type, _} = query) do
-    domain = Enum.join(domain_list, ".") |> to_charlist()
+    domain = Enum.join(domain_list, ".")
     Logger.debug("DNS-Query | #{domain} #{type}")
 
     resources =

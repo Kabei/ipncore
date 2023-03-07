@@ -26,11 +26,6 @@ defmodule Ipncore.Route.Blockchain do
 
   use Plug.ErrorHandler
 
-  @dns_headers [
-    {"content-type", "application/dns-message"},
-    {"accept", "application/dns-message"}
-  ]
-
   plug(:match)
   plug(:dispatch)
 

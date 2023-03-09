@@ -391,7 +391,7 @@ defmodule Ipncore.Domain do
     |> Repo.exists?(prefix: channel)
   end
 
-  defp price(name, years) do
+  def price(name, years) do
     x =
       name
       |> String.split(".")
@@ -410,7 +410,7 @@ defmodule Ipncore.Domain do
           5_000
       end
 
-    base + years * 5_000
+    base + (years - 1) * 5_000
     # throw("Invalid domain renewal year")
   end
 

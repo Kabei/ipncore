@@ -170,7 +170,7 @@ defmodule Ipncore.Balance do
     end
   end
 
-  defp filter_activity_select(query, %{"show" => "domains"}, _channel) do
+  defp filter_activity_select(query, %{"domains" => _}, _channel) do
     q1 =
       from(d in Domain,
         where: d.owner == parent_as(:txo).to,

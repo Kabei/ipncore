@@ -219,7 +219,7 @@ defmodule Ipncore.Balance do
     })
   end
 
-  defp activity_transform(data, address, %{"show" => "domains"}) do
+  defp activity_transform(data, address, %{"domains" => _}) do
     Enum.map(data, fn x ->
       %{
         id: Event.encode_id(x.id),

@@ -10,9 +10,10 @@ config :ipncore, :gps_device, "/dev/AMC0"
 hostname = System.get_env("HOSTNAME", "ippan.uk")
 data_dir = System.get_env("DATA_DIR", "data")
 # ssl certificates
-cert_dir = System.get_env("CERT_DIR", "priv/cert.pem")
-key_dir = System.get_env("KEY_DIR", "priv/key.pem")
-cacert_dir = System.get_env("CACERT_DIR", "priv/cacert.pem")
+cert_dir = System.get_env("CERT_DIR", "priv/cert/cert.pem")
+key_dir = System.get_env("KEY_DIR", "priv/cert/key.pem")
+cacert_dir = System.get_env("CACERT_DIR", "priv/cert/cacert.pem")
+falcon_dir = System.get_env("FALCON_DIR", "priv/cert/falcon.keys")
 
 # folder paths
 config :ipncore, :data_dir, data_dir
@@ -20,6 +21,8 @@ config :ipncore, :wallet_path, Path.join(data_dir, "wallets")
 config :ipncore, :balance_path, Path.join(data_dir, "balances")
 config :ipncore, :events_path, Path.join(data_dir, "events")
 config :ipncore, :post_path, Path.join(data_dir, "posts")
+
+config :ipncore, :falcon_dir, falcon_dir
 
 # DNS config
 config :ipncore, :dns,

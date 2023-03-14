@@ -82,7 +82,7 @@ defmodule Ipncore.DnsRecord do
         timestamp,
         channel
       ) do
-    type_number = String.upcase(type) |> type_to_number!()
+    type_number = type_to_number(type)
 
     {subdomain, domain} = Domain.split(hostname)
 
@@ -153,7 +153,7 @@ defmodule Ipncore.DnsRecord do
         timestamp,
         channel
       ) do
-    type_number = String.upcase(type) |> type_to_number!()
+    type_number = type_to_number(type)
 
     {subdomain, domain} = Domain.split(hostname)
 
@@ -199,7 +199,7 @@ defmodule Ipncore.DnsRecord do
     query =
       from(dr in DnsRecord,
         where:
-          dr.domain == ^domain and dr.name == ^subdomain and dr.type == ^type and
+          dr.domain == ^domain and dr.name == ^subdomain and dr.type == ^type_number and
             dr.index == ^index
       )
 
@@ -225,6 +225,7 @@ defmodule Ipncore.DnsRecord do
 
   def event_delete!(multi, [hostname, type, index], channel) do
     {subdomain, domain} = Domain.split(hostname)
+    type_number = type_to_number(type)
     domain_map = Domain.fetch!(domain)
 
     key = {domain, subdomain, type}
@@ -249,7 +250,7 @@ defmodule Ipncore.DnsRecord do
     query =
       from(dr in DnsRecord,
         where:
-          dr.domain == ^domain and dr.name == ^subdomain and dr.type == ^type and
+          dr.domain == ^domain and dr.name == ^subdomain and dr.type == ^type_number and
             dr.index == ^index
       )
 
@@ -274,7 +275,9 @@ defmodule Ipncore.DnsRecord do
   end
 
   def one(domain, type, channel) do
-    from(dr in DnsRecord, where: dr.domain == ^domain and dr.type == ^type)
+    type_number = type_to_number(type)
+
+    from(dr in DnsRecord, where: dr.domain == ^domain and dr.type == ^type_number)
     |> filter_select(nil)
     |> Repo.one(prefix: channel)
     |> transform()
@@ -301,6 +304,7 @@ defmodule Ipncore.DnsRecord do
   defp filter_domain(query, _), do: query
 
   defp filter_type(query, %{"type" => type}) do
+    type_number = type_to_number(type)
     where(query, [dr], dr.type == ^type)
   end
 
@@ -353,17 +357,18 @@ defmodule Ipncore.DnsRecord do
   defp transform(nil), do: nil
   defp transform(x), do: %{x | type: number_to_type(x.type)}
 
-  def type_to_number!("A"), do: 1
-  def type_to_number!("NS"), do: 2
-  def type_to_number!("CNAME"), do: 5
-  def type_to_number!("SOA"), do: 6
-  def type_to_number!("PTR"), do: 12
-  def type_to_number!("MX"), do: 15
-  def type_to_number!("TXT"), do: 16
-  def type_to_number!("AAAA"), do: 28
-  def type_to_number!("SRV"), do: 33
-  def type_to_number!("CAA"), do: 257
-  def type_to_number!(_), do: throw("DNS record type not supported")
+  def type_to_number("A"), do: 1
+  def type_to_number("NS"), do: 2
+  def type_to_number("CNAME"), do: 5
+  def type_to_number("SOA"), do: 6
+  def type_to_number("PTR"), do: 12
+  def type_to_number("MX"), do: 15
+  def type_to_number("TXT"), do: 16
+  def type_to_number("AAAA"), do: 28
+  def type_to_number("SRV"), do: 33
+  def type_to_number("CAA"), do: 257
+  def type_to_number(x) when is_integer(x), do: x
+  def type_to_number(x), do: 1
 
   def number_to_type(1), do: "A"
   def number_to_type(2), do: "NS"

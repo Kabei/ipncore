@@ -24,13 +24,11 @@ defmodule Ipncore.DNS.Server do
   end
 
   def handle_info({:udp, socket, ip, port, data}, state) do
-    spawn(fn ->
-      :poolboy.transaction(
-        :dns_worker,
-        fn pid -> GenServer.call(pid, {:dns, socket, ip, port, data}) end,
-        10_000
-      )
-    end)
+    :poolboy.transaction(
+      :dns_worker,
+      fn pid -> GenServer.call(pid, {:dns, socket, ip, port, data}) end,
+      5_000
+    )
 
     {:noreply, state}
   end

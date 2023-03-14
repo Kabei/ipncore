@@ -7,7 +7,7 @@ defmodule Ipncore.DNS.Worker do
   def init(_), do: {:ok, nil}
 
   @impl true
-  def handle_call({:udp, socket, ip, port, data}, _from, state) do
+  def handle_call({:udp, socket, ip, port, data, state}, _from, _state) do
     result =
       case Ipncore.DNS.handle(data, socket) do
         nil ->

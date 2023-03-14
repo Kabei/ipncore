@@ -27,7 +27,7 @@ defmodule Ipncore.DNS.Server do
     spawn(fn ->
       :poolboy.transaction(
         :dns_worker,
-        fn pid -> GenServer.call(pid, {:dns, socket, ip, port, data, state}) end,
+        fn pid -> GenServer.call(pid, {:dns, socket, ip, port, data}) end,
         10_000
       )
     end)

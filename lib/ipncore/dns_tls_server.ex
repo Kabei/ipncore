@@ -12,7 +12,7 @@ defmodule Ipncore.DNS.TlsServer do
     spawn(fn ->
       :poolboy.transaction(
         :dns_worker,
-        fn pid -> GenServer.call(pid, {:tls, socket, ip, port, data, state}) end,
+        fn pid -> GenServer.call(pid, {:tls, socket, rest}) end,
         10_000
       )
     end)

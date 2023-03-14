@@ -192,7 +192,7 @@ defmodule Ipncore.DnsRecord do
         [{_, records}] ->
           new_record = {data, ttl}
 
-          Enum.reduce(records, fn x, acc ->
+          Enum.reduce(records, [], fn x, acc ->
             hash = calc_hash(x)
 
             cond do

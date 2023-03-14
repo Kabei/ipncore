@@ -115,7 +115,6 @@ defmodule Ipncore.DnsRecord do
       [{_, records}] ->
         n = length(records)
         if n + 1 > @max_dns_record_items, do: throw("Max record by type exceeded")
-        new_record = [{data, ttl}]
         put({key, records ++ [new_record]})
     end
 

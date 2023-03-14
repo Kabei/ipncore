@@ -22,9 +22,9 @@ defmodule Ipncore.DnsRecord do
     field(:domain, :string)
     field(:name, :string)
     field(:type, :integer)
-    field(:index, :integer, default: 0)
     field(:data, :string)
     field(:ttl, :integer, default: 3600)
+    field(:hash, :binary)
   end
 
   def open do
@@ -52,6 +52,10 @@ defmodule Ipncore.DnsRecord do
 
   def exists?(domain, subdomain, type), do: DetsPlus.member?(@base, {domain, subdomain, type})
 
+  def calc_hash({data, ttl}), do: :crypto.hash(:md5, "#{data}#{ttl}")
+
+  def calc_hash(data, ttl), do: :crypto.hash(:md5, "#{data}#{ttl}")
+
   def check_new!(hostname, type, data, ttl, from_address)
       when is_binary(hostname) and is_binary(data) and ttl >= @min_ttl and ttl <= @max_ttl do
     hostname = String.downcase(hostname)
@@ -64,6 +68,8 @@ defmodule Ipncore.DnsRecord do
 
     domain_map = Domain.fetch!(domain, from_address)
     if @max_records < domain_map.records, do: throw("Max record exceeded")
+
+    {_, _, _, _, _value} = :dnslib.resource('#{hostname} IN #{ttl} #{type} #{data}')
 
     Tx.check_fee!(from_address, @price)
 
@@ -88,8 +94,6 @@ defmodule Ipncore.DnsRecord do
 
     domain_map = Domain.fetch!(domain)
 
-    {_, _, _, _, value} = :dnslib.resource('#{hostname} IN #{ttl} #{type} #{data}')
-
     multi =
       Tx.send_fee!(
         multi,
@@ -104,7 +108,8 @@ defmodule Ipncore.DnsRecord do
     key = {domain, subdomain, type_number}
     records = lookup(key)
     n = length(records)
-    new_record = {value, ttl}
+    if n + 1 > @max_dns_record_items, do: throw("Max record by type exceeded")
+    new_record = {data, ttl}
     put({key, records ++ [new_record]})
 
     multi = Domain.count_records(multi, domain_map, channel, 1)
@@ -113,16 +118,17 @@ defmodule Ipncore.DnsRecord do
       domain: domain,
       name: subdomain,
       type: type_number,
-      index: n,
       data: data,
-      ttl: ttl
+      ttl: ttl,
+      hash: calc_hash(new_record)
     }
 
     Ecto.Multi.insert_all(multi, :dns, DnsRecord, [struct], prefix: channel, returning: false)
   end
 
-  def check_update!(hostname, type, index, data, ttl, from_address)
-      when is_binary(hostname) and is_binary(data) and is_integer(index) and ttl >= @min_ttl and
+  def check_update!(hostname, type, hash_index16, data, ttl, from_address)
+      when is_binary(hostname) and is_binary(data) and byte_size(hash_index16) == 40 and
+             ttl >= @min_ttl and
              ttl <= @max_ttl do
     hostname = String.downcase(hostname)
     if type not in @dns_types, do: throw("DNS record type not supported")
@@ -135,6 +141,7 @@ defmodule Ipncore.DnsRecord do
     domain_map = Domain.fetch!(domain, from_address)
     if @max_records < domain_map.records, do: throw("Max record exceeded")
 
+    {_, _, _, _, _value} = :dnslib.resource('#{hostname} IN #{ttl} #{type} #{data}')
     Tx.check_fee!(from_address, @price)
 
     :ok
@@ -146,7 +153,7 @@ defmodule Ipncore.DnsRecord do
         from_address,
         hostname,
         type,
-        index,
+        hash_index16,
         data,
         ttl,
         validator_host,
@@ -156,8 +163,6 @@ defmodule Ipncore.DnsRecord do
     type_number = type_to_number(type)
 
     {subdomain, domain} = Domain.split(hostname)
-
-    {_, _, _, _, value} = :dnslib.resource('#{hostname} IN #{ttl} #{type} #{data}')
 
     multi =
       Tx.send_fee!(
@@ -171,6 +176,7 @@ defmodule Ipncore.DnsRecord do
       )
 
     key = {domain, subdomain, type_number}
+    hash_index = Base.decode16!(hash_index16, case: :mixed)
 
     new_records =
       case lookup(key) do
@@ -178,42 +184,42 @@ defmodule Ipncore.DnsRecord do
           throw("Invalid no records")
 
         records ->
-          n = length(records)
-          if n + 1 > @max_dns_record_items, do: throw("Max record by type exceeded")
-          if n < index, do: throw("Invalid record index")
-          new_record = {value, ttl}
-          List.update_at(records, index - 1, fn _ -> new_record end)
+          new_record = {data, ttl}
+
+          Enum.reduce(records, fn x, acc ->
+            hash = calc_hash(x)
+
+            cond do
+              hash_index == hash ->
+                acc ++ [new_record]
+
+              true ->
+                acc ++ [x]
+            end
+          end)
       end
 
     put({key, new_records})
-
-    struct = %{
-      domain: domain,
-      name: subdomain,
-      type: type_number,
-      index: index,
-      data: data,
-      ttl: ttl
-    }
 
     query =
       from(dr in DnsRecord,
         where:
           dr.domain == ^domain and dr.name == ^subdomain and dr.type == ^type_number and
-            dr.index == ^index
+            dr.hash == ^hash_index
       )
 
     Ecto.Multi.update_all(
       multi,
       :dns,
       query,
-      [set: [data: struct.data, ttl: struct.ttl]],
+      [set: [data: data, ttl: ttl]],
       prefix: channel,
       returning: false
     )
   end
 
-  def check_delete!([hostname, type, _index], from_address) do
+  def check_delete!([hostname, type, hash_index16], from_address)
+      when byte_size(hash_index16) == 40 do
     hostname = String.downcase(hostname)
     if type not in @dns_types, do: throw("DNS record type not supported")
     if not Match.hostname?(hostname), do: throw("Invalid hostname")
@@ -223,12 +229,13 @@ defmodule Ipncore.DnsRecord do
     if DetsPlus.member?(@base, {domain, subdomain, type}), do: throw("DNS record not exists")
   end
 
-  def event_delete!(multi, [hostname, type, index], channel) do
+  def event_delete!(multi, [hostname, type, hash_index16], channel) do
     {subdomain, domain} = Domain.split(hostname)
     type_number = type_to_number(type)
     domain_map = Domain.fetch!(domain)
 
     key = {domain, subdomain, type_number}
+    hash_index = Base.decode16!(hash_index16, case: :mixed)
 
     case lookup(key) do
       [] ->
@@ -236,12 +243,22 @@ defmodule Ipncore.DnsRecord do
 
       records ->
         n = length(records)
-        if n < index, do: throw("Invalid record index")
 
         if n == 1 do
           DetsPlus.delete(@base, key)
         else
-          put({key, List.delete_at(records, index)})
+          result =
+            Enum.reduce(records, [], fn x, acc ->
+              cond do
+                calc_hash(x) == hash_index ->
+                  acc
+
+                true ->
+                  acc ++ [x]
+              end
+            end)
+
+          put({key, result})
         end
     end
 
@@ -251,7 +268,7 @@ defmodule Ipncore.DnsRecord do
       from(dr in DnsRecord,
         where:
           dr.domain == ^domain and dr.name == ^subdomain and dr.type == ^type_number and
-            dr.index == ^index
+            dr.hash == ^hash_index
       )
 
     Ecto.Multi.delete_all(multi, :delete, query, prefix: channel, returning: false)
@@ -344,7 +361,8 @@ defmodule Ipncore.DnsRecord do
       name: dr.name,
       type: dr.type,
       data: dr.data,
-      ttl: dr.ttl
+      ttl: dr.ttl,
+      hash: dr.hash
     })
   end
 
@@ -355,7 +373,9 @@ defmodule Ipncore.DnsRecord do
   end
 
   defp transform(nil), do: nil
-  defp transform(x), do: %{x | type: number_to_type(x.type)}
+
+  defp transform(x),
+    do: %{x | type: number_to_type(x.type), hash: Base.encode16(x.hash, case: :lower)}
 
   def type_to_number("A"), do: 1
   def type_to_number("NS"), do: 2

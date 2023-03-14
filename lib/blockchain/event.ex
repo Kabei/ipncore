@@ -250,8 +250,8 @@ defmodule Ipncore.Event do
           DnsRecord.check_new!(name, type, data, ttl, from_address)
 
         "dns.update" ->
-          [name, type, index, data, ttl | _validator_host] = body
-          DnsRecord.check_update!(name, type, index, data, ttl, from_address)
+          [name, type, old_hash_index, data, ttl | _validator_host] = body
+          DnsRecord.check_update!(name, type, old_hash_index, data, ttl, from_address)
 
         "dns.delete" ->
           DnsRecord.check_delete!(body, from_address)
@@ -455,7 +455,7 @@ defmodule Ipncore.Event do
           )
 
         "dns.update" ->
-          [hostname, type, index, data, ttl, validator_host] = body
+          [hostname, type, old_hash_index, data, ttl, validator_host] = body
 
           DnsRecord.event_update!(
             multi,
@@ -463,7 +463,7 @@ defmodule Ipncore.Event do
             from_address,
             hostname,
             type,
-            index,
+            old_hash_index,
             data,
             ttl,
             validator_host,
@@ -476,9 +476,6 @@ defmodule Ipncore.Event do
       end
 
     put!({hash, time, next_index, @version, type_number, from_address, body, signature})
-
-    hash16 = encode_id(hash)
-    ev_body = %{event | hash: hash16}
 
     case result do
       :ok ->

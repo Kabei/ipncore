@@ -110,7 +110,7 @@ defmodule Ipncore.DNS do
   end
 
   defp local_resolve!(query_id, {domain_list, type, _} = query) do
-    {domain, subdomain} = Domain.split(domain_list)
+    {subdomain, domain} = Domain.split(domain_list)
 
     Logger.debug("DNS-Query | #{domain} #{type}")
     type_number = DnsRecord.type_atom_to_number(type)
@@ -122,8 +122,7 @@ defmodule Ipncore.DNS do
 
         records ->
           Enum.reduce(records, [], fn {x, ttl}, acc ->
-            rvalue = answer_response(type, x)
-            acc ++ [:dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')]
+            acc ++ [:dnslib.resource('#{domain} IN #{ttl} #{type} #{x}')]
           end)
       end
 

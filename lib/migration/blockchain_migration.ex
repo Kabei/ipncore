@@ -128,7 +128,7 @@ defmodule Ipncore.Migration.Blockchain do
         domain TEXT NOT NULL,
         name TEXT NOT NULL,
         type integer NOT NULL,
-        index integer NOT NULL,
+        hash bytea NOT NULL,
         data TEXT NOT NULL,
         ttl integer NOT NULL
       )

@@ -113,7 +113,7 @@ defmodule Ipncore.DNS do
     {domain, subdomain} = Domain.split(domain_list)
 
     Logger.debug("DNS-Query | #{domain} #{type}")
-    type_number = DnsRecord.type_to_number(type)
+    type_number = DnsRecord.type_atom_to_number(type)
 
     resources =
       case DnsRecord.lookup(domain, subdomain, type_number) do
@@ -165,7 +165,7 @@ defmodule Ipncore.DNS do
 
   defp remote_resolve!(query_id, {domain_list, type, _} = query) do
     domain = Enum.join(domain_list, ".") |> to_charlist()
-    tnumber = DnsRecord.type_to_number(type)
+    tnumber = DnsRecord.type_atom_to_number(type)
     Logger.debug("DNS-Query | #{domain} #{type}")
 
     opts = Application.get_env(:ipncore, :dns_resolve, @default_dns_resolve_opts)

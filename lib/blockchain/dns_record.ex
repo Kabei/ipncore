@@ -381,26 +381,26 @@ defmodule Ipncore.DnsRecord do
   def number_to_type(33), do: "SRV"
   def number_to_type(257), do: "CAA"
 
-  def type_to_number(:a), do: 1
-  def type_to_number(:ns), do: 2
-  def type_to_number(:cname), do: 5
-  def type_to_number(:soa), do: 6
-  def type_to_number(:wks), do: 11
-  def type_to_number(:ptr), do: 12
-  def type_to_number(:hinfo), do: 13
-  def type_to_number(:mx), do: 15
-  def type_to_number(:txt), do: 16
-  def type_to_number(:aaaa), do: 28
-  def type_to_number(:srv), do: 33
-  def type_to_number(:ds), do: 43
-  def type_to_number(:sshfp), do: 44
-  def type_to_number(:rrsig), do: 46
-  def type_to_number(:nsec), do: 47
-  def type_to_number(:dnskey), do: 48
-  def type_to_number(:https), do: 65
-  def type_to_number(:spf), do: 99
-  def type_to_number(:all), do: 255
-  def type_to_number(:uri), do: 256
-  def type_to_number(:caa), do: 257
-  def type_to_number(x), do: x
+  def type_atom_to_number(:a), do: 1
+  def type_atom_to_number(:ns), do: 2
+  def type_atom_to_number(:cname), do: 5
+  def type_atom_to_number(:soa), do: 6
+  def type_atom_to_number(:wks), do: 11
+  def type_atom_to_number(:ptr), do: 12
+  def type_atom_to_number(:hinfo), do: 13
+  def type_atom_to_number(:mx), do: 15
+  def type_atom_to_number(:txt), do: 16
+  def type_atom_to_number(:aaaa), do: 28
+  def type_atom_to_number(:srv), do: 33
+  def type_atom_to_number(:ds), do: 43
+  def type_atom_to_number(:sshfp), do: 44
+  def type_atom_to_number(:rrsig), do: 46
+  def type_atom_to_number(:nsec), do: 47
+  def type_atom_to_number(:dnskey), do: 48
+  def type_atom_to_number(:https), do: 65
+  def type_atom_to_number(:spf), do: 99
+  def type_atom_to_number(:all), do: 255
+  def type_atom_to_number(:uri), do: 256
+  def type_atom_to_number(:caa), do: 257
+  def type_atom_to_number(x), do: x
 end

@@ -228,7 +228,7 @@ defmodule Ipncore.DnsRecord do
     type_number = type_to_number(type)
     domain_map = Domain.fetch!(domain)
 
-    key = {domain, subdomain, type}
+    key = {domain, subdomain, type_number}
 
     case lookup(key) do
       [] ->

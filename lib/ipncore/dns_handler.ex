@@ -74,8 +74,8 @@ defmodule Ipncore.DNS do
     :poolboy.child_spec(:worker,
       name: {:local, :dns_worker},
       worker_module: Ipncore.DNS.Worker,
-      size: 10,
-      max_overflow: 2
+      size: 20,
+      max_overflow: 0
     )
   end
 

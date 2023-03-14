@@ -9,11 +9,13 @@ defmodule Ipncore.DNS.TlsServer do
 
   @impl ThousandIsland.Handler
   def handle_data(<<_first::bytes-size(2), rest::binary>>, socket, state) do
-    :poolboy.transaction(
-      :dns_worker,
-      fn pid -> GenServer.call(pid, {:tls, socket, rest}) end,
-      5_000
-    )
+    spawn(fn ->
+      :poolboy.transaction(
+        :dns_worker,
+        fn pid -> GenServer.call(pid, {:tls, socket, rest}) end,
+        5_000
+      )
+    end)
 
     {:continue, state}
   end

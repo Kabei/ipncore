@@ -40,6 +40,7 @@ config :ipncore, :dns_tls,
   num_acceptors: 10,
   read_timeout: 15_000,
   transport_options: [
+    cacertfile: cacert_dir,
     certfile: cert_dir,
     keyfile: key_dir,
     send_timeout: 15_000
@@ -68,6 +69,7 @@ config :ipncore, :https,
   num_acceptors: 10,
   read_timeout: 15_000,
   transport_options: [
+    cacertfile: cacert_dir,
     certfile: cert_dir,
     keyfile: key_dir,
     backlog: 1024,

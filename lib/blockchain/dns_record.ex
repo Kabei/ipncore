@@ -54,8 +54,6 @@ defmodule Ipncore.DnsRecord do
 
   def calc_hash({data, ttl}), do: :crypto.hash(:md5, "#{data}#{ttl}")
 
-  def calc_hash(data, ttl), do: :crypto.hash(:md5, "#{data}#{ttl}")
-
   def check_new!(hostname, type, data, ttl, from_address)
       when is_binary(hostname) and is_binary(data) and ttl >= @min_ttl and ttl <= @max_ttl do
     hostname = String.downcase(hostname)
@@ -170,17 +168,6 @@ defmodule Ipncore.DnsRecord do
 
     {subdomain, domain} = Domain.split(hostname)
 
-    multi =
-      Tx.send_fee!(
-        multi,
-        event_id,
-        from_address,
-        validator_host,
-        @price,
-        timestamp,
-        channel
-      )
-
     key = {domain, subdomain, type_number}
     hash_index = Base.decode16!(hash_index16, case: :mixed)
     record = {data, ttl}
@@ -204,6 +191,17 @@ defmodule Ipncore.DnsRecord do
             end
           end)
       end
+
+    multi =
+      Tx.send_fee!(
+        multi,
+        event_id,
+        from_address,
+        validator_host,
+        @price,
+        timestamp,
+        channel
+      )
 
     put({key, new_records})
 

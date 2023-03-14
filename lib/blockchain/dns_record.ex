@@ -183,6 +183,8 @@ defmodule Ipncore.DnsRecord do
 
     key = {domain, subdomain, type_number}
     hash_index = Base.decode16!(hash_index16, case: :mixed)
+    record = {data, ttl}
+    new_hash = calc_hash(record)
 
     new_records =
       case lookup(key) do
@@ -190,14 +192,12 @@ defmodule Ipncore.DnsRecord do
           throw("Invalid no records")
 
         [{_, records}] ->
-          new_record = {data, ttl}
-
           Enum.reduce(records, [], fn x, acc ->
             hash = calc_hash(x)
 
             cond do
               hash_index == hash ->
-                acc ++ [new_record]
+                acc ++ [record]
 
               true ->
                 acc ++ [x]
@@ -218,7 +218,7 @@ defmodule Ipncore.DnsRecord do
       multi,
       :dns,
       query,
-      [set: [data: data, ttl: ttl]],
+      [set: [data: data, ttl: ttl, hash: new_hash]],
       prefix: channel,
       returning: false
     )

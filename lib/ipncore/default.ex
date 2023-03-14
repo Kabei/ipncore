@@ -15,5 +15,5 @@ defmodule Default do
   def node_name, do: Application.get_env(:ipncore, :node)[:name]
   def address, do: Application.get_env(:ipncore, :address)
   def address58, do: Application.get_env(:ipncore, :address58)
-  def data_dir, do: Application.get_env(:ipncore, :data_path, "data")
+  def data_dir, do: Application.get_env(:ipncore, :data_dir, "data")
 end

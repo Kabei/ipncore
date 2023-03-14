@@ -3,8 +3,6 @@ defmodule Ipncore.DNS.Server do
   DNS server based on `GenServer`.
   """
 
-  # @callback handle(DNS.Record.t(), {:inet.ip(), :inet.port()}) :: DNS.Record.t()
-  require Logger
   use GenServer
 
   @doc """
@@ -18,25 +16,21 @@ defmodule Ipncore.DNS.Server do
   end
 
   def init(ip: ip, port: port) do
-    socket = Socket.UDP.open!(port, as: :binary, mode: :active, local: [address: ip])
+    {:ok, socket} = :gen_udp.open(port, [:binary, active: true, ip: ip, reuseaddr: true])
+
     IO.puts("DNS Server listening at UDP #{Inet.to_str(ip)}:#{port}")
 
     {:ok, %{port: port, socket: socket}}
   end
 
-  def handle_info({:udp, client, ip, wtv, data}, state) do
-    try do
-      case Ipncore.DNS.handle(data, client) do
-        nil ->
-          :ok
-
-        response ->
-          Socket.Datagram.send!(state.socket, response, {ip, wtv})
-      end
-    rescue
-      e ->
-        Logger.error(Exception.format(:error, e, __STACKTRACE__))
-    end
+  def handle_info({:udp, socket, ip, port, data}, state) do
+    spawn(fn ->
+      :poolboy.transaction(
+        :dns_worker,
+        fn pid -> GenServer.call(pid, {:dns, socket, ip, port, data, state}) end,
+        10_000
+      )
+    end)
 
     {:noreply, state}
   end

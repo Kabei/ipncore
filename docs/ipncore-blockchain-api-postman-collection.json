@@ -271,19 +271,19 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}{{API_VERSION}}/activity/1x2N6Fd8qGXKGg1dSknPQMumqdXrNT?domains=1&lmt=30&start=0",
+					"raw": "{{PROTOCOL}}{{HOST}}{{API_VERSION}}/activity/1x2cgR1ygDDdytSWWCdTu7JGeZe7ip?domains=1&lmt=30&start=0",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}{{API_VERSION}}"
 					],
 					"path": [
 						"activity",
-						"1x2N6Fd8qGXKGg1dSknPQMumqdXrNT"
+						"1x2cgR1ygDDdytSWWCdTu7JGeZe7ip"
 					],
 					"query": [
 						{
 							"key": "domains",
 							"value": "1",
-							"description": "show domain name"
+							"description": "show domain names"
 						},
 						{
 							"key": "lmt",
@@ -292,16 +292,37 @@
 						},
 						{
 							"key": "start",
-							"value": "0"
+							"value": "0",
+							"description": "offset of items"
 						},
 						{
 							"key": "dateStart",
-							"value": "2023-01-01",
+							"value": "2023-01-01T00:00:00Z",
+							"description": "start date, iso8601",
 							"disabled": true
 						},
 						{
 							"key": "dateEnd",
-							"value": "2023-01-10",
+							"value": "2023-01-10T23:59:59Z",
+							"description": "end date, iso8601",
+							"disabled": true
+						},
+						{
+							"key": "operation",
+							"value": "in",
+							"description": "on. out",
+							"disabled": true
+						},
+						{
+							"key": "reason",
+							"value": "S",
+							"description": "S (sends), % (fees), R (refunds)",
+							"disabled": true
+						},
+						{
+							"key": "type",
+							"value": "tx.send",
+							"description": "filter by event type",
 							"disabled": true
 						}
 					]
@@ -428,19 +449,20 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}{{API_VERSION}}/balances/1x3dcvB6nq1uPqwG3W6njMhNwGmhrg?show=all",
+					"raw": "{{PROTOCOL}}{{HOST}}{{API_VERSION}}/balances/1x2cgR1ygDDdytSWWCdTu7JGeZe7ip",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}{{API_VERSION}}"
 					],
 					"path": [
 						"balances",
-						"1x3dcvB6nq1uPqwG3W6njMhNwGmhrg"
+						"1x2cgR1ygDDdytSWWCdTu7JGeZe7ip"
 					],
 					"query": [
 						{
 							"key": "show",
 							"value": "all",
-							"description": "Show all balances including unused"
+							"description": "Show all balances including unused",
+							"disabled": true
 						},
 						{
 							"key": "lmt",
@@ -479,17 +501,17 @@
 			"response": []
 		},
 		{
-			"name": "Status",
+			"name": "Stats",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{PROTOCOL}}{{HOST}}{{API_VERSION}}/status",
+					"raw": "{{PROTOCOL}}{{HOST}}{{API_VERSION}}/stats",
 					"host": [
 						"{{PROTOCOL}}{{HOST}}{{API_VERSION}}"
 					],
 					"path": [
-						"status"
+						"stats"
 					]
 				}
 			},

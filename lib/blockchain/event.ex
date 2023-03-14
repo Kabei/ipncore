@@ -22,6 +22,7 @@ defmodule Ipncore.Event do
 
   deftypes do
     [
+      {1, "pubkey.new"},
       {100, "validator.new"},
       {101, "validator.update"},
       {102, "validator.delete"},
@@ -36,14 +37,14 @@ defmodule Ipncore.Event do
       {215, "tx.reward"},
       {216, "tx.burn"},
       {250, "balance.lock"},
+      {251, "balance.unlock"},
       {400, "domain.new"},
       {401, "domain.update"},
       {402, "domain.delete"},
       {403, "domain.renew"},
-      {410, "dns.set"},
-      {411, "dns.push"},
-      {412, "dns.drop"},
-      {1000, "pubkey.new"}
+      {410, "dns.new"},
+      {411, "dns.update"},
+      {412, "dns.delete"}
     ]
   else
     {false, false}
@@ -244,16 +245,16 @@ defmodule Ipncore.Event do
             size
           )
 
-        "dns.set" ->
-          [name, type, value, ttl | _validator_host] = body
-          DnsRecord.check_push!(name, type, from_address, value, ttl)
+        "dns.new" ->
+          [name, type, data, ttl | _validator_host] = body
+          DnsRecord.check_new!(name, type, data, ttl, from_address)
 
-        "dns.push" ->
-          [name, type, value, ttl | _validator_host] = body
-          DnsRecord.check_push!(name, type, from_address, value, ttl)
+        "dns.update" ->
+          [name, type, index, data, ttl | _validator_host] = body
+          DnsRecord.check_update!(name, type, index, data, ttl, from_address)
 
-        "dns.drop" ->
-          DnsRecord.check_drop!(body, from_address)
+        "dns.delete" ->
+          DnsRecord.check_delete!(body, from_address)
 
         _ ->
           throw("Invalid Match Type")
@@ -437,45 +438,49 @@ defmodule Ipncore.Event do
             channel
           )
 
-        "dns.set" ->
-          [name, type, value, ttl, validator_host] = body
+        "dns.new" ->
+          [hostname, type, data, ttl, validator_host] = body
 
-          DnsRecord.event_push!(
+          DnsRecord.event_new!(
             multi,
             hash,
             from_address,
-            name,
+            hostname,
             type,
-            value,
+            data,
             ttl,
             validator_host,
             time,
-            true,
             channel
           )
 
-        "dns.push" ->
-          [name, type, value, ttl, validator_host] = body
+        "dns.update" ->
+          [hostname, type, index, data, ttl, validator_host] = body
 
-          DnsRecord.event_push!(
+          DnsRecord.event_update!(
             multi,
             hash,
             from_address,
-            name,
+            hostname,
             type,
-            value,
+            index,
+            data,
             ttl,
             validator_host,
             time,
-            false,
             channel
           )
 
-        "dns.drop" ->
-          DnsRecord.event_drop!(multi, body, channel)
+        "dns.delete" ->
+          DnsRecord.event_delete!(multi, body, channel)
       end
 
     put!({hash, time, next_index, @version, type_number, from_address, body, signature})
+
+    hash16 = encode_id(hash)
+    ev_body = %{event | hash: hash16}
+    # Ipncore.WebSocketHandler.push(type, ev_body)
+    Ipncore.WebSocketHandler.push("#{type}:#{hash16}", ev_body)
 
     case result do
       :ok ->

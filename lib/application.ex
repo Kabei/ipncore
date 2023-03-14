@@ -30,16 +30,8 @@ defmodule Ipncore.Application do
   @impl true
   def start(_type, _args) do
     try do
-      ## Ipncore.ConfigProvider.read()
-
-      # deliver
-      # post_path =
-      #   Application.get_env(@otp_app, :post_path)
-      #   |> Path.expand()
-      # Application.put_env(@otp_app, :post_path, post_path)
-
       # create data folder
-      File.mkdir(Application.get_env(@otp_app, :data_path, "data"))
+      File.mkdir(Application.get_env(@otp_app, :data_dir, "data"))
 
       # load node config
       node_config()
@@ -70,10 +62,10 @@ defmodule Ipncore.Application do
       children = [
         Repo,
         RepoWorker,
+        Ipncore.DNS.child_spec(),
+        Supervisor.child_spec({Phoenix.PubSub, name: :events}, id: :events),
         dns_udp_server(),
         dns_tls_server(),
-        # dns_udp_ipv6_server(),
-        # imp_client(),
         http_server(),
         https_server()
       ]
@@ -112,8 +104,7 @@ defmodule Ipncore.Application do
   end
 
   defp node_config do
-    opts = Application.get_env(@otp_app, :https)
-    cert_dir = opts[:cert_dir] || :code.priv_dir(@otp_app)
+    cert_dir = Application.get_env(@otp_app, :cert_dir)
 
     {falcon_pk, _falcon_sk} = Path.join(cert_dir, "falcon.keys") |> Falcon.read_file!()
 
@@ -121,11 +112,6 @@ defmodule Ipncore.Application do
     Application.put_env(@otp_app, :address, address)
     Application.put_env(@otp_app, :address58, Address.to_text(address))
   end
-
-  # defp imp_client do
-  #   opts = Application.get_env(@otp_app, :imp_client)
-  #   {Ipncore.IMP.Client, opts}
-  # end
 
   defp dns_udp_server do
     opts = Application.get_env(@otp_app, :dns)
@@ -135,13 +121,8 @@ defmodule Ipncore.Application do
   end
 
   def dns_tls_server do
-    tls_opts = Application.get_env(@otp_app, :dns_tls) || throw("DNS-over-TLS options not found")
-
-    {
-      ThousandIsland,
-      [handler_module: Ipncore.DNS.TlsServer, transport_module: ThousandIsland.Transports.SSL] ++
-        tls_opts
-    }
+    opts = Application.get_env(@otp_app, :dns_tls)
+    {ThousandIsland, opts}
   end
 
   defp dns_udp_ipv6_server do
@@ -153,48 +134,11 @@ defmodule Ipncore.Application do
 
   defp http_server do
     opts = Application.get_env(@otp_app, :http)
-
-    {Plug.Cowboy,
-     scheme: :http,
-     plug: Ipncore.Endpoint,
-     options: [
-       net: opts[:net] || :inet,
-       port: opts[:port] || 80,
-       protocol_options: [
-         idle_timeout: 60_000,
-         max_keepalive: 5_000_000
-       ],
-       transport_options: [
-         num_acceptors: opts[:acceptors] || 100,
-         max_connections: opts[:max_conn] || 16_384
-       ]
-     ]}
+    {Bandit, plug: Ipncore.Endpoint, scheme: :http, options: opts}
   end
 
   defp https_server do
     opts = Application.get_env(@otp_app, :https)
-    cert_dir = opts[:cert_dir] || :code.priv_dir(@otp_app)
-
-    {Plug.Cowboy,
-     scheme: :https,
-     plug: Ipncore.Endpoint,
-     options: [
-       net: opts[:net] || :inet,
-       compress: true,
-       cipher_suite: :strong,
-       otp_app: @otp_app,
-       port: opts[:port] || 443,
-       keyfile: Path.join(cert_dir, "key.pem"),
-       certfile: Path.join(cert_dir, "cert.pem"),
-       cacertfile: Path.join(cert_dir, "cacert.pem"),
-       protocol_options: [
-         idle_timeout: 60_000,
-         max_keepalive: 5_000_000
-       ],
-       transport_options: [
-         num_acceptors: opts[:acceptors] || 100,
-         max_connections: opts[:max_conn] || 16_384
-       ]
-     ]}
+    {Bandit, plug: Ipncore.Endpoint, scheme: :https, options: opts}
   end
 end

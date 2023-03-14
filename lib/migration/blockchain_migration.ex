@@ -126,10 +126,11 @@ defmodule Ipncore.Migration.Blockchain do
       """
       CREATE TABLE IF NOT EXISTS "#{channel}".dns_record(
         domain TEXT NOT NULL,
-        type TEXT NOT NULL,
-        value TEXT NOT NULL,
-        ttl integer NOT NULL,
-        root TEXT NOT NULL
+        name TEXT NOT NULL,
+        type integer NOT NULL,
+        index integer NOT NULL,
+        data TEXT NOT NULL,
+        ttl integer NOT NULL
       )
       """
       # """

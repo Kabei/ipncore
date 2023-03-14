@@ -4,7 +4,7 @@ defmodule Ipncore.DNS do
   """
   # @behaviour Ipncore.DNS.Server
   # use Ipncore.DNS.UdpServer
-  alias Ipncore.DnsRecord
+  alias Ipncore.{Domain, DnsRecord}
   require Logger
 
   @regex ~r/^(cmm|npo|ntw|cyber|ipn|wlt|iwl|ippan|btc|cyb|fin|geo|and|gold|god|lux|yes|bbb|i|u|btw|nws|diy|iot|69|opasy|ops|avatar|ultra|more|daddy|bro|sister|fck|tribe|mogul|tequila|gpt|soho|voice|eye|hodl|linux|youxi|we|genius|ciao|ok|dns|cyborg|replicant|air|amigo|bbq|burger|diamond|invest|jewel|pop|rap|rice|rod|soft|tkt|toy|vida|zoom|papi|hola)$/
@@ -65,12 +65,21 @@ defmodule Ipncore.DNS do
                                            _func},
                                           acc ->
         rvalue = answer_response(type, value)
-        acc ++ [:dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')]
+        acc ++ [:dnslib.resource('#{domain} IN 3600 #{type} #{rvalue}')]
       end)
     end
   end
 
-  def handle(data, _cl) do
+  def child_spec do
+    :poolboy.child_spec(:worker,
+      name: {:local, :dns_worker},
+      worker_module: Ipncore.DNS.Worker,
+      size: 10,
+      max_overflow: 2
+    )
+  end
+
+  def handle(data, _client) do
     {:ok, %{ID: query_id, Questions: questions}, _} = :dnswire.from_binary(data)
     question = {domain_list, type, _} = questions |> hd()
     # Logger.info(inspect(domain_list))
@@ -82,7 +91,7 @@ defmodule Ipncore.DNS do
             local_resolve!(query_id, question)
 
           false ->
-            proxy_resolve!(query_id, question)
+            remote_resolve!(query_id, question)
         end
       rescue
         FunctionClauseError ->
@@ -101,23 +110,21 @@ defmodule Ipncore.DNS do
   end
 
   defp local_resolve!(query_id, {domain_list, type, _} = query) do
-    domain = Enum.join(domain_list, ".")
+    {domain, subdomain} = Domain.split(domain_list)
+
     Logger.debug("DNS-Query | #{domain} #{type}")
+    type_number = DnsRecord.type_to_number(type)
 
     resources =
-      case DnsRecord.lookup(domain, type) do
-        nil ->
+      case DnsRecord.lookup(domain, subdomain, type_number) do
+        [] ->
           throw(:nxdomain)
 
-        {values, ttl} when is_list(values) ->
-          Enum.reduce(values, [], fn x, acc ->
+        records ->
+          Enum.reduce(records, [], fn {x, ttl}, acc ->
             rvalue = answer_response(type, x)
             acc ++ [:dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')]
           end)
-
-        {value, ttl} ->
-          rvalue = answer_response(type, value)
-          :dnslib.resource('#{domain} IN #{ttl} #{type} #{rvalue}')
       end
 
     msg =
@@ -156,12 +163,12 @@ defmodule Ipncore.DNS do
     bin
   end
 
-  defp proxy_resolve!(query_id, {domain_list, type, _} = query) do
+  defp remote_resolve!(query_id, {domain_list, type, _} = query) do
     domain = Enum.join(domain_list, ".") |> to_charlist()
-    tnumber = type_to_number(type)
+    tnumber = DnsRecord.type_to_number(type)
     Logger.debug("DNS-Query | #{domain} #{type}")
 
-    opts = Application.get_env(:ipncore, :dns_resolve_opts, @default_dns_resolve_opts)
+    opts = Application.get_env(:ipncore, :dns_resolve, @default_dns_resolve_opts)
 
     resolve = :inet_res.resolve(domain, :in, tnumber, opts)
     # IO.inspect(resolve)
@@ -227,25 +234,4 @@ defmodule Ipncore.DNS do
     do: Tuple.to_list(value) |> Enum.join(" ")
 
   defp answer_response(_type, value), do: value
-
-  defp type_to_number(:a), do: 1
-  defp type_to_number(:ns), do: 2
-  defp type_to_number(:cname), do: 5
-  defp type_to_number(:soa), do: 6
-  defp type_to_number(:wks), do: 11
-  defp type_to_number(:ptr), do: 12
-  defp type_to_number(:hinfo), do: 13
-  defp type_to_number(:mx), do: 15
-  defp type_to_number(:txt), do: 16
-  defp type_to_number(:aaaa), do: 28
-  defp type_to_number(:srv), do: 33
-  defp type_to_number(:ds), do: 43
-  defp type_to_number(:sshfp), do: 44
-  defp type_to_number(:rrsig), do: 46
-  defp type_to_number(:nsec), do: 47
-  defp type_to_number(:dnskey), do: 48
-  defp type_to_number(:spf), do: 99
-  defp type_to_number(:all), do: 255
-  defp type_to_number(:uri), do: 256
-  defp type_to_number(:caa), do: 257
 end

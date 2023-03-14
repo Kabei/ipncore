@@ -2,16 +2,20 @@ import Config
 
 # prod = config_env() == :prod
 
-config :ipncore, :central, "ippan.net"
+config :ipncore, :central, "ippan.com"
 config :ipncore, :channel, "BETA-NET"
 config :ipncore, :gps_device, "/dev/AMC0"
 
 # environment variables
+hostname = System.get_env("HOSTNAME", "ippan.uk")
 data_dir = System.get_env("DATA_DIR", "data")
-cert_dir = System.get_env("CERT_DIR", "priv/cert")
+# ssl certificates
+cert_dir = System.get_env("CERT_DIR", "priv/cert.pem")
+key_dir = System.get_env("KEY_DIR", "priv/key.pem")
+cacert_dir = System.get_env("CACERT_DIR", "priv/cacert.pem")
 
 # folder paths
-config :ipncore, :data_path, data_dir
+config :ipncore, :data_dir, data_dir
 config :ipncore, :wallet_path, Path.join(data_dir, "wallets")
 config :ipncore, :balance_path, Path.join(data_dir, "balances")
 config :ipncore, :events_path, Path.join(data_dir, "events")
@@ -19,54 +23,59 @@ config :ipncore, :post_path, Path.join(data_dir, "posts")
 
 # DNS config
 config :ipncore, :dns,
-  ip: '0.0.0.0',
+  ip: {0, 0, 0, 0},
   port: 53
 
 config :ipncore, :dns6,
-  ip: '::',
+  ip: {0, 0, 0, 0, 0, 0, 0, 0},
   port: 53
 
 config :ipncore, :dns_tls,
-  ip: {0, 0, 0, 0},
+  handler_module: Ipncore.DNS.TlsServer,
+  transport_module: ThousandIsland.Transports.SSL,
   port: 853,
+  num_acceptors: 10,
+  read_timeout: 15_000,
   transport_options: [
-    certfile: Path.join(cert_dir, "cert.pem"),
-    cacertfile: Path.join(cert_dir, "cacert.pem"),
-    keyfile: Path.join(cert_dir, "key.pem"),
+    certfile: cert_dir,
+    keyfile: key_dir,
     send_timeout: 15_000
-  ],
-  num_acceptors: 20,
-  read_timeout: :infinity
-
-# IMP config
-# config :ipncore, :imp_client,
-#   host: "us2.ippan.net",
-#   port: 8484,
-#   cert_dir: cert_dir,
-#   node_type: 0,
-#   role: :core
+  ]
 
 config :ipncore, :node,
-  name: System.get_env("NODE_NAME", "ippan.uk"),
+  name: hostname,
   port: 5050
-
-# network: :ipv4
 
 # HTTP config
 config :ipncore, :http,
-  host: "0.0.0.0",
   port: 80,
-  acceptors: 100,
-  max_conn: 16384
+  num_acceptors: 10,
+  read_timeout: 15_000,
+  transport_options: [
+    backlog: 1024,
+    nodelay: true,
+    linger: {true, 30},
+    send_timeout: 15_000,
+    send_timeout_close: true,
+    reuseaddr: true
+  ]
 
 config :ipncore, :https,
-  host: "0.0.0.0",
   port: 443,
-  cert_dir: cert_dir,
-  acceptors: 100,
-  max_conn: 16384
+  num_acceptors: 10,
+  read_timeout: 15_000,
+  transport_options: [
+    certfile: cert_dir,
+    keyfile: key_dir,
+    backlog: 1024,
+    nodelay: true,
+    linger: {true, 30},
+    send_timeout: 15_000,
+    send_timeout_close: true,
+    reuseaddr: true
+  ]
 
-# database
+# database config
 config :ipncore, Ipncore.Repo,
   hostname: "localhost",
   username: "kambei",
@@ -77,9 +86,9 @@ config :ipncore, Ipncore.Repo,
   show_sensitive_data_on_connection_error: true,
   ssl: false,
   ssl_opts: [
-    cacertfile: Path.join(cert_dir, "cacert.pem"),
-    certfile: Path.join(cert_dir, "cert.pem"),
-    keyfile: Path.join(cert_dir, "key.pem")
+    cacertfile: cacert_dir,
+    certfile: cert_dir,
+    keyfile: key_dir
   ],
   prepare: :unnamed,
   timeout: 30_000,
@@ -104,7 +113,7 @@ config :ipncore, :ntp_servers, [
   'time.windows.com'
 ]
 
-config :ipncore, :dns_resolve_opts,
+config :ipncore, :dns_resolve,
   alt_nameservers: [
     {{8, 8, 8, 8}, 53},
     {{1, 0, 0, 1}, 53},

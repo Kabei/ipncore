@@ -2,6 +2,10 @@ defmodule Ipncore.Router do
   use Plug.Router
   use Plug.ErrorHandler
 
+  # websocket
+  @timeout 120_000
+  @max_frame_size 8_000_000
+
   @dns_headers [
     {"content-type", "application/dns-message"},
     {"accept", "application/dns-message"}
@@ -9,6 +13,21 @@ defmodule Ipncore.Router do
 
   plug(:match)
   plug(:dispatch)
+
+  get "/v1" do
+    case Bandit.WebSocket.Handshake.valid_upgrade?(conn) do
+      true ->
+        Plug.Conn.upgrade_adapter(
+          conn,
+          :websocket,
+          {Ipncore.WebSockHandler, conn.params,
+           [timeout: @timeout, max_frame_size: @max_frame_size]}
+        )
+
+      false ->
+        Plug.Conn.send_resp(conn, 204, <<>>)
+    end
+  end
 
   forward("/blockchain", to: Ipncore.Route.Blockchain)
 

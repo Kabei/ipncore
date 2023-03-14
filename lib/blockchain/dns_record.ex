@@ -9,21 +9,21 @@ defmodule Ipncore.DnsRecord do
   @base :dns
   @filename "dns.db"
   @dns_types ~w(a ns cname soa ptr mx txt aaaa spf srv ds sshfp rrsig nsec dnskey caa uri hinfo wks)
-  @dns_types_multi_records ~w(a aaaa txt)a
   @max_domain_size 255
   @min_ttl 300
   @max_ttl 2_147_483_647
   @max_records 500
-  @max_dns_record_items 5
+  @max_dns_record_items 10
   @max_bytes_size 255
   @price 500
 
   schema "dns_record" do
     field(:domain, :string)
-    field(:type, :string)
-    field(:value, :string)
+    field(:name, :string)
+    field(:type, :integer)
+    field(:index, :integer, default: 0)
+    field(:data, :string)
     field(:ttl, :integer, default: 3600)
-    field(:root, :string)
   end
 
   def open do
@@ -40,96 +40,54 @@ defmodule Ipncore.DnsRecord do
     DetsPlus.insert(@base, x)
   end
 
-  def lookup(domain, type) do
-    DetsPlus.lookup(@base, {domain, type})
-    |> case do
-      [{_, value, ttl, _}] ->
-        {value, ttl}
-
-      _ ->
-        nil
-    end
+  def lookup(domain) do
+    DetsPlus.lookup(@base, domain)
   end
 
-  def exists?(domain, type), do: DetsPlus.member?(@base, {domain, type})
+  @spec lookup(binary, binary, integer) :: list()
+  def lookup(domain, subdomain, type) do
+    DetsPlus.lookup(@base, {domain, subdomain, type})
+  end
 
-  def check_push!(domain_name, type, from_address, value, ttl)
-      when is_binary(domain_name) and is_binary(value) and ttl >= @min_ttl and ttl <= @max_ttl do
+  def exists?(domain, subdomain, type), do: DetsPlus.member?(@base, {domain, subdomain, type})
+
+  def check_new!(hostname, type, data, ttl, from_address)
+      when is_binary(hostname) and is_binary(data) and ttl >= @min_ttl and ttl <= @max_ttl do
+    hostname = String.downcase(hostname)
     if type not in @dns_types, do: throw("DNS record type not supported")
-    if byte_size(domain_name) > @max_domain_size, do: throw("DNS record domain size exceeded")
-    if byte_size(value) > @max_bytes_size, do: throw("DNS record value size exceeded")
+    if byte_size(hostname) > @max_domain_size, do: throw("DNS record domain size exceeded")
+    if byte_size(data) > @max_bytes_size, do: throw("DNS record data size exceeded")
+    if not Match.hostname?(hostname), do: throw("Invalid hostname")
 
-    domain_root = Domain.extract_root(domain_name)
+    domain = Domain.extract(hostname)
 
-    # check subdomain if exists
-    case String.replace_suffix(domain_name, domain_root, "") do
-      "" ->
-        :ok
-
-      subdomain ->
-        if not Match.subdomain?(subdomain), do: throw("Invalid subdomain")
-
-        :ok
-    end
-
-    domain = Domain.fetch!(domain_root, from_address)
-    if @max_records < domain.records, do: throw("Max record exceeded")
+    domain_map = Domain.fetch!(domain, from_address)
+    if @max_records < domain_map.records, do: throw("Max record exceeded")
 
     Tx.check_fee!(from_address, @price)
 
     :ok
   end
 
-  def event_push!(
+  def event_new!(
         multi,
         event_id,
         from_address,
-        domain_name,
+        hostname,
         type,
-        val,
+        data,
         ttl,
         validator_host,
         timestamp,
-        replace,
         channel
       ) do
-    type_atom = String.downcase(type) |> String.to_atom()
-    domain_root = Domain.extract_root(domain_name)
-    domain = Domain.fetch!(domain_root)
-    query_name = String.downcase(domain_name)
+    type_number = String.upcase(type) |> type_to_number!()
 
-    replace =
-      case replace do
-        true ->
-          true
+    {subdomain, domain} = Domain.split(hostname)
 
-        false ->
-          type_atom not in @dns_types_multi_records
-      end
+    domain_map = Domain.fetch!(domain)
 
-    {_, _, _, _, value} = :dnslib.resource('#{domain_name} IN #{ttl} #{type} #{val}')
-
-    {object, count, exists} =
-      cond do
-        # allow push multiple records
-        replace == false ->
-          case lookup(query_name, type_atom) do
-            {values, _} when is_list(values) ->
-              n = length(values)
-              if n >= @max_dns_record_items, do: throw("Invalid max values in dns record")
-              {{{query_name, type_atom}, values ++ [value], ttl, domain_root}, n + 1, true}
-
-            {result, _} ->
-              {{{query_name, type_atom}, [result, value], ttl, domain_root}, 2, true}
-
-            _ ->
-              {{{query_name, type_atom}, value, ttl, domain_root}, 1, false}
-          end
-
-        # single records
-        true ->
-          {{{query_name, type_atom}, value, ttl, domain_root}, 1, exists?(query_name, type_atom)}
-      end
+    {_, _, _, _, value} = :dnslib.resource('#{hostname} IN #{ttl} #{type} #{data}')
 
     multi =
       Tx.send_fee!(
@@ -142,112 +100,173 @@ defmodule Ipncore.DnsRecord do
         channel
       )
 
-    put(object)
+    key = {domain, subdomain, type_number}
+    records = lookup(key)
+    new_record = {value, ttl}
+    put({key, records ++ [new_record]})
 
-    multi = Domain.count_records(multi, domain, channel, count)
+    multi = Domain.count_records(multi, domain_map, channel, 1)
 
     struct = %{
-      domain: domain_name,
+      domain: domain,
+      name: subdomain,
       type: type,
-      value: val,
-      ttl: ttl,
-      root: domain_root
+      index: 0,
+      data: data,
+      ttl: ttl
     }
 
-    # Add multi upsert
-    case replace do
-      true ->
-        case exists do
-          true ->
-            query = from(dr in DnsRecord, where: dr.domain == ^domain_name and dr.type == ^type)
+    Ecto.Multi.insert_all(multi, :dns, DnsRecord, [struct], prefix: channel, returning: false)
+  end
 
-            Ecto.Multi.update_all(
-              multi,
-              :dns,
-              query,
-              [set: [value: struct.value, ttl: struct.ttl]],
-              prefix: channel,
-              returning: false
-            )
+  def check_update!(hostname, type, index, data, ttl, from_address)
+      when is_binary(hostname) and is_binary(data) and is_integer(index) and ttl >= @min_ttl and
+             ttl <= @max_ttl do
+    hostname = String.downcase(hostname)
+    if type not in @dns_types, do: throw("DNS record type not supported")
+    if byte_size(hostname) > @max_domain_size, do: throw("DNS record domain size exceeded")
+    if byte_size(data) > @max_bytes_size, do: throw("DNS record data size exceeded")
+    if not Match.hostname?(hostname), do: throw("Invalid hostname")
 
-          false ->
-            Ecto.Multi.insert_all(multi, :dns, DnsRecord, [struct],
-              prefix: channel,
-              returning: false
-            )
+    domain = Domain.extract(hostname)
+
+    domain_map = Domain.fetch!(domain, from_address)
+    if @max_records < domain_map.records, do: throw("Max record exceeded")
+
+    Tx.check_fee!(from_address, @price)
+
+    :ok
+  end
+
+  def event_update!(
+        multi,
+        event_id,
+        from_address,
+        hostname,
+        type,
+        index,
+        data,
+        ttl,
+        validator_host,
+        timestamp,
+        channel
+      ) do
+    type_number = String.upcase(type) |> type_to_number!()
+
+    {subdomain, domain} = Domain.split(hostname)
+
+    {_, _, _, _, value} = :dnslib.resource('#{hostname} IN #{ttl} #{type} #{data}')
+
+    multi =
+      Tx.send_fee!(
+        multi,
+        event_id,
+        from_address,
+        validator_host,
+        @price,
+        timestamp,
+        channel
+      )
+
+    key = {domain, subdomain, type_number}
+
+    new_records =
+      case lookup(key) do
+        [] ->
+          throw("Invalid no records")
+
+        records ->
+          n = length(records)
+          if n + 1 > @max_dns_record_items, do: throw("Max record by type exceeded")
+          if n < index, do: throw("Invalid record index")
+          new_record = {value, ttl}
+          List.update_at(records, index - 1, fn _ -> new_record end)
+      end
+
+    put({key, new_records})
+
+    struct = %{
+      domain: domain,
+      name: subdomain,
+      type: type,
+      index: index,
+      data: data,
+      ttl: ttl
+    }
+
+    query =
+      from(dr in DnsRecord,
+        where:
+          dr.domain == ^domain and dr.name == ^subdomain and dr.type == ^type and
+            dr.index == ^index
+      )
+
+    Ecto.Multi.update_all(
+      multi,
+      :dns,
+      query,
+      [set: [data: struct.data, ttl: struct.ttl]],
+      prefix: channel,
+      returning: false
+    )
+  end
+
+  def check_delete!([hostname, type, _index], from_address) do
+    if type not in @dns_types, do: throw("DNS record type not supported")
+    if Match.hostname?(hostname) > @max_domain_size, do: throw("Invalid hostname")
+
+    {subdomain, domain} = Domain.split(hostname)
+    Domain.fetch!(domain, from_address)
+    if DetsPlus.member?(@base, {domain, subdomain, type}), do: throw("DNS record not exists")
+  end
+
+  def event_delete!(multi, [hostname, type, index], channel) do
+    {subdomain, domain} = Domain.split(hostname)
+    domain_map = Domain.fetch!(domain)
+
+    key = {domain, subdomain, type}
+
+    case lookup(key) do
+      [] ->
+        throw("No record to delete")
+
+      records ->
+        n = length(records)
+        if n < index, do: throw("Invalid record index")
+
+        if n == 1 do
+          DetsPlus.delete(@base, key)
+        else
+          put({key, List.delete_at(records, index)})
         end
-
-      false ->
-        Ecto.Multi.insert_all(multi, :dns, DnsRecord, [struct], prefix: channel, returning: false)
     end
+
+    multi = Domain.uncount_records(multi, domain_map, channel, 1)
+
+    query =
+      from(dr in DnsRecord,
+        where:
+          dr.domain == ^domain and dr.name == ^subdomain and dr.type == ^type and
+            dr.index == ^index
+      )
+
+    Ecto.Multi.delete_all(multi, :delete, query, prefix: channel, returning: false)
   end
 
-  def check_drop!([domain_name], from_address) do
-    if byte_size(domain_name) > @max_domain_size, do: throw("DNS record domain size exceeded")
-
-    domain_root = Domain.extract_root(domain_name)
-    Domain.fetch!(domain_root, from_address)
-  end
-
-  def check_drop!([domain_name, type], from_address) do
-    if type not in @dns_types, do: throw("Invalid DNS record type")
-    if byte_size(domain_name) > @max_domain_size, do: throw("DNS record domain size exceeded")
-
-    domain_root = Domain.extract_root(domain_name)
-    Domain.fetch!(domain_root, from_address)
-    if DetsPlus.member?(@base, {domain_name, type}), do: throw("DNS record not exists")
-  end
-
-  def event_drop!(multi, [domain_name], channel) do
-    domain_root = Domain.extract_root(domain_name)
-    domain = Domain.fetch!(domain_root)
-
-    n =
-      DetsPlus.reduce(@base, 0, fn {key, val, _ttl, _root}, acc ->
-        cond do
-          key == domain_name ->
-            DetsPlus.delete(@base, key)
-            acc + if is_list(val), do: length(val), else: 1
-
-          true ->
-            acc
-        end
-      end)
-
-    multi = Domain.uncount_records(multi, domain, channel, n)
-
-    queryable = from(dr in DnsRecord, where: dr.domain == ^domain_name)
-    Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel, returning: false)
-  end
-
-  def event_drop!(multi, [domain_name, type], channel) do
-    domain_root = Domain.extract_root(domain_name)
-    domain = Domain.fetch!(domain_root)
-    query_name = to_charlist(domain_name)
-    atype = String.to_atom(type)
-
-    {val, _ttl} = lookup(query_name, atype)
-    DetsPlus.delete(@base, {query_name, atype})
-    n = if is_list(val), do: length(val), else: 1
-    multi = Domain.uncount_records(multi, domain, channel, n)
-
-    queryable = from(dr in DnsRecord, where: dr.domain == ^domain_name and dr.type == ^type)
-    Ecto.Multi.delete_all(multi, :delete, queryable, prefix: channel, returning: false)
-  end
-
-  def delete_by_root(multi, domain_root, channel) do
-    DetsPlus.reduce(@base, 0, fn {key, _value, _ttl, root}, acc ->
-      cond do
-        root == domain_root ->
+  @doc "Delete all records that match the domain and return the number of the deleted record"
+  def delete_by_domain(multi, domain, channel) do
+    DetsPlus.reduce(@base, 0, fn {key, _records}, acc ->
+      case key do
+        {x, _, _} when x == domain ->
           DetsPlus.delete(@base, key)
           acc + 1
 
-        true ->
+        _ ->
           acc
       end
     end)
 
-    queryable = from(dr in DnsRecord, where: dr.root == ^domain_root)
+    queryable = from(dr in DnsRecord, where: dr.domain == ^domain)
     Ecto.Multi.delete_all(multi, :delete_all, queryable, prefix: channel)
   end
 
@@ -255,19 +274,21 @@ defmodule Ipncore.DnsRecord do
     from(dr in DnsRecord, where: dr.domain == ^domain and dr.type == ^type)
     |> filter_select(nil)
     |> Repo.one(prefix: channel)
+    |> transform()
   end
 
   def all(params) do
     from(dr in DnsRecord)
     |> filter_domain(params)
+    |> filter_name(params)
     |> filter_type(params)
-    |> filter_root(params)
     |> filter_data(params)
     |> filter_search(params)
     |> filter_select(params)
     |> filter_limit(params)
     |> filter_offset(params)
     |> Repo.all(prefix: filter_channel(params, Default.channel()))
+    |> transform_list()
   end
 
   defp filter_domain(query, %{"domain" => domain}) do
@@ -282,14 +303,23 @@ defmodule Ipncore.DnsRecord do
 
   defp filter_type(query, _), do: query
 
-  defp filter_root(query, %{"root" => root}) do
-    where(query, [dr], dr.root == ^root)
+  defp filter_name(query, %{"name" => name}) do
+    search =
+      if Match.hostname?(name) do
+        {subdomain, _domain} = Domain.split(name)
+        subdomain
+      else
+        name
+      end
+      |> String.downcase()
+
+    where(query, [dr], dr.name == ^search)
   end
 
-  defp filter_root(query, _), do: query
+  defp filter_name(query, _), do: query
 
   defp filter_data(query, %{"data" => data}) do
-    where(query, [dr], dr.value == ^data)
+    where(query, [dr], dr.data == ^data)
   end
 
   defp filter_data(query, _), do: query
@@ -304,9 +334,65 @@ defmodule Ipncore.DnsRecord do
   defp filter_select(query, _) do
     select(query, [dr], %{
       domain: dr.domain,
+      name: dr.name,
       type: dr.type,
-      value: dr.value,
+      data: dr.data,
       ttl: dr.ttl
     })
   end
+
+  defp transform_list([]), do: []
+
+  defp transform_list(x) do
+    Enum.map(x, fn y -> transform(y) end)
+  end
+
+  defp transform(nil), do: nil
+  defp transform(x), do: %{x | type: number_to_type(x.type)}
+
+  defp type_to_number!("a"), do: 1
+  defp type_to_number!("ns"), do: 2
+  defp type_to_number!("cname"), do: 5
+  defp type_to_number!("soa"), do: 6
+  defp type_to_number!("ptr"), do: 12
+  defp type_to_number!("mx"), do: 15
+  defp type_to_number!("txt"), do: 16
+  defp type_to_number!("aaaa"), do: 28
+  defp type_to_number!("srv"), do: 33
+  defp type_to_number!("caa"), do: 257
+  defp type_to_number!(_), do: throw("DNS record type not supported")
+
+  defp number_to_type(1), do: "A"
+  defp number_to_type(2), do: "NS"
+  defp number_to_type(5), do: "CNAME"
+  defp number_to_type(6), do: "SOA"
+  defp number_to_type(12), do: "PTR"
+  defp number_to_type(15), do: "MX"
+  defp number_to_type(16), do: "TXT"
+  defp number_to_type(28), do: "AAAA"
+  defp number_to_type(33), do: "SRV"
+  defp number_to_type(257), do: "CAA"
+
+  defp type_to_number(:a), do: 1
+  defp type_to_number(:ns), do: 2
+  defp type_to_number(:cname), do: 5
+  defp type_to_number(:soa), do: 6
+  defp type_to_number(:wks), do: 11
+  defp type_to_number(:ptr), do: 12
+  defp type_to_number(:hinfo), do: 13
+  defp type_to_number(:mx), do: 15
+  defp type_to_number(:txt), do: 16
+  defp type_to_number(:aaaa), do: 28
+  defp type_to_number(:srv), do: 33
+  defp type_to_number(:ds), do: 43
+  defp type_to_number(:sshfp), do: 44
+  defp type_to_number(:rrsig), do: 46
+  defp type_to_number(:nsec), do: 47
+  defp type_to_number(:dnskey), do: 48
+  defp type_to_number(:https), do: 65
+  defp type_to_number(:spf), do: 99
+  defp type_to_number(:all), do: 255
+  defp type_to_number(:uri), do: 256
+  defp type_to_number(:caa), do: 257
+  defp type_to_number(x), do: x
 end

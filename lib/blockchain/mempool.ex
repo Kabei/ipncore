@@ -11,7 +11,7 @@ defmodule Mempool do
 
   alias Ipncore.{Address, Event}
 
-  @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
+  @total_threads Application.compile_env(:ipncore, :total_threads, System.schedulers_online())
 
   defmacrop assign_worker_thread(from) do
     quote do

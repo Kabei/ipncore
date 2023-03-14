@@ -217,21 +217,7 @@ defmodule Ipncore.Route.Blockchain do
     send_result(conn, resp)
   end
 
-  # get "/channel/:channel_id" do
-  #   resp =
-  #     case Channel.get(channel_id) do
-  #       nil ->
-  #         send_error(conn, 404)
-
-  #       channel ->
-  #         json(conn, channel)
-  #     end
-
-  #   send_result(conn, resp)
-  # end
-
-  get "/status" do
-    # channel = Default.channel()
+  get "/stats" do
     token_id = Default.token()
     token = Token.fetch(token_id) || %{}
 
@@ -330,6 +316,23 @@ defmodule Ipncore.Route.Blockchain do
         # send_error(conn, err_message)
         send_resp(conn, 400, err_message)
     end
+  end
+
+  # r Ipncore.Route.Blockchain
+  # Process.list |> length
+  # Phoenix.PubSub.broadcast(:events, "event:123", {:cont, %{"status" => "ok", "hash" => "abcdfe"}})
+  alias Ipncore.Blockchain.SSE
+
+  get "/stream/blocks" do
+    SSE.stream(conn, "blocks", 360_000)
+  end
+
+  get "/stream/events/:hash" do
+    SSE.stream(conn, "event:" <> hash, 120_000)
+  end
+
+  get "/stream/events" do
+    SSE.stream(conn, "events", 120_000)
   end
 
   # serve posts

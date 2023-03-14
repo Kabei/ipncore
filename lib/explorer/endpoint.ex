@@ -8,6 +8,8 @@ defmodule Ipncore.Endpoint do
   end
 
   # plug(Plug.SSL, rewrite_on: [:x_forwarded_proto, :x_forwarded_host, :x_forwarded_port])
+  plug Plug.RewriteOn, [:x_forwarded_host, :x_forwarded_port, :x_forwarded_proto]
+  
   plug(Plug.Parsers,
     parsers: [
       :urlencoded,

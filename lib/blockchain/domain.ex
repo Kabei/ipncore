@@ -127,14 +127,34 @@ defmodule Ipncore.Domain do
     end
   end
 
-  def extract_root(domain) do
-    domain
+  @doc """
+  Extract dopmain from hostname
+  Example:
+  iex> Domain.extract("sub.example.com")
+  iex> "example.com"
+  """
+  def extract(hostname) do
+    hostname
     |> String.split(".")
     |> Enum.take(-2)
     |> Enum.join(".")
+  end
 
-    # |> List.first()
-    # |> Enum.join(".")
+  @doc "Return subdomain and domain in a tuple from hostname or list hostname"
+  def split(hostname_parts) when is_list(hostname_parts) do
+    domain = Enum.take(hostname_parts, -2)
+    subdomain = hostname_parts -- domain
+
+    {Enum.join(subdomain, "."), Enum.join(domain, ".")}
+  end
+
+  def split(hostname) do
+    parts = String.split(hostname, ".")
+
+    domain = Enum.take(parts, -2)
+    subdomain = parts -- domain
+
+    {Enum.join(subdomain, "."), Enum.join(domain, ".")}
   end
 
   def check_new!(name, from_address, email, avatar, title, years_to_renew, validator_host, size) do
@@ -287,7 +307,7 @@ defmodule Ipncore.Domain do
 
     multi
     |> Ecto.Multi.delete_all(:delete, queryable, prefix: channel)
-    |> DnsRecord.delete_by_root(name, channel)
+    |> DnsRecord.delete_by_domain(name, channel)
   end
 
   def check_renew!(name, from_address, years_to_renew, validator_host, timestamp, size) do

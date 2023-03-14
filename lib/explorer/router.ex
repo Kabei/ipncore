@@ -2,18 +2,18 @@ defmodule Ipncore.Router do
   use Plug.Router
   use Plug.ErrorHandler
 
-  # websocket
-  @timeout 120_000
-  @max_frame_size 8_000_000
-
+  
   @dns_headers [
     {"content-type", "application/dns-message"},
     {"accept", "application/dns-message"}
   ]
-
+  
   plug(:match)
   plug(:dispatch)
-
+  
+  # websocket
+  # @timeout 120_000
+  # @max_frame_size 8_000_000
   # get "/v1" do
   #   case Bandit.WebSocket.Handshake.valid_upgrade?(conn) do
   #     true ->

@@ -305,7 +305,7 @@ defmodule Ipncore.DnsRecord do
 
   defp filter_type(query, %{"type" => type}) do
     type_number = type_to_number(type)
-    where(query, [dr], dr.type == ^type)
+    where(query, [dr], dr.type == ^type_number)
   end
 
   defp filter_type(query, _), do: query
@@ -368,7 +368,7 @@ defmodule Ipncore.DnsRecord do
   def type_to_number("SRV"), do: 33
   def type_to_number("CAA"), do: 257
   def type_to_number(x) when is_integer(x), do: x
-  def type_to_number(x), do: 1
+  def type_to_number(_), do: 1
 
   def number_to_type(1), do: "A"
   def number_to_type(2), do: "NS"

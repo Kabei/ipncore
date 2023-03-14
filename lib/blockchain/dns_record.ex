@@ -237,30 +237,33 @@ defmodule Ipncore.DnsRecord do
     key = {domain, subdomain, type_number}
     hash_index = Base.decode16!(hash_index16, case: :mixed)
 
-    case lookup(key) do
-      [] ->
-        throw("No record to delete")
+    count =
+      case lookup(key) do
+        [] ->
+          throw("No record to delete")
 
-      [{_, records}] ->
-        n = length(records)
+        [{_, records}] ->
+          n = length(records)
 
-        if n == 1 do
-          DetsPlus.delete(@base, key)
-        else
-          {result, count} =
-            Enum.reduce(records, {[], 0}, fn x, {acc, n} ->
-              cond do
-                calc_hash(x) == hash_index ->
-                  {acc, n + 1}
+          if n == 1 do
+            DetsPlus.delete(@base, key)
+          else
+            {result, count} =
+              Enum.reduce(records, {[], 0}, fn x, {acc, n} ->
+                cond do
+                  calc_hash(x) == hash_index ->
+                    {acc, n + 1}
 
-                true ->
-                  {acc ++ [x], n}
-              end
-            end)
+                  true ->
+                    {acc ++ [x], n}
+                end
+              end)
 
-          put({key, result})
-        end
-    end
+            put({key, result})
+
+            count
+          end
+      end
 
     multi = Domain.uncount_records(multi, domain_map, channel, count)
 

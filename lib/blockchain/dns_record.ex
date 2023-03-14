@@ -106,10 +106,10 @@ defmodule Ipncore.DnsRecord do
       )
 
     key = {domain, subdomain, type_number}
-    records = lookup(key)
+    [{_, records}] = lookup(key)
     n = length(records)
     if n + 1 > @max_dns_record_items, do: throw("Max record by type exceeded")
-    new_record = {data, ttl}
+    new_record = [{data, ttl}]
     put({key, records ++ [new_record]})
 
     multi = Domain.count_records(multi, domain_map, channel, 1)
@@ -183,7 +183,7 @@ defmodule Ipncore.DnsRecord do
         [] ->
           throw("Invalid no records")
 
-        records ->
+        [{_, records}] ->
           new_record = {data, ttl}
 
           Enum.reduce(records, fn x, acc ->
@@ -241,20 +241,20 @@ defmodule Ipncore.DnsRecord do
       [] ->
         throw("No record to delete")
 
-      records ->
+      [{_, records}] ->
         n = length(records)
 
         if n == 1 do
           DetsPlus.delete(@base, key)
         else
-          result =
-            Enum.reduce(records, [], fn x, acc ->
+          {result, count} =
+            Enum.reduce(records, {[], 0}, fn x, {acc, n} ->
               cond do
                 calc_hash(x) == hash_index ->
-                  acc
+                  {acc, n + 1}
 
                 true ->
-                  acc ++ [x]
+                  {acc ++ [x], n}
               end
             end)
 
@@ -262,7 +262,7 @@ defmodule Ipncore.DnsRecord do
         end
     end
 
-    multi = Domain.uncount_records(multi, domain_map, channel, 1)
+    multi = Domain.uncount_records(multi, domain_map, channel, count)
 
     query =
       from(dr in DnsRecord,

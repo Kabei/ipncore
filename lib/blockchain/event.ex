@@ -479,8 +479,6 @@ defmodule Ipncore.Event do
 
     hash16 = encode_id(hash)
     ev_body = %{event | hash: hash16}
-    # Ipncore.WebSocketHandler.push(type, ev_body)
-    Ipncore.WebSocketHandler.push("#{type}:#{hash16}", ev_body)
 
     case result do
       :ok ->

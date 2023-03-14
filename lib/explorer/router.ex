@@ -14,20 +14,20 @@ defmodule Ipncore.Router do
   plug(:match)
   plug(:dispatch)
 
-  get "/v1" do
-    case Bandit.WebSocket.Handshake.valid_upgrade?(conn) do
-      true ->
-        Plug.Conn.upgrade_adapter(
-          conn,
-          :websocket,
-          {Ipncore.WebSockHandler, conn.params,
-           [timeout: @timeout, max_frame_size: @max_frame_size]}
-        )
+  # get "/v1" do
+  #   case Bandit.WebSocket.Handshake.valid_upgrade?(conn) do
+  #     true ->
+  #       Plug.Conn.upgrade_adapter(
+  #         conn,
+  #         :websocket,
+  #         {Ipncore.WebSockHandler, conn.params,
+  #          [timeout: @timeout, max_frame_size: @max_frame_size]}
+  #       )
 
-      false ->
-        Plug.Conn.send_resp(conn, 204, <<>>)
-    end
-  end
+  #     false ->
+  #       Plug.Conn.send_resp(conn, 204, <<>>)
+  #   end
+  # end
 
   forward("/blockchain", to: Ipncore.Route.Blockchain)
 

@@ -120,7 +120,7 @@ defmodule Ipncore.DNS do
         [] ->
           throw(:nxdomain)
 
-        records ->
+        [{_key, records}] ->
           Enum.reduce(records, [], fn {x, ttl}, acc ->
             acc ++ [:dnslib.resource('#{domain} IN #{ttl} #{type} #{x}')]
           end)

@@ -106,11 +106,18 @@ defmodule Ipncore.DnsRecord do
       )
 
     key = {domain, subdomain, type_number}
-    [{_, records}] = lookup(key)
-    n = length(records)
-    if n + 1 > @max_dns_record_items, do: throw("Max record by type exceeded")
     new_record = [{data, ttl}]
-    put({key, records ++ [new_record]})
+
+    case lookup(key) do
+      [] ->
+        put({key, new_record})
+
+      [{_, records}] ->
+        n = length(records)
+        if n + 1 > @max_dns_record_items, do: throw("Max record by type exceeded")
+        new_record = [{data, ttl}]
+        put({key, records ++ new_record})
+    end
 
     multi = Domain.count_records(multi, domain_map, channel, 1)
 

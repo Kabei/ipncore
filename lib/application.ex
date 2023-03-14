@@ -104,9 +104,9 @@ defmodule Ipncore.Application do
   end
 
   defp node_config do
-    cert_dir = Application.get_env(@otp_app, :falcon_dir)
+    falcon_dir = Application.get_env(@otp_app, :falcon_dir)
 
-    {falcon_pk, _falcon_sk} = Path.join(cert_dir, "falcon.keys") |> Falcon.read_file!()
+    {falcon_pk, _falcon_sk} = falcon_dir |> Falcon.read_file!()
 
     address = Address.hash(falcon_pk)
     Application.put_env(@otp_app, :address, address)

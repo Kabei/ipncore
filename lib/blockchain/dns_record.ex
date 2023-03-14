@@ -127,7 +127,7 @@ defmodule Ipncore.DnsRecord do
   end
 
   def check_update!(hostname, type, hash_index16, data, ttl, from_address)
-      when is_binary(hostname) and is_binary(data) and byte_size(hash_index16) == 40 and
+      when is_binary(hostname) and is_binary(data) and byte_size(hash_index16) == 32 and
              ttl >= @min_ttl and
              ttl <= @max_ttl do
     hostname = String.downcase(hostname)
@@ -219,7 +219,7 @@ defmodule Ipncore.DnsRecord do
   end
 
   def check_delete!([hostname, type, hash_index16], from_address)
-      when byte_size(hash_index16) == 40 do
+      when byte_size(hash_index16) == 32 do
     hostname = String.downcase(hostname)
     if type not in @dns_types, do: throw("DNS record type not supported")
     if not Match.hostname?(hostname), do: throw("Invalid hostname")

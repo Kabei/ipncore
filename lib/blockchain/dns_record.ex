@@ -216,7 +216,7 @@ defmodule Ipncore.DnsRecord do
   def check_delete!([hostname, type, _index], from_address) do
     hostname = String.downcase(hostname)
     if type not in @dns_types, do: throw("DNS record type not supported")
-    if Match.hostname?(hostname) > @max_domain_size, do: throw("Invalid hostname")
+    if not Match.hostname?(hostname), do: throw("Invalid hostname")
 
     {subdomain, domain} = Domain.split(hostname)
     Domain.fetch!(domain, from_address)

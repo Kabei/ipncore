@@ -17,9 +17,9 @@ Group=root
 Type=simple
 TimeoutStopSec=0
 Environment=MIX_ENV=prod
-Environment=CERT_DIR=/etc/letsencrypt/live/ippan.red/cert.pem
-Environment=KEY_DIR=/etc/letsencrypt/live/ippan.red/privkey.pem
-Environment=CACERT_DIR=/etc/letsencrypt/live/ippan.red/fullchain.pem
+Environment=CERT_DIR=/etc/letsencrypt/live/ippan.uk/cert.pem
+Environment=KEY_DIR=/etc/letsencrypt/live/ippan.uk/privkey.pem
+Environment=CACERT_DIR=/etc/letsencrypt/live/ippan.uk/fullchain.pem
 WorkingDirectory=/usr/src/ipncore
 ExecStart=elixir --erl "+P 2000000 +A 10" -S mix run --no-halt --no-compile
 ExecStop=/bin/kill -s TERM $MAINPID

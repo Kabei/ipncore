@@ -112,7 +112,7 @@ defmodule Ipncore.DnsRecord do
     struct = %{
       domain: domain,
       name: subdomain,
-      type: type,
+      type: type_number,
       index: n,
       data: data,
       ttl: ttl
@@ -190,7 +190,7 @@ defmodule Ipncore.DnsRecord do
     struct = %{
       domain: domain,
       name: subdomain,
-      type: type,
+      type: type_number,
       index: index,
       data: data,
       ttl: ttl

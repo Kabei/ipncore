@@ -102,6 +102,7 @@ defmodule Ipncore.DnsRecord do
 
     key = {domain, subdomain, type_number}
     records = lookup(key)
+    n = length(records)
     new_record = {value, ttl}
     put({key, records ++ [new_record]})
 
@@ -111,7 +112,7 @@ defmodule Ipncore.DnsRecord do
       domain: domain,
       name: subdomain,
       type: type,
-      index: 0,
+      index: n,
       data: data,
       ttl: ttl
     }
@@ -350,49 +351,49 @@ defmodule Ipncore.DnsRecord do
   defp transform(nil), do: nil
   defp transform(x), do: %{x | type: number_to_type(x.type)}
 
-  defp type_to_number!("a"), do: 1
-  defp type_to_number!("ns"), do: 2
-  defp type_to_number!("cname"), do: 5
-  defp type_to_number!("soa"), do: 6
-  defp type_to_number!("ptr"), do: 12
-  defp type_to_number!("mx"), do: 15
-  defp type_to_number!("txt"), do: 16
-  defp type_to_number!("aaaa"), do: 28
-  defp type_to_number!("srv"), do: 33
-  defp type_to_number!("caa"), do: 257
-  defp type_to_number!(_), do: throw("DNS record type not supported")
+  def type_to_number!("a"), do: 1
+  def type_to_number!("ns"), do: 2
+  def type_to_number!("cname"), do: 5
+  def type_to_number!("soa"), do: 6
+  def type_to_number!("ptr"), do: 12
+  def type_to_number!("mx"), do: 15
+  def type_to_number!("txt"), do: 16
+  def type_to_number!("aaaa"), do: 28
+  def type_to_number!("srv"), do: 33
+  def type_to_number!("caa"), do: 257
+  def type_to_number!(_), do: throw("DNS record type not supported")
 
-  defp number_to_type(1), do: "A"
-  defp number_to_type(2), do: "NS"
-  defp number_to_type(5), do: "CNAME"
-  defp number_to_type(6), do: "SOA"
-  defp number_to_type(12), do: "PTR"
-  defp number_to_type(15), do: "MX"
-  defp number_to_type(16), do: "TXT"
-  defp number_to_type(28), do: "AAAA"
-  defp number_to_type(33), do: "SRV"
-  defp number_to_type(257), do: "CAA"
+  def number_to_type(1), do: "A"
+  def number_to_type(2), do: "NS"
+  def number_to_type(5), do: "CNAME"
+  def number_to_type(6), do: "SOA"
+  def number_to_type(12), do: "PTR"
+  def number_to_type(15), do: "MX"
+  def number_to_type(16), do: "TXT"
+  def number_to_type(28), do: "AAAA"
+  def number_to_type(33), do: "SRV"
+  def number_to_type(257), do: "CAA"
 
-  defp type_to_number(:a), do: 1
-  defp type_to_number(:ns), do: 2
-  defp type_to_number(:cname), do: 5
-  defp type_to_number(:soa), do: 6
-  defp type_to_number(:wks), do: 11
-  defp type_to_number(:ptr), do: 12
-  defp type_to_number(:hinfo), do: 13
-  defp type_to_number(:mx), do: 15
-  defp type_to_number(:txt), do: 16
-  defp type_to_number(:aaaa), do: 28
-  defp type_to_number(:srv), do: 33
-  defp type_to_number(:ds), do: 43
-  defp type_to_number(:sshfp), do: 44
-  defp type_to_number(:rrsig), do: 46
-  defp type_to_number(:nsec), do: 47
-  defp type_to_number(:dnskey), do: 48
-  defp type_to_number(:https), do: 65
-  defp type_to_number(:spf), do: 99
-  defp type_to_number(:all), do: 255
-  defp type_to_number(:uri), do: 256
-  defp type_to_number(:caa), do: 257
-  defp type_to_number(x), do: x
+  def type_to_number(:a), do: 1
+  def type_to_number(:ns), do: 2
+  def type_to_number(:cname), do: 5
+  def type_to_number(:soa), do: 6
+  def type_to_number(:wks), do: 11
+  def type_to_number(:ptr), do: 12
+  def type_to_number(:hinfo), do: 13
+  def type_to_number(:mx), do: 15
+  def type_to_number(:txt), do: 16
+  def type_to_number(:aaaa), do: 28
+  def type_to_number(:srv), do: 33
+  def type_to_number(:ds), do: 43
+  def type_to_number(:sshfp), do: 44
+  def type_to_number(:rrsig), do: 46
+  def type_to_number(:nsec), do: 47
+  def type_to_number(:dnskey), do: 48
+  def type_to_number(:https), do: 65
+  def type_to_number(:spf), do: 99
+  def type_to_number(:all), do: 255
+  def type_to_number(:uri), do: 256
+  def type_to_number(:caa), do: 257
+  def type_to_number(x), do: x
 end

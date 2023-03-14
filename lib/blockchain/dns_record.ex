@@ -353,16 +353,16 @@ defmodule Ipncore.DnsRecord do
   defp transform(nil), do: nil
   defp transform(x), do: %{x | type: number_to_type(x.type)}
 
-  def type_to_number!("a"), do: 1
-  def type_to_number!("ns"), do: 2
-  def type_to_number!("cname"), do: 5
-  def type_to_number!("soa"), do: 6
-  def type_to_number!("ptr"), do: 12
-  def type_to_number!("mx"), do: 15
-  def type_to_number!("txt"), do: 16
-  def type_to_number!("aaaa"), do: 28
-  def type_to_number!("srv"), do: 33
-  def type_to_number!("caa"), do: 257
+  def type_to_number!("A"), do: 1
+  def type_to_number!("NS"), do: 2
+  def type_to_number!("CNAME"), do: 5
+  def type_to_number!("SOA"), do: 6
+  def type_to_number!("PTR"), do: 12
+  def type_to_number!("MX"), do: 15
+  def type_to_number!("TXT"), do: 16
+  def type_to_number!("AAAA"), do: 28
+  def type_to_number!("SRV"), do: 33
+  def type_to_number!("CAA"), do: 257
   def type_to_number!(_), do: throw("DNS record type not supported")
 
   def number_to_type(1), do: "A"

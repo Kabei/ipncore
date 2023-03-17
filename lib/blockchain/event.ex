@@ -15,7 +15,6 @@ defmodule Ipncore.Event do
   }
 
   import Ipnutils.Macros, only: [deftypes: 1]
-  # import Ipnutils.Macros, only: [deftypes: 1, defstatus: 1]
   import Ecto.Query
   import Ipnutils.Filters
   alias __MODULE__

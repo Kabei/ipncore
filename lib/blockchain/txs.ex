@@ -3,8 +3,9 @@ defmodule Ipncore.Tx do
   require Logger
   import Ecto.Query, only: [from: 2, where: 3, select: 3, order_by: 3, join: 5]
   import Ipnutils.Filters
-  import Ipncore.Util, only: [empty?: 1]
-  alias Ipncore.{Address, Balance, Block, Event, Txo, Balance, Token, Validator, Repo, Util}
+  import Ippan.Utils, only: [empty?: 1]
+  alias Ippan.{Address, Utils}
+  alias Ipncore.{Balance, Block, Event, Txo, Balance, Token, Validator, Repo}
   alias __MODULE__
 
   # global
@@ -250,7 +251,7 @@ defmodule Ipncore.Tx do
   defp token_values(outputs) do
     Enum.reduce(outputs, %{}, fn %{token: token_id, value: new_value}, acc ->
       token = Token.fetch!(token_id)
-      value_dec = Util.to_decimal(new_value, token.decimals)
+      value_dec = Utils.to_decimal(new_value, token.decimals)
 
       old_value = Map.get(acc, token_id, 0)
       Map.put(acc, token_id, Decimal.add(old_value, value_dec))
@@ -396,7 +397,7 @@ defmodule Ipncore.Tx do
         {acc_outputs ++ [output], acc_entries ++ [entry], acc_amount + value, acc_ix + 1}
       end)
 
-    token_value = Map.new() |> Map.put(token, Util.to_decimal(amount, token_decimals))
+    token_value = Map.new() |> Map.put(token, Utils.to_decimal(amount, token_decimals))
 
     {txos, entries, token_value, amount}
   end

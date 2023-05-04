@@ -27,7 +27,7 @@ defmodule Ipncore.RepoWorker do
       Repo.transaction(multi)
     end)
 
-    {:noreply, state}
+    {:noreply, state, :hibernate}
   end
 
   require Logger
@@ -35,12 +35,12 @@ defmodule Ipncore.RepoWorker do
   @impl true
   def handle_info({_task, {:ok, result}}, state) do
     Logger.debug("#{inspect(result)} Job Done.")
-    {:noreply, state}
+    {:noreply, state, :hibernate}
   end
 
   def handle_info({_task, {:error, reason}}, state) do
     Logger.error("Failed to completed job: #{reason}")
-    {:noreply, state}
+    {:noreply, state, :hibernate}
   end
 
   def handle_info(_, state), do: {:noreply, state}

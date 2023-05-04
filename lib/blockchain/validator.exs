@@ -2,7 +2,7 @@ defmodule Ipncore.Validator do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  import Ipncore.Util
+  import Ippan.Utils
   alias Ipncore.{Address, Database, Repo}
   alias __MODULE__
 

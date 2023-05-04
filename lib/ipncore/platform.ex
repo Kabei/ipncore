@@ -3,40 +3,42 @@ defmodule Owner do
 end
 
 defmodule Platform do
-  alias Ipncore.{Address, Token, Wallet}
+  alias Ippan.{Address, Token}
 
   @token Default.token()
 
   def start do
     Default.token()
-    |> Token.fetch()
+    |> TokenStore.lookup()
     |> put()
   end
 
-  def put(%{id: @token, owner: address}) do
-    addr = Owner.get(:address, nil)
+  @spec put(Token.t()) :: boolean()
+  def put(%{id: @token, owner: id}) do
+    account_id = Owner.get(:id, nil)
 
     cond do
-      addr == nil or addr != address ->
-        pubkey = Wallet.get(address)
+      account_id == nil or account_id != id ->
+        account = DetsPlus.lookup(:account, id)
 
         GlobalConst.new(Owner, %{
-          address: address,
-          address58: Address.to_text(address),
-          pubkey: pubkey
+          id: account.id,
+          address: account.address,
+          address58: Address.to_text(account.address),
+          pubkey: account.pubkey
         })
 
-        :ok
+        true
 
       true ->
-        :none
+        false
     end
   end
 
-  def put(_), do: :none
+  def put(_), do: false
 
   def has_owner? do
-    case Owner.get(:address, false) do
+    case Owner.get(:id, false) do
       false ->
         false
 
@@ -45,10 +47,14 @@ defmodule Platform do
     end
   end
 
+  def id, do: Owner.get(:id, nil)
   def pubkey, do: Owner.get(:pubkey, nil)
   def address, do: Owner.get(:address, nil)
   def address58, do: Owner.get(:address58, nil)
 
-  def owner?(address) when is_nil(address), do: false
-  def owner?(address), do: Owner.get(:address, nil) == address
+  def owner?(nil), do: false
+
+  def owner?(id) do
+    Owner.get(:id, nil) == id
+  end
 end

@@ -1,6 +1,6 @@
 defmodule DBTable do
   @moduledoc """
-  
+
   """
 
   defmacro __using__(opts) do
@@ -11,7 +11,7 @@ defmodule DBTable do
       @filename Keyword.get(@opts, :filename, "")
       @auto_save Keyword.get(@opts, :auto_save, 5_000)
       @shards Keyword.get(@opts, :shards, 1)
-      @extension Keyword.get(@opts, :ext, ".db")
+      @extension Keyword.get(@opts, :extension, ".db")
       @keypos Keyword.get(@opts, :keypos, 0)
       @auto_save_memory Keyword.get(@opts, :auto_save_memory, 1_000_000)
       @page_cache_memory Keyword.get(@opts, :page_cache_memory, 1_000_000_000)
@@ -171,21 +171,39 @@ defmodule DBTable do
         Map.fetch!(x, @keypos)
       end
 
-      defp pid_from_key(key) when is_binary(key) do
-        first = :binary.first(key)
-        number = rem(first, @shards)
+      if @shards == 256 do
+        defp pid_from_key(key) when is_binary(key) do
+          number = :binary.first(key)
 
-        [@name, to_string(number)]
-        |> IO.iodata_to_binary()
-        |> String.to_existing_atom()
-      end
+          [@name, to_string(number)]
+          |> IO.iodata_to_binary()
+          |> String.to_existing_atom()
+        end
 
-      defp pid_from_key(key) when is_integer(key) do
-        number = rem(key, @shards)
+        defp pid_from_key(key) when is_integer(key) do
+          number = rem(key, @shards)
 
-        [@name, to_string(number)]
-        |> IO.iodata_to_binary()
-        |> String.to_existing_atom()
+          [@name, to_string(number)]
+          |> IO.iodata_to_binary()
+          |> String.to_existing_atom()
+        end
+      else
+        defp pid_from_key(key) when is_binary(key) do
+          first = :binary.first(key)
+          number = rem(first, @shards)
+
+          [@name, to_string(number)]
+          |> IO.iodata_to_binary()
+          |> String.to_existing_atom()
+        end
+
+        defp pid_from_key(key) when is_integer(key) do
+          number = rem(key, @shards)
+
+          [@name, to_string(number)]
+          |> IO.iodata_to_binary()
+          |> String.to_existing_atom()
+        end
       end
 
       defp pid(shard) do

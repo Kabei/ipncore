@@ -3,8 +3,9 @@ defmodule Ipncore.Application do
   use Application
   require Logger
 
+  alias Ippan.Address
+
   alias Ipncore.{
-    Address,
     Block,
     Balance,
     Chain,
@@ -29,55 +30,58 @@ defmodule Ipncore.Application do
 
   @impl true
   def start(_type, _args) do
-    try do
-      # create data folder
-      File.mkdir(Application.get_env(@otp_app, :data_dir, "data"))
+    # try do
+    #   # create data folder
+    File.mkdir(Application.get_env(@otp_app, :data_dir, "data"))
 
-      # load node config
-      node_config()
+    #   # load node config
+    #   node_config()
 
-      # run migration
-      migration_start()
+    #   # run migration
+    #   migration_start()
 
-      # open local databases
-      with {:ok, _pid} <- Chain.open(),
-           {:ok, _pid} <- Event.open(Block.epoch(Chain.next_index())),
-           :mempool <- Mempool.open(),
-           [{:ok, _pid} | _rest] <- Wallet.open(),
-           {:ok, _pid} <- Balance.open(),
-           {:ok, _pid} <- Token.open(),
-           {:ok, _pid} <- Validator.open(),
-           {:ok, _pid} <- Tx.open(),
-           {:ok, _pid} <- Domain.open(),
-           {:ok, _pid} <- DnsRecord.open() do
-        Platform.start()
-      else
-        err -> throw(err)
-      end
+    #   # open local databases
+    # with {:ok, _pid} <- Chain.open(),
+    #      {:ok, _pid} <- Event.open(Block.epoch(Chain.next_index())),
+    #      :mempool <- Mempool.open(),
+    #      [{:ok, _pid} | _rest] <- Wallet.open(),
+    #      {:ok, _pid} <- Balance.open(),
+    #      {:ok, _pid} <- Token.open(),
+    #      {:ok, _pid} <- Validator.open(),
+    #      {:ok, _pid} <- Tx.open(),
+    #      {:ok, _pid} <- Domain.open(),
+    #      {:ok, _pid} <- DnsRecord.open() do
+    #   Platform.start()
+    # else
+    #   err -> throw(err)
+    # end
 
-      # init chain
-      :ok = Chain.start()
+    #   # init chain
+    #   :ok = Chain.start()
 
-      # services
-      children = [
-        Repo,
-        RepoWorker,
-        Ipncore.DNS.child_spec(),
-        Supervisor.child_spec({Phoenix.PubSub, name: :events}, id: :events),
-        dns_udp_server(),
-        dns_tls_server(),
-        http_server(),
-        https_server()
-      ]
+    #   # services
+    children = [
+      # p2p_server(),
+      {ValidatorStore, "data/validator/validator.db"},
+      {TokenStore, "data/token/token.db"},
+      Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub)
+      #     Repo,
+      #     RepoWorker,
+      #     Ipncore.DNS.child_spec(),
+      #     dns_udp_server(),
+      #     dns_tls_server(),
+      #     http_server(),
+      #     https_server()
+    ]
 
-      # start block builder
-      BlockBuilderWork.next()
+    #   # start block builder
+    #   BlockBuilderWork.next()
 
-      Supervisor.start_link(children, @opts)
-    rescue
-      DBConnection.ConnectionError ->
-        {:error, "Database connexion failed"}
-    end
+    Supervisor.start_link(children, @opts)
+    # rescue
+    #   DBConnection.ConnectionError ->
+    #     {:error, "Database connexion failed"}
+    # end
   end
 
   @impl true
@@ -120,7 +124,7 @@ defmodule Ipncore.Application do
     {DNS.Server, [ip: ip_address, port: port]}
   end
 
-  def dns_tls_server do
+  defp dns_tls_server do
     opts = Application.get_env(@otp_app, :dns_tls)
     {ThousandIsland, opts}
   end
@@ -140,5 +144,12 @@ defmodule Ipncore.Application do
   defp https_server do
     opts = Application.get_env(@otp_app, :https)
     {Bandit, plug: Ipncore.Endpoint, scheme: :https, options: opts}
+  end
+
+  # p2p server
+  def p2p_server do
+    opts = Application.get_env(@otp_app, :p2p)
+    Ippan.P2P.Server.load()
+    {ThousandIsland, opts}
   end
 end

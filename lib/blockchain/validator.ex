@@ -2,7 +2,7 @@ defmodule Ipncore.Validator do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  import Ipncore.Util
+  import Ippan.Utils
   alias Ipncore.{Address, Database, Repo}
   alias __MODULE__
 
@@ -151,12 +151,12 @@ defmodule Ipncore.Validator do
     map_params =
       params
       |> Map.take(@edit_fields)
-      |> MapUtil.validate_not_empty()	  
+      |> MapUtil.validate_not_empty()
       |> MapUtil.validate_length("name", 100)
       |> MapUtil.validate_value("fee", :gt, 0)
       |> MapUtil.validate_range("fee_type", 0..2)
       |> MapUtil.validate_length("avatar", 255)
-	  |> MapUtil.validate_address("owner")
+      |> MapUtil.validate_address("owner")
       |> MapUtil.to_atoms()
       |> Map.put(:updated_at, timestamp)
 

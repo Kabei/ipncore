@@ -45,7 +45,7 @@ defmodule ETSTable do
         )
       end
 
-      def tab2list, do: :ets.tab2list(@table)
+      def to_list, do: :ets.tab2list(@table)
 
       def select(fun) do
         :ets.select(@table, fun)
@@ -54,6 +54,8 @@ defmodule ETSTable do
       def select_delete(fun) do
         :ets.select_delete(@table, fun)
       end
+
+      def info, do: :ets.info(@table)
 
       def size, do: :ets.info(@table, :size)
 
@@ -95,3 +97,32 @@ defmodule ETSTable do
     end
   end
 end
+
+# Enum.reduce_while(0..49999, {:ets.first(:requests), []}, fn _, {key, acc} ->
+#   next_key = :ets.next(:requests, key)
+
+#   case next_key do
+#     :"$end_of_table" ->
+#       {:halt, {next_key, acc ++ :ets.lookup(:requests, key)}}
+
+#     _ ->
+#       {:cont, {next_key, acc ++ :ets.lookup(:requests, key)}}
+#   end
+# end)
+# |> Enum.map(fn x -> Tuple.to_list(x) end)
+
+# Stream.resource(
+#   fn -> {:ets.first(:requests), 0} end,
+#   fn
+#     {_, n} when n >= 50_000 ->
+#       {:halt, nil}
+
+#     {:"$end_of_table", _} ->
+#       {:halt, nil}
+
+#     {previous_key, n} ->
+#       items = :ets.lookup(:requests, previous_key)
+#       {items, {:ets.next(:requests, previous_key), n + length(items)}}
+#   end,
+#   fn _ -> :ok end
+# )

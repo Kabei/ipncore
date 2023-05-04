@@ -14,47 +14,45 @@ defmodule Ipncore.Event do
     Wallet
   }
 
-  import Ipnutils.Macros, only: [deftypes: 1]
   import Ecto.Query
   import Ipnutils.Filters
   alias __MODULE__
 
-  deftypes do
-    [
-      {1, "pubkey.new"},
-      {100, "validator.new"},
-      {101, "validator.update"},
-      {102, "validator.delete"},
-      {200, "token.new"},
-      {201, "token.update"},
-      {202, "token.delete"},
-      {210, "tx.coinbase"},
-      {211, "tx.send"},
-      {212, "tx.sendmulti"},
-      {213, "tx.refund"},
-      {214, "tx.jackpot"},
-      {215, "tx.reward"},
-      {216, "tx.burn"},
-      {250, "balance.lock"},
-      {251, "balance.unlock"},
-      {400, "domain.new"},
-      {401, "domain.update"},
-      {402, "domain.delete"},
-      {403, "domain.renew"},
-      {410, "dns.new"},
-      {411, "dns.update"},
-      {412, "dns.delete"}
-    ]
-  else
-    {false, false}
-  end
+  # deftypes do
+  #   [
+  #     {1, "wallet.new"},
+  #     {100, "validator.new"},
+  #     {101, "validator.update"},
+  #     {102, "validator.delete"},
+  #     {200, "token.new"},
+  #     {201, "token.update"},
+  #     {202, "token.delete"},
+  #     {210, "tx.coinbase"},
+  #     {211, "tx.send"},
+  #     {212, "tx.sendmulti"},
+  #     {213, "tx.refund"},
+  #     {214, "tx.jackpot"},
+  #     {215, "tx.reward"},
+  #     {216, "tx.burn"},
+  #     {250, "balance.lock"},
+  #     {251, "balance.unlock"},
+  #     {400, "domain.new"},
+  #     {401, "domain.update"},
+  #     {402, "domain.delete"},
+  #     {403, "domain.renew"},
+  #     {410, "dns.new"},
+  #     {411, "dns.update"},
+  #     {412, "dns.delete"}
+  #   ]
+  # else
+  #   {false, false}
+  # end
 
   @version Application.compile_env(:ipncore, :event_version)
   @threshold_timeout Application.compile_env(:ipncore, :event_threshold_timeout)
   @max_size Application.compile_env(:ipncore, :event_max_size)
   @imposible Default.imposible_address()
   @unit_time Default.unit_time()
-  # @max_signatures Application.compile_env(:ipncore, :event_max_signatures, 5)
 
   @base :ev
   # @filaname "event.db"
@@ -85,6 +83,48 @@ defmodule Ipncore.Event do
     field(:vsn, :integer)
   end
 
+  @hash_algorithm :sha3_256
+
+
+
+  # def execute(event_request_record) do
+  #   req = to_struct(event_request_record)
+
+  #   reference = lookup(req.type)
+
+  #   {module, func_name} = reference.fun
+
+  #   case apply(module, func_name, :lists.merge(req, req.args)) do
+  #     :ok ->
+
+  #       true ->
+
+  #   end
+
+
+  # end
+
+  def hash(type, timestamp, from, args) do
+    str = Enum.map_join(args, "", & to_string(&1))
+    "#{type}#{timestamp}#{from}#{str}"
+    |> :crypto.hash(@hash_algorithm)
+  end
+
+
+  def to_struct({type, timestamp, from, args, auth}) do
+    %{
+      type: type,
+      timestamp: timestamp,
+      from: from,
+      args: args,
+      auth: auth
+    }
+  end
+
+  def to_record(event) do
+    {event.type, event.timestamp, event.from, event.args, event.signature}
+  end
+
   def open(epoch_number) do
     dir_path = Application.get_env(:ipncore, :events_path, "data/events")
     File.mkdir_p(dir_path)
@@ -100,392 +140,392 @@ defmodule Ipncore.Event do
 
   def timeout, do: @threshold_timeout
 
-  @spec check(pos_integer, String.t(), pos_integer, term, String.t(), String.t()) ::
-          {:ok, binary} | {:error, String.t()}
-  def check(@version, "pubkey.new" = type_name, time, [pubkey64] = body, sig64) do
-    try do
-      type_number = type_index(type_name)
-      if type_name == false, do: throw("Type invalid")
-      body_text = Jason.encode!(body)
-      hash = calc_hash(type_number, body_text, time)
-
-      # check if already exists
-      exists!(hash)
-
-      signature = Base.decode64!(sig64)
-      pubkey = Base.decode64!(pubkey64)
-      size = byte_size(body_text) + byte_size(signature)
-      from_address = Address.hash(pubkey)
-      # IO.inspect("Address:")
-      # IO.inspect(Address.to_text(from_address))
-      # IO.inspect("Hash: #{Base.encode16(hash, case: :lower)}")
-
-      if @imposible == from_address, do: throw("Imposible address")
-
-      if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
-
-      if Wallet.has_key?(from_address), do: throw("Pubkey already exists")
-
-      Mempool.push!(time, hash, type_number, from_address, body, signature, size)
-    rescue
-      ex ->
-        {:error, Exception.format(:error, ex, __STACKTRACE__)}
-    catch
-      x -> {:error, x}
-    end
-  end
-
-  def check(@version, type_name, time, body, address, sig64) do
-    try do
-      # if check_timeout and abs(time - Chain.get_time()) > @timeout, do: throw("Event is timeout")
-
-      type_number = type_index(type_name)
-      if type_name == false, do: throw("Type invalid")
-
-      body_text = Jason.encode!(body)
-
-      from_address = Address.from_text!(address)
-      hash = calc_hash(type_number, body_text, time)
-
-      # check if already exists
-      exists!(hash)
-      signature = Base.decode64!(sig64)
-
-      # IO.inspect(Base.encode16(hash, case: :lower))
-
-      size = byte_size(body_text) + byte_size(signature)
-      if size > @max_size, do: throw("Body size exceeded")
-
-      pubkey = Wallet.fetch!(from_address)
-
-      if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
-
-      # new_body =
-      case type_name do
-        "token.new" ->
-          token_id = List.first(body)
-          Token.check_new!(token_id, from_address)
-
-        "token.update" ->
-          [token_id | _rest] = body
-          Token.check_update!(token_id, from_address)
-
-        "token.delete" ->
-          token_id = List.first(body)
-          Token.check_delete!(token_id, from_address)
-
-        "validator.new" ->
-          [hostname, name, _owner, avatar, fee_type, fee | _rest] = body
-          Validator.check_new!(hostname, name, from_address, avatar, fee_type, fee)
-
-        "validator.update" ->
-          [hostname | _rest] = body
-          Validator.check_update!(hostname, from_address)
-
-        "validator.delete" ->
-          [hostname] = body
-          Validator.check_delete!(hostname, from_address)
-
-        "tx.send" ->
-          [token, to_address, amount, validator_host | _rest] = body
-
-          Tx.check_send!(
-            from_address,
-            Address.from_text!(to_address),
-            token,
-            amount,
-            validator_host,
-            size
-          )
-
-        "tx.coinbase" ->
-          [token, _outputs, note] = body
-          Tx.check_coinbase!(from_address, token, note)
-
-        "tx.refund" ->
-          [tx_time, tx_hash] = body
-          Tx.check_refund!(from_address, tx_time, decode_id(tx_hash))
-
-        "balance.lock" ->
-          [to_address, token_id, value] = body
-          Balance.check_lock!(from_address, Address.from_text!(to_address), token_id, value)
-
-        "domain.new" ->
-          [name, email, avatar, title, years_to_renew, validator_host] = body
-
-          Domain.check_new!(
-            name,
-            from_address,
-            email,
-            avatar,
-            title,
-            years_to_renew,
-            validator_host,
-            size
-          )
-
-        "domain.update" ->
-          [host, _validator_host, _params] = body
-          Domain.check_update!(host, from_address)
-
-        "domain.delete" ->
-          [host] = body
-          Domain.check_delete!(host, from_address)
-
-        "domain.renew" ->
-          [host, years_to_renew, validator_host] = body
-
-          Domain.check_renew!(
-            host,
-            from_address,
-            years_to_renew,
-            validator_host,
-            time,
-            size
-          )
-
-        "dns.new" ->
-          [name, type, data, ttl | _validator_host] = body
-          DnsRecord.check_new!(name, type, data, ttl, from_address)
-
-        "dns.update" ->
-          [name, type, old_hash_index, data, ttl | _validator_host] = body
-          DnsRecord.check_update!(name, type, old_hash_index, data, ttl, from_address)
-
-        "dns.delete" ->
-          DnsRecord.check_delete!(body, from_address)
-
-        _ ->
-          throw("Invalid Match Type")
-      end
-
-      Mempool.push!(time, hash, type_number, from_address, body, signature, size)
-    rescue
-      ex ->
-        {:error, Exception.format(:error, ex, __STACKTRACE__)}
-    catch
-      x -> {:error, x}
-    end
-  end
-
-  @spec new!(pos_integer, binary, pos_integer, pos_integer, binary, term, binary, pos_integer) ::
-          Event.t()
-  def new!(next_index, hash, time, type_number, from_address, body, signature, size) do
-    type = type_name(type_number)
-
-    event = %{
-      hash: hash,
-      type: type_number,
-      block_index: next_index,
-      sig_count: 1,
-      size: size,
-      time: time,
-      vsn: @version
-    }
-
-    channel = Default.channel()
-
-    multi =
-      Ecto.Multi.new()
-      |> multi_insert(event, channel)
-
-    result =
-      case type do
-        "pubkey.new" ->
-          body
-          |> List.first()
-          |> Base.decode64!()
-          |> Wallet.put!()
-
-          multi
-
-        "token.new" ->
-          [token_id, owner, name, decimals, symbol, avatar, props] = body
-
-          Token.new!(
-            multi,
-            token_id,
-            from_address,
-            Address.from_text!(owner),
-            name,
-            decimals,
-            symbol,
-            avatar,
-            props,
-            time,
-            channel
-          )
-
-        "token.update" ->
-          [token_id, params] = body
-          Token.event_update!(multi, from_address, token_id, params, time, channel)
-
-        "token.delete" ->
-          [token_id] = body
-          Token.event_delete!(multi, token_id, from_address, channel)
-
-        "validator.new" ->
-          [hostname, name, owner, avatar, fee_type, fee] = body
-
-          Validator.new!(
-            multi,
-            from_address,
-            hostname,
-            name,
-            Address.from_text!(owner),
-            avatar,
-            fee_type,
-            fee,
-            time,
-            channel
-          )
-
-        "validator.update" ->
-          [hostname, params] = body
-
-          Validator.event_update!(
-            multi,
-            from_address,
-            hostname,
-            params,
-            time,
-            channel
-          )
-
-        "validator.delete" ->
-          [hostname] = body
-          Validator.event_delete!(multi, hostname, from_address, channel)
-
-        "tx.send" ->
-          [token, to_address, amount, validator_host, note] = body
-
-          Tx.send!(
-            multi,
-            hash,
-            token,
-            from_address,
-            Address.from_text!(to_address),
-            amount,
-            validator_host,
-            size,
-            note,
-            false,
-            time,
-            channel
-          )
-
-        "tx.coinbase" ->
-          [token, outputs, note] = body
-          Tx.coinbase!(multi, hash, token, from_address, outputs, note, time, channel)
-
-        "tx.refund" ->
-          [tx_time, tx_hash] = body
-          Tx.refund!(multi, hash, from_address, tx_time, decode_id(tx_hash), size, time, channel)
-
-        "balance.lock" ->
-          [to_address, token_id, value] = body
-          Balance.lock!(multi, Address.from_text!(to_address), token_id, value, time, channel)
-
-        "domain.new" ->
-          [name, email, avatar, title, years_to_renew, validator_host] = body
-
-          Domain.new!(
-            multi,
-            hash,
-            from_address,
-            name,
-            email,
-            avatar,
-            title,
-            years_to_renew,
-            validator_host,
-            size,
-            time,
-            channel
-          )
-
-        "domain.update" ->
-          [name, validator_host, params] = body
-
-          Domain.event_update!(
-            multi,
-            hash,
-            name,
-            from_address,
-            validator_host,
-            params,
-            time,
-            channel
-          )
-
-        "domain.delete" ->
-          [host] = body
-          Domain.event_delete!(multi, host, from_address, channel)
-
-        "domain.renew" ->
-          [host, years_to_renew, validator_host] = body
-
-          Domain.event_renew!(
-            multi,
-            hash,
-            from_address,
-            host,
-            years_to_renew,
-            validator_host,
-            size,
-            time,
-            channel
-          )
-
-        "dns.new" ->
-          [hostname, type, data, ttl, validator_host] = body
-
-          DnsRecord.event_new!(
-            multi,
-            hash,
-            from_address,
-            hostname,
-            type,
-            data,
-            ttl,
-            validator_host,
-            time,
-            channel
-          )
-
-        "dns.update" ->
-          [hostname, type, old_hash_index, data, ttl, validator_host] = body
-
-          DnsRecord.event_update!(
-            multi,
-            hash,
-            from_address,
-            hostname,
-            type,
-            old_hash_index,
-            data,
-            ttl,
-            validator_host,
-            time,
-            channel
-          )
-
-        "dns.delete" ->
-          DnsRecord.event_delete!(multi, body, channel)
-      end
-
-    put!({hash, time, next_index, @version, type_number, from_address, body, signature})
-
-    case result do
-      :ok ->
-        :ok
-
-      multi_or_fun ->
-        RepoWorker.run(multi_or_fun)
-    end
-
-    event
-  end
+  # @spec check(pos_integer, String.t(), pos_integer, term, String.t(), String.t()) ::
+  #         {:ok, binary} | {:error, String.t()}
+  # def check(@version, "wallet.new" = type_name, time, [pubkey64] = body, sig64) do
+  #   try do
+  #     type_number = type_index(type_name)
+  #     if type_name == false, do: throw("Type invalid")
+  #     body_text = Jason.encode!(body)
+  #     hash = calc_hash(type_number, body_text, time)
+
+  #     # check if already exists
+  #     exists!(hash)
+
+  #     signature = Base.decode64!(sig64)
+  #     pubkey = Base.decode64!(pubkey64)
+  #     size = byte_size(body_text) + byte_size(signature)
+  #     from_address = Address.hash(pubkey)
+  #     # IO.inspect("Address:")
+  #     # IO.inspect(Address.to_text(from_address))
+  #     # IO.inspect("Hash: #{Base.encode16(hash, case: :lower)}")
+
+  #     if @imposible == from_address, do: throw("Imposible address")
+
+  #     if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
+
+  #     if Wallet.has_key?(from_address), do: throw("Pubkey already exists")
+
+  #     Mempool.push!(time, hash, type_number, from_address, body, signature, size)
+  #   rescue
+  #     ex ->
+  #       {:error, Exception.format(:error, ex, __STACKTRACE__)}
+  #   catch
+  #     x -> {:error, x}
+  #   end
+  # end
+
+  # def check(@version, type_name, time, body, address, sig64) do
+  #   try do
+  #     # if check_timeout and abs(time - Chain.get_time()) > @timeout, do: throw("Event is timeout")
+
+  #     type_number = type_index(type_name)
+  #     if type_name == false, do: throw("Type invalid")
+
+  #     body_text = Jason.encode!(body)
+
+  #     from_address = Address.from_text!(address)
+  #     hash = calc_hash(type_number, body_text, time)
+
+  #     # check if already exists
+  #     exists!(hash)
+  #     signature = Base.decode64!(sig64)
+
+  #     # IO.inspect(Base.encode16(hash, case: :lower))
+
+  #     size = byte_size(body_text) + byte_size(signature)
+  #     if size > @max_size, do: throw("Body size exceeded")
+
+  #     pubkey = Wallet.fetch!(from_address)
+
+  #     if Falcon.verify(hash, signature, pubkey) == :error, do: throw("Invalid signature")
+
+  #     # new_body =
+  #     case type_name do
+  #       "token.new" ->
+  #         token_id = List.first(body)
+  #         Token.check_new!(token_id, from_address)
+
+  #       "token.update" ->
+  #         [token_id | _rest] = body
+  #         Token.check_update!(token_id, from_address)
+
+  #       "token.delete" ->
+  #         token_id = List.first(body)
+  #         Token.check_delete!(token_id, from_address)
+
+  #       "validator.new" ->
+  #         [hostname, name, _owner, avatar, fee_type, fee | _rest] = body
+  #         Validator.check_new!(hostname, name, from_address, avatar, fee_type, fee)
+
+  #       "validator.update" ->
+  #         [hostname | _rest] = body
+  #         Validator.check_update!(hostname, from_address)
+
+  #       "validator.delete" ->
+  #         [hostname] = body
+  #         Validator.check_delete!(hostname, from_address)
+
+  #       "tx.send" ->
+  #         [token, to_address, amount, validator_host | _rest] = body
+
+  #         Tx.check_send!(
+  #           from_address,
+  #           Address.from_text!(to_address),
+  #           token,
+  #           amount,
+  #           validator_host,
+  #           size
+  #         )
+
+  #       "tx.coinbase" ->
+  #         [token, _outputs, note] = body
+  #         Tx.check_coinbase!(from_address, token, note)
+
+  #       "tx.refund" ->
+  #         [tx_time, tx_hash] = body
+  #         Tx.check_refund!(from_address, tx_time, decode_id(tx_hash))
+
+  #       "balance.lock" ->
+  #         [to_address, token_id, value] = body
+  #         Balance.check_lock!(from_address, Address.from_text!(to_address), token_id, value)
+
+  #       "domain.new" ->
+  #         [name, email, avatar, title, years_to_renew, validator_host] = body
+
+  #         Domain.check_new!(
+  #           name,
+  #           from_address,
+  #           email,
+  #           avatar,
+  #           title,
+  #           years_to_renew,
+  #           validator_host,
+  #           size
+  #         )
+
+  #       "domain.update" ->
+  #         [host, _validator_host, _params] = body
+  #         Domain.check_update!(host, from_address)
+
+  #       "domain.delete" ->
+  #         [host] = body
+  #         Domain.check_delete!(host, from_address)
+
+  #       "domain.renew" ->
+  #         [host, years_to_renew, validator_host] = body
+
+  #         Domain.check_renew!(
+  #           host,
+  #           from_address,
+  #           years_to_renew,
+  #           validator_host,
+  #           time,
+  #           size
+  #         )
+
+  #       "dns.new" ->
+  #         [name, type, data, ttl | _validator_host] = body
+  #         DnsRecord.check_new!(name, type, data, ttl, from_address)
+
+  #       "dns.update" ->
+  #         [name, type, old_hash_index, data, ttl | _validator_host] = body
+  #         DnsRecord.check_update!(name, type, old_hash_index, data, ttl, from_address)
+
+  #       "dns.delete" ->
+  #         DnsRecord.check_delete!(body, from_address)
+
+  #       _ ->
+  #         throw("Invalid Match Type")
+  #     end
+
+  #     Mempool.push!(time, hash, type_number, from_address, body, signature, size)
+  #   rescue
+  #     ex ->
+  #       {:error, Exception.format(:error, ex, __STACKTRACE__)}
+  #   catch
+  #     x -> {:error, x}
+  #   end
+  # end
+
+  # @spec new!(pos_integer, binary, pos_integer, pos_integer, binary, term, binary, pos_integer) ::
+  #         Event.t()
+  # def new!(next_index, hash, time, type_number, from_address, body, signature, size) do
+  #   type = type_name(type_number)
+
+  #   event = %{
+  #     hash: hash,
+  #     type: type_number,
+  #     block_index: next_index,
+  #     sig_count: 1,
+  #     size: size,
+  #     time: time,
+  #     vsn: @version
+  #   }
+
+  #   channel = Default.channel()
+
+  #   multi =
+  #     Ecto.Multi.new()
+  #     |> multi_insert(event, channel)
+
+  #   result =
+  #     case type do
+  #       "wallet.new" ->
+  #         body
+  #         |> List.first()
+  #         |> Base.decode64!()
+  #         |> Wallet.put!()
+
+  #         multi
+
+  #       "token.new" ->
+  #         [token_id, owner, name, decimals, symbol, avatar, props] = body
+
+  #         Token.new!(
+  #           multi,
+  #           token_id,
+  #           from_address,
+  #           Address.from_text!(owner),
+  #           name,
+  #           decimals,
+  #           symbol,
+  #           avatar,
+  #           props,
+  #           time,
+  #           channel
+  #         )
+
+  #       "token.update" ->
+  #         [token_id, params] = body
+  #         Token.event_update!(multi, from_address, token_id, params, time, channel)
+
+  #       "token.delete" ->
+  #         [token_id] = body
+  #         Token.event_delete!(multi, token_id, from_address, channel)
+
+  #       "validator.new" ->
+  #         [hostname, name, owner, avatar, fee_type, fee] = body
+
+  #         Validator.new!(
+  #           multi,
+  #           from_address,
+  #           hostname,
+  #           name,
+  #           Address.from_text!(owner),
+  #           avatar,
+  #           fee_type,
+  #           fee,
+  #           time,
+  #           channel
+  #         )
+
+  #       "validator.update" ->
+  #         [hostname, params] = body
+
+  #         Validator.event_update!(
+  #           multi,
+  #           from_address,
+  #           hostname,
+  #           params,
+  #           time,
+  #           channel
+  #         )
+
+  #       "validator.delete" ->
+  #         [hostname] = body
+  #         Validator.event_delete!(multi, hostname, from_address, channel)
+
+  #       "tx.send" ->
+  #         [token, to_address, amount, validator_host, note] = body
+
+  #         Tx.send!(
+  #           multi,
+  #           hash,
+  #           token,
+  #           from_address,
+  #           Address.from_text!(to_address),
+  #           amount,
+  #           validator_host,
+  #           size,
+  #           note,
+  #           false,
+  #           time,
+  #           channel
+  #         )
+
+  #       "tx.coinbase" ->
+  #         [token, outputs, note] = body
+  #         Tx.coinbase!(multi, hash, token, from_address, outputs, note, time, channel)
+
+  #       "tx.refund" ->
+  #         [tx_time, tx_hash] = body
+  #         Tx.refund!(multi, hash, from_address, tx_time, decode_id(tx_hash), size, time, channel)
+
+  #       "balance.lock" ->
+  #         [to_address, token_id, value] = body
+  #         Balance.lock!(multi, Address.from_text!(to_address), token_id, value, time, channel)
+
+  #       "domain.new" ->
+  #         [name, email, avatar, title, years_to_renew, validator_host] = body
+
+  #         Domain.new!(
+  #           multi,
+  #           hash,
+  #           from_address,
+  #           name,
+  #           email,
+  #           avatar,
+  #           title,
+  #           years_to_renew,
+  #           validator_host,
+  #           size,
+  #           time,
+  #           channel
+  #         )
+
+  #       "domain.update" ->
+  #         [name, validator_host, params] = body
+
+  #         Domain.event_update!(
+  #           multi,
+  #           hash,
+  #           name,
+  #           from_address,
+  #           validator_host,
+  #           params,
+  #           time,
+  #           channel
+  #         )
+
+  #       "domain.delete" ->
+  #         [host] = body
+  #         Domain.event_delete!(multi, host, from_address, channel)
+
+  #       "domain.renew" ->
+  #         [host, years_to_renew, validator_host] = body
+
+  #         Domain.event_renew!(
+  #           multi,
+  #           hash,
+  #           from_address,
+  #           host,
+  #           years_to_renew,
+  #           validator_host,
+  #           size,
+  #           time,
+  #           channel
+  #         )
+
+  #       "dns.new" ->
+  #         [hostname, type, data, ttl, validator_host] = body
+
+  #         DnsRecord.event_new!(
+  #           multi,
+  #           hash,
+  #           from_address,
+  #           hostname,
+  #           type,
+  #           data,
+  #           ttl,
+  #           validator_host,
+  #           time,
+  #           channel
+  #         )
+
+  #       "dns.update" ->
+  #         [hostname, type, old_hash_index, data, ttl, validator_host] = body
+
+  #         DnsRecord.event_update!(
+  #           multi,
+  #           hash,
+  #           from_address,
+  #           hostname,
+  #           type,
+  #           old_hash_index,
+  #           data,
+  #           ttl,
+  #           validator_host,
+  #           time,
+  #           channel
+  #         )
+
+  #       "dns.delete" ->
+  #         DnsRecord.event_delete!(multi, body, channel)
+  #     end
+
+  #   put!({hash, time, next_index, @version, type_number, from_address, body, signature})
+
+  #   case result do
+  #     :ok ->
+  #       :ok
+
+  #     multi_or_fun ->
+  #       RepoWorker.run(multi_or_fun)
+  #   end
+
+  #   event
+  # end
 
   def put!(x) do
     case DetsPlus.insert_new(@base, x) do
@@ -658,7 +698,7 @@ defmodule Ipncore.Event do
   def all(params) do
     from(ev in Event)
     |> filter_block(params)
-    |> filter_type(params)
+    # |> filter_type(params)
     |> filter_date(params)
     |> filter_offset(params)
     |> filter_limit(params)
@@ -674,10 +714,10 @@ defmodule Ipncore.Event do
 
   defp filter_block(query, _), do: query
 
-  defp filter_type(query, %{"type" => type_name}) do
-    type_number = type_index(type_name)
-    where(query, [ev], ev.type == ^type_number)
-  end
+  # defp filter_type(query, %{"type" => type_name}) do
+  #   type_number = type_index(type_name)
+  #   where(query, [ev], ev.type == ^type_number)
+  # end
 
   defp filter_type(query, _), do: query
 
@@ -733,6 +773,7 @@ defmodule Ipncore.Event do
   defp transform([]), do: []
 
   defp transform(x) do
-    %{x | type: type_name(x.type)}
+    # %{x | type: type_name(x.type)}
+    x
   end
 end

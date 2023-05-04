@@ -1,5 +1,5 @@
 defmodule MapUtil do
-  alias Ipncore.Address
+  alias Ippan.Address
 
   ## util functions
   def to_keywords(params) do
@@ -37,8 +37,17 @@ defmodule MapUtil do
   def validate_email(map, key) do
     email = Map.get(map, key)
 
-    if not is_nil(email) and not Regex.match?(Const.Regex.email(), email),
+    if not is_nil(email) and not Match.email?(email),
       do: throw("Invalid #{key}")
+
+    map
+  end
+
+  def validate_url(map, key) do
+    url = Map.get(map, key)
+
+    if not is_nil(url) and not Match.url?(url),
+      do: throw("Invalid url #{key}")
 
     map
   end
@@ -46,8 +55,17 @@ defmodule MapUtil do
   def validate_hostname(map, key) do
     val = Map.get(map, key)
 
-    if not is_nil(val) and not Regex.match?(Const.Regex.hostname(), val),
-      do: throw("Invalid #{key}")
+    if not is_nil(val) and not Match.hostname?(val),
+      do: throw("Invalid hostname #{key}")
+
+    map
+  end
+
+  def validate_account(map, key) do
+    val = Map.get(map, key)
+
+    if not is_nil(val) and not Match.account?(val),
+      do: throw("Invalid hostname #{key}")
 
     map
   end
@@ -122,21 +140,24 @@ defmodule MapUtil do
     map
   end
 
-  def validate_bytes(map, key, _x.._y = range) do
+  def validate_bytes_range(map, key, range) do
     val = Map.get(map, key)
     if not is_nil(val) and byte_size(val) not in range, do: throw("Invalid max length #{key}")
 
     map
   end
 
-  def validate_bytes(map, key, size, _) do
-    val = Map.get(map, key)
-    if not is_nil(val) and byte_size(val) > size, do: throw("Invalid max length #{key}")
+  def validate_bytes(map, key, size) do
+    case Map.get(map, key) do
+      val when byte_size(val) == size ->
+        throw("Invalid max length #{key}")
 
-    map
+      _ ->
+        map
+    end
   end
 
-  def validate_length(map, key, _x.._y = range) do
+  def validate_length_range(map, key, _x.._y = range) do
     val = Map.get(map, key)
     if not is_nil(val) and String.length(val) not in range, do: throw("Invalid max length #{key}")
 

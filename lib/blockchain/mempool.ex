@@ -19,6 +19,10 @@ defmodule Mempool do
     end
   end
 
+  def add(hash, type, timestamp, from, args, signature) do
+    :ets.insert(@table, {hash, type, timestamp, from, args, signature})
+  end
+
   def push!(time, hash, type_number, from, body, signature, size) do
     thread = assign_worker_thread(from)
 

@@ -16,4 +16,6 @@ defmodule Default do
   def address, do: Application.get_env(:ipncore, :address)
   def address58, do: Application.get_env(:ipncore, :address58)
   def data_dir, do: Application.get_env(:ipncore, :data_dir, "data")
+
+  def validator_id, do: Application.get_env(:ipncore, :validator_id)
 end

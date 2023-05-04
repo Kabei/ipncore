@@ -2,7 +2,7 @@ defmodule Ipncore.Domain do
   use Ecto.Schema
   import Ecto.Query
   import Ipnutils.Filters
-  import Ipncore.Util
+  import Ippan.Utils
   alias Ipncore.{Address, Database, DnsRecord, Repo, Tx}
   alias __MODULE__
 

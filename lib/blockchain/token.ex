@@ -2,7 +2,7 @@ defmodule Ipncore.Token do
   use Ecto.Schema
   import Ecto.Query, only: [from: 2, where: 3, order_by: 3, select: 3]
   import Ipnutils.Filters
-  import Ipncore.Util
+  import Ippan.Utils
   import Ipnutils.Macros, only: [deftypes: 1]
   alias Ipncore.{Address, Repo, Database}
   alias __MODULE__
@@ -236,7 +236,7 @@ defmodule Ipncore.Token do
       (props || %{})
       |> Map.take(@props)
       |> MapUtil.validate_not_empty()
-      |> MapUtil.validate_value("maxSupply", :gt, 0)
+      |> MapUtil.validate_value("maxSupply", :gtgt, 0)
       |> MapUtil.validate_any("opts", ["burn", "coinbase", "lock"])
 
     if decimals < 0 and decimals > @max_decimals, do: throw("Invalid decimals")

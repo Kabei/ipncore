@@ -1,3 +1,52 @@
+defmodule Ippan.Migration do
+  # create database duckdb
+  @spec up(version :: pos_integer()) :: String.t()
+  def up(0) do
+    """
+    CREATE TABLE IF NOT EXISTS validator(
+      host VARCHAR(20) PRIMARY KEY NOT NULL,
+      name VARCHAR(30) NOT NULL,
+      owner BYTEA NOT NULL,
+      avatar VARCHAR,
+      enabled BOOL DEFAULT TRUE,
+      fee_type UTINYINT NOT NULL,
+      fee DOUBLE NOT NULL,
+      created_at DATETIME NOT NULL,
+      updated_at DATETIME NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS round(
+      id UBIGINT PRIMARY KEY NOT NULL,
+      hash BYTEA NOT NULL,
+      count UINTEGER NOT NULL,
+      mk BYTEA NOT NULL,
+      created_at DATETIME
+    );
+
+    CREATE TABLE IF NOT EXISTS block(
+      id UBIGINT PRIMARY KEY NOT NULL,
+      time DATETIME,
+      hash BYTEA NOT NULL,
+      prev BYTEA,
+      by UBIGINT NOT NULL,
+      mk BYTEA NOT NULL,
+      vsn UINTEGER NOT NULL,
+      count UINTEGER NOT NULL,
+      size UINTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS event(
+      time UBIGINT NOT NULL,
+      hash BYTEA NOT NULL,
+      type USMALLINT NOT NULL,
+      block_index UBIGINT NOT NULL
+    );
+    """
+    |> String.replace("\n", "")
+    |> String.split(";", trim: true)
+  end
+end
+
 defmodule Ipncore.Migration.Blockchain do
   use Ipnutils.MigrationHelper
 
@@ -10,7 +59,6 @@ defmodule Ipncore.Migration.Blockchain do
       CREATE TABLE IF NOT EXISTS "#{channel}".block(
         height bigint NOT NULL,
         time bigint,
-        type smallint,
         hash bytea NOT NULL,
         prev bytea,
         mk bytea NOT NULL,

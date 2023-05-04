@@ -17,13 +17,13 @@ defmodule Ipncore.DNS.Worker do
           :gen_udp.send(state.socket, ip, port, response)
       end
 
-    {:reply, result, local_state}
+    {:reply, result, local_state, :hibernate}
   end
 
   def handle_call({:tls, socket, rest}, _from, state) do
     result = Ipncore.DNS.handle(rest, 0)
     ThousandIsland.Socket.send(socket, <<byte_size(result)::16>> <> result)
 
-    {:reply, result, state}
+    {:reply, result, state, :hibernate}
   end
 end

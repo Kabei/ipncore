@@ -1,6 +1,5 @@
 defmodule Ipncore.Block do
   use Ecto.Schema
-  import Ipnutils.Macros, only: [deftypes: 1]
   import Ecto.Query, only: [from: 1, from: 2, order_by: 3, select: 3]
   import Ipnutils.Filters
   alias Ipncore.{Chain, Event, Repo, Tx}
@@ -8,33 +7,18 @@ defmodule Ipncore.Block do
 
   @version Default.version()
   @interval Default.block_interval()
-
-  @block_type_genesis 0
-  @block_type_regular 1
   @epoch Application.compile_env(:ipncore, :epoch)
-
-  @type block_type :: 0 | 100 | 200 | 201 | 300 | 400 | 401
 
   @type t :: %__MODULE__{
           height: pos_integer(),
           prev: binary | nil,
           hash: binary,
           mk: binary,
-          type: block_type(),
           time: pos_integer(),
           vsn: pos_integer(),
           ev_count: pos_integer(),
           events: [Event.t()] | [] | nil
         }
-
-  deftypes do
-    [
-      {0, "genesis"},
-      {1, "regular"}
-    ]
-  else
-    {false, false}
-  end
 
   def version, do: @version
 
@@ -42,7 +26,6 @@ defmodule Ipncore.Block do
   schema "block" do
     field(:hash, :binary)
     field(:prev, :binary)
-    field(:type, :integer, default: @block_type_regular)
     field(:mk, :binary)
     field(:time, :integer)
     field(:vsn, :integer, default: @version)
@@ -56,7 +39,6 @@ defmodule Ipncore.Block do
         height: b.height,
         hash: b.hash,
         mk: b.mk,
-        type: b.type,
         prev: b.prev,
         time: b.time,
         ev_count: b.ev_count,
@@ -78,7 +60,6 @@ defmodule Ipncore.Block do
       prev: nil,
       time: time,
       ev_count: length(events),
-      type: @block_type_genesis,
       events: events
     }
     |> put_merkle_root()
@@ -102,7 +83,6 @@ defmodule Ipncore.Block do
       prev: prev_block.hash,
       ev_count: length(events),
       time: time,
-      type: @block_type_regular,
       events: events
     }
     |> put_merkle_root()
@@ -190,7 +170,7 @@ defmodule Ipncore.Block do
   # end
 
   def fetch_genesis do
-    from(b in Block, where: b.height == 0 and b.type == @block_type_genesis, limit: 1)
+    from(b in Block, where: b.height == 0, limit: 1)
     |> Repo.one(prefix: Default.channel())
   end
 
@@ -198,51 +178,6 @@ defmodule Ipncore.Block do
     from(b in Block, order_by: [desc: b.height], limit: 1)
     |> Repo.one(prefix: Default.channel())
   end
-
-  # @spec next_index() :: pos_integer()
-  # def next_index do
-  #   iit = Chain.get_time()
-  #   genesis_time = Chain.genesis_time()
-
-  #   case genesis_time do
-  #     0 ->
-  #       0
-
-  #     _ ->
-  #       div(iit - genesis_time, @interval)
-  #   end
-  # end
-
-  # @spec next_index(time :: pos_integer()) :: pos_integer()
-  # def next_index(time) do
-  #   genesis_time = Chain.genesis_time()
-
-  #   case genesis_time do
-  #     0 ->
-  #       0
-
-  #     _ ->
-  #       div(time - genesis_time, @interval)
-  #   end
-  # end
-
-  # @spec next_index(pos_integer(), pos_integer()) :: pos_integer()
-  # def next_index(_timestamp, 0), do: 0
-
-  # def next_index(timestamp, genesis_time) do
-  #   div(timestamp - genesis_time, @interval)
-  # end
-
-  # @spec block_index_start_time(pos_integer(), pos_integer()) :: pos_integer()
-  # def block_index_start_time(block_index, genesis_time) do
-  #   block_index * @interval + genesis_time
-  # end
-
-  # def get(%{"height" => height} = params) do
-  #   from(b in Block, where: b.height == ^height, select: map_select())
-  #   |> Repo.one(prefix: filter_channel(params, Default.channel()))
-  #   |> transform()
-  # end
 
   def get(%{"hash" => hash} = params) do
     from(b in Block, where: b.hash == ^hash, select: map_select())
@@ -305,7 +240,6 @@ defmodule Ipncore.Block do
     %{
       b
       | hash: Base.encode16(b.hash, case: :lower),
-        type: type_name(b.type),
         prev: prev_hash(b.prev),
         mk: Base.encode16(b.mk, case: :lower)
     }

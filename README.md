@@ -49,28 +49,36 @@ Events are requests made by users or automatic operations by the system that aff
 
 |Code|Event|Description|Status|
 |-|-|-|-|
-|100| `validator.new` |Create a new validator|✅|
-|101| `validator.update` |Update a validator|✅|
-|102| `validator.delete` |Delete a validator|✅|
-|200| `token.new` |Create a new token|✅|
-|201| `token.update` |Update a token|✅|
-|202| `token.delete` |Delete a token|✅|
-|210| `tx.coinbase` |Creation of coins by the token owner|✅|
-|211| `tx.send` |Send a simple payment|✅|
-|212| `tx.sendmulti` |Send payment to multiple recipients|❌|
-|213| `tx.refund` |Return a transaction without paying a fee|✅|
-|214| `tx.jackpot` |Jackpot event|❌|
-|215| `tx.reward` |Reward core validators|❌|
-|216| `tx.burn` |Coin destruction|❌|
-|250| `balance.lock` |Balance lock|✅|
-|400| `domain.new` |Register a new domain|✅|
-|401| `domain.update` |Update a domain|✅|
-|402| `domain.delete` |Delete a domain|✅|
+|0| `account.new` |Account registration|✅|
+|1| `account.validator` |Update a account's validator|✅|
+|2| `account.recover` |account recover|✅|
+|3| `account.update` |Update a account|❌|
+|50| `env.set` |Set environment variable|❌|
+|51| `env.delete` |Delete environment variable|❌|
+|100| `validator.new` |Create a new validator|❌|
+|101| `validator.update` |Update a validator|❌|
+|102| `validator.delete` |Delete a validator|❌|
+|200| `token.new` |Create a new token|❌|
+|201| `token.update` |Update a token|❌|
+|202| `token.delete` |Delete a token|❌|
+|250| `balance.lock` |Balance lock|❌|
+|251| `balance.unlock` |Balance unlock|❌|
+|300| `tx.coinbase` |Creation of coins by the token owner|❌|
+|301| `tx.send` |Send a simple payment|❌|
+|302| `tx.burn` |Coin destruction|❌|
+|303| `tx.refund` |Return a transaction without paying a fee|❌|
+|400| `domain.new` |Register a new domain|❌|
+|401| `domain.update` |Update a domain|❌|
+|402| `domain.delete` |Delete a domain|❌|
 |403| `domain.renew` |Renew a domain|❌|
-|410| `dns.new` |Create a DNS Record|✅|
-|411| `dns.update` |Update a DNS Record|✅|
-|412| `dns.delete` |Delete a DNS Record|✅|
-|1000| `pubkey.new` |Public key registration|✅|
+|404| `domain.expiry` |Remove all domains expired|❌|
+|500| `dns.new` |Create a DNS Record|❌|
+|501| `dns.update` |Update a DNS Record|❌|
+|502| `dns.delete` |Delete a DNS Record|❌|
+|900| `block.new` |A new block is published by a validator|❌|
+|901| `block.received` |Replication of metadata received by block owner|❌|
+|990| `round.start` |A validator starts a round|❌|
+|999| `round.end` |A validator ends a round|❌|
 
 ### Body of the event
 

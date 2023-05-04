@@ -4,9 +4,9 @@ defmodule Ipncore.Route.Blockchain do
   import Ipncore.WebTools, only: [json: 2, send_result: 2]
   import Ipnutils.Filters
   # import Ipncore.PostDeliver, only: [serve_video: 3]
+  alias Ippan.Address
 
   alias Ipncore.{
-    Address,
     Block,
     Event,
     Tx,
@@ -16,9 +16,10 @@ defmodule Ipncore.Route.Blockchain do
     Chain,
     Validator,
     Domain,
-    DnsRecord,
-    Util
+    DnsRecord
   }
+
+  alias Ippan.Utils
 
   if Mix.env() == :dev do
     use Plug.Debugger
@@ -227,7 +228,7 @@ defmodule Ipncore.Route.Blockchain do
 
     token_supply = Map.get(token, :supply, 0)
     token_decimals = Map.get(token, :decimals, 0)
-    coins = Util.to_decimal(token_supply, token_decimals)
+    coins = Utils.to_decimal(token_supply, token_decimals)
     events = Chain.events()
 
     resp = %{

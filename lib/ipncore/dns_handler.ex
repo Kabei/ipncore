@@ -59,6 +59,23 @@ defmodule Ipncore.DNS do
     end
   end
 
+  defmacrop not_found(query_id, domain_list, type) do
+    quote do
+      :dnsmsg.new(
+        %{
+          id: unquote(query_id),
+          is_response: true,
+          recursion_available: true,
+          recursion_desired: true,
+          return_code: :not_found
+        },
+        {unquote(domain_list), unquote(type), :in}
+      )
+      |> :dnswire.to_binary(@dnswire_opts_binary)
+      |> elem(2)
+    end
+  end
+
   defmacrop to_resources(dns_rr) do
     quote do
       Enum.reduce(unquote(dns_rr), [], fn {_dns_rr, domain, type, _in, _cnt, ttl, value, _tm, _bm,
@@ -97,6 +114,9 @@ defmodule Ipncore.DNS do
         FunctionClauseError ->
           not_implemented(query_id, domain_list, type)
       catch
+        :not_found ->
+          not_found(query_id, domain_list, type)
+
         :nxdomain ->
           nx_domain(query_id, domain_list, type)
 
@@ -116,11 +136,17 @@ defmodule Ipncore.DNS do
     type_number = DnsRecord.type_atom_to_number(type)
 
     resources =
-      case DnsRecord.lookup(domain, subdomain, type_number) do
+      case DnsRecord.fetch(domain, subdomain, type_number) do
         [] ->
-          throw(:nxdomain)
+          case Domain.exists?(domain) do
+            true ->
+              throw(:not_found)
 
-        [{_key, records}] ->
+            false ->
+              throw(:nxdomain)
+          end
+
+        [{{_domain, _subdomain, type}, records}] ->
           Enum.reduce(records, [], fn {x, ttl}, acc ->
             acc ++ [:dnslib.resource('#{domain} IN #{ttl} #{type} #{x}')]
           end)

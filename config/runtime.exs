@@ -33,6 +33,13 @@ config :ipncore, :dns6,
   ip: {0, 0, 0, 0, 0, 0, 0, 0},
   port: 53
 
+# p2p server
+config :ipncore, :p2p,
+  handler_module: Ippan.P2P.Server,
+  transport_module: ThousandIsland.Transports.TCP,
+  port: 5815,
+  num_acceptors: 10
+
 config :ipncore, :dns_tls,
   handler_module: Ipncore.DNS.TlsServer,
   transport_module: ThousandIsland.Transports.SSL,

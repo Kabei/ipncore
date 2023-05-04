@@ -41,12 +41,17 @@ defmodule Ipncore.DnsRecord do
     DetsPlus.insert(@base, x)
   end
 
-  def lookup(domain) do
-    DetsPlus.lookup(@base, domain)
+  def lookup(key) do
+    DetsPlus.lookup(@base, key)
   end
 
-  @spec lookup(binary, binary, integer) :: list()
-  def lookup(domain, subdomain, type) do
+  @spec fetch(binary, binary, integer) :: list()
+  def fetch(domain, subdomain, type) when type == 1 or type == 28 do
+    DetsPlus.lookup(@base, {domain, subdomain, 5}) ++
+      DetsPlus.lookup(@base, {domain, subdomain, type})
+  end
+
+  def fetch(domain, subdomain, type) do
     DetsPlus.lookup(@base, {domain, subdomain, type})
   end
 

@@ -1,4 +1,4 @@
-defmodule Ipncore.Address do
+defmodule Ippan.Address do
   def from_text(nil), do: nil
   def from_text([]), do: []
 

@@ -34,18 +34,18 @@ defmodule Test do
     {pk, sk, addr, addr58}
   end
 
-  # Test.pubkey_new(opk, osk)
-  # Test.pubkey_new(pk, sk)
-  # Test.pubkey_new(pk2, sk2)
-  def pubkey_new(pk, sk) do
-    type_number = Event.type_index("pubkey.new")
+  # Test.wallet_new(opk, osk)
+  # Test.wallet_new(pk, sk)
+  # Test.wallet_new(pk2, sk2)
+  def wallet_new(pk, sk) do
+    type_number = Event.type_index("wallet.new")
     time = :erlang.system_time(@unit_time)
     body = [Base.encode64(pk)]
     hash = Event.calc_hash(type_number, body, time)
 
     sig64 = signature64(sk, hash)
 
-    [@version, "pubkey.new", time, body, sig64]
+    [@version, "wallet.new", time, body, sig64]
   end
 
   # Test.token_new(osk, oaddr58, Default.token, oaddr58, Default.token_name, 9, Default.token_symbol, "https://avatar.com", %{"opts" => ["burn", "coinbase", "lock"]})

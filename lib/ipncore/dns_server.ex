@@ -32,6 +32,6 @@ defmodule Ipncore.DNS.Server do
       )
     end)
 
-    {:noreply, state}
+    {:noreply, state, :hibernate}
   end
 end

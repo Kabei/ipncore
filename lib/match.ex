@@ -2,7 +2,7 @@ defmodule Match do
   @email ~r/^([a-z0-9]{1}[a-z0-9_.+-]{1,62}[a-z0-9]{1})@([a-z0-9]{1}[a-z0-9.-]{1,100}[a-z0-9]{1})$/
   @url ~r/^(https?):\/\/[a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1}\.[a-z]{1,}[-a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#\/%=~_|]$/
   @phone ~r/^\+{1}[0-9]{11,15}$/
-  @hostname ~r/^([a-zA-Z0-9][a-zA-Z0-9\-]{0,61}\.)*[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/
+  @hostname ~r/^([a-zA-Z0-9][a-zA-Z0-9\-]{0,61}\.)*[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]\.[a-zA-Z0-9]{2,}$/
   @wallet_address ~r/(1x)[1-9A-HJ-NP-Za-km-z]+$/
   @domain ~r/^[A-Za-z0-9][A-Za-z0-9-]{1,61}[A-Za-z0-9]\.[A-Za-z]{1,}$/
   @subdomain ~r/^([a-z0-9]{1}[a-z0-9-]?){0,62}[a-z0-9]{1}.$/
@@ -11,7 +11,8 @@ defmodule Match do
   @base58 ~r/^[1-9A-HJ-NP-Za-km-z]+$/
   @base62 ~r/^[0-9A-Za-z]+$/
   @domain_link ~r/^@([a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1})/
-  @username ~r/((?!^[\.\-\_])([a-z0-9\.\-\_])(?![\.\_\-][\.\_\-])(?![\.\-\_]$)){1,30}/
+  # @username ~r/((?!^[\.\-\_])([a-z0-9\.\-\_])(?![\.\_\-][\.\_\-])(?![\.\-\_]$)){1,30}/
+  @username ~r/^[a-zA-Z0-9]+([._-]?[a-zA-Z0-9]+)*$/
 
   def hostname?(x), do: Regex.match?(@hostname, x)
   def domain?(x), do: Regex.match?(@domain, x)
@@ -25,5 +26,9 @@ defmodule Match do
   def domain_link(x), do: Regex.match?(@domain_link, x)
   def phone?(x), do: Regex.match?(@phone, x)
   def wallet_address?(x), do: Regex.match?(@wallet_address, x)
-  def username(x), do: Regex.match?(@username, x)
+  def username?(x), do: Regex.match?(@username, x)
+
+  def account?(x) do
+    byte_size(x) <= 20 and username?(x)
+  end
 end

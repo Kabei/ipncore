@@ -26,10 +26,13 @@ defmodule Ipncore.DNS.TlsServer do
 
   @impl ThousandIsland.Handler
   def handle_close(_socket, _state), do: :ok
+
   @impl ThousandIsland.Handler
   def handle_error(_error, _socket, _state), do: :ok
+
   @impl ThousandIsland.Handler
   def handle_shutdown(_socket, _state), do: :ok
+
   @impl ThousandIsland.Handler
   def handle_timeout(_socket, _state), do: :ok
 end

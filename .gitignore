@@ -24,6 +24,7 @@ ipncore-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+/data/
 
 .elixir_ls/
 

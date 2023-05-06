@@ -1,11 +1,15 @@
 defmodule Store.Sqlite do
+  alias Exqlite.Sqlite3NIF
+
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
       @base opts[:base]
       @table opts[:table]
       @mod opts[:mod]
-      @stmts opts[:stmt]
+      @stmts opts[:stmt] || []
       @create opts[:create]
+      @alter opts[:alter] || []
+      @version opts[:alter] || 0
       @keys opts[:keys] || 1
       @cache opts[:cache] || false
       @max_cache_size opts[:cache_size] || 1_000_000
@@ -26,6 +30,12 @@ defmodule Store.Sqlite do
         GenServer.start_link(__MODULE__, opts, hibernate_after: 5_000, name: @base)
       end
 
+      defmacrop call(server, request, timeout \\ :infinity) do
+        quote do
+          GenServer.call(unquote(server), unquote(request), unquote(timeout))
+        end
+      end
+
       @impl true
       def init(path) when is_binary(path) do
         {:ok, conn} = open(path)
@@ -38,6 +48,7 @@ defmodule Store.Sqlite do
             {name, statement}
           end
 
+        check_version(conn)
         begin(conn)
 
         if @cache do
@@ -56,6 +67,7 @@ defmodule Store.Sqlite do
             {name, statement}
           end
 
+        check_version(conn)
         begin(conn)
 
         if @cache do
@@ -72,7 +84,7 @@ defmodule Store.Sqlite do
         |> File.mkdir_p()
 
         {:ok, conn} = Sqlite3.open(path)
-        Sqlite3.execute(conn, "PRAGMA journal_mode = OFF")
+        Sqlite3.execute(conn, "PRAGMA journal_mode = WAL")
         Sqlite3.execute(conn, "PRAGMA synchronous = OFF")
         Sqlite3.execute(conn, "PRAGMA cache_size = -1000000")
         # Sqlite3.execute(conn, "PRAGMA locking_mode = EXCLUSIVE")
@@ -116,22 +128,48 @@ defmodule Store.Sqlite do
         Sqlite3.execute(conn, "COMMIT")
       end
 
+      def alter(conn, _version) do
+        :ok
+      end
+
+      defp check_version(conn) do
+        {:ok, stmt} = Sqlite3.prepare(conn, "PRAGMA USER_VERSION")
+        {:row, [v]} = Sqlite3.step(conn, stmt)
+        Sqlite3NIF.release(conn, stmt)
+
+        cond do
+          v > @version ->
+            raise "Bad database api version"
+
+          v < @version ->
+            :ok = alter(conn, @version)
+            Sqlite3.execute(conn, "PRAGMA USER_VERSION #{@version}")
+            :ok
+
+          true ->
+            :ok
+        end
+      end
+
       def create(conn) do
         for sql <- List.wrap(@create) do
           Sqlite3.execute(conn, sql)
         end
+
+        :ok
       end
 
       def insert(params) do
-        call(@base, {:insert, params})
+        # call(@base, {:insert, params})
+        GenServer.cast(@base, {:insert, params})
       end
 
       def upsert(params) do
-        call(@base, {:upsert, params})
+        GenServer.cast(@base, {:upsert, params})
       end
 
       def replace(params) do
-        call(@base, {:replace, params})
+        GenServer.cast(@base, {:replace, params})
       end
 
       def lookup(key) do
@@ -196,21 +234,19 @@ defmodule Store.Sqlite do
         call(@base, {:call, fun})
       end
 
-      @impl true
       if @cache do
-        def handle_call(
+        @impl true
+        def handle_cast(
               {:insert, params},
-              _from,
               %{conn: conn, ets: ets, stmt: stmt} = state
             ) do
           statement = Map.get(stmt, :insert)
-          Sqlite3.bind(conn, statement, params)
-          result = Sqlite3.step(conn, statement)
-
+          Sqlite3NIF.bind_and_step(conn, statement, params)
           :ets.delete(ets, params_to_ets(params))
-          {:reply, result, state}
+          {:noreply, state}
         end
 
+        @impl true
         def handle_call(
               {:lookup, params},
               _from,
@@ -305,51 +341,50 @@ defmodule Store.Sqlite do
           {:reply, n, state}
         end
       else
-        def handle_call({:insert, params}, _from, %{conn: conn, stmt: stmt} = state) do
+        @impl true
+        def handle_cast({:insert, params}, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :insert)
-          Sqlite3.bind(conn, statement, params)
-          result = Sqlite3.step(conn, statement)
-          {:reply, result, state}
+          Sqlite3NIF.bind_and_step(conn, statement, params)
+          {:noreply, state}
         end
 
-        def handle_call({:upsert, params}, _from, %{conn: conn, stmt: stmt} = state) do
+        def handle_cast({:upsert, params}, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :upsert)
-          Sqlite3.bind(conn, statement, params)
-          result = Sqlite3.step(conn, statement)
-          {:reply, result, state}
+          Sqlite3NIF.bind_and_step(conn, statement, params)
+          {:noreply, state}
         end
 
-        def handle_call({:replace, params}, _from, %{conn: conn, stmt: stmt} = state) do
+        def handle_cast({:replace, params}, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :replace)
-          Sqlite3.bind(conn, statement, params)
-          result = Sqlite3.step(conn, statement)
-          {:reply, result, state}
+          Sqlite3NIF.bind_and_step(conn, statement, params)
+          {:noreply, state}
         end
 
+        @impl true
         def handle_call({:lookup, params}, _from, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :lookup)
-          Sqlite3.bind(conn, statement, params)
+          Sqlite3NIF.bind(conn, statement, List.wrap(params))
           result = Sqlite3.fetch_all(conn, statement)
           {:reply, result, state}
         end
 
         def handle_call({:exists, id}, _from, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :exists)
-          Sqlite3.bind(conn, statement, [id])
+          Sqlite3NIF.bind(conn, statement, [id])
           result = {:row, [1]} == Sqlite3.step(conn, statement)
           {:reply, result, state}
         end
 
         def handle_call({:owner, id, owner}, _from, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :owner)
-          Sqlite3.bind(conn, statement, [id, owner])
+          Sqlite3NIF.bind(conn, statement, [id, owner])
           result = {:row, [1]} == Sqlite3.step(conn, statement)
           {:reply, result, state}
         end
 
         def handle_call({:delete, params}, _from, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :delete)
-          Sqlite3.bind(conn, statement, List.wrap(params))
+          Sqlite3NIF.bind(conn, statement, List.wrap(params))
 
           case Sqlite3.step(conn, statement) do
             :done ->
@@ -386,9 +421,7 @@ defmodule Store.Sqlite do
         {:ok, statement} =
           Sqlite3.prepare(conn, "UPDATE #{@table} SET #{set_fields} WHERE #{where}")
 
-        Sqlite3.bind(conn, statement, values_list)
-
-        case Sqlite3.step(conn, statement) do
+        case Sqlite3NIF.bind_and_step(conn, statement, values_list) do
           :done ->
             changes(conn)
 
@@ -398,7 +431,7 @@ defmodule Store.Sqlite do
             end
 
           _ ->
-            Sqlite3.release(conn, statement)
+            Sqlite3NIF.release(conn, statement)
             {:reply, 0, state}
         end
       end
@@ -406,7 +439,7 @@ defmodule Store.Sqlite do
       def handle_call(:all, _from, %{conn: conn, stmt: stmt} = state) do
         {:ok, statement} = Sqlite3.prepare(conn, "SELECT * FROM #{@table}")
         result = Sqlite3.fetch_all(conn, statement)
-        Sqlite3.release(conn, statement)
+        Sqlite3NIF.release(conn, statement)
         {:reply, result, state}
       end
 
@@ -416,7 +449,7 @@ defmodule Store.Sqlite do
             %{conn: conn, stmt: stmt} = state
           ) do
         statement = Map.get(stmt, stmt_name)
-        Sqlite3.bind(conn, statement, params)
+        Sqlite3NIF.bind(conn, statement, params)
         result = Sqlite3.fetch_all(conn, statement)
         {:reply, result, state}
       end
@@ -462,19 +495,20 @@ defmodule Store.Sqlite do
         sync(conn)
         Sqlite3.execute(conn, "VACUUM")
         Sqlite3.execute(conn, "PRAGMA optimize")
-        Sqlite3.close(conn)
+        Sqlite3NIF.close(conn)
         :ets.delete(ets)
       end
 
-      def terminate(_reason, %{conn: conn} = state) do
+      def terminate(_reason, %{conn: conn, stmt: stmts} = state) do
         sync(conn)
         Sqlite3.execute(conn, "VACUUM")
         Sqlite3.execute(conn, "PRAGMA optimize")
-        Sqlite3.close(conn)
-      end
 
-      defp call(pid, msg, timeout \\ :infinity) do
-        GenServer.call(pid, msg, timeout)
+        for stmt <- stmts do
+          Sqlite3NIF.release(conn, stmt)
+        end
+
+        Sqlite3.close(conn)
       end
 
       defp changes(conn) do

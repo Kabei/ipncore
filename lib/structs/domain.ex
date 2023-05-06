@@ -17,6 +17,23 @@ defmodule Ippan.Domain do
 
   def editable, do: ~w(owner email avatar)a
 
+  @doc "Return subdomain and domain in a tuple from hostname or list hostname"
+  def split(hostname_parts) when is_list(hostname_parts) do
+    domain = Enum.take(hostname_parts, -2)
+    subdomain = hostname_parts -- domain
+
+    {Enum.join(subdomain, "."), Enum.join(domain, ".")}
+  end
+
+  def split(hostname) do
+    parts = String.split(hostname, ".")
+
+    domain = Enum.take(parts, -2)
+    subdomain = parts -- domain
+
+    {Enum.join(subdomain, "."), Enum.join(domain, ".")}
+  end
+
   def price(name, years) do
     x =
       name
@@ -37,6 +54,10 @@ defmodule Ippan.Domain do
       end
 
     base + (years - 1) * 5_000
+  end
+
+  def priceRenew(years) do
+    years * 5_000
   end
 
   defstruct name: nil,

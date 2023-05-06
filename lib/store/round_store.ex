@@ -2,7 +2,7 @@ defmodule RoundStore do
   @table "round"
 
   use Store.Sqlite,
-    base: :block,
+    base: :round,
     table: @table,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(

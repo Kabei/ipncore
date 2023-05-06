@@ -3,24 +3,7 @@ defmodule Ipncore.Application do
   use Application
   require Logger
 
-  alias Ippan.Address
-
-  alias Ipncore.{
-    Block,
-    Balance,
-    Chain,
-    DNS,
-    Domain,
-    DnsRecord,
-    Event,
-    Migration,
-    Repo,
-    RepoWorker,
-    Validator,
-    Token,
-    Tx,
-    Wallet
-  }
+  # alias Ippan.Address
 
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
@@ -30,9 +13,11 @@ defmodule Ipncore.Application do
 
   @impl true
   def start(_type, _args) do
+    Logger.info("Starting application")
     # try do
     #   # create data folder
-    File.mkdir(Application.get_env(@otp_app, :data_dir, "data"))
+    data_dir = Application.get_env(@otp_app, :data_dir, "data")
+    File.mkdir(data_dir)
 
     #   # load node config
     #   node_config()
@@ -61,18 +46,32 @@ defmodule Ipncore.Application do
 
     #   # services
     children = [
-      # p2p_server(),
-      {ValidatorStore, "data/validator/validator.db"},
-      {TokenStore, "data/token/token.db"},
-      Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub)
-      #     Repo,
-      #     RepoWorker,
-      #     Ipncore.DNS.child_spec(),
-      #     dns_udp_server(),
-      #     dns_tls_server(),
-      #     http_server(),
-      #     https_server()
+      # {DetsPlus,
+      #  [
+      #    name: :account,
+      #    file: String.to_charlist(Path.join(data_dir, "account.db")),
+      #    keypos: :id,
+      #    auto_save: :infinity
+      #  ]},
+      {AccountStore, Path.join(data_dir, "account/account.db")},
+      {EnvStore, Path.join(data_dir, "env/env.db")},
+      {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
+      {TokenStore, Path.join(data_dir, "token/token.db")},
+      {BalanceStore, Path.join(data_dir, "txs/balance.db")},
+      {RefundStore, Path.join(data_dir, "txs/refund.db")},
+      {DomainStore, Path.join(data_dir, "domain/domain.db")},
+      {DnsStore, Path.join(data_dir, "dns/dns.db")},
+      {BlockStore, Path.join(data_dir, "chain/block.db")},
+      {RoundStore, Path.join(data_dir, "chain/round.db")},
+      RequestStore,
+      # {HashList, [name: :l2]},
+      Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub),
+      p2p_server()
     ]
+
+
+    HashList.start(:l1)
+    HashList.start(:l2)
 
     #   # start block builder
     #   BlockBuilderWork.next()
@@ -87,67 +86,29 @@ defmodule Ipncore.Application do
   @impl true
   def stop(_state) do
     Logger.info("Stopping application")
-    Chain.close()
-    Event.close()
-    Wallet.close()
-    Balance.close()
-    Token.close()
-    Validator.close()
-    Tx.close()
-    Domain.close()
-    DnsRecord.close()
   end
 
-  defp migration_start do
-    {:ok, supervisor} = Supervisor.start_link([Repo], @opts)
+  # defp migration_start do
+  #   {:ok, supervisor} = Supervisor.start_link([Repo], @opts)
 
-    # migration
-    Migration.start()
+  #   # migration
+  #   Migration.start()
 
-    :ok = Supervisor.stop(supervisor, :normal)
-  end
+  #   :ok = Supervisor.stop(supervisor, :normal)
+  # end
 
-  defp node_config do
-    falcon_dir = Application.get_env(@otp_app, :falcon_dir)
+  # defp node_config do
+  #   falcon_dir = Application.get_env(@otp_app, :falcon_dir)
 
-    {falcon_pk, _falcon_sk} = falcon_dir |> Falcon.read_file!()
+  #   {falcon_pk, _falcon_sk} = falcon_dir |> Falcon.read_file!()
 
-    address = Address.hash(falcon_pk)
-    Application.put_env(@otp_app, :address, address)
-    Application.put_env(@otp_app, :address58, Address.to_text(address))
-  end
-
-  defp dns_udp_server do
-    opts = Application.get_env(@otp_app, :dns)
-    ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0})
-    port = Keyword.get(opts, :port, 53)
-    {DNS.Server, [ip: ip_address, port: port]}
-  end
-
-  defp dns_tls_server do
-    opts = Application.get_env(@otp_app, :dns_tls)
-    {ThousandIsland, opts}
-  end
-
-  defp dns_udp_ipv6_server do
-    opts = Application.get_env(@otp_app, :dns6)
-    ip_address = Keyword.get(opts, :ip, {0, 0, 0, 0, 0, 0, 0, 0})
-    port = Keyword.get(opts, :port, 53)
-    {DNS.Server, [ip: ip_address, port: port]}
-  end
-
-  defp http_server do
-    opts = Application.get_env(@otp_app, :http)
-    {Bandit, plug: Ipncore.Endpoint, scheme: :http, options: opts}
-  end
-
-  defp https_server do
-    opts = Application.get_env(@otp_app, :https)
-    {Bandit, plug: Ipncore.Endpoint, scheme: :https, options: opts}
-  end
+  #   address = Address.hash(falcon_pk)
+  #   Application.put_env(@otp_app, :address, address)
+  #   Application.put_env(@otp_app, :address58, Address.to_text(address))
+  # end
 
   # p2p server
-  def p2p_server do
+  defp p2p_server do
     opts = Application.get_env(@otp_app, :p2p)
     Ippan.P2P.Server.load()
     {ThousandIsland, opts}

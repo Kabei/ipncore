@@ -1,6 +1,7 @@
 defmodule Ippan.Func.Domain do
-  alias Ippan.{Domain, Func}
-
+  alias Ippan.Domain
+  @fullname_max_size 255
+  @years_range 1..2
   @token Default.token()
   def new(
         %{account: account, timestamp: timestamp},
@@ -8,12 +9,14 @@ defmodule Ippan.Func.Domain do
         owner,
         years,
         opts \\ %{}
-      ) do
+      )
+      when byte_size(domain_name) <= @fullname_max_size and
+             years in @years_range do
     map_filter = Map.take(opts, Domain.optionals())
     account_id = Map.get(account, :id)
 
     cond do
-      not Match.domain?(domain_name) ->
+      not Match.ippan_domain?(domain_name) ->
         raise IppanError, "Invalid domain name"
 
       map_filter != opts ->
@@ -75,11 +78,5 @@ defmodule Ippan.Func.Domain do
 
   def delete(%{account: account}, domain_name) do
     DomainStore.delete([domain_name, account.id])
-  end
-end
-
-defmodule Fallback do
-  def return_money(id, token, amount, timestamp) do
-    BalanceStore.income(id, token, amount, timestamp)
   end
 end

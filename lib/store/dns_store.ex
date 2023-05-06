@@ -1,8 +1,8 @@
-defmodule DNSStore do
+defmodule DnsStore do
   @table "dns"
 
   use Store.Sqlite,
-    base: :domain,
+    base: :dns,
     table: @table,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(
@@ -17,7 +17,9 @@ defmodule DNSStore do
       "delete_hash" => "DELETE FROM #{@table} WHERE domain = ?1 AND name=?2 AND hash=?3",
       "delete_type" => "DELETE FROM #{@table} WHERE domain = ?1 AND name=?2 AND type=?3",
       "delete_name" => "DELETE FROM #{@table} WHERE domain = ?1 AND name=?2",
-      "delete_domain" => "DELETE FROM #{@table} WHERE domain = ?1",
-      insert: "INSERT INTO #{@table} VALUES(?1, ?2, ?3, ?4, ?5)"
+      delete: "DELETE FROM #{@table} WHERE domain = ?1",
+      insert: "INSERT INTO #{@table} VALUES(?1, ?2, ?3, ?4, ?5)",
+      lookup: "SELECT * FROM #{@table} WHERE domain=?1 AND hash=?2",
+      exists: "SELECT 1 FROM #{@table} WHERE domain=?1 AND hash=?2"
     }
 end

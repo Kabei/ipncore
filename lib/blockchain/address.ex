@@ -58,6 +58,8 @@ defmodule Ippan.Address do
   end
 
   def hash(pubkey) do
-    :crypto.hash(:ripemd160, pubkey)
+    # :crypto.hash(:ripemd160, pubkey)
+    <<address::bytes-size(20), _::binary>> = Blake3.hash(pubkey)
+    address
   end
 end

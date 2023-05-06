@@ -12,6 +12,8 @@ defmodule Ippan.DNS do
 
   defstruct domain: nil, name: nil, type: nil, data: nil, ttl: 3600, hash: nil
 
+  def editable, do: ~w(data ttl)a
+
   def default_hash(domain, data) do
     :crypto.hash(:md5, "#{domain}#{data}")
   end

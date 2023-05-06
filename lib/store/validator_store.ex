@@ -7,7 +7,7 @@ defmodule ValidatorStore do
     mod: Ippan.Validator,
     table: @table,
     create: """
-    CREATE TABLE IF NOT EXISTS validator(
+    CREATE TABLE IF NOT EXISTS #{@table}(
       id BIGINT PRIMARY KEY NOT NULL,
       hostname VARCHAR(50) UNIQUE NOT NULL,
       name VARCHAR(30) NOT NULL,

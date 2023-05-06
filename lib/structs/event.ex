@@ -6,6 +6,7 @@ defmodule Ippan.Event do
   @type t :: %__MODULE__{
           id: non_neg_integer(),
           name: String.t(),
+          base: atom(),
           mod: module(),
           fun: atom() | function(),
           parallel: boolean(),
@@ -15,6 +16,6 @@ defmodule Ippan.Event do
           after: atom() | function()
         }
 
-  @enforce_keys [:id, :name, :mod, :fun, :parallel, :auth_type]
-  defstruct [:id, :name, :mod, :fun, :parallel, :auth_type, :before, :after, system: false]
+  @enforce_keys [:id, :name, :base, :mod, :fun, :parallel, :auth_type]
+  defstruct [:id, :name, :base, :mod, :fun, :parallel, :auth_type, :before, :after, system: false]
 end

@@ -7,7 +7,7 @@ defmodule EnvStore do
     cache: true,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(
-    name TEXT PRIMARY KEY NOT NULL
+    name TEXT PRIMARY KEY NOT NULL,
     value BLOB
     ) WITHOUT ROWID;
     """,

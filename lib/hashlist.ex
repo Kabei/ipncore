@@ -1,59 +1,87 @@
 defmodule HashList do
-  use GenServer
+  # use GenServer
 
-  @module __MODULE__
+  # @module __MODULE__
 
-  def start_link(opts) do
-    GenServer.start_link(@module, nil, Keyword.merge([name: @module], opts))
+  def start(name) do
+    # GenServer.start_link(@module, nil, Keyword.merge([name: @module, hibernate_after: 5_000], opts))
+    :ets.new(name, [:duplicate_bag, :public, :named_table])
   end
 
-  @impl true
-  def init(_) do
-    ets = :ets.new(:hashlist, [:set])
-    {:ok, %{ets: ets}}
+  # @impl true
+  # def init(_) do
+  #   {:ok, %{ets: ets}}
+  # end
+
+  def insert(ets, object) do
+    :ets.insert(ets, object)
   end
 
-  def insert(pid, object) do
-    call(pid, {:insert, object})
-  end
+  def lookup!(ets, key, hash, timestamp) do
+    :ets.lookup(ets, key)
+    |> case do
+      [{_key, {_, xhash}}] when hash == xhash ->
+        raise IppanError, "Already exists"
 
-  def lookup(pid, key) do
-    call(pid, {:lookup, key})
-  end
+      [{_key, {old_timestamp, old_hash, fallback}}] ->
+        cond do
+          old_timestamp < timestamp ->
+            raise IppanError, "Invalid operation"
 
-  def delete_all_objects(pid) do
-    GenServer.cast(pid, :delete_all_objects)
-  end
+          old_hash < hash ->
+            raise IppanError, "Invalid operation"
 
-  @impl true
-  def handle_call({:insert, objects}, _from, %{ets: ets} = state) do
-    :ets.insert(ets, objects)
-    {:reply, :ok, state}
-  end
+          true ->
+            case fallback do
+              {fun, args} ->
+                apply(Ippan.Func.Fallback, fun, args)
 
-  def handle_call({:lookup, key}, _from, %{ets: ets} = state) do
-    case :ets.lookup(ets, key) do
-      [{_key, value}] ->
-        {:reply, value, state}
+              _ ->
+                :ok
+            end
+        end
 
       _ ->
-        {:reply, nil, state}
+        raise IppanError, "Invalid operation"
     end
+
+    # call(pid, {:lookup, key})
   end
 
-  @impl true
-  def handle_cast(:delete_all_objects, %{ets: ets} = state) do
+  def delete_all_objects(ets) do
     :ets.delete_all_objects(ets)
-    {:reply, state}
+    # GenServer.cast(pid, :delete_all_objects)
   end
 
-  @impl true
-  def terminate(_reason, %{ets: ets}) do
-    :ets.delete(ets)
-    :ok
-  end
+  # @impl true
+  # def handle_call({:insert, objects}, _from, %{ets: ets} = state) do
+  #   :ets.insert(ets, objects)
+  #   {:reply, :ok, state}
+  # end
 
-  defp call(pid, msg, timeout \\ :infinity) do
-    GenServer.call(pid, msg, timeout)
-  end
+  # def handle_call({:lookup, key}, _from, %{ets: ets} = state) do
+  #   case :ets.lookup(ets, key) do
+  #     [{_key, value}] ->
+  #       {:reply, value, state}
+
+  #     _ ->
+  #       {:reply, nil, state}
+  #   end
+  # end
+
+  # @impl true
+  # def handle_cast(:delete_all_objects, %{ets: ets} = state) do
+  #   :ets.delete_all_objects(ets)
+  #   {:reply, state}
+  # end
+
+  # @impl true
+  # def terminate(_reason, %{ets: ets}) do
+  #   :ets.delete(ets)
+  #   :ok
+  # end
+
+  # defp call(pid, msg, timeout \\ :infinity) do
+  #   GenServer.call(pid, msg, timeout)
+  # end
 end

@@ -42,51 +42,6 @@ defmodule Ippan.Func.Tx do
       )
 
     RefundStore.replace([hash, account_id, to, token, amount, timestamp + :timer.hours(72)])
-
-    # BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
-    #   ret =
-    #     try do
-    #       Sqlite3.execute(conn, "SAVEPOINT #{hash16}")
-    #       send_stmt = Map.get(stmt, :send)
-    #       recv_stmt = Map.get(stmt, :income)
-
-    #       BalanceStore.send_and_receive!(
-    #         conn,
-    #         send_stmt,
-    #         recv_stmt,
-    #         account_id,
-    #         to,
-    #         token,
-    #         amount,
-    #         timestamp
-    #       )
-
-    #       BalanceStore.send_and_receive!(
-    #         conn,
-    #         send_stmt,
-    #         recv_stmt,
-    #         account_id,
-    #         validator_id,
-    #         @token,
-    #         fee_amount,
-    #         timestamp
-    #       )
-
-    #       RefundStore.replace([hash, account_id, to, token, amount, timestamp + :timer.hours(72)])
-
-    #       Sqlite3.execute(conn, "RELEASE #{hash16}")
-    #     rescue
-    #       ex ->
-    #         Sqlite3.execute(conn, "ROLLBACK TO #{hash16}")
-    #         {:error, ex.message}
-    #     catch
-    #       ex ->
-    #         Sqlite3.execute(conn, "ROLLBACK TO #{hash16}")
-    #         {:error, ex}
-    #     end
-
-    #   {:reply, ret, state}
-    # end)
   end
 
   def coinbase(%{account: account, hash: hash, timestamp: timestamp}, token, outputs) do

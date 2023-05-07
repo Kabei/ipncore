@@ -178,9 +178,9 @@ defmodule Ippan.P2P.Client do
       {:ok, "WEL" <> @version <> pubkey} when byte_size(pubkey) == 1138 ->
         {:ok, ciphertext, sharedkey} = NtruKem.enc(pubkey)
 
+        id = Default.validator_id()
         signature = Falcon.sign(state.privkey, sharedkey)
-        authtext = encode(state.pubkey <> signature, sharedkey)
-
+        authtext = encode(state.pubkey <> <<id::bytes-size(8)>> <> signature, sharedkey)
         @adapter.send(socket, "THX" <> ciphertext <> authtext)
         {:ok, sharedkey}
 

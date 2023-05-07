@@ -11,7 +11,7 @@ defmodule RequestStore do
 
   @impl true
   def init(_init_arg) do
-    ets = :ets.new(@module, [:duplicate_bag])
+    ets = :ets.new(@module, [:duplicate_bag, :public, :named_table])
     {:ok, %{ets: ets, fallback: %{}, sync: false, pid: self()}}
   end
 
@@ -23,6 +23,7 @@ defmodule RequestStore do
 
   def insert(hash, request) do
     GenServer.cast(@module, {:insert, hash, request})
+    # :ets.insert(@module, {hash, request})
   end
 
   @doc """

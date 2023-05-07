@@ -1,13 +1,10 @@
-defmodule ServerData do
-  use GlobalConst.DummyModule
-end
-
 defmodule Ippan.P2P.Server do
-  alias Ipnutils.Address
-  alias Phoenix.PubSub
-  alias Ipncore.Address
+  alias Ippan.Validator
   use ThousandIsland.Handler
+  alias Phoenix.PubSub
   require Logger
+
+  @otp_app :ipncore
 
   @adapter ThousandIsland.Socket
   @timeout 30_000
@@ -17,8 +14,9 @@ defmodule Ippan.P2P.Server do
   @pubsub_server :pubsub
   @version <<0, 0>>
 
-  def load do
-    value = Application.get_env(:ipncore, :kem_dir, "priv/cert/kem.key")
+  @spec load_kem :: :ok
+  def load_kem do
+    value = Application.get_env(@otp_app, :kem_dir, "priv/cert/kem.key")
     dir = System.get_env("KEM_DIR", value)
 
     seed =
@@ -26,8 +24,8 @@ defmodule Ippan.P2P.Server do
       |> Base.decode64!()
 
     {:ok, pubkey, privkey} = NtruKem.gen_key_pair_from_seed(seed)
-
-    GlobalConst.new(ServerData, %{pubkey: pubkey, privkey: privkey})
+    Application.put_env(@otp_app, :pubkey, pubkey)
+    Application.put_env(@otp_app, :privkey, privkey)
   end
 
   def send(pid, event, msg) do
@@ -95,30 +93,48 @@ defmodule Ippan.P2P.Server do
   end
 
   defp handshake(socket, state) do
-    msg = "WEL" <> @version <> state.pubkey
+    msg = "WEL" <> @version <> Application.get_env(@otp_app, :pubkey)
     @adapter.send(socket, msg)
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
-        case NtruKem.dec(state.privkey, ciphertext) do
+        case NtruKem.dec(Application.get_env(@otp_app, :privkey), ciphertext) do
           {:ok, sharedkey} ->
-            <<clientPubkey::1138, signature::binary>> = decode(encodeText, sharedkey)
-            address = Address.hash(clientPubkey)
+            <<clientPubkey::1138, id::bytes-size(8), signature::binary>> =
+              decode(encodeText, sharedkey)
 
             case Falcon.verify(msg, signature, clientPubkey) do
               :ok ->
-                case Validators.by_address(address) do
+                case ValidatorStore.lookup(id) do
                   nil ->
                     {:close, state}
 
-                  validator ->
-                    {:continue,
-                     %{
-                       id: validator.id,
-                       address: address,
-                       pubkey: clientPubkey,
-                       sharedkey: sharedkey
-                     }, @timeout}
+                  validator_list ->
+                    validator = Validator.to_map(validator_list)
+                    hostname = validator.hostname
+                    ip_address = socket.transport_options[:peername]
+
+                    {:ok, {:hostent, ghostname, [], :inet, 4, ips}} =
+                      :inet_res.getbyname(hostname, :a)
+
+                    cond do
+                      ip_address in ips ->
+                        Logger.debug("[Server connection] Invalid IP address")
+                        {:close, state}
+
+                      ghostname != validator.hostname ->
+                        Logger.debug("[Server connection] Invalid hostname")
+                        {:close, state}
+
+                      true ->
+                        {:continue,
+                         %{
+                           id: validator.id,
+                           hostname: hostname,
+                           pubkey: clientPubkey,
+                           sharedkey: sharedkey
+                         }, @timeout}
+                    end
                 end
 
               _ ->

@@ -13,10 +13,6 @@ else
   config :logger, level: :debug
 end
 
-# Ipnutils lib
-config :ipnutils, :jsonlib, Jason
-config :ipnutils, :repo, Ipncore.Repo
-
 # blockchain
 config :ipncore, :migration_version, 0
 

@@ -26,7 +26,8 @@ ipncore-*.tar
 /tmp/
 /data/
 
-.elixir_ls/
+/.elixir_ls/
+/.vscode/
 
 mix.lock
 

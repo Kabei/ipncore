@@ -7,7 +7,7 @@ defmodule Ippan.Request do
           signature: binary() | nil
         }
 
-  @type result :: :ok | {:ok, term()} | :error | {:error, term()}
+  @type result :: :ok | {:ok, term()} | {:notify, term()} | :error | {:error, term()}
 
   defstruct type: 0, timestamp: 0, from: nil, args: [], signature: nil
 

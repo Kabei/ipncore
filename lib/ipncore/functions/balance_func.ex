@@ -4,7 +4,7 @@ defmodule Ippan.Func.Balance do
     token = TokenStore.lookup(token_id)
 
     if token.owner == account_id and "lock" in token.props do
-      BalanceStore.lock(to_id, token, amount) == 1
+      BalanceStore.lock(to_id, token_id, amount)
     else
       false
     end
@@ -15,7 +15,7 @@ defmodule Ippan.Func.Balance do
     token = TokenStore.lookup(token_id)
 
     if token.owner == account_id and "lock" in token.props do
-      BalanceStore.unlock(to_id, token, amount) == 1
+      BalanceStore.unlock(to_id, token_id, amount)
     else
       false
     end

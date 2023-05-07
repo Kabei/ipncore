@@ -29,6 +29,6 @@ defmodule Match do
   def username?(x), do: Regex.match?(@username, x)
 
   def account?(x) do
-    byte_size(x) <= 20 and username?(x)
+    byte_size(x) <= 20 and Regex.match?(@username, x)
   end
 end

@@ -3,12 +3,13 @@ defmodule Ippan.Func.Account do
 
   def new(
         %{account: account_id, hash: hash, timestamp: timestamp},
+        validator_id,
         pubkey,
         pkhash,
         pkhash2,
         lhmac
       )
-      when byte_size(account_id) <= 20 and
+      when is_integer(validator_id) and
              byte_size(pubkey) == 897 and
              byte_size(pkhash) == 32 and
              byte_size(pkhash2) == 32 and
@@ -17,7 +18,7 @@ defmodule Ippan.Func.Account do
       true ->
         %Account{
           id: account_id,
-          validator: Default.validator_id(),
+          validator: validator_id,
           address: Address.hash(pubkey),
           pubkey: pubkey,
           auth_hash: :binary.list_to_bin([pkhash, pkhash2, hash, lhmac]),
@@ -25,10 +26,6 @@ defmodule Ippan.Func.Account do
         }
         |> Account.to_list()
         |> AccountStore.insert()
-
-      # |> Map.from_struct()
-
-      # DetsPlus.insert(event.base, account)
 
       false ->
         raise ArgumentError, "Invalid ID format"

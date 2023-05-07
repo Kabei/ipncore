@@ -16,9 +16,12 @@ defmodule Ipncore.Application do
     Logger.info("Starting application")
     # try do
     #   # create data folder
+    server_opts = Application.get_env(@otp_app, :p2p)
     data_dir = Application.get_env(@otp_app, :data_dir, "data")
     File.mkdir(data_dir)
 
+    # load falcon keys
+    Ippan.P2P.Server.load_kem()
     #   # load node config
     #   node_config()
 
@@ -44,6 +47,9 @@ defmodule Ipncore.Application do
     #   # init chain
     #   :ok = Chain.start()
 
+    HashList.start(:l1)
+    HashList.start(:l2)
+
     #   # services
     children = [
       # {DetsPlus,
@@ -53,6 +59,7 @@ defmodule Ipncore.Application do
       #    keypos: :id,
       #    auto_save: :infinity
       #  ]},
+      RequestStore,
       {AccountStore, Path.join(data_dir, "account/account.db")},
       {EnvStore, Path.join(data_dir, "env/env.db")},
       {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
@@ -63,15 +70,10 @@ defmodule Ipncore.Application do
       {DnsStore, Path.join(data_dir, "dns/dns.db")},
       {BlockStore, Path.join(data_dir, "chain/block.db")},
       {RoundStore, Path.join(data_dir, "chain/round.db")},
-      RequestStore,
-      # {HashList, [name: :l2]},
       Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub),
-      p2p_server()
+      {ThousandIsland, server_opts},
+      {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :falcon_dir)}
     ]
-
-
-    HashList.start(:l1)
-    HashList.start(:l2)
 
     #   # start block builder
     #   BlockBuilderWork.next()
@@ -86,31 +88,5 @@ defmodule Ipncore.Application do
   @impl true
   def stop(_state) do
     Logger.info("Stopping application")
-  end
-
-  # defp migration_start do
-  #   {:ok, supervisor} = Supervisor.start_link([Repo], @opts)
-
-  #   # migration
-  #   Migration.start()
-
-  #   :ok = Supervisor.stop(supervisor, :normal)
-  # end
-
-  # defp node_config do
-  #   falcon_dir = Application.get_env(@otp_app, :falcon_dir)
-
-  #   {falcon_pk, _falcon_sk} = falcon_dir |> Falcon.read_file!()
-
-  #   address = Address.hash(falcon_pk)
-  #   Application.put_env(@otp_app, :address, address)
-  #   Application.put_env(@otp_app, :address58, Address.to_text(address))
-  # end
-
-  # p2p server
-  defp p2p_server do
-    opts = Application.get_env(@otp_app, :p2p)
-    Ippan.P2P.Server.load()
-    {ThousandIsland, opts}
   end
 end

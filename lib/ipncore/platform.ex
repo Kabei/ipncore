@@ -3,6 +3,7 @@ defmodule Owner do
 end
 
 defmodule Platform do
+  alias Ippan.Account
   alias Ippan.{Address, Token}
 
   @token Default.token()
@@ -19,7 +20,9 @@ defmodule Platform do
 
     cond do
       account_id == nil or account_id != id ->
-        account = DetsPlus.lookup(:account, id)
+        account =
+          AccountStore.lookup(id)
+          |> Account.to_map()
 
         GlobalConst.new(Owner, %{
           id: account.id,

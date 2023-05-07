@@ -18,23 +18,23 @@ defmodule HashList do
   end
 
   def lookup!(ets, key, hash, timestamp) do
-    :ets.lookup(ets, key)
-    |> case do
+    case :ets.lookup(ets, key) do
       [{_key, {_, xhash}}] when hash == xhash ->
         raise IppanError, "Already exists"
 
       [{_key, {old_timestamp, old_hash, fallback}}] ->
         cond do
           old_timestamp < timestamp ->
-            raise IppanError, "Invalid operation"
+            raise IppanError, "Already exists"
 
           old_hash < hash ->
-            raise IppanError, "Invalid operation"
+            raise IppanError, "Already exists"
 
           true ->
             case fallback do
               {fun, args} ->
                 apply(Ippan.Func.Fallback, fun, args)
+                :ok
 
               _ ->
                 :ok
@@ -42,10 +42,8 @@ defmodule HashList do
         end
 
       _ ->
-        raise IppanError, "Invalid operation"
+        raise IppanError, "Already exists"
     end
-
-    # call(pid, {:lookup, key})
   end
 
   def delete_all_objects(ets) do

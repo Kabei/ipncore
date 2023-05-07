@@ -245,17 +245,17 @@ defmodule Ippan.Events do
       auth_type: 2
     }
 
-  def lookup(n = 404),
-    do: %Event{
-      id: n,
-      name: "domain.expiry",
-      base: :domain,
-      mod: Domain,
-      fun: :expiry,
-      parallel: true,
-      system: true,
-      auth_type: 0
-    }
+  # def lookup(n = 404),
+  #   do: %Event{
+  #     id: n,
+  #     name: "domain.expiry",
+  #     base: :domain,
+  #     mod: Domain,
+  #     fun: :expiry,
+  #     parallel: true,
+  #     system: true,
+  #     auth_type: 0
+  #   }
 
   def lookup(n = 500),
     do: %Event{
@@ -290,53 +290,53 @@ defmodule Ippan.Events do
       auth_type: 2
     }
 
-  def lookup(n = 900),
-    do: %Event{
-      id: n,
-      name: "block.new",
-      base: :block,
-      mod: Block,
-      fun: :new,
-      parallel: true,
-      system: true,
-      auth_type: 0
-    }
+  # def lookup(n = 900),
+  #   do: %Event{
+  #     id: n,
+  #     name: "block.new",
+  #     base: :block,
+  #     mod: Block,
+  #     fun: :new,
+  #     parallel: true,
+  #     system: true,
+  #     auth_type: 0
+  #   }
 
-  def lookup(n = 901),
-    do: %Event{
-      id: n,
-      name: "block.received",
-      base: :block,
-      mod: Block,
-      fun: :received,
-      parallel: true,
-      system: true,
-      auth_type: 0
-    }
+  # def lookup(n = 901),
+  #   do: %Event{
+  #     id: n,
+  #     name: "block.received",
+  #     base: :block,
+  #     mod: Block,
+  #     fun: :received,
+  #     parallel: true,
+  #     system: true,
+  #     auth_type: 0
+  #   }
 
-  def lookup(n = 990),
-    do: %Event{
-      id: n,
-      name: "round.start",
-      base: :round,
-      mod: Round,
-      fun: :start,
-      parallel: true,
-      system: true,
-      auth_type: 0
-    }
+  # def lookup(n = 990),
+  #   do: %Event{
+  #     id: n,
+  #     name: "round.start",
+  #     base: :round,
+  #     mod: Round,
+  #     fun: :start,
+  #     parallel: true,
+  #     system: true,
+  #     auth_type: 0
+  #   }
 
-  def lookup(n = 999),
-    do: %Event{
-      id: n,
-      name: "round.end",
-      base: :round,
-      mod: Round,
-      fun: :end,
-      parallel: true,
-      system: true,
-      auth_type: 0
-    }
+  # def lookup(n = 999),
+  #   do: %Event{
+  #     id: n,
+  #     name: "round.end",
+  #     base: :round,
+  #     mod: Round,
+  #     fun: :end,
+  #     parallel: true,
+  #     system: true,
+  #     auth_type: 0
+  #   }
 
   def lookup(_), do: :undefined
 end

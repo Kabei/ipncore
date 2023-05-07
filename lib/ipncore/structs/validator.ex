@@ -17,6 +17,7 @@ defmodule Ippan.Validator do
     :hostname,
     :name,
     :owner,
+    # :address,
     :avatar,
     :fee_type,
     :fee,
@@ -65,7 +66,18 @@ defmodule Ippan.Validator do
     }
   end
 
-  def to_map([id, hostname, name, owner, avatar, fee_type, fee, enabled, created_at, updated_at]) do
+  def to_map([
+        id,
+        hostname,
+        name,
+        owner,
+        avatar,
+        fee_type,
+        fee,
+        enabled,
+        created_at,
+        updated_at
+      ]) do
     %{
       id: id,
       hostname: hostname,

@@ -43,18 +43,21 @@ defmodule Ippan.Func.Validator do
         raise IppanError, "Invalid operation"
 
       true ->
-        %Validator{
-          id: id,
-          hostname: hostname,
-          name: name,
-          owner: owner_id,
-          fee: fee,
-          fee_type: fee_type
-        }
-        |> Map.merge(map_filter)
-        |> MapUtil.validate_url(:avatar)
-        |> Validator.to_list()
-        |> ValidatorStore.insert()
+        object =
+          %Validator{
+            id: id,
+            hostname: hostname,
+            name: name,
+            owner: owner_id,
+            fee: fee,
+            fee_type: fee_type
+          }
+          |> Map.merge(map_filter)
+          |> MapUtil.validate_url(:avatar)
+
+        ValidatorStore.insert(Validator.to_list(object))
+
+        {:notify, object}
     end
   end
 
@@ -81,11 +84,21 @@ defmodule Ippan.Func.Validator do
         |> MapUtil.validate_range(:fee_type, 0..2)
         |> Map.put(:updated_at, timestamp)
         |> ValidatorStore.update(id: id)
+
+        {:notify, {id, map_filter}}
     end
   end
 
   @spec delete(Source.t(), term) :: result()
   def delete(%{account: account}, id) do
-    ValidatorStore.delete([id, account.id])
+    cond do
+      not ValidatorStore.owner?(id, account.id) ->
+        raise IppanError, "Invalid owner"
+
+      true ->
+        ValidatorStore.delete([id, account.id])
+
+        {:notify, id}
+    end
   end
 end

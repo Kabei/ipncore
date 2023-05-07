@@ -12,6 +12,7 @@ defmodule ValidatorStore do
       hostname VARCHAR(50) UNIQUE NOT NULL,
       name VARCHAR(30) NOT NULL,
       owner BLOB NOT NULL,
+      address BLOB NOT NULL,
       avatar TEXT,
       enabled BOOLEAN DEFAULT TRUE,
       fee DOUBLE NOT NULL,
@@ -21,6 +22,7 @@ defmodule ValidatorStore do
     ) WITHOUT ROWID;
     """,
     stmt: %{
+      "lookup_address" => "SELECT * FROM #{@table} WHERE name = ?1",
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
       replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
       # INSERT INTO #{@table} (id,hostname,name,owner,avatar,enabled,fee,created_at,updated_at)

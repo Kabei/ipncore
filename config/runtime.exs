@@ -1,37 +1,24 @@
 import Config
 
-# prod = config_env() == :prod
-
-config :ipncore, :central, "ippan.com"
-config :ipncore, :channel, "BETA-NET"
-config :ipncore, :gps_device, "/dev/AMC0"
+# config :ipncore, :chain, "BETA-NET"
+# config :ipncore, :gps_device, "/dev/AMC0"
 
 # environment variables
 hostname = System.get_env("HOSTNAME", "ippan.uk")
+id = System.get_env("NODE_ID", "0") |> String.to_integer()
+
 data_dir = System.get_env("DATA_DIR", "data")
+kem_dir = System.get_env("KEM_DIR", "priv/cert/kem.key")
+falcon_dir = System.get_env("FALCON_DIR", "priv/cert/falcon.key")
 # ssl certificates
-cert_dir = System.get_env("CERT_DIR", "priv/cert/cert.pem")
-key_dir = System.get_env("KEY_DIR", "priv/cert/key.pem")
-cacert_dir = System.get_env("CACERT_DIR", "priv/cert/cacert.pem")
-falcon_dir = System.get_env("FALCON_DIR", "priv/cert/falcon.keys")
+# cert_dir = System.get_env("CERT_DIR", "priv/cert/cert.pem")
+# key_dir = System.get_env("KEY_DIR", "priv/cert/key.pem")
+# cacert_dir = System.get_env("CACERT_DIR", "priv/cert/cacert.pem")
 
 # folder paths
 config :ipncore, :data_dir, data_dir
-config :ipncore, :wallet_path, Path.join(data_dir, "wallets")
-config :ipncore, :balance_path, Path.join(data_dir, "balances")
-config :ipncore, :events_path, Path.join(data_dir, "events")
-config :ipncore, :post_path, Path.join(data_dir, "posts")
-
+config :ipncore, :kem_dir, kem_dir
 config :ipncore, :falcon_dir, falcon_dir
-
-# DNS config
-config :ipncore, :dns,
-  ip: {0, 0, 0, 0},
-  port: 53
-
-config :ipncore, :dns6,
-  ip: {0, 0, 0, 0, 0, 0, 0, 0},
-  port: 53
 
 # p2p server
 config :ipncore, :p2p,
@@ -40,72 +27,10 @@ config :ipncore, :p2p,
   port: 5815,
   num_acceptors: 10
 
-config :ipncore, :dns_tls,
-  handler_module: Ipncore.DNS.TlsServer,
-  transport_module: ThousandIsland.Transports.SSL,
-  port: 853,
-  num_acceptors: 10,
-  read_timeout: 120_000,
-  transport_options: [
-    cacertfile: cacert_dir,
-    certfile: cert_dir,
-    keyfile: key_dir,
-    send_timeout: 15_000
-  ]
-
 config :ipncore, :node,
+  id: id,
   name: hostname,
-  port: 5050
-
-# HTTP config
-config :ipncore, :http,
-  port: 80,
-  num_acceptors: 10,
-  read_timeout: 15_000,
-  transport_options: [
-    backlog: 1024,
-    nodelay: true,
-    linger: {true, 30},
-    send_timeout: 15_000,
-    send_timeout_close: true,
-    reuseaddr: true
-  ]
-
-config :ipncore, :https,
-  port: 443,
-  num_acceptors: 10,
-  read_timeout: 15_000,
-  transport_options: [
-    cacertfile: cacert_dir,
-    certfile: cert_dir,
-    keyfile: key_dir,
-    backlog: 1024,
-    nodelay: true,
-    linger: {true, 30},
-    send_timeout: 15_000,
-    send_timeout_close: true,
-    reuseaddr: true
-  ]
-
-# database config
-config :ipncore, Ipncore.Repo,
-  hostname: "localhost",
-  username: "kambei",
-  database: "ippan",
-  password: "NdgPPUWiSXF1EQbC5Pqm",
-  port: 5432,
-  pool_size: 20,
-  show_sensitive_data_on_connection_error: true,
-  ssl: false,
-  ssl_opts: [
-    cacertfile: cacert_dir,
-    certfile: cert_dir,
-    keyfile: key_dir
-  ],
-  prepare: :unnamed,
-  timeout: 30_000,
-  queue_interval: 2_000,
-  queue_target: 5_000
+  port: 5815
 
 config :ipncore, :ntp_servers, [
   '0.north-america.pool.ntp.org',

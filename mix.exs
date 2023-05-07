@@ -10,6 +10,7 @@ defmodule Ipncore.MixProject do
       config_path: "config/config.exs",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
+      # compilers: [:elixir_make] ++ Mix.compilers(),
       deps: deps(),
       package: package(),
       # Release
@@ -27,7 +28,7 @@ defmodule Ipncore.MixProject do
     if System.otp_release() |> String.to_integer() < @min_otp, do: raise("OTP invalid version")
 
     [
-      extra_applications: [:crypto, :syntax_tools, :logger, :download],
+      extra_applications: [:crypto, :syntax_tools, :logger],
       mod: {Ipncore.Application, []}
     ]
   end
@@ -35,12 +36,13 @@ defmodule Ipncore.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      # {:elixir_make, "~> 0.4", runtime: false},
       # {:xxhash, "~> 0.3.1"},
       # {:dns, "~> 2.4.0"},
       # {:cbor, "~> 1.0.0"},
+      {:globalconst, "~> 0.3.2"},
       {:poolboy, "~> 1.5.2"},
-      # {:benchee, "~> 1.0", only: :test},
-      {:benchee, "~> 1.0"},
+      {:benchee, "~> 1.0", only: [:test]},
       {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
       # {:socket, "~> 0.3"},
       {:sntp, "~> 0.2.0"},
@@ -48,18 +50,17 @@ defmodule Ipncore.MixProject do
       # {:ecto_sql, "~> 3.8"},
       # {:postgrex, ">= 0.0.0"},
       # {:plug_cowboy, "~> 2.0"},
-      # {:thousand_island, "~> 0.5.15"},
-      {:bandit, ">= 0.6.10"},
-      {:download, "~> 0.0.0"},
+      # {:bandit, ">= 0.6.10"},
+      # {:download, "~> 0.0.0"},
       # {:dets_plus, path: "../dets_plus"},
+      {:thousand_island, "~> 0.6.4"},
       {:phoenix_pubsub, "~> 2.0"},
-      # local deps
       {:blake3, "~> 1.0"},
+      # local deps
       {:exqlite, path: "../exqlite"},
       {:falcon, path: "../falcon"},
-      {:ipnutils, path: "../ipnutils"},
       {:ntrukem, path: "../ntrukem"}
-      # {:imp, path: "../imp"}
+      # {:ipnutils, path: "../ipnutils"}
     ]
   end
 

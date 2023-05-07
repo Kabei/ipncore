@@ -45,12 +45,18 @@ defmodule BalanceStore do
       # delete_all_deferred: "UPDATE #{@table} SET deferred = 0"
     }
 
-  @spec income(String.t(), String.t(), non_neg_integer(), non_neg_integer()) :: :ok | :error
+  @spec income(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
+          :ok | :error
   def income(account_id, token_id, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       send_stmt = Map.get(stmt, :income)
 
-      Sqlite3NIF.bind_and_step(conn, send_stmt, [account_id, token_id, amount, timestamp])
+      Sqlite3NIF.bind_and_step(conn, send_stmt, [
+        account_id,
+        token_id,
+        amount,
+        timestamp
+      ])
 
       case Sqlite3NIF.changes(conn) do
         {:ok, 1} ->
@@ -64,7 +70,8 @@ defmodule BalanceStore do
     call(@base, {:call, fun})
   end
 
-  @spec burn(String.t(), String.t(), non_neg_integer(), non_neg_integer()) :: :ok | :error
+  @spec burn(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
+          :ok | :error
   def burn(from_id, token_id, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       send_stmt = Map.get(stmt, :send)
@@ -87,14 +94,20 @@ defmodule BalanceStore do
           :ok | :error
   def send(from_id, to_id, token_id, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
-      send_stmt = Map.get(stmt, :send)
-      income_stmt = Map.get(stmt, :income)
+      send_stmt = stmt.send
+      income_stmt = stmt.income
 
       Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token_id, amount, timestamp])
 
       case Sqlite3NIF.changes(conn) do
         {:ok, 1} ->
-          Sqlite3NIF.bind_and_step(conn, income_stmt, [to_id, token_id, amount, timestamp])
+          Sqlite3NIF.bind_and_step(conn, income_stmt, [
+            to_id,
+            token_id,
+            amount,
+            timestamp
+          ])
+
           {:reply, :ok, state}
 
         _ ->
@@ -105,7 +118,8 @@ defmodule BalanceStore do
     call(@base, {:call, fun})
   end
 
-  @spec send_fees(String.t(), String.t(), non_neg_integer(), non_neg_integer()) :: :ok | :error
+  @spec send_fees(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
+          :ok | :error
   def send_fees(from_id, validator_owner, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       send_stmt = Map.get(stmt, :send)
@@ -115,7 +129,12 @@ defmodule BalanceStore do
 
       case Sqlite3NIF.changes(conn) do
         {:ok, 1} ->
-          Sqlite3NIF.bind_and_step(conn, income_stmt, [validator_owner, @token, amount, timestamp])
+          Sqlite3NIF.bind_and_step(conn, income_stmt, [
+            validator_owner,
+            @token,
+            amount,
+            timestamp
+          ])
 
           {:reply, :ok, state}
 
@@ -146,19 +165,39 @@ defmodule BalanceStore do
         if token == @token do
           total = amount + fees
           Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token, total, timestamp])
+
+          case Sqlite3NIF.changes(conn) do
+            {:ok, 1} ->
+              :ok
+
+            _ ->
+              :error
+          end
         else
           Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token, amount, timestamp])
 
           case Sqlite3NIF.changes(conn) do
             {:ok, 1} ->
-              Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, @token, fees, timestamp])
+              Sqlite3NIF.bind_and_step(conn, send_stmt, [
+                from_id,
+                @token,
+                fees,
+                timestamp
+              ])
 
               case Sqlite3NIF.changes(conn) do
                 {:ok, 1} ->
                   :ok
 
                 _ ->
-                  Sqlite3NIF.bind_and_step(conn, income_stmt, [from_id, token, amount, timestamp])
+                  # rollback
+                  Sqlite3NIF.bind_and_step(conn, income_stmt, [
+                    from_id,
+                    token,
+                    amount,
+                    timestamp
+                  ])
+
                   :error
               end
 
@@ -168,22 +207,16 @@ defmodule BalanceStore do
         end
 
       if ret == :ok do
-        case Sqlite3NIF.changes(conn) do
-          {:ok, 1} ->
-            Sqlite3NIF.bind_and_step(conn, income_stmt, [to_id, token, amount, timestamp])
+        Sqlite3NIF.bind_and_step(conn, income_stmt, [to_id, token, amount, timestamp])
 
-            Sqlite3NIF.bind_and_step(conn, income_stmt, [
-              validator_owner,
-              @token,
-              amount,
-              timestamp
-            ])
+        Sqlite3NIF.bind_and_step(conn, income_stmt, [
+          validator_owner,
+          @token,
+          amount,
+          timestamp
+        ])
 
-            {:reply, :ok, state}
-
-          _ ->
-            {:reply, :error, state}
-        end
+        {:reply, :ok, state}
       else
         {:reply, :error, state}
       end
@@ -192,86 +225,32 @@ defmodule BalanceStore do
     call(@base, {:call, fun})
   end
 
-  @spec lock(binary, String.t(), non_neg_integer()) :: :ok | :error
+  @spec lock(binary, String.t(), non_neg_integer()) :: boolean()
   def lock(id, token, amount) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       stmt = Map.get(stmt, :lock)
 
       Sqlite3NIF.bind_and_step(conn, stmt, [id, token, amount])
-
-      case Sqlite3NIF.changes(conn) do
-        {:ok, 1} ->
-          {:reply, :ok, state}
-
-        _ ->
-          {:reply, :error, state}
-      end
+      {:reply, changes(conn) == 1, state}
     end
 
     call(@base, {:call, fun})
   end
 
-  @spec unlock(binary, String.t(), non_neg_integer()) :: :ok | :error
+  @spec unlock(binary, String.t(), non_neg_integer()) :: boolean()
   def unlock(id, token, amount) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       stmt = Map.get(stmt, :unlock)
 
       Sqlite3NIF.bind_and_step(conn, stmt, [id, token, amount])
-
-      case Sqlite3NIF.changes(conn) do
-        {:ok, 1} ->
-          {:reply, :ok, state}
-
-        _ ->
-          {:reply, :error, state}
-      end
+      {:reply, changes(conn) == 1, state}
     end
 
     call(@base, {:call, fun})
   end
 
-  # def deferred(id, token, amount) do
-  #   fun = fn %{conn: conn, stmt: stmt} = state ->
-  #     stmt = Map.get(stmt, :deferred)
-
-  #     Sqlite3NIF.bind_and_step(conn, stmt, [id, token, amount])
-  #     {:ok, n} = Sqlite3NIF.changes(conn)
-  #     {:reply, n, state}
-  #   end
-
-  #   call(@base, {:call, fun})
-  # end
-
-  # def return_deferred(id, token, amount) do
-  #   fun = fn %{conn: conn, stmt: stmt} = state ->
-  #     stmt = Map.get(stmt, :return_deferred)
-
-  #     Sqlite3NIF.bind_and_step(conn, stmt, [id, token, amount])
-  #     {:ok, n} = Sqlite3NIF.changes(conn)
-  #     {:reply, n, state}
-  #   end
-
-  #   call(@base, {:call, fun})
-  # end
-
-  # def send(conn, send_stmt, from_id, token, amount, timestamp) when is_reference(conn) do
-  #   Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token, amount, timestamp])
-  #   Sqlite3.changes(conn)
-  # end
-
-  def receive(conn, recv_stmt, to_id, token, amount, timestamp) when is_reference(conn) do
+  def receive(conn, recv_stmt, to_id, token, amount, timestamp)
+      when is_reference(conn) do
     Sqlite3NIF.bind_and_step(conn, recv_stmt, [to_id, token, amount, timestamp])
-  end
-
-  def send_and_receive!(conn, send_stmt, recv_stmt, from_id, to_id, token, amount, timestamp) do
-    Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token, amount, timestamp])
-
-    case Sqlite3.changes(conn) do
-      {:ok, 1} ->
-        Sqlite3NIF.bind_and_step(conn, recv_stmt, [to_id, token, amount, timestamp])
-
-      _ ->
-        raise IppanError, "Insufficient balance"
-    end
   end
 end

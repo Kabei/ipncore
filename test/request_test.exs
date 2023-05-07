@@ -4,9 +4,9 @@ defmodule RequestTest do
 
   require Logger
 
-  alias Ippan.Events
   alias Ippan.RequestHandler
-  alias Ippan.Address
+  # alias Ippan.Events
+  # alias Ippan.Address
 
   test "create account" do
     seed = :rand.bytes(48)
@@ -25,22 +25,39 @@ defmodule RequestTest do
       |> :binary.part(16, 16)
 
     account_id = "kambei"
+    validator_id = 0
     timestamp = :os.system_time(1000)
-    args = [pk, pkhash, pkhash2, hmac]
+    args = [validator_id, pk, pkhash, pkhash2, hmac]
     hash = RequestHandler.compute_hash(0, timestamp, account_id, args)
 
     signature = Falcon.sign(sk, hash)
     request = {0, timestamp, account_id, args, signature}
-    # result = RequestHandler.handle(request)
-    # Logger.info(inspect(result))
 
-    Benchee.run(%{
-      "account.new" => fn ->
-        RequestHandler.handle(request)
-      end
-    })
+    # Benchee.run(
+    #   %{
+    #     "account.new" => fn ->
+    #       RequestHandler.handle(request)
+    #     end
+    #   },
+    #   time: 5,
+    #   warmup: 5,
+    #   memory_time: 5
+    # )
   end
 
   # test "token.new" do
   # end
+
+  # start_time = :erlang.monotonic_time(:millisecond)
+  #   1..10
+  #   |> Task.async_stream(fn _ ->
+  #     for _ <- 1..100_000 do
+  #       RequestHandler.handle(request)
+  #     end
+  #   end, timeout: :infinity)
+  #   |> Enum.to_list()
+
+  #   end_time = :erlang.monotonic_time(:millisecond)
+  #   duration = end_time - start_time
+  #   IO.puts("Duration: #{duration} ms")
 end

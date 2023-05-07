@@ -8,8 +8,8 @@ hostname = System.get_env("HOSTNAME", "ippan.uk")
 id = System.get_env("NODE_ID", "0") |> String.to_integer()
 
 data_dir = System.get_env("DATA_DIR", "data")
-kem_dir = System.get_env("KEM_DIR", "priv/cert/kem.key")
-falcon_dir = System.get_env("FALCON_DIR", "priv/cert/falcon.key")
+kem_dir = System.get_env("KEM_DIR", "priv/kem.key")
+falcon_dir = System.get_env("FALCON_DIR", "priv/falcon.key")
 # ssl certificates
 # cert_dir = System.get_env("CERT_DIR", "priv/cert/cert.pem")
 # key_dir = System.get_env("KEY_DIR", "priv/cert/key.pem")

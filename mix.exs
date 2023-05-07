@@ -1,11 +1,12 @@
 defmodule Ipncore.MixProject do
   use Mix.Project
 
+  @app :ipncore
   @min_otp 25
 
   def project do
     [
-      app: :ipncore,
+      app: @app,
       version: "0.1.0",
       config_path: "config/config.exs",
       elixir: "~> 1.13",
@@ -15,11 +16,21 @@ defmodule Ipncore.MixProject do
       package: package(),
       # Release
       releases: [
-        ipncore: [
+        {@app, release()},
+        unix: [
           include_executables_for: [:unix],
           applications: [runtime_tools: :permanent]
         ]
       ]
+    ]
+  end
+
+  defp release do
+    [
+      overwrite: true,
+      quiet: true,
+      steps: [:assemble, &Bakeware.assemble/1],
+      strip_beams: Mix.env() == :prod
     ]
   end
 
@@ -40,6 +51,7 @@ defmodule Ipncore.MixProject do
       # {:xxhash, "~> 0.3.1"},
       # {:dns, "~> 2.4.0"},
       # {:cbor, "~> 1.0.0"},
+      {:bakeware, "~> 0.2.4", runtime: false},
       {:globalconst, "~> 0.3.2"},
       {:poolboy, "~> 1.5.2"},
       {:benchee, "~> 1.0", only: [:test]},
@@ -66,7 +78,7 @@ defmodule Ipncore.MixProject do
 
   def package do
     [
-      name: :ipncore,
+      name: @app,
       description: "IPPAN Core",
       maintainers: ["Kambei Sapote"],
       licenses: ["MIT"],

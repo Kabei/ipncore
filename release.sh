@@ -1,15 +1,8 @@
 
 #!/bin/bash
 
-export MIX_ENV=prod POST_PATH="~/posts"
-
-mix release.init
-mix release
-
-cd _build/prod/rel
-
-zip -rq ipncore.zip ipncore
-
-mv ipncore.zip ../../../
-
-unset MIX_ENV
+export MIX_ENV=prod
+rm -rf _build
+mix deps.get
+mix release ipncore
+cp _build/prod/rel/ipncore .

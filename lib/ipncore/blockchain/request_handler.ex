@@ -23,7 +23,7 @@ defmodule Ippan.RequestHandler do
 
       hlist_name = :l1
       hlist_key = {event_base, List.first(args)}
-      # HashList.lookup!(hlist_name, hlist_key, hash, timestamp)
+      HashList.lookup!(hlist_name, hlist_key, hash, timestamp)
 
       size = Utils.estimate_size(request)
 
@@ -66,22 +66,45 @@ defmodule Ippan.RequestHandler do
 
         2 ->
           account = AccountStore.lookup(:validator, [from, Default.validator_id()])
+
+          if is_nil(account), do: raise(IppanError, "Invalid account ID or Validator ID")
           # hash verification
           <<seed::bytes-size(32), new_pkhash::bytes-size(32), new_hmac::bytes-size(16)>> =
             signature
 
-          <<last_hash::bytes-size(32), pkhash::bytes-size(32), pkhash2::bytes-size(32),
-            lhmac::bytes-size(16)>> = Map.get(account, :auth_hash)
+          new_auth_hash =
+            case Map.get(account, :auth_hash) do
+              # no last hash
+              <<pkhash::bytes-size(32), pkhash2::bytes-size(32), lhmac::bytes-size(16)>> ->
+                # verify hash signature
+                if not compare_hash(seed, pkhash),
+                  do: raise(IppanError, "Invalid auth-hash verify")
 
-          # verify hash and mac signature
-          if not compare_hash(seed, pkhash), do: raise("Invalid hash verify")
+                # verify mac signature
+                if not compare_mac(seed, "", lhmac),
+                  do: raise(IppanError, "Invalid auth-mac verify")
 
-          if not compare_mac(seed, last_hash, lhmac),
-            do: raise("Invalid mac verify")
+                [pkhash2, new_pkhash, new_hmac, hash]
+
+              # last hash included
+              <<pkhash::bytes-size(32), pkhash2::bytes-size(32), lhmac::bytes-size(16),
+                last_hash::bytes-size(32)>> ->
+                # verify hash signature
+                if not compare_hash(seed, pkhash),
+                  do: raise(IppanError, "Invalid auth-hash verify")
+
+                # verify mac signature
+                if not compare_mac(seed, last_hash, lhmac),
+                  do: raise(IppanError, "Invalid auth-mac verify")
+
+                [pkhash2, new_pkhash, new_hmac, hash]
+
+              _ ->
+                raise(IppanError, "Invalid auth-hash recorded")
+            end
+            |> :binary.list_to_bin()
 
           # update account
-          new_auth_hash = :binary.list_to_bin([hash, pkhash2, new_pkhash, new_hmac])
-
           AccountStore.update(%{auth_hash: new_auth_hash}, id: account.id)
 
           # build source
@@ -99,7 +122,7 @@ defmodule Ippan.RequestHandler do
       end
       |> case do
         :ok ->
-          HashList.insert(hlist_name, {hlist_key, {timestamp, hash, nil}})
+          HashList.insert(hlist_name, {hlist_key, {timestamp, hash}})
           RequestStore.insert(hash, request)
           {:ok, hash}
 
@@ -111,15 +134,19 @@ defmodule Ippan.RequestHandler do
           RequestStore.insert(hash, request)
           {:ok, hash}
 
+        1 ->
+          {:ok, hash}
+
         error ->
+          # Logger.debug("error: #{inspect(error)}")
           error
       end
     rescue
       e in [IppanError] ->
         {:error, e.message}
 
-      e ->
-        Logger.error(Exception.format(:error, e, __STACKTRACE__))
+      MatchError ->
+        # Logger.info(Exception.format(:error, e, __STACKTRACE__))
         {:error, "Invalid operation"}
     end
   end
@@ -146,39 +173,6 @@ defmodule Ippan.RequestHandler do
 
     default_hash(str)
   end
-
-  # defp check_hashlist!(_pid, {_base, nil}, _hash, _timestamp), do: :ok
-
-  # defp check_hashlist!(pid, hlist_key, hash, timestamp) do
-  #   case HashList.lookup(pid, hlist_key) do
-  #     nil ->
-  #       :ok
-
-  #     {_, xhash} when hash == xhash ->
-  #       raise IppanError, "Already exists"
-
-  #     {old_timestamp, old_hash, fallback} ->
-  #       cond do
-  #         old_timestamp < timestamp ->
-  #           raise IppanError, "Invalid operation"
-
-  #         old_hash < hash ->
-  #           raise IppanError, "Invalid operation"
-
-  #         true ->
-  #           case fallback do
-  #             {fun, args} ->
-  #               apply(Ippan.Func.Fallback, fun, args)
-
-  #             _ ->
-  #               :ok
-  #           end
-  #       end
-
-  #     _ ->
-  #       raise IppanError, "Invalid operation"
-  #   end
-  # end
 
   defp compare_hash(seed, pkhash) do
     default_hash(seed) == pkhash

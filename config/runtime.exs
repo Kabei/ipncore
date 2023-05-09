@@ -1,15 +1,18 @@
 import Config
 
-# config :ipncore, :chain, "BETA-NET"
 # config :ipncore, :gps_device, "/dev/AMC0"
 
 # environment variables
 hostname = System.get_env("HOSTNAME", "ippan.uk")
 id = System.get_env("NODE_ID", "0") |> String.to_integer()
+port = System.get_env("PORT", "5815") |> String.to_integer()
+http_port = System.get_env("HTTP_PORT", "8080") |> String.to_integer()
+redis_url = System.get_env("REDIS")
 
 data_dir = System.get_env("DATA_DIR", "data")
 kem_dir = System.get_env("KEM_DIR", "priv/kem.key")
 falcon_dir = System.get_env("FALCON_DIR", "priv/falcon.key")
+
 # ssl certificates
 # cert_dir = System.get_env("CERT_DIR", "priv/cert/cert.pem")
 # key_dir = System.get_env("KEY_DIR", "priv/cert/key.pem")
@@ -24,13 +27,38 @@ config :ipncore, :falcon_dir, falcon_dir
 config :ipncore, :p2p,
   handler_module: Ippan.P2P.Server,
   transport_module: ThousandIsland.Transports.TCP,
-  port: 5815,
+  port: port,
   num_acceptors: 10
 
 config :ipncore, :node,
   id: id,
   name: hostname,
-  port: 5815
+  port: port
+
+config :ipncore, :redis, redis_url
+
+# http server
+config :ipncore, :http,
+  port: http_port,
+  http_1_options: [
+    compress: false
+  ],
+  thousand_island_options: [
+    num_acceptors: 500,
+    read_timeout: 60_000,
+    num_connections: 16_384,
+    max_connections_retry_count: 5,
+    max_connections_retry_wait: 1000,
+    shutdown_timeout: 60_000,
+    transport_options: [
+      backlog: 1024,
+      nodelay: true,
+      linger: {true, 30},
+      send_timeout: 15_000,
+      send_timeout_close: true,
+      reuseaddr: true
+    ]
+  ]
 
 config :ipncore, :ntp_servers, [
   '0.north-america.pool.ntp.org',
@@ -63,6 +91,3 @@ config :ipncore, :dns_resolve,
     {{208, 67, 222, 222}, 53}
   ],
   timeout: 5_000
-
-# deliver max file size
-config :ipncore, :max_file_size, 1_000_000_000

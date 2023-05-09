@@ -6,7 +6,6 @@ defmodule Ippan.P2P.ClientPool do
 
   @port Application.compile_env(:ipncore, :port, 5815)
   @pubsub_server :pubsub
-
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, hibernate_after: 5_000)
   end

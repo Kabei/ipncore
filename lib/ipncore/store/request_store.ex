@@ -6,7 +6,11 @@ defmodule RequestStore do
   @otp_app :ipncore
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, nil, [name: @module, hibernate_after: 5_000] ++ opts)
+    GenServer.start_link(
+      __MODULE__,
+      nil,
+      Keyword.merge([name: @module, hibernate_after: 5_000], opts)
+    )
   end
 
   @impl true

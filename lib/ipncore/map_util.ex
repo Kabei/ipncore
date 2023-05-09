@@ -73,7 +73,7 @@ defmodule MapUtil do
   def validate_address(map, key) do
     val = Map.get(map, key)
 
-    if not is_nil(val) and not Regex.match?(Const.Regex.address(), val),
+    if not is_nil(val) and not Match.wallet_address?(val),
       do: throw("Invalid address #{key}")
 
     map

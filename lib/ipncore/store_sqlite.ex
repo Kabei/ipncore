@@ -137,7 +137,7 @@ defmodule Store.Sqlite do
 
       defp check_version(conn) do
         {:ok, stmt} = Sqlite3NIF.prepare(conn, 'PRAGMA USER_VERSION')
-        {:row, [v]} = Sqlite3.step(conn, stmt)
+        {:row, [v]} = Sqlite3NIF.step(conn, stmt)
         Sqlite3NIF.release(conn, stmt)
 
         cond do
@@ -168,6 +168,15 @@ defmodule Store.Sqlite do
         # %{conn: conn, stmt: stmts} = Owner.get(@base)
         # Sqlite3NIF.bind_and_step(conn, stmts.insert, params)
         GenServer.cast(@base, {:insert, params})
+      end
+
+      def insert_sync(params) do
+        # call(@base, {:insert, params})
+        # [{_, %{conn: conn, stmt: stmts}}] = :ets.lookup(:gs, @base)
+        # %{conn: conn, stmt: stmts} = Owner.get(@base)
+        %{conn: conn, stmt: stmts} = :sys.get_state(@base)
+        Sqlite3NIF.bind_and_step(conn, stmts.insert, params)
+        changes(conn)
       end
 
       def upsert(params) do
@@ -512,7 +521,7 @@ defmodule Store.Sqlite do
       end
 
       def handle_call({:execute, sql}, _from, %{conn: conn} = state) do
-        result = Sqlite3.execute(conn, sql)
+        result = Sqlite3NIF.execute(conn, sql)
         {:reply, result, state}
       end
 
@@ -568,7 +577,7 @@ defmodule Store.Sqlite do
         Sqlite3NIF.close(conn)
       end
 
-      defp changes(conn) do
+      def changes(conn) do
         {:ok, n} = Sqlite3NIF.changes(conn)
         n
       end

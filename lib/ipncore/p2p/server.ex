@@ -58,7 +58,7 @@ defmodule Ippan.P2P.Server do
     Logger.debug("event: #{inspect(message)}")
 
     case message do
-      %{event: "block.sendfile", id: block_id} ->
+      %{event: "block.fetch", id: block_id} ->
         send_blockfile(socket, block_id)
 
       %{event: event} ->

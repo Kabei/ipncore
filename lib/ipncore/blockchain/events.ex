@@ -17,11 +17,11 @@ defmodule Ippan.Events do
   def lookup(n = 1),
     do: %Event{
       id: n,
-      name: "account.validator",
+      name: "account.subscribe",
       base: :account,
       mod: Account,
       parallel: false,
-      fun: :validator,
+      fun: :subscribe,
       auth_type: 2
     }
 

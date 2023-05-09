@@ -13,36 +13,30 @@ defmodule Ipncore.Application do
 
   @impl true
   def start(_type, _args) do
-    Logger.info("Starting application")
-    # try do
-    #   # create data folder
-    server_opts = Application.get_env(@otp_app, :p2p)
+    Logger.debug("Starting application")
+    node = System.get_env("NODE", "n1")
+    p2p_opts = Application.get_env(@otp_app, :p2p)
     data_dir = Application.get_env(@otp_app, :data_dir, "data")
+    http_opts = Application.get_env(@otp_app, :http)
+    redis_url = Application.get_env(@otp_app, :redis)
+
+    pubsub2_opts =
+      if redis_url do
+        [
+          adapter: Phoenix.PubSub.Redis,
+          url: redis_url,
+          node_name: node,
+          name: :pubsub2
+        ]
+      else
+        [name: :pubsub2]
+      end
+
+    # create data folder
     File.mkdir(data_dir)
 
     # load falcon keys
     Ippan.P2P.Server.load_kem()
-    #   # load node config
-    #   node_config()
-
-    #   # run migration
-    #   migration_start()
-
-    #   # open local databases
-    # with {:ok, _pid} <- Chain.open(),
-    #      {:ok, _pid} <- Event.open(Block.epoch(Chain.next_index())),
-    #      :mempool <- Mempool.open(),
-    #      [{:ok, _pid} | _rest] <- Wallet.open(),
-    #      {:ok, _pid} <- Balance.open(),
-    #      {:ok, _pid} <- Token.open(),
-    #      {:ok, _pid} <- Validator.open(),
-    #      {:ok, _pid} <- Tx.open(),
-    #      {:ok, _pid} <- Domain.open(),
-    #      {:ok, _pid} <- DnsRecord.open() do
-    #   Platform.start()
-    # else
-    #   err -> throw(err)
-    # end
 
     #   # init chain
     #   :ok = Chain.start()
@@ -50,7 +44,7 @@ defmodule Ipncore.Application do
     HashList.start(:l1)
     HashList.start(:l2)
 
-    #   # services
+    # services
     children = [
       # {DetsPlus,
       #  [
@@ -70,19 +64,19 @@ defmodule Ipncore.Application do
       {DnsStore, Path.join(data_dir, "dns/dns.db")},
       {BlockStore, Path.join(data_dir, "chain/block.db")},
       {RoundStore, Path.join(data_dir, "chain/round.db")},
+      # pubsub
+      Supervisor.child_spec({Phoenix.PubSub, pubsub2_opts}, id: :pubsub2),
       Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub),
-      {ThousandIsland, server_opts},
-      {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :falcon_dir)}
+      # p2p
+      {ThousandIsland, p2p_opts},
+      {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :falcon_dir)},
+      # http
+      {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
     ]
 
-    #   # start block builder
-    #   BlockBuilderWork.next()
-
-    Supervisor.start_link(children, @opts)
-    # rescue
-    #   DBConnection.ConnectionError ->
-    #     {:error, "Database connexion failed"}
-    # end
+    sup = Supervisor.start_link(children, @opts)
+    Logger.info("Running IPNcore P2P with port #{p2p_opts[:port]}")
+    sup
   end
 
   @impl true

@@ -50,7 +50,7 @@ Events are requests made by users or automatic operations by the system that aff
 |Code|Event|Description|Status|
 |-|-|-|-|
 |0| `account.new` |Account registration|✅|
-|1| `account.validator` |Update a account's validator|✅|
+|1| `account.subscribe` |Subscribe account to a validator|✅|
 |2| `account.recover` |account recover|✅|
 |3| `account.update` |Update a account|❌|
 |50| `env.set` |Set environment variable|❌|

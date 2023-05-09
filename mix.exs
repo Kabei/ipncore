@@ -2,12 +2,13 @@ defmodule Ipncore.MixProject do
   use Mix.Project
 
   @app :ipncore
+  @version "0.1.0"
   @min_otp 25
 
   def project do
     [
       app: @app,
-      version: "0.1.0",
+      version: @version,
       config_path: "config/config.exs",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
@@ -36,7 +37,8 @@ defmodule Ipncore.MixProject do
 
   # Run "mix help compile.app" to learn about applications.
   def application do
-    if System.otp_release() |> String.to_integer() < @min_otp, do: raise("OTP invalid version")
+    if System.otp_release() |> String.to_integer() < @min_otp,
+      do: raise(RuntimeError, "OTP invalid version. Required v#{@min_otp}")
 
     [
       extra_applications: [:crypto, :syntax_tools, :logger],
@@ -51,22 +53,25 @@ defmodule Ipncore.MixProject do
       # {:xxhash, "~> 0.3.1"},
       # {:dns, "~> 2.4.0"},
       # {:cbor, "~> 1.0.0"},
+      # {:zigler, "~> 0.9.1", runtime: false},
+      {:benchee, "~> 1.0", only: [:test]},
       {:bakeware, "~> 0.2.4", runtime: false},
       {:globalconst, "~> 0.3.2"},
       {:poolboy, "~> 1.5.2"},
-      {:benchee, "~> 1.0", only: [:test]},
       {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
       # {:socket, "~> 0.3"},
       {:sntp, "~> 0.2.0"},
       {:jason, "~> 1.4"},
+      # {:jsonrs, "~> 0.3.0"},
       # {:ecto_sql, "~> 3.8"},
       # {:postgrex, ">= 0.0.0"},
       # {:plug_cowboy, "~> 2.0"},
-      # {:bandit, ">= 0.6.10"},
+      {:bandit, ">= 0.7.7"},
+      {:phoenix_pubsub_redis, "~> 3.0.1"},
       # {:download, "~> 0.0.0"},
       # {:dets_plus, path: "../dets_plus"},
-      {:thousand_island, "~> 0.6.4"},
-      {:phoenix_pubsub, "~> 2.0"},
+      # {:thousand_island, "~> 0.6.4"},
+      # {:phoenix_pubsub, "~> 2.0"},
       {:blake3, "~> 1.0"},
       # local deps
       {:exqlite, path: "../exqlite"},

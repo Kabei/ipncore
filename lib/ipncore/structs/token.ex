@@ -44,7 +44,7 @@ defmodule Ippan.Token do
       x.enabled,
       x.supply,
       x.burned,
-      Jason.encode!(x.props),
+      @json.encode!(x.props),
       x.created_at,
       x.updated_at
     ]
@@ -99,7 +99,7 @@ defmodule Ippan.Token do
       enabled: enabled,
       supply: supply,
       burned: burned,
-      props: Jason.decode!(props),
+      props: @json.decode!(props),
       created_at: created_at,
       updated_at: updated_at
     }

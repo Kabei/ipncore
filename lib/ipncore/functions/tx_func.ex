@@ -96,7 +96,8 @@ defmodule Ippan.Func.Tx do
   end
 
   def refund(%{account: account, timestamp: timestamp}, hash)
-      when byte_size(hash) == 32 do
+      when byte_size(hash) == 64 do
+    hash = Base.decode16!(hash)
     account_id = Map.get(account, :id)
     [sender_id, token, refund_amount] = RefundStore.lookup([hash, account_id, timestamp])
 

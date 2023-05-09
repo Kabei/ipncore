@@ -7,14 +7,14 @@ defmodule Ippan.Utils do
   #   def empty?(false), do: true
   def empty?(_), do: false
 
-  def to_decimal(number, 0), do: number
+  # def to_decimal(number, 0), do: number
 
-  def to_decimal(number, decimals) do
-    (number / :math.pow(10, decimals))
-    |> Decimal.from_float()
+  # def to_decimal(number, decimals) do
+  #   (number / :math.pow(10, decimals))
+  #   |> Decimal.from_float()
 
-    # |> :erlang.float_to_binary([:compact, decimals: 18])
-  end
+  #   # |> :erlang.float_to_binary([:compact, decimals: 18])
+  # end
 
   @spec rows_to_columns(map() | Keyword.t()) :: {list(), list()}
   def rows_to_columns(map_or_kw) do

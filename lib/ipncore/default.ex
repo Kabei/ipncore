@@ -12,11 +12,11 @@ defmodule Default do
   def token_decimals, do: 9
   def block_interval, do: @block_interval
   def imposible_address, do: <<0::160>>
-  def node_name, do: Application.get_env(:ipncore, :node)[:name]
   def address, do: Application.get_env(:ipncore, :address)
   def address58, do: Application.get_env(:ipncore, :address58)
   def data_dir, do: Application.get_env(:ipncore, :data_dir, "data")
 
+  def node_name, do: Application.get_env(:ipncore, :node)[:name]
   def validator_id, do: Application.get_env(:ipncore, :node)[:id]
   def hostname, do: Application.get_env(:ipncore, :node)[:hostname]
 end

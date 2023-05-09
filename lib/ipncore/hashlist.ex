@@ -1,6 +1,6 @@
 defmodule HashList do
   # use GenServer
-
+# require Logger
   # @module __MODULE__
 
   def start(name) do
@@ -17,7 +17,10 @@ defmodule HashList do
     :ets.insert(ets, object)
   end
 
+  # require Logger
   def lookup!(ets, key, hash, timestamp) do
+    # r = :ets.lookup(ets, key)
+    #Logger.debug(inspect(r))
     case :ets.lookup(ets, key) do
       [{_key, {_, xhash}}] when hash == xhash ->
         raise IppanError, "Already exists"
@@ -42,7 +45,7 @@ defmodule HashList do
         end
 
       _ ->
-        raise IppanError, "Already exists"
+        :ok
     end
   end
 

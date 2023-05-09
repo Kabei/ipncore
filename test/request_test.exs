@@ -3,10 +3,25 @@ defmodule RequestTest do
   doctest Ipncore
 
   require Logger
+  @json Application.compile_env(:ipncore, :json)
 
   alias Ippan.RequestHandler
   # alias Ippan.Events
   # alias Ippan.Address
+
+  defp new_hash_signature(auth_client, txhash, pkhash2) do
+    secret = :rand.bytes(32)
+    pk = Blake3.hash(secret)
+
+    new_mac = :crypto.mac(:poly1305, next_sk, txhash)
+
+    new_hmac=
+      new_mac
+    |> Blake3.hash()
+    |> :binary.part(16, 16)
+
+    {:ok, pkhash2 <> pk <> mac <> txhash, new_hmac}
+  end
 
   test "create account" do
     seed = :rand.bytes(48)
@@ -26,12 +41,44 @@ defmodule RequestTest do
 
     account_id = "kambei"
     validator_id = 0
-    timestamp = :os.system_time(1000)
-    args = [validator_id, pk, pkhash, pkhash2, hmac]
+    timestamp = :os.system_time(:millisecond)
+
+    args = [
+      validator_id,
+      Base.encode16(pk),
+      Base.encode16(pkhash),
+      Base.encode16(pkhash2),
+      Base.encode16(hmac)
+    ]
+
     hash = RequestHandler.compute_hash(0, timestamp, account_id, args)
 
-    signature = Falcon.sign(sk, hash)
-    request = {0, timestamp, account_id, args, signature}
+    {:ok, signature} = Falcon.sign(sk, hash)
+    request = [0, timestamp, account_id, args, Base.encode64(signature)]
+
+    @json.encode!(request)
+    |> IO.puts()
+
+    IO.puts("Falcon seed")
+
+    Base.encode64(seed)
+    |> IO.puts()
+
+    IO.puts("Secret Hash")
+
+    Base.encode64(skh)
+    |> IO.puts()
+
+    IO.puts("Secret Hash 2")
+
+    Base.encode64(skh2)
+    |> IO.puts()
+
+    # start_time = :erlang.monotonic_time(:nanosecond)
+    # RequestHandler.handle(request)
+    # end_time = :erlang.monotonic_time()
+    # duration = end_time - start_time
+    # IO.puts("Duration: #{duration} ns")
 
     # Benchee.run(
     #   %{
@@ -45,8 +92,8 @@ defmodule RequestTest do
     # )
   end
 
-  # test "token.new" do
-  # end
+  test "create validator" do
+  end
 
   # start_time = :erlang.monotonic_time(:millisecond)
   #   1..10

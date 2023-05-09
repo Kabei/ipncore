@@ -19,7 +19,7 @@ defmodule ValidatorStore do
       fee_type TINYINT NOT NULL,
       created_at UNSIGNED BIGINT NOT NULL,
       updated_at UNSIGNED BIGINT NOT NULL
-    ) WITHOUT ROWID;
+    );
     """,
     stmt: %{
       "lookup_address" => "SELECT * FROM #{@table} WHERE name = ?1",

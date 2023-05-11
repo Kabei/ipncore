@@ -171,6 +171,16 @@ defmodule MapUtil do
     map
   end
 
+  def transform(map, key, fun) do
+    val = Map.get(map, key)
+
+    if not is_nil(val) do
+      Map.put(map, key, fun.(val))
+    else
+      map
+    end
+  end
+
   ## Encode/Decode functions
   def decode_address(map, key) do
     val = Map.get(map, key)

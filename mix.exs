@@ -54,7 +54,7 @@ defmodule Ipncore.MixProject do
       # {:dns, "~> 2.4.0"},
       # {:cbor, "~> 1.0.0"},
       # {:zigler, "~> 0.9.1", runtime: false},
-      {:benchee, "~> 1.0", only: [:test]},
+      {:benchee, "~> 1.0", only: :test},
       {:bakeware, "~> 0.2.4", runtime: false},
       {:globalconst, "~> 0.3.2"},
       {:poolboy, "~> 1.5.2"},
@@ -73,10 +73,12 @@ defmodule Ipncore.MixProject do
       # {:thousand_island, "~> 0.6.4"},
       # {:phoenix_pubsub, "~> 2.0"},
       {:blake3, "~> 1.0"},
+      {:jsonrs, "~> 0.3.0"},
       # local deps
       {:exqlite, path: "../exqlite"},
       {:falcon, path: "../falcon"},
-      {:ntrukem, path: "../ntrukem"}
+      {:ntrukem, path: "../ntrukem"},
+      {:fast64, path: "../fast64_elixir"}
       # {:ipnutils, path: "../ipnutils"}
     ]
   end

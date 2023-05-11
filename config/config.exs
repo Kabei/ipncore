@@ -14,9 +14,9 @@ else
 end
 
 # blockchain
-config :ipncore, :migration_version, 0
-config :ipncore, :event_threshold_timeout, :timer.seconds(10)
-config :ipncore, :event_max_size, 8192
+config :ipncore, :token, "IPN"
+config :ipncore, :message_timeout, :timer.seconds(15)
+config :ipncore, :message_max_size, 8192
 config :ipncore, :block_version, 0
 config :ipncore, :block_interval, :timer.seconds(5)
 config :ipncore, :timeout_refund, :timer.hours(72)

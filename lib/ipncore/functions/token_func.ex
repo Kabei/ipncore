@@ -3,14 +3,15 @@ defmodule Ippan.Func.Token do
 
   @type result :: Ippan.Request.result()
 
-  @token Default.token()
-
   def new(%{account: account}, id, owner_id, name, decimal, symbol, opts \\ %{})
       when byte_size(id) <= 10 and byte_size(name) <= 100 and decimal in 0..18 and
              byte_size(symbol) <= 5 do
     map_filter = Map.take(opts, Token.optionals())
 
     cond do
+      not Match.token?(id) ->
+        raise IppanError, "Invalid token ID"
+
       not Match.account?(owner_id) ->
         raise IppanError, "Invalid owner"
 

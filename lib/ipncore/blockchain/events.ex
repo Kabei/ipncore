@@ -11,7 +11,7 @@ defmodule Ippan.Events do
       mod: Account,
       fun: :new,
       parallel: false,
-      auth_type: 0
+      auth: false
     }
 
   def lookup(n = 1),
@@ -22,21 +22,10 @@ defmodule Ippan.Events do
       mod: Account,
       parallel: false,
       fun: :subscribe,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 2),
-    do: %Event{
-      id: n,
-      name: "account.recover",
-      base: :account,
-      mod: Account,
-      fun: :recover,
-      parallel: true,
-      auth_type: 1
-    }
-
-  def lookup(n = 3),
     do: %Event{
       id: n,
       name: "account.update",
@@ -44,7 +33,7 @@ defmodule Ippan.Events do
       mod: Account,
       fun: :update,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 50),
@@ -55,7 +44,7 @@ defmodule Ippan.Events do
       mod: Env,
       fun: :set,
       parallel: false,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 51),
@@ -66,7 +55,7 @@ defmodule Ippan.Events do
       mod: Env,
       fun: :delete,
       parallel: false,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 100),
@@ -77,7 +66,7 @@ defmodule Ippan.Events do
       mod: Validator,
       fun: :new,
       parallel: false,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 101),
@@ -88,7 +77,7 @@ defmodule Ippan.Events do
       mod: Validator,
       fun: :update,
       parallel: false,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 102),
@@ -99,7 +88,7 @@ defmodule Ippan.Events do
       mod: Validator,
       fun: :delete,
       parallel: false,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 200),
@@ -110,7 +99,7 @@ defmodule Ippan.Events do
       mod: Token,
       fun: :new,
       parallel: false,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 201),
@@ -121,7 +110,7 @@ defmodule Ippan.Events do
       mod: Token,
       fun: :update,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 202),
@@ -132,7 +121,7 @@ defmodule Ippan.Events do
       mod: Token,
       fun: :delete,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 250),
@@ -143,7 +132,7 @@ defmodule Ippan.Events do
       mod: Balance,
       fun: :lock,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 251),
@@ -154,7 +143,7 @@ defmodule Ippan.Events do
       mod: Balance,
       fun: :unlock,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 300),
@@ -165,7 +154,7 @@ defmodule Ippan.Events do
       mod: Tx,
       fun: :coinbase,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 301),
@@ -176,7 +165,7 @@ defmodule Ippan.Events do
       mod: Tx,
       fun: :send,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 302),
@@ -187,7 +176,7 @@ defmodule Ippan.Events do
       mod: Tx,
       fun: :burn,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 303),
@@ -198,7 +187,7 @@ defmodule Ippan.Events do
       base: :tx,
       fun: :refund,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 400),
@@ -209,7 +198,7 @@ defmodule Ippan.Events do
       base: :domain,
       fun: :new,
       parallel: false,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 401),
@@ -220,7 +209,7 @@ defmodule Ippan.Events do
       mod: Domain,
       fun: :update,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 402),
@@ -231,7 +220,7 @@ defmodule Ippan.Events do
       mod: Domain,
       fun: :delete,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 403),
@@ -242,7 +231,7 @@ defmodule Ippan.Events do
       mod: Domain,
       fun: :renew,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   # def lookup(n = 404),
@@ -254,7 +243,7 @@ defmodule Ippan.Events do
   #     fun: :expiry,
   #     parallel: true,
   #     system: true,
-  #     auth_type: 0
+  #     auth: false
   #   }
 
   def lookup(n = 500),
@@ -265,7 +254,7 @@ defmodule Ippan.Events do
       mod: DNS,
       fun: :new,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 501),
@@ -276,7 +265,7 @@ defmodule Ippan.Events do
       mod: DNS,
       fun: :update,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   def lookup(n = 502),
@@ -287,7 +276,7 @@ defmodule Ippan.Events do
       mod: DNS,
       fun: :delete,
       parallel: true,
-      auth_type: 2
+      auth: true
     }
 
   # def lookup(n = 900),
@@ -299,7 +288,7 @@ defmodule Ippan.Events do
   #     fun: :new,
   #     parallel: true,
   #     system: true,
-  #     auth_type: 0
+  #     auth: false
   #   }
 
   # def lookup(n = 901),
@@ -311,7 +300,7 @@ defmodule Ippan.Events do
   #     fun: :received,
   #     parallel: true,
   #     system: true,
-  #     auth_type: 0
+  #     auth: false
   #   }
 
   # def lookup(n = 990),
@@ -323,7 +312,7 @@ defmodule Ippan.Events do
   #     fun: :start,
   #     parallel: true,
   #     system: true,
-  #     auth_type: 0
+  #     auth: false
   #   }
 
   # def lookup(n = 999),
@@ -335,7 +324,7 @@ defmodule Ippan.Events do
   #     fun: :end,
   #     parallel: true,
   #     system: true,
-  #     auth_type: 0
+  #     auth: false
   #   }
 
   def lookup(_), do: :undefined

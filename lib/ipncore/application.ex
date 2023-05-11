@@ -41,6 +41,7 @@ defmodule Ipncore.Application do
     #   # init chain
     #   :ok = Chain.start()
 
+    Platform.start()
     HashList.start(:l1)
     HashList.start(:l2)
 

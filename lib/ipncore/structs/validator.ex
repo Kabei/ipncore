@@ -5,6 +5,7 @@ defmodule Ippan.Validator do
           name: String.t(),
           owner: binary(),
           avatar: String.t(),
+          pubkey: binary(),
           fee_type: integer(),
           fee: 0 | 1 | 2,
           enabled: boolean(),
@@ -19,6 +20,7 @@ defmodule Ippan.Validator do
     :owner,
     # :address,
     :avatar,
+    :pubkey,
     :fee_type,
     :fee,
     :created_at,
@@ -27,7 +29,7 @@ defmodule Ippan.Validator do
   ]
 
   use Ippan.Struct
-  def editable, do: ~w(hostname name avatar fee fee_type)a
+  def editable, do: ~w(hostname name avatar pubkey fee fee_type)a
 
   def optionals, do: ~w(avatar)a
 
@@ -38,6 +40,7 @@ defmodule Ippan.Validator do
       x.name,
       x.owner,
       x.avatar,
+      x.pubkey,
       x.fee,
       x.fee_type,
       x.enabled,
@@ -47,17 +50,21 @@ defmodule Ippan.Validator do
   end
 
   def to_tuple(x) do
-    {x.id, x.hostname, x.name, x.owner, x.avatar, x.fee_type, x.fee, x.enabled, x.created_at,
-     x.updated_at}
+    {x.id, x.hostname, x.name, x.owner, x.avatar, x.pubkey, x.fee_type, x.fee, x.enabled,
+     x.created_at, x.updated_at}
   end
 
-  def to_map({id, hostname, name, owner, avatar, fee_type, fee, enabled, created_at, updated_at}) do
+  def to_map(
+        {id, hostname, name, owner, avatar, pubkey, fee_type, fee, enabled, created_at,
+         updated_at}
+      ) do
     %{
       id: id,
       hostname: hostname,
       name: name,
       owner: owner,
       avatar: avatar,
+      pubkey: pubkey,
       fee: fee,
       fee_type: fee_type,
       enabled: enabled,
@@ -72,6 +79,7 @@ defmodule Ippan.Validator do
         name,
         owner,
         avatar,
+        pubkey,
         fee_type,
         fee,
         enabled,
@@ -84,6 +92,7 @@ defmodule Ippan.Validator do
       name: name,
       owner: owner,
       avatar: avatar,
+      pubkey: pubkey,
       fee: fee,
       fee_type: fee_type,
       enabled: enabled,

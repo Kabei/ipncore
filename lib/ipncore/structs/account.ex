@@ -13,39 +13,36 @@ defmodule Ippan.Account do
           id: String.t(),
           validator: non_neg_integer(),
           address: binary,
-          auth_hash: binary,
           pubkey: binary,
           created_at: non_neg_integer()
         }
 
-  @enforce_keys [:id, :validator, :address, :auth_hash, :pubkey]
-  defstruct [:id, :validator, :address, :auth_hash, :pubkey, :created_at]
+  @enforce_keys [:id, :validator, :address, :pubkey]
+  defstruct [:id, :validator, :address, :pubkey, :created_at]
 
   def to_list(x) do
-    [x.id, x.validator, x.address, x.auth_hash, x.pubkey, x.created_at]
+    [x.id, x.validator, x.address, x.pubkey, x.created_at]
   end
 
   def to_tuple(x) do
-    {x.id, x.validator, x.address, x.auth_hash, x.pubkey, x.created_at}
+    {x.id, x.validator, x.address, x.pubkey, x.created_at}
   end
 
-  def to_map({id, validator, address, auth_hash, pubkey, created_at}) do
+  def to_map({id, validator, address, pubkey, created_at}) do
     %{
       id: id,
       validator: validator,
       address: address,
-      auth_hash: auth_hash,
       pubkey: pubkey,
       created_at: created_at
     }
   end
 
-  def to_map([id, validator, address, auth_hash, pubkey, created_at]) do
+  def to_map([id, validator, address, pubkey, created_at]) do
     %{
       id: id,
       validator: validator,
       address: address,
-      auth_hash: auth_hash,
       pubkey: pubkey,
       created_at: created_at
     }

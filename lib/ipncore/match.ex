@@ -12,7 +12,9 @@ defmodule Match do
   @base62 ~r/^[0-9A-Za-z]+$/
   @domain_link ~r/^@([a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1})/
   # @username ~r/((?!^[\.\-\_])([a-z0-9\.\-\_])(?![\.\_\-][\.\_\-])(?![\.\-\_]$)){1,30}/
-  @username ~r/^[a-zA-Z0-9]+([._-]?[a-zA-Z0-9]+)*$/
+  @username ~r/^[a-z0-9]+([._-]?[a-z0-9]+)*$/
+  @token ~r/^[A-Z0-9]{1,10}$/
+  @no_binary ~r/^[A-Za-z0-9:punct:\s]+$/
 
   def hostname?(x), do: Regex.match?(@hostname, x)
   def domain?(x), do: Regex.match?(@domain, x)
@@ -27,6 +29,8 @@ defmodule Match do
   def phone?(x), do: Regex.match?(@phone, x)
   def wallet_address?(x), do: Regex.match?(@wallet_address, x)
   def username?(x), do: Regex.match?(@username, x)
+  def token?(x), do: Regex.match?(@token, x)
+  def no_binary(x), do: Regex.match?(@no_binary, x)
 
   def account?(x) do
     byte_size(x) <= 20 and Regex.match?(@username, x)

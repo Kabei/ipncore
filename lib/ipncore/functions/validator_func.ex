@@ -11,6 +11,7 @@ defmodule Ippan.Func.Validator do
           String.t(),
           String.t(),
           String.t(),
+          binary(),
           non_neg_integer(),
           non_neg_integer(),
           map()
@@ -21,13 +22,16 @@ defmodule Ippan.Func.Validator do
         owner_id,
         hostname,
         name,
+        pubkey,
         fee_type,
         fee,
         opts \\ %{}
       )
       when is_positive(id) and
-             byte_size(name) <= 20 and between_size(hostname, 4, 50) and fee_type in 0..2 do
+             byte_size(name) <= 20 and between_size(hostname, 4, 50) and fee_type in 0..2 and
+             pubkey == 1794 do
     map_filter = Map.take(opts, Validator.optionals())
+    pubkey = Base.decode16!(pubkey)
 
     cond do
       not Match.account?(owner_id) ->
@@ -48,6 +52,7 @@ defmodule Ippan.Func.Validator do
             id: id,
             hostname: hostname,
             name: name,
+            pubkey: pubkey,
             owner: owner_id,
             fee: fee,
             fee_type: fee_type
@@ -82,6 +87,16 @@ defmodule Ippan.Func.Validator do
         |> MapUtil.validate_url(:url)
         |> MapUtil.validate_value(:fee, :gt, 0)
         |> MapUtil.validate_range(:fee_type, 0..2)
+        |> MapUtil.transform(
+          :pubkey,
+          fn
+            x when byte_size(x) == 1794 ->
+              Base.decode16!(x)
+
+            _ ->
+              raise IppanError, "Invalid pubkey"
+          end
+        )
         |> Map.put(:updated_at, timestamp)
         |> ValidatorStore.update(id: id)
 

@@ -1,3 +1,28 @@
+# defmodule RequestStore do
+#   @table "request"
+#   use Store.Sqlite,
+#     base: :rp,
+#     table: @table,
+#     create: """
+#     CREATE TABLE IF NOT EXISTS #{@table}(
+#       hash BLOB PRIMARY KEY,
+#       timestamp UNSIGNED BIGINT NOT NULL,
+#       type INTEGER,
+#       id BLOB,
+#       message BLOB,
+#       size UNSIGNED BIGINT
+#     ) WITHOUT ROWID;
+#     """,
+#     stmt: %{
+#       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5)",
+#       lookup: "SELECT * FROM #{@table} WHERE hash = ?",
+#       lookup_hash: "SELECT * FROM #{@table} WHERE hash = ? LIMIT 1",
+#       exists: "SELECT 1 FROM #{@table} WHERE hash = ?",
+#       delete: "DELETE FROM #{@table} WHERE hash = ?"
+#     }
+
+# end
+
 defmodule HashList do
   # use GenServer
 # require Logger

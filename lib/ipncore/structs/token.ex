@@ -1,4 +1,5 @@
 defmodule Ippan.Token do
+  @json Application.compile_env(:ipncore, :json)
   @type t :: %__MODULE__{
           id: String.t(),
           name: String.t(),
@@ -51,13 +52,13 @@ defmodule Ippan.Token do
   end
 
   def to_tuple(x) do
-    {x.id, x.name, x.owner, x.avatar, x.decimal, x.symbol, x.enabled, x.supply,
-     x.burned, x.props, x.created_at, x.updated_at}
+    {x.id, x.name, x.owner, x.avatar, x.decimal, x.symbol, x.enabled, x.supply, x.burned, x.props,
+     x.created_at, x.updated_at}
   end
 
   def to_map(
-        {id, name, owner, avatar, decimal, symbol, enabled, supply, burned, props,
-         created_at, updated_at}
+        {id, name, owner, avatar, decimal, symbol, enabled, supply, burned, props, created_at,
+         updated_at}
       ) do
     %{
       id: id,

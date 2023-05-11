@@ -51,8 +51,7 @@ Events are requests made by users or automatic operations by the system that aff
 |-|-|-|-|
 |0| `account.new` |Account registration|✅|
 |1| `account.subscribe` |Subscribe account to a validator|✅|
-|2| `account.recover` |account recover|✅|
-|3| `account.update` |Update a account|❌|
+|2| `account.update` |Update a account|❌|
 |50| `env.set` |Set environment variable|❌|
 |51| `env.delete` |Delete environment variable|❌|
 |100| `validator.new` |Create a new validator|❌|
@@ -64,7 +63,7 @@ Events are requests made by users or automatic operations by the system that aff
 |250| `balance.lock` |Balance lock|❌|
 |251| `balance.unlock` |Balance unlock|❌|
 |300| `tx.coinbase` |Creation of coins by the token owner|❌|
-|301| `tx.send` |Send a simple payment|❌|
+|301| `tx.send` |Send coins|❌|
 |302| `tx.burn` |Coin destruction|❌|
 |303| `tx.refund` |Return a transaction without paying a fee|❌|
 |400| `domain.new` |Register a new domain|❌|

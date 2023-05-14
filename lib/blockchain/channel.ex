@@ -64,7 +64,7 @@ defmodule Ipncore.Channel do
   end
 
   def put_genesis_time(channel_id, time) do
-    now = :erlang.system_time(:millisecond)
+    now = :os.system_time(:millisecond)
 
     from(c in Channel, where: c.id == ^channel_id)
     |> Repo.update_all(
@@ -95,7 +95,7 @@ defmodule Ipncore.Channel do
         block_inc \\ 1,
         tx_inc \\ 1
       ) do
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
 
     query = from(c in Channel, where: c.id == ^channel_id)
 

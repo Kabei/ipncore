@@ -27,7 +27,7 @@ defmodule Ipncore.Migration do
     #     Channel.new(%{
     #       "id" => channel,
     #       "pubkey" => Platform.pubkey(),
-    #       "time" => :erlang.system_time(:millisecond)
+    #       "time" => :os.system_time(:millisecond)
     #     })
     #     |> Repo.insert(prefix: @prefix)
 

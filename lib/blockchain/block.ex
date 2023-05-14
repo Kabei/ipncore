@@ -3,7 +3,7 @@ defmodule Ipncore.Block do
   import Ipnutils.Macros, only: [deftypes: 1]
   import Ecto.Query, only: [from: 1, from: 2, order_by: 3, select: 3]
   import Ipnutils.Filters
-  alias Ipncore.{Chain, Event, Repo, Tx}
+  alias Ipncore.{Event, Repo, Tx}
   alias __MODULE__
 
   @version Default.version()
@@ -70,7 +70,7 @@ defmodule Ipncore.Block do
     IO.inspect("Block first")
 
     time =
-      Chain.get_time()
+      :os.system_time(:millisecond)
       |> format_block_time()
 
     %Block{
@@ -94,7 +94,7 @@ defmodule Ipncore.Block do
     IO.inspect("Block #{prev_block.height + 1}")
 
     time =
-      Chain.get_time()
+      :os.system_time(:millisecond)
       |> format_block_time()
 
     %Block{

@@ -69,7 +69,7 @@ defmodule Ipncore.Chain do
   def get_time do
     # diff = get(:diff_iit, 0)
     # if diff == 0, do: throw(:error_time)
-    :erlang.system_time(@unit_time) + get(:diff_time, 0)
+    :os.system_time(@unit_time) + get(:diff_time, 0)
   end
 
   def next_index do
@@ -99,7 +99,7 @@ defmodule Ipncore.Chain do
   # end
 
   def put_iit(iit_time) when iit_time > 0 do
-    put(:diff_iit, iit_time - :erlang.system_time(@unit_time))
+    put(:diff_iit, iit_time - :os.system_time(@unit_time))
   end
 
   def put_last_block(nil), do: :none
@@ -172,7 +172,7 @@ defmodule Ipncore.Chain do
           |> Map.from_struct()
           |> Map.drop([:events, :__meta__])
 
-        IO.inspect(block)
+        # IO.inspect(block)
 
         if is_genesis_block do
           put_genesis_block(block)

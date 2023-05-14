@@ -9,7 +9,7 @@ defmodule Ipncore.IIT do
 
       case gps_result do
         {:error, _} ->
-          :erlang.system_time(:millisecond)
+          :os.system_time(:millisecond)
 
         datetime ->
           Logger.info("Time gps received: #{datetime}")
@@ -27,7 +27,7 @@ defmodule Ipncore.IIT do
           _err ->
             {:cont, nil}
         end
-      end) || :erlang.system_time(:millisecond)
+      end) || :os.system_time(:millisecond)
     end
   end
 end

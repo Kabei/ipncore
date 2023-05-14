@@ -79,8 +79,8 @@ defmodule Ipncore.BlockValidator do
   def valid_with_prev_block?(nil, _block), do: :ok
 
   def valid_with_prev_block?(prev_block, block) do
-    IO.inspect(block)
-    IO.inspect(prev_block)
+    # IO.inspect(block)
+    # IO.inspect(prev_block)
 
     cond do
       prev_block.height >= block.height ->

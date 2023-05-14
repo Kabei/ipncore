@@ -1,5 +1,6 @@
 defmodule Benchmark do
   alias Ipncore.Event
+  require Logger
 
   @token "IPN"
 
@@ -37,9 +38,11 @@ defmodule Benchmark do
 
   @validator "ippan.uk"
 
-  # Benchmark.send(0, 100, 50, "round-2")
+  # Benchmark.send(0, 100, 50, "round-4")
 
   def send(bot_index, iterations, money, note) do
+    start_time = :os.system_time(:microsecond)
+    Logger.info("starting test #{start_time}")
     addr58 = Enum.at(@addresses, bot_index)
 
     seed = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
@@ -55,9 +58,18 @@ defmodule Benchmark do
         Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, note)
       end
 
+    end_time = :os.system_time(:microsecond)
+    Logger.info("build txs end #{end_time - start_time} µs")
+
+    start_time = :os.system_time(:microsecond)
+    Logger.info("start to send to check")
+
     for [version, type, time, event_body, from58, sig64] <- requests do
       Event.check(version, type, time, event_body, from58, sig64)
     end
+
+    end_time = :os.system_time(:microsecond)
+    Logger.info("sent to check #{length(requests)} txs | time: #{end_time - start_time} µs")
   end
 end
 

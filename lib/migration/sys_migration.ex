@@ -6,7 +6,7 @@ defmodule Ipncore.Migration.System do
   # end
 
   def up(%{"version" => version}) do
-    time = :erlang.system_time(:millisecond)
+    time = :os.system_time(:millisecond)
 
     # trigger_approved()
     [
@@ -92,7 +92,7 @@ defmodule Ipncore.Migration.System do
   #     CREATE OR REPLACE FUNCTION sys.utxo(
   #     _indexes bytea[],
   #     _schema character varying)
-  #     RETURNS TABLE(id bytea, tid bytea, type TEXT, value bigint, address bytea) 
+  #     RETURNS TABLE(id bytea, tid bytea, type TEXT, value bigint, address bytea)
   #     LANGUAGE 'plpgsql'
   #     COST 100
   #     VOLATILE PARALLEL UNSAFE
@@ -115,7 +115,7 @@ defmodule Ipncore.Migration.System do
   #     _tid bytea,
   #     _total bigint,
   #     _schema character varying)
-  #     RETURNS TABLE(id bytea, address bytea, tid bytea, type TEXT, val bigint, bal bigint) 
+  #     RETURNS TABLE(id bytea, address bytea, tid bytea, type TEXT, val bigint, bal bigint)
   #     LANGUAGE 'plpgsql'
   #     COST 100
   #     VOLATILE PARALLEL UNSAFE

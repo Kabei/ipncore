@@ -24,7 +24,7 @@ defmodule Ipncore.RepoWorker do
   def handle_cast({:tx, multi}, state) do
     # sends a message back to the TaskRunner when completed
     Task.async(fn ->
-      Repo.transaction(multi)
+      Repo.transaction(multi, timeout: :infinity)
     end)
 
     {:noreply, state}

@@ -7,16 +7,17 @@ defmodule BlockBuilderWork do
   @timeout :infinity
 
   def run do
+    start_time = :os.system_time(:microsecond)
     total_events = Mempool.size()
 
     if total_events != 0 do
       total_threads = Application.get_env(:ipncore, :total_threads, System.schedulers_online())
-      timestamp = :erlang.system_time(@unit_time)
+      timestamp = :os.system_time(@unit_time)
       next_height = Chain.next_index()
 
-      ["BlockBuilder | Events: ", to_string(total_events)]
-      |> IO.iodata_to_binary()
-      |> Logger.debug()
+      # ["BlockBuilder | Events: ", to_string(total_events)]
+      # |> IO.iodata_to_binary()
+      # |> Logger.debug()
 
       events =
         Enum.map(0..(total_threads - 1), fn thread ->
@@ -47,7 +48,9 @@ defmodule BlockBuilderWork do
         |> Enum.concat()
         |> Enum.sort(&({&1.time, &1.hash} <= {&2.time, &2.hash}))
 
-      IO.inspect("Events: #{length(events)}")
+      end_time = :os.system_time(:microsecond)
+      Logger.info("Time: #{end_time - start_time} µs")
+      Logger.info("Events: #{length(events)}")
 
       Mempool.select_delete_timestamp(timestamp)
 

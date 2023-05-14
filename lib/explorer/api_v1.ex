@@ -237,7 +237,7 @@ defmodule Ipncore.Route.Blockchain do
       last_hash: Event.encode_id(last_block_hash),
       name: Application.get_env(:ipncore, :channel),
       owner: Platform.address58(),
-      time: Chain.get_time(),
+      time: :os.system_time(:millisecond),
       token: token_id
     }
 

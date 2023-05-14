@@ -29,7 +29,7 @@ defmodule BlockBuilderWork do
               try do
                 ev = Event.new!(next_height, hash, time, type_number, from, body, signature, size)
                 # Mempool.delete(key)
-                Enum.concat(acc, [ev])
+                acc ++ [ev]
               rescue
                 ex ->
                   Logger.error(Exception.format(:error, ex, __STACKTRACE__))

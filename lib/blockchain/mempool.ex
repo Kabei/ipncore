@@ -31,16 +31,16 @@ defmodule Mempool do
     #         ], [:"$_"]}
     #      ]) do
     #   [] ->
-        case :ets.insert_new(
-               @table,
-               {{time, hash}, thread, type_number, from, body, signature, size}
-             ) do
-          true ->
-            {:ok, hash}
+    case :ets.insert_new(
+           @table,
+           {{time, hash}, thread, type_number, from, body, signature, size}
+         ) do
+      true ->
+        {:ok, hash}
 
-          false ->
-            throw("Event already issued")
-        end
+      false ->
+        throw("Event already issued")
+    end
 
     #   _ ->
     #     # means that this type of event has already been issued by the same issuer
@@ -67,6 +67,16 @@ defmodule Mempool do
     fun = [
       {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"}, [{:"=<", :"$1", timestamp}],
        [true]}
+    ]
+
+    select_delete(fun)
+  end
+
+  def select_delete_thread_timestamp(thread, timestamp) do
+    # :ets.fun2ms(fn {{time, _hash}, thread, _type, _from, _body, _sigs, _size} = x when time <= 0 and thread == 1 -> x end)
+    fun = [
+      {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"},
+       [{:andalso, {:"=<", :"$1", timestamp}, {:==, :"$3", thread}}], [:"$_"]}
     ]
 
     select_delete(fun)

@@ -38,11 +38,11 @@ defmodule Benchmark do
 
   @validator "ippan.uk"
 
-  # Benchmark.send(0, 5000, 50, "round-11")
+  # Benchmark.send(0, 5000, 50, "round-10")
 
   def send(bot_index, iterations, money, note) do
     start_time = :os.system_time(:microsecond)
-    Logger.info("starting test #{start_time}")
+    # Logger.info("starting test #{start_time}")
     addr58 = Enum.at(@addresses, bot_index)
 
     seed = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
@@ -59,7 +59,7 @@ defmodule Benchmark do
       end
 
     end_time = :os.system_time(:microsecond)
-    Logger.info("build txs end #{end_time - start_time} µs")
+    # Logger.info("build txs end #{end_time - start_time} µs")
 
     start_time = :os.system_time(:microsecond)
     Logger.info("start to send to check")

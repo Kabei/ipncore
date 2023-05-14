@@ -24,7 +24,8 @@ defmodule BlockBuilderWork do
       events =
         Enum.map(0..(@total_threads - 1), fn thread ->
           Task.async(fn ->
-            events = Mempool.select_delete_thread_timestamp(thread, timestamp)
+            events = Mempool.select(thread, timestamp)
+            Mempool.select_delete_thread_timestamp(thread, timestamp)
 
             Enum.reduce(events, [], fn {{time, hash} = key, _thread, type_number, from, body,
                                         signature, size},

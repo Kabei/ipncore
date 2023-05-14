@@ -31,8 +31,8 @@ defmodule BlockBuilderWork do
                                        acc ->
               try do
                 ev = Event.new!(next_height, hash, time, type_number, from, body, signature, size)
-                acc ++ [ev]
                 Mempool.delete(key)
+                acc ++ [ev]
               rescue
                 ex ->
                   Logger.error(Exception.format(:error, ex, __STACKTRACE__))

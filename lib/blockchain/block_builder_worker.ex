@@ -64,7 +64,7 @@ defmodule BlockBuilderWork do
         events ->
           last_block = Chain.last_block()
           block = Block.next(last_block, events)
-          Chain.add_block(last_block, block, Default.channel())
+          # Chain.add_block(last_block, block, Default.channel())
       end
     end
 

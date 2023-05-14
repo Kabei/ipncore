@@ -5,13 +5,15 @@ defmodule BlockBuilderWork do
   @unit_time Default.unit_time()
   @interval Default.block_interval()
   @timeout :infinity
+  @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
 
   def run do
-    start_time = :os.system_time(:microsecond)
     total_events = Mempool.size()
 
     if total_events != 0 do
-      total_threads = Application.get_env(:ipncore, :total_threads, System.schedulers_online())
+      Logger.info("start block builder")
+      start_time = :os.system_time(:microsecond)
+
       timestamp = :os.system_time(@unit_time)
       next_height = Chain.next_index()
 
@@ -20,7 +22,7 @@ defmodule BlockBuilderWork do
       # |> Logger.debug()
 
       events =
-        Enum.map(0..(total_threads - 1), fn thread ->
+        Enum.map(0..(@total_threads - 1), fn thread ->
           Task.async(fn ->
             events = Mempool.select(thread, timestamp)
 
@@ -49,8 +51,8 @@ defmodule BlockBuilderWork do
         |> Enum.sort(&({&1.time, &1.hash} <= {&2.time, &2.hash}))
 
       end_time = :os.system_time(:microsecond)
-      Logger.info("Time: #{end_time - start_time} µs")
-      Logger.info("Events: #{length(events)}")
+      Logger.info("end block builder: #{end_time - start_time} µs")
+      Logger.info("Total events: #{length(events)}")
 
       Mempool.select_delete_timestamp(timestamp)
 

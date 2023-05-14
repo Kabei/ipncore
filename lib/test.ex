@@ -2,36 +2,58 @@ defmodule Benchmark do
   alias Ipncore.Event
 
   @token "IPN"
-  @sk <<68, 253, 200, 16, 49, 23, 19, 161, 143, 7, 218, 213, 234, 57, 217, 84, 142,
-  98, 216, 136, 188, 254, 212, 182, 26, 195, 57, 59, 155, 240, 227, 231, 189,
-  145, 10, 78, 162, 93, 196, 237, 105, 208, 30, 19, 37, 154, 70, 243>>
+
+  @secret_words [
+    "eager unusual advice giraffe illness speak despair win sting fade iron poverty tower hobby carry panther start radio radio include rifle wear moon waste much fame possible romance excite reject document second cereal split rude above",
+    "input miracle deputy public grit local number street fiber dry tilt enjoy labor drip live flash can helmet combine pause adult theory engine heavy arch celery diet science bright harvest clutch erupt system wool body about",
+    "clinic turtle soldier figure tool swing body horse beauty toward brisk mixed clinic display blood dash final film trial pave glory miracle lab stomach forward drill soda hood ski sadness young fish uniform focus maid acid",
+    "scan teach cabbage seed hospital zero vague either stool crew melody neutral unveil child protect key maid silver cotton peasant exchange crash body glow hurry short struggle grit immense camera virtual elite beyond bargain argue abuse",
+    "midnight local ethics primary tenant million race theory awesome jelly prize lounge nature accuse elephant cup blind hub forest invest frequent coral slogan million woman laugh mutual icon dash label mixed move brain axis bind access",
+    "flight smoke profit mosquito canvas consider tray today mask reopen kangaroo swallow blossom athlete journey genius change patch this all item settle trial renew pet noodle legend tag office cage arrest voyage sea left document able",
+    "defense rotate question hand citizen jazz pioneer also garage hedgehog test never heavy relax chicken maximum mix draft wage sugar rack expect dinosaur story warrior uncle tilt theme gift immune dinosaur base patient gate lizard actual",
+    "joy lunar book visit call ramp admit story clarify curtain wool load toe motor emerge blush crucial sell anger mad beach cabin hammer amateur rabbit hamster achieve plug monkey flash best upper opera denial critic accuse",
+    "item account silent pattern vicious income box level subway umbrella strong habit permit state foster avoid recycle term voyage chimney grain peanut liberty exile genre absent blood later volcano meadow solid hat fish budget ankle about",
+    "rare develop neck stone hero fence please cloth author notice fossil breeze pair income long screen photo polar arrow glory miss program soft pitch amazing neutral carpet wave weekend faint absurd fame useful foam tube acquire",
+    "latin require guess humble admit magic whip defy kitten wall profit drastic differ finger exit trouble leopard glance mail ginger spoil claw emotion arrow carpet insane square first vital tumble length menu warrior exit anxiety absorb"
+  ]
+
+  @addresses [
+    "1x3FDY6JrGYYG9GdLVyrLudrkuVXfC",
+    "1xegU3RwUBAtqBGL3FxWt3MZieRG5",
+    "1x3KGc1nHqLi3gUHE4NRj5zGFxD4Gr",
+    "1x4EeZJQfr9WbyRjMa3n4tN3R5H6cu",
+    "1xmTyLfcuCnzh7P9Q8oFtECcX6M9B",
+    "1x3tHsVGxfXoWLKWfTCnsLU2Nc7FWP",
+    "1x3GHV8Mg9XqvkZpcHMEX3YxRLQxGz",
+    "1x22Ztk7993YWzMopBKjQSzqHyAnmK",
+    "1x2gqeoct9VTGgNu4UmkDeMeHRKqKQ",
+    "1x46s977C4jd54iPNXxhycv6KGznYt"
+  ]
+  @total_addresses length(@addresses)
 
   # {opk, osk, oaddr, oaddr58} = Test.owner_seed |> Test.wallet()
-  # result = Test.tx_coinbase(osk, oaddr58, "IPN", 5_000_000_000, "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT", "")
+  # result = Test.tx_coinbase(osk, oaddr58, "IPN", 50_000_000_000, "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT", "")
   # apply(Ipncore.Event, :check, result)
 
   @validator "ippan.red"
 
-  def send(iterations, money) do
-    addr58 = "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT"
+  # send(0, 50, 50)
 
-    addresses = [
-      "1x3FDY6JrGYYG9GdLVyrLudrkuVXfC",
-      "1xegU3RwUBAtqBGL3FxWt3MZieRG5",
-      "1x3KGc1nHqLi3gUHE4NRj5zGFxD4Gr",
-      "1x4EeZJQfr9WbyRjMa3n4tN3R5H6cu",
-      "1xmTyLfcuCnzh7P9Q8oFtECcX6M9B",
-      "1x3tHsVGxfXoWLKWfTCnsLU2Nc7FWP",
-      "1x3GHV8Mg9XqvkZpcHMEX3YxRLQxGz",
-      "1x22Ztk7993YWzMopBKjQSzqHyAnmK",
-      "1x2gqeoct9VTGgNu4UmkDeMeHRKqKQ"
-    ]
+  def send(bot_index, iterations, money) do
+    addr58 = Enum.at(@addresses, bot_index)
 
-    na = length(addresses)
+    secret_keys =
+      Enum.map(@secret_words, fn x ->
+        Mnemonic.to_entropy(x)
+      end)
 
-    for number <- 1..iterations do
-      addr58_to = Enum.at(addresses, rem(number, na))
-      [version, type, time, event_body, from58, sig64] = Test.tx_send(@sk, @token, addr58, addr58_to, money, @validator, "")
+    secret = Enum.at(secret_keys, bot_index)
+
+    for number <- 0..(iterations - 1) do
+      addr58_to = Enum.at(@addresses, rem(number, @total_addresses))
+
+      [version, type, time, event_body, from58, sig64] =
+        Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, "")
 
       Event.check(version, type, time, event_body, from58, sig64)
     end

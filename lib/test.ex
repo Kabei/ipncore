@@ -102,7 +102,7 @@ defmodule Test do
   # Test.pubkey_new(pk2, sk2)
   def pubkey_new(pk, sk) do
     type_number = Event.type_index("pubkey.new")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [Base.encode64(pk)]
     hash = Event.calc_hash(type_number, body, time)
 
@@ -116,7 +116,7 @@ defmodule Test do
   # Test.token_new(osk, oaddr58, "USD", oaddr58, "US Dollar", 5, "$", "https://avatar.com", %{"opts" => ["burn", "coinbase", "lock"]})
   def token_new(sk, from58, token_id, owner58, name, decimals, symbol, avatar, props) do
     type_number = Event.type_index("token.new")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [token_id, owner58, name, decimals, symbol, avatar, props]
     hash = Event.calc_hash(type_number, body, time)
 
@@ -127,7 +127,7 @@ defmodule Test do
   # Test.token_update(osk, oaddr58, "IPN", %{"name" => "IPPAN"})
   def token_update(sk, from58, token_id, params) do
     type_number = Event.type_index("token.update")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [token_id, params]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -137,7 +137,7 @@ defmodule Test do
   # Test.token_delete(osk, oaddr58, "IPN")
   def token_delete(sk, from58, token_id) do
     type_number = Event.type_index("token.delete")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [token_id]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -147,7 +147,7 @@ defmodule Test do
   # Test.validator_new(osk, oaddr58, "ippan.red", "My Pool", oaddr58, "https://avatar.com", 2, 1.0)
   def validator_new(sk, from58, hostname, name, owner58, avatar, fee_type, fee) do
     type_number = Event.type_index("validator.new")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [hostname, name, owner58, avatar, fee_type, fee]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -158,7 +158,7 @@ defmodule Test do
   # Test.validator_update(osk, oaddr58, "ippan.red", %{"name" => "Your Pool"})
   def validator_update(sk, from58, hostname, params) do
     type_number = Event.type_index("validator.update")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [hostname, params]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -168,7 +168,7 @@ defmodule Test do
   # Test.validator_delete(osk, oaddr58, "ippan.red")
   def validator_delete(sk, from58, hostname) do
     type_number = Event.type_index("validator.delete")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [hostname]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -179,7 +179,7 @@ defmodule Test do
   # Test.tx_coinbase(osk, oaddr58, "GBP", 1_000_000, addr2_58, "")
   def tx_coinbase(sk, from58, token, amount, to_address58, note) do
     type_number = Event.type_index("tx.coinbase")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     outputs = [[to_address58, amount]]
     body = [token, outputs, note]
     hash = Event.calc_hash(type_number, body, time)
@@ -191,7 +191,7 @@ defmodule Test do
   # Test.tx_send(sk2, "GBP", addr2_58, addr58, 5000, "ippan.red", "")
   def tx_send(sk, token, from58, to58, amount, validator_host, note) do
     type_number = Event.type_index("tx.send")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [token, to58, amount, validator_host, note]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -202,7 +202,7 @@ defmodule Test do
   # Test.domain_new(sk, addr58, "ippan", "test@mail.com", "https://avatar.com", "IPPAN", 2, "ippan.red")
   def domain_new(sk, from58, name, email, avatar, title, years_to_renew, validator_host) do
     type_number = Event.type_index("domain.new")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [name, email, avatar, title, years_to_renew, validator_host]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -212,7 +212,7 @@ defmodule Test do
   # Test.domain_update(sk, addr58, "my-domain", "ippan.red", %{"email" => "myemail@email.com"})
   def domain_update(sk, from58, domain, validator_host, params) do
     type_number = Event.type_index("domain.update")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [domain, validator_host, params]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -222,7 +222,7 @@ defmodule Test do
   # Test.domain_delete(sk, addr58, "ippan")
   def domain_delete(sk, from58, hostname) do
     type_number = Event.type_index("domain.delete")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [hostname]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -232,7 +232,7 @@ defmodule Test do
   # Test.domain_renew(sk, addr58, "ippan.com", 1, "ippan.red")
   def domain_renew(sk, from58, hostname, years_to_renew, validator_host) do
     type_number = Event.type_index("domain.renew")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [hostname, years_to_renew, validator_host]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -242,7 +242,7 @@ defmodule Test do
   # Test.balance_lock(osk, oaddr58, addr2_58, "GBP", true)
   def balance_lock(sk, from58, to58, token_id, value) do
     type_number = Event.type_index("balance.lock")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [to58, token_id, value]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -252,7 +252,7 @@ defmodule Test do
   # Test.dns_set(sk, addr58, "ippan.com", "a", "191.145.20.15", 86400, "ippan.red")
   def dns_set(sk, from58, domain, type, value, ttl, validator_host) do
     type_number = Event.type_index("dns.set")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [domain, type, value, ttl, validator_host]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -263,7 +263,7 @@ defmodule Test do
   # Test.dns_push(sk, addr58, "ippan.com", "a", "191.145.20.15", 86400, "ippan.red")
   def dns_push(sk, from58, domain, type, value, ttl, validator_host) do
     type_number = Event.type_index("dns.push")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [domain, type, value, ttl, validator_host]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -273,7 +273,7 @@ defmodule Test do
   # Test.dns_drop(sk, addr58, "ippan.com")
   def dns_drop(sk, from58, domain) do
     type_number = Event.type_index("dns.drop")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [domain]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -283,7 +283,7 @@ defmodule Test do
   # Test.dns_drop(sk, addr58, "ippan.com", "a")
   def dns_drop(sk, from58, domain, type) do
     type_number = Event.type_index("dns.drop")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [domain, type]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)
@@ -293,7 +293,7 @@ defmodule Test do
   # Test.tx_refund(sk2, addr2_58, 1500000000, "97385af5e091a7feca8f32f34c8f107c2c243c8e61075607ac183dfbd6995a25")
   def tx_refund(sk, from58, ev_time, ev_hash) do
     type_number = Event.type_index("tx.refund")
-    time = :erlang.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [ev_time, ev_hash]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)

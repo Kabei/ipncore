@@ -490,7 +490,7 @@ defmodule Ipncore.Event do
   def put!(x) do
     case DetsPlus.insert_new(@base, x) do
       false ->
-        throw("Event already exists")
+        throw("Event already exists #{inspect(x)}")
 
       true ->
         true
@@ -622,7 +622,7 @@ defmodule Ipncore.Event do
         false
 
       _ ->
-        throw("Event already exists")
+        throw("Event already exists #{x}")
     end
   end
 

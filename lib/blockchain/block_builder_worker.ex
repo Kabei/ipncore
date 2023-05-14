@@ -17,10 +17,6 @@ defmodule BlockBuilderWork do
       timestamp = :os.system_time(@unit_time)
       next_height = Chain.next_index()
 
-      # ["BlockBuilder | Events: ", to_string(total_events)]
-      # |> IO.iodata_to_binary()
-      # |> Logger.debug()
-
       events =
         Enum.map(0..(@total_threads - 1), fn thread ->
           Task.async(fn ->

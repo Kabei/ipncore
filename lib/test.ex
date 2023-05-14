@@ -42,7 +42,9 @@ defmodule Benchmark do
   def send(bot_index, iterations, money) do
     addr58 = Enum.at(@addresses, bot_index)
 
-    secret = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
+    seed = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
+    {:ok, _pk, secret} = Falcon.gen_keys_from_seed(seed)
+
     addresses = List.delete(@addresses, bot_index)
     total_addresses = length(addresses)
 

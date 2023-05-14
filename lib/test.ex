@@ -37,7 +37,7 @@ defmodule Benchmark do
 
   @validator "ippan.uk"
 
-  # Benchmark.send(0, 100, 50, "round-1")
+  # Benchmark.send(0, 100, 50, "round-2")
 
   def send(bot_index, iterations, money, note) do
     addr58 = Enum.at(@addresses, bot_index)
@@ -48,12 +48,14 @@ defmodule Benchmark do
     addresses = List.delete(@addresses, addr58)
     total_addresses = length(addresses)
 
-    for number <- 0..(iterations * total_addresses - 1) do
-      addr58_to = Enum.at(addresses, rem(number, total_addresses))
+    requests =
+      for number <- 0..(iterations * total_addresses - 1) do
+        addr58_to = Enum.at(addresses, rem(number, total_addresses))
 
-      [version, type, time, event_body, from58, sig64] =
         Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, note)
+      end
 
+    for [version, type, time, event_body, from58, sig64] <- requests do
       Event.check(version, type, time, event_body, from58, sig64)
     end
   end

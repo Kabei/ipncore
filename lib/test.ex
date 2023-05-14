@@ -18,6 +18,7 @@ defmodule Benchmark do
   ]
 
   @addresses [
+    "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT",
     "1x3FDY6JrGYYG9GdLVyrLudrkuVXfC",
     "1xegU3RwUBAtqBGL3FxWt3MZieRG5",
     "1x3KGc1nHqLi3gUHE4NRj5zGFxD4Gr",
@@ -29,7 +30,6 @@ defmodule Benchmark do
     "1x2gqeoct9VTGgNu4UmkDeMeHRKqKQ",
     "1x46s977C4jd54iPNXxhycv6KGznYt"
   ]
-  @total_addresses length(@addresses)
 
   # {opk, osk, oaddr, oaddr58} = Test.owner_seed |> Test.wallet()
   # result = Test.tx_coinbase(osk, oaddr58, "IPN", 50_000_000_000, "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT", "")
@@ -37,7 +37,7 @@ defmodule Benchmark do
 
   @validator "ippan.red"
 
-  # send(0, 50, 50)
+  # Benchmark.send(0, 50, 50)
 
   def send(bot_index, iterations, money) do
     addr58 = Enum.at(@addresses, bot_index)
@@ -48,9 +48,11 @@ defmodule Benchmark do
       end)
 
     secret = Enum.at(secret_keys, bot_index)
+    addresses = List.delete(@addresses, bot_index)
+    total_addresses = length(addresses)
 
     for number <- 0..(iterations - 1) do
-      addr58_to = Enum.at(@addresses, rem(number, @total_addresses))
+      addr58_to = Enum.at(addresses, rem(number, total_addresses))
 
       [version, type, time, event_body, from58, sig64] =
         Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, "")

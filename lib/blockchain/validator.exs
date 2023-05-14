@@ -21,7 +21,7 @@ defmodule Ipncore.Validator do
     name: :validator,
     path: "validator",
     keypos: :host,
-    auto_save: 5_000,
+    auto_save: 60_000,
     shards: 8
 
   # @behaviour Database
@@ -52,7 +52,7 @@ defmodule Ipncore.Validator do
   # def open do
   #   dir_path = Default.data_dir()
   #   filename = Path.join([dir_path, @filename])
-  #   DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 5_000)
+  #   DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 60_000)
   # end
 
   # @impl Database

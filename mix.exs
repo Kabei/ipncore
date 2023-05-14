@@ -51,6 +51,7 @@ defmodule Ipncore.MixProject do
       {:bandit, ">= 0.6.10"},
       {:download, "~> 0.0.0"},
       {:dets_plus, "~> 2.1"},
+      {:cubdb, "~> 2.0.2"},
       {:phoenix_pubsub, "~> 2.0"},
       # local deps
       # {:ntrukem, path: "../ntrukem"},

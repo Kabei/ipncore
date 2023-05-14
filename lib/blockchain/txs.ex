@@ -33,7 +33,7 @@ defmodule Ipncore.Tx do
   def open do
     dir_path = Default.data_dir()
     refunds_file = Path.join([dir_path, @filename_refunds])
-    DetsPlus.open_file(@base_refunds, file: refunds_file, auto_save: 5_000)
+    DetsPlus.open_file(@base_refunds, file: refunds_file, auto_save: 60_000)
   end
 
   def close do

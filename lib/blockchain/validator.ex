@@ -33,7 +33,7 @@ defmodule Ipncore.Validator do
   def open do
     dir_path = Default.data_dir()
     filename = Path.join([dir_path, @filename])
-    DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 5_000)
+    DetsPlus.open_file(@base, file: filename, keypos: :host, auto_save: 60_000)
   end
 
   @impl Database
@@ -151,7 +151,7 @@ defmodule Ipncore.Validator do
     map_params =
       params
       |> Map.take(@edit_fields)
-      |> MapUtil.validate_not_empty()	  
+      |> MapUtil.validate_not_empty()
       |> MapUtil.validate_length("name", 100)
       |> MapUtil.validate_value("fee", :gt, 0)
       |> MapUtil.validate_range("fee_type", 0..2)

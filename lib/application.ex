@@ -106,7 +106,7 @@ defmodule Ipncore.Application do
   defp node_config do
     falcon_dir = Application.get_env(@otp_app, :falcon_dir)
 
-    {falcon_pk, _falcon_sk} = falcon_dir |> Falcon.read_file!()
+    {falcon_pk, _falcon_sk} = falcon_dir |> falcon_read_file!()
 
     address = Address.hash(falcon_pk)
     Application.put_env(@otp_app, :address, address)
@@ -134,11 +134,44 @@ defmodule Ipncore.Application do
 
   defp http_server do
     opts = Application.get_env(@otp_app, :http)
-    {Bandit, plug: Ipncore.Endpoint, scheme: :http, options: opts}
+    {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ opts}
   end
 
   defp https_server do
     opts = Application.get_env(@otp_app, :https)
-    {Bandit, plug: Ipncore.Endpoint, scheme: :https, options: opts}
+    {Bandit, [plug: Ipncore.Endpoint, scheme: :https] ++ opts}
+  end
+
+  @file_version 0
+  @type_alg "FAL"
+  def falcon_read_file!(path) do
+    <<file_version::8, type::bytes-size(3), rest::binary>> = File.read!(path)
+
+    cond do
+      file_version != @file_version ->
+        throw(:bad_version)
+
+      type != @type_alg ->
+        throw(:bad_type)
+
+      true ->
+        cond do
+          897 + 1281 == byte_size(rest) ->
+            <<pk::bytes-size(897), sk::bytes-size(1281)>> = rest
+            {pk, sk}
+
+          1793 + 2305 == byte_size(rest) ->
+            <<pk::bytes-size(1793), sk::bytes-size(2305)>> = rest
+            {pk, sk}
+
+          true ->
+            throw(:bad_data)
+        end
+    end
+  end
+
+  defp falcon_write_file!(path, {pk, sk}) do
+    data = <<@file_version>> <> @type_alg <> pk <> sk
+    File.write!(path, data)
   end
 end

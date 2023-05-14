@@ -23,7 +23,7 @@ defmodule Ipncore.Wallet do
     for number <- 0..(@partitions - 1) do
       base = String.to_atom(IO.iodata_to_binary([@base, to_string(number)]))
       path = Path.join(folder_path, IO.iodata_to_binary([to_string(base), @file_extension]))
-      DetsPlus.open_file(base, file: path, auto_save: 5_000, auto_save_memory: 1_000_000)
+      DetsPlus.open_file(base, file: path, auto_save: 60_000, auto_save_memory: 1_000_000)
     end
   end
 

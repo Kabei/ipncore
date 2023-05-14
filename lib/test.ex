@@ -1,3 +1,43 @@
+defmodule Benchmark do
+  alias Ipncore.Event
+
+  @token "IPN"
+  @sk <<68, 253, 200, 16, 49, 23, 19, 161, 143, 7, 218, 213, 234, 57, 217, 84, 142,
+  98, 216, 136, 188, 254, 212, 182, 26, 195, 57, 59, 155, 240, 227, 231, 189,
+  145, 10, 78, 162, 93, 196, 237, 105, 208, 30, 19, 37, 154, 70, 243>>
+
+  # {opk, osk, oaddr, oaddr58} = Test.owner_seed |> Test.wallet()
+  # result = Test.tx_coinbase(osk, oaddr58, "IPN", 5_000_000_000, "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT", "")
+  # apply(Ipncore.Event, :check, result)
+
+  @validator "ippan.red"
+
+  def send(iterations, money) do
+    addr58 = "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT"
+
+    addresses = [
+      "1x3FDY6JrGYYG9GdLVyrLudrkuVXfC",
+      "1xegU3RwUBAtqBGL3FxWt3MZieRG5",
+      "1x3KGc1nHqLi3gUHE4NRj5zGFxD4Gr",
+      "1x4EeZJQfr9WbyRjMa3n4tN3R5H6cu",
+      "1xmTyLfcuCnzh7P9Q8oFtECcX6M9B",
+      "1x3tHsVGxfXoWLKWfTCnsLU2Nc7FWP",
+      "1x3GHV8Mg9XqvkZpcHMEX3YxRLQxGz",
+      "1x22Ztk7993YWzMopBKjQSzqHyAnmK",
+      "1x2gqeoct9VTGgNu4UmkDeMeHRKqKQ"
+    ]
+
+    na = length(addresses)
+
+    for number <- 1..iterations do
+      addr58_to = Enum.at(addresses, rem(number, na))
+      [version, type, time, event_body, from58, sig64] = Test.tx_send(@sk, @token, addr58, addr58_to, money, @validator, "")
+
+      Event.check(version, type, time, event_body, from58, sig64)
+    end
+  end
+end
+
 defmodule Test do
   alias Ipncore.{Address, Event}
 

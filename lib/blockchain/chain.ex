@@ -44,7 +44,7 @@ defmodule Ipncore.Chain do
 
     dir_path = Default.data_dir()
     filename = Path.join(dir_path, @filename)
-    r = DetsPlus.open_file(@base, file: filename, auto_save: 5_000)
+    r = DetsPlus.open_file(@base, file: filename, auto_save: 60_000)
 
     # load from DB to ets
     DetsPlus.reduce(@base, nil, fn x, _acc ->

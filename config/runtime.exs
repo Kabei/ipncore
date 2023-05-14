@@ -53,36 +53,40 @@ config :ipncore, :node,
 # HTTP config
 config :ipncore, :http,
   port: 80,
-  num_acceptors: 10,
-  read_timeout: 15_000,
-  transport_options: [
-    backlog: 1024,
-    nodelay: true,
-    linger: {true, 30},
-    send_timeout: 15_000,
-    send_timeout_close: true,
-    reuseaddr: true
+  thousand_island_options: [
+    num_acceptors: 10,
+    read_timeout: 15_000,
+    transport_options: [
+      backlog: 1024,
+      nodelay: true,
+      linger: {true, 30},
+      send_timeout: 15_000,
+      send_timeout_close: true,
+      reuseaddr: true
+    ]
   ]
 
 config :ipncore, :https,
   port: 443,
-  num_acceptors: 10,
-  read_timeout: 15_000,
-  transport_options: [
-    cacertfile: cacert_dir,
-    certfile: cert_dir,
-    keyfile: key_dir,
-    backlog: 1024,
-    nodelay: true,
-    linger: {true, 30},
-    send_timeout: 15_000,
-    send_timeout_close: true,
-    reuseaddr: true
+  thousand_island_options: [
+    num_acceptors: 10,
+    read_timeout: 15_000,
+    transport_options: [
+      cacertfile: cacert_dir,
+      certfile: cert_dir,
+      keyfile: key_dir,
+      backlog: 1024,
+      nodelay: true,
+      linger: {true, 30},
+      send_timeout: 15_000,
+      send_timeout_close: true,
+      reuseaddr: true
+    ]
   ]
 
 # database config
 config :ipncore, Ipncore.Repo,
-  hostname: "localhost",
+  hostname: "ippan.uk",
   username: "kambei",
   database: "ippan",
   password: "NdgPPUWiSXF1EQbC5Pqm",

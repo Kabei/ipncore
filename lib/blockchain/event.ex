@@ -89,7 +89,7 @@ defmodule Ipncore.Event do
     dir_path = Application.get_env(:ipncore, :events_path, "data/events")
     File.mkdir_p(dir_path)
     filename = Path.join(dir_path, "#{epoch_number}.db")
-    DetsPlus.open_file(@base, file: filename, auto_save_memory: 1_000_000_000, auto_save: 5_000)
+    DetsPlus.open_file(@base, file: filename, auto_save_memory: 1_000_000_000, auto_save: 60_000)
   end
 
   def close do

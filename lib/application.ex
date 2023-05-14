@@ -71,7 +71,7 @@ defmodule Ipncore.Application do
       ]
 
       # start block builder
-      BlockBuilderWork.next()
+      # BlockBuilderWork.next()
 
       Supervisor.start_link(children, @opts)
     rescue

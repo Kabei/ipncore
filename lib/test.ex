@@ -51,13 +51,11 @@ defmodule Benchmark do
     addresses = List.delete(@addresses, addr58)
     total_addresses = length(addresses)
 
-    timestamp = :os.system_time(:millisecond)
-
     requests =
       for number <- 0..(iterations * total_addresses - 1) do
         addr58_to = Enum.at(addresses, rem(number, total_addresses))
 
-        Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, note, timestamp)
+        Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, note)
       end
 
     end_time = :os.system_time(:microsecond)
@@ -203,9 +201,9 @@ defmodule Test do
 
   # Test.tx_send(sk, Default.token, addr58, addr2_58, 50, "ippan.red", "")
   # Test.tx_send(sk2, "GBP", addr2_58, addr58, 5000, "ippan.red", "")
-  def tx_send(sk, token, from58, to58, amount, validator_host, note, time) do
+  def tx_send(sk, token, from58, to58, amount, validator_host, note) do
     type_number = Event.type_index("tx.send")
-    # time = :os.system_time(@unit_time)
+    time = :os.system_time(@unit_time)
     body = [token, to58, amount, validator_host, note]
     hash = Event.calc_hash(type_number, body, time)
     sig64 = signature64(sk, hash)

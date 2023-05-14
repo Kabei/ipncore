@@ -68,7 +68,6 @@ config :ipncore, :http,
 
 config :ipncore, :https,
   port: 443,
-  cacertfile: cacert_dir,
   certfile: cert_dir,
   keyfile: key_dir,
   thousand_island_options: [

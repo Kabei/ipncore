@@ -21,6 +21,7 @@ defmodule BlockBuilderWork do
         Enum.map(0..(@total_threads - 1), fn thread ->
           Task.async(fn ->
             events = Mempool.select(thread, timestamp)
+            Mempool.select_delete_timestamp(thread, timestamp)
 
             Enum.reduce(events, [], fn {{time, hash} = key, _thread, type_number, from, body,
                                         signature, size},
@@ -28,7 +29,7 @@ defmodule BlockBuilderWork do
               try do
                 ev = Event.new!(next_height, hash, time, type_number, from, body, signature, size)
                 # Mempool.delete(key)
-                acc ++ [ev]
+                Enum.concat(acc, [ev])
               rescue
                 ex ->
                   Logger.error(Exception.format(:error, ex, __STACKTRACE__))
@@ -51,7 +52,7 @@ defmodule BlockBuilderWork do
       Logger.info("end block builder: #{end_time - start_time} µs")
       Logger.info("Total events: #{length(events)}")
 
-      Mempool.select_delete_timestamp(timestamp)
+      # Mempool.select_delete_timestamp(timestamp)
 
       case events do
         [] ->

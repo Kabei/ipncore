@@ -72,11 +72,11 @@ defmodule Mempool do
     select_delete(fun)
   end
 
-  def select_delete_thread_timestamp(thread, timestamp) do
-    # :ets.fun2ms(fn {{time, _hash}, thread, _type, _from, _body, _sigs, _size} = x when time <= 0 and thread == 1 -> x end)
+  def select_delete_timestamp(thread, timestamp) do
+    # :ets.fun2ms(fn {{time, _hash}, thread, _type, _from, _body, _sigs, _size} when time <= 0 and thread == 1 -> true end)
     fun = [
       {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"},
-       [{:andalso, {:"=<", :"$1", timestamp}, {:==, :"$3", thread}}], [:"$_"]}
+       [{:andalso, {:"=<", :"$1", timestamp}, {:==, :"$3", thread}}], [true]}
     ]
 
     select_delete(fun)

@@ -38,7 +38,7 @@ defmodule Benchmark do
 
   @validator "ippan.uk"
 
-  # Benchmark.send(0, 10000, 50, "round-15")
+  # Benchmark.send(0, 1, 50, "round-15")
 
   def send(bot_index, iterations, money, note) do
     # start_time = :os.system_time(:microsecond)
@@ -65,7 +65,9 @@ defmodule Benchmark do
     Logger.info("start to send to check")
 
     for [version, type, time, event_body, from58, sig64] <- requests do
-      Event.check(version, type, time, event_body, from58, sig64)
+      Task.async(fn ->
+        Event.check(version, type, time, event_body, from58, sig64)
+      end)
     end
 
     end_time = :os.system_time(:microsecond)

@@ -17,7 +17,7 @@ end
 config :ipnutils, :jsonlib, Jason
 config :ipnutils, :repo, Ipncore.Repo
 
-# blockchain 
+# blockchain
 config :ipncore, :migration_version, 0
 
 config :ipncore, :event_version, 0
@@ -25,7 +25,7 @@ config :ipncore, :event_threshold_timeout, :timer.seconds(10)
 config :ipncore, :event_max_size, 8192
 
 config :ipncore, :block_version, 0
-config :ipncore, :block_interval, :timer.seconds(5)
+config :ipncore, :block_interval, :timer.seconds(1)
 
 config :ipncore, :timeout_refund, :timer.hours(72)
 config :ipncore, :epoch, 120_960

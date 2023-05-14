@@ -481,8 +481,7 @@ defmodule Ipncore.Event do
         :ok
 
       multi_or_fun ->
-        :ok
-        # RepoWorker.run(multi_or_fun)
+        RepoWorker.run(multi_or_fun)
     end
 
     event

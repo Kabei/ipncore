@@ -5,7 +5,7 @@ defmodule BlockBuilderWork do
   @unit_time Default.unit_time()
   @interval Default.block_interval()
   @timeout :infinity
-  @total_threads Application.get_env(:ipncore, :total_threads, System.schedulers_online())
+  @total_threads Application.compile_env(:ipncore, :total_threads, System.schedulers_online())
 
   def run do
     total_events = Mempool.size()
@@ -64,7 +64,7 @@ defmodule BlockBuilderWork do
         events ->
           last_block = Chain.last_block()
           block = Block.next(last_block, events)
-          # Chain.add_block(last_block, block, Default.channel())
+          Chain.add_block(last_block, block, Default.channel())
       end
     end
 

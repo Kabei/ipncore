@@ -23,14 +23,14 @@ defmodule Mempool do
     thread = assign_worker_thread(from)
 
     # :ets.fun2ms(fn {{hash, time}, _thread, type, from, _body, _sigs, _size} = x when hash == 0 or type == 1 and from == 2 -> x end)
-    case :ets.select(@table, [
-           {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"},
-            [
-              {:orelse, {:==, :"$1", hash},
-               {:andalso, {:==, :"$4", type_number}, {:==, :"$5", from}}}
-            ], [:"$_"]}
-         ]) do
-      [] ->
+    # case :ets.select(@table, [
+    #        {{{:"$1", :"$2"}, :"$3", :"$4", :"$5", :"$6", :"$7", :"$8"},
+    #         [
+    #           {:orelse, {:==, :"$1", hash},
+    #            {:andalso, {:==, :"$4", type_number}, {:==, :"$5", from}}}
+    #         ], [:"$_"]}
+    #      ]) do
+    #   [] ->
         case :ets.insert_new(
                @table,
                {{time, hash}, thread, type_number, from, body, signature, size}
@@ -42,10 +42,10 @@ defmodule Mempool do
             throw("Event already issued")
         end
 
-      _ ->
-        # means that this type of event has already been issued by the same issuer
-        throw("Event already issued")
-    end
+    #   _ ->
+    #     # means that this type of event has already been issued by the same issuer
+    #     throw("Event already issued")
+    # end
   end
 
   def lookup(time, hash) do

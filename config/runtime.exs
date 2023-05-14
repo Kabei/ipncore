@@ -68,13 +68,15 @@ config :ipncore, :http,
 
 config :ipncore, :https,
   port: 443,
+  http_2_options: [
+    cacertfile: cacert_dir,
+    certfile: cert_dir,
+    keyfile: key_dir
+  ],
   thousand_island_options: [
     num_acceptors: 10,
     read_timeout: 15_000,
     transport_options: [
-      cacertfile: cacert_dir,
-      certfile: cert_dir,
-      keyfile: key_dir,
       backlog: 1024,
       nodelay: true,
       linger: {true, 30},

@@ -27,7 +27,7 @@ defmodule BlockBuilderWork do
                                        acc ->
               try do
                 ev = Event.new!(next_height, hash, time, type_number, from, body, signature, size)
-                Mempool.delete(key)
+                # Mempool.delete(key)
                 acc ++ [ev]
               rescue
                 ex ->
@@ -51,7 +51,7 @@ defmodule BlockBuilderWork do
       Logger.info("end block builder: #{end_time - start_time} µs")
       Logger.info("Total events: #{length(events)}")
 
-      # Mempool.select_delete_timestamp(timestamp)
+      Mempool.select_delete_timestamp(timestamp)
 
       case events do
         [] ->

@@ -38,7 +38,7 @@ defmodule Benchmark do
 
   @validator "ippan.uk"
 
-  # Benchmark.send(0, 1, 50, "round-12")
+  # Benchmark.send(0, 10000, 50, "round-15")
 
   def send(bot_index, iterations, money, note) do
     # start_time = :os.system_time(:microsecond)

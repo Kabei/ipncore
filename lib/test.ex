@@ -48,7 +48,7 @@ defmodule Benchmark do
     addresses = List.delete(@addresses, addr58)
     total_addresses = length(addresses)
 
-    for number <- 0..(iterations - 1) do
+    for number <- 0..(iterations * total_addresses - 1) do
       addr58_to = Enum.at(addresses, rem(number, total_addresses))
 
       [version, type, time, event_body, from58, sig64] =

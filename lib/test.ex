@@ -37,9 +37,9 @@ defmodule Benchmark do
 
   @validator "ippan.red"
 
-  # Benchmark.send(0, 100, 50)
+  # Benchmark.send(0, 100, 50, "round-1")
 
-  def send(bot_index, iterations, money) do
+  def send(bot_index, iterations, money, note) do
     addr58 = Enum.at(@addresses, bot_index)
 
     seed = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
@@ -52,7 +52,7 @@ defmodule Benchmark do
       addr58_to = Enum.at(addresses, rem(number, total_addresses))
 
       [version, type, time, event_body, from58, sig64] =
-        Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, "")
+        Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, note)
 
       Event.check(version, type, time, event_body, from58, sig64)
     end

@@ -35,7 +35,7 @@ defmodule Benchmark do
   # result = Test.tx_coinbase(osk, oaddr58, "IPN", 50_000_000_000, "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT", "")
   # apply(Ipncore.Event, :check, result)
 
-  @validator "ippan.red"
+  @validator "ippan.uk"
 
   # Benchmark.send(0, 100, 50, "round-1")
 
@@ -45,7 +45,7 @@ defmodule Benchmark do
     seed = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
     {:ok, _pk, secret} = Falcon.gen_keys_from_seed(seed)
 
-    addresses = List.delete(@addresses, bot_index)
+    addresses = List.delete(@addresses, bot_index + 1)
     total_addresses = length(addresses)
 
     for number <- 0..(iterations - 1) do

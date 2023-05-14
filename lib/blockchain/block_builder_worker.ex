@@ -17,7 +17,7 @@ defmodule BlockBuilderWork do
       timestamp = :os.system_time(@unit_time)
       next_height = Chain.next_index()
 
-      task =
+      events =
         Enum.map(0..(@total_threads - 1), fn thread ->
           Task.async(fn ->
             events = Mempool.select(thread, timestamp)
@@ -27,7 +27,7 @@ defmodule BlockBuilderWork do
                                        acc ->
               try do
                 ev = Event.new!(next_height, hash, time, type_number, from, body, signature, size)
-                # Mempool.delete(key)
+                Mempool.delete(key)
                 acc ++ [ev]
               rescue
                 ex ->
@@ -44,11 +44,6 @@ defmodule BlockBuilderWork do
           end)
         end)
         |> Task.await_many(@timeout)
-
-      Mempool.select_delete_timestamp(timestamp)
-
-      events =
-        task
         |> Enum.concat()
         |> Enum.sort(&({&1.time, &1.hash} <= {&2.time, &2.hash}))
 

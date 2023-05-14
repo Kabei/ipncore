@@ -45,7 +45,7 @@ defmodule Benchmark do
     seed = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
     {:ok, _pk, secret} = Falcon.gen_keys_from_seed(seed)
 
-    addresses = List.delete(@addresses, bot_index + 1)
+    addresses = List.delete(@addresses, addr58)
     total_addresses = length(addresses)
 
     for number <- 0..(iterations - 1) do

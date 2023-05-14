@@ -37,17 +37,12 @@ defmodule Benchmark do
 
   @validator "ippan.red"
 
-  # Benchmark.send(0, 50, 50)
+  # Benchmark.send(0, 100, 50)
 
   def send(bot_index, iterations, money) do
     addr58 = Enum.at(@addresses, bot_index)
 
-    secret_keys =
-      Enum.map(@secret_words, fn x ->
-        Mnemonic.to_entropy(x)
-      end)
-
-    secret = Enum.at(secret_keys, bot_index)
+    secret = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
     addresses = List.delete(@addresses, bot_index)
     total_addresses = length(addresses)
 

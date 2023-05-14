@@ -68,6 +68,7 @@ config :ipncore, :http,
 
 config :ipncore, :https,
   port: 443,
+  otp_app: :ipncore,
   certfile: cert_dir,
   keyfile: key_dir,
   thousand_island_options: [

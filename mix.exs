@@ -48,7 +48,7 @@ defmodule Ipncore.MixProject do
       {:postgrex, ">= 0.0.0"},
       # {:plug_cowboy, "~> 2.0"},
       # {:thousand_island, "~> 0.5.15"},
-      {:bandit, ">= 0.6.10"},
+      {:bandit, ">= 0.7.7"},
       {:download, "~> 0.0.0"},
       {:dets_plus, "~> 2.1"},
       {:cubdb, "~> 2.0.2"},

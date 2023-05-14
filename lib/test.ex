@@ -41,7 +41,7 @@ defmodule Benchmark do
   # Benchmark.send(0, 5000, 50, "round-10")
 
   def send(bot_index, iterations, money, note) do
-    start_time = :os.system_time(:microsecond)
+    # start_time = :os.system_time(:microsecond)
     # Logger.info("starting test #{start_time}")
     addr58 = Enum.at(@addresses, bot_index)
 
@@ -58,7 +58,7 @@ defmodule Benchmark do
         Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, note)
       end
 
-    end_time = :os.system_time(:microsecond)
+    # end_time = :os.system_time(:microsecond)
     # Logger.info("build txs end #{end_time - start_time} µs")
 
     start_time = :os.system_time(:microsecond)

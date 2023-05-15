@@ -5,36 +5,28 @@ defmodule Ipncore.Router do
 
   @json Application.compile_env(:ipncore, :json)
   @max_size Application.compile_env(:ipncore, :message_max_size)
-  @timeout Application.compile_env(:ipncore, :message_timeout)
 
   plug(:match)
   plug(:dispatch)
 
-  # require Logger
+  require Logger
+
   post "/v1/call" do
     try do
       {:ok, body, conn} = Plug.Conn.read_body(conn, length: @max_size)
 
       hash = Blake3.hash(body)
-      sig = decode64!(get_req_header(conn, "auth"))
-      size = byte_size(body) + byte_size(sig)
-
-      msg =
-        [_type, timestamp, _from, _args] =
-        body
-        |> Jsonrs.decode()
 
       cond do
-        :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout) ->
-          raise IppanError, "Invalid timestamp"
-
         true ->
-          case sig do
+          case decode64!(get_req_header(conn, "auth")) do
             nil ->
-              RequestHandler.handle(hash, msg, size)
+              size = byte_size(body)
+              RequestHandler.handle(hash, body, size)
 
-            _ ->
-              RequestHandler.handle(hash, msg, size, sig)
+            sig ->
+              size = byte_size(body) + byte_size(sig)
+              RequestHandler.handle(hash, body, size, sig)
           end
 
           json(conn, %{"hash" => Base.encode16(hash)})
@@ -51,8 +43,8 @@ defmodule Ipncore.Router do
       #     send_resp(conn, 500, "")
       # end
     rescue
-      _e ->
-        # Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+      e ->
+        Logger.debug(Exception.format(:error, e, __STACKTRACE__))
         send_resp(conn, 400, "")
     end
   end

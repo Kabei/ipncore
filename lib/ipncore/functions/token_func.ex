@@ -2,10 +2,11 @@ defmodule Ippan.Func.Token do
   alias Ippan.Token
 
   @type result :: Ippan.Request.result()
+  @token Application.compile_env(:ipncore, :token)
 
   def new(%{account: account}, id, owner_id, name, decimal, symbol, opts \\ %{})
       when byte_size(id) <= 10 and byte_size(name) <= 100 and decimal in 0..18 and
-             byte_size(symbol) <= 5 do
+             byte_size(symbol) in 0..5 do
     map_filter = Map.take(opts, Token.optionals())
 
     cond do
@@ -22,18 +23,17 @@ defmodule Ippan.Func.Token do
         raise IppanError, "Invalid operation"
 
       true ->
-        :done =
-          %Token{
-            id: id,
-            owner: owner_id,
-            name: name,
-            symbol: symbol
-          }
-          |> Map.merge(map_filter)
-          |> MapUtil.validate_url(:avatar)
-          |> MapUtil.validate_any(:opts, Token.props())
-          |> Token.to_list()
-          |> TokenStore.insert()
+        %Token{
+          id: id,
+          owner: owner_id,
+          name: name,
+          symbol: symbol
+        }
+        |> Map.merge(map_filter)
+        |> MapUtil.validate_url(:avatar)
+        |> MapUtil.validate_any(:opts, Token.props())
+        |> Token.to_list()
+        |> TokenStore.insert()
 
         if id == @token do
           Platform.start()

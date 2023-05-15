@@ -40,7 +40,7 @@ defmodule Ippan.P2P.Client do
   def init({hostname, port, falconPubkey, falconPrivkey}) do
     Process.flag(:trap_exit, true)
 
-    address = Address.hash(falconPubkey)
+    address = Address.hash(0, falconPubkey)
 
     {:ok,
      %{

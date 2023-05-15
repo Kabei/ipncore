@@ -49,9 +49,10 @@ Events are requests made by users or automatic operations by the system that aff
 
 |Code|Event|Description|Status|
 |-|-|-|-|
-|0| `account.new` |Account registration|✅|
-|1| `account.subscribe` |Subscribe account to a validator|✅|
-|2| `account.update` |Update a account|❌|
+|0| `wallet.new` |Account registration|✅|
+|20| `account.new` |Account registration|✅|
+|21| `account.subscribe` |Subscribe account to a validator|✅|
+|22| `account.update` |Update a account|❌|
 |50| `env.set` |Set environment variable|❌|
 |51| `env.delete` |Delete environment variable|❌|
 |100| `validator.new` |Create a new validator|❌|

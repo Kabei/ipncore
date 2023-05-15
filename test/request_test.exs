@@ -16,7 +16,7 @@ defmodule RequestTest do
     seed = :rand.bytes(48)
     {:ok, pk, _sk} = Falcon.gen_keys_from_seed(seed)
 
-    account_id = "kambei"
+    # account_id = "kambei"
     validator_id = 0
     timestamp = :os.system_time(:millisecond)
 
@@ -28,7 +28,7 @@ defmodule RequestTest do
     IO.puts("Message")
 
     message =
-      [0, timestamp, account_id, args]
+      [0, timestamp, args]
       |> @json.encode!()
 
     hash = default_hash(message)
@@ -36,17 +36,14 @@ defmodule RequestTest do
     IO.puts(message)
 
     IO.puts("Hash")
-    IO.puts(Fast64.encode64(hash))
+    # IO.puts(Fast64.encode16(hash))
+    IO.puts(Base.encode16(hash))
     IO.puts("Size: #{byte_size(message)}")
-
 
     IO.puts("Falcon seed")
 
     Fast64.encode64(seed)
     |> IO.puts()
-  end
-
-  test "create validator" do
   end
 
   # start_time = :erlang.monotonic_time(:millisecond)

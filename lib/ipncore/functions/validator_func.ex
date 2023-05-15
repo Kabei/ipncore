@@ -28,12 +28,14 @@ defmodule Ippan.Func.Validator do
         opts \\ %{}
       )
       when is_positive(id) and
-             byte_size(name) <= 20 and between_size(hostname, 4, 50) and fee_type in 0..2 and
-             pubkey == 1794 do
+             byte_size(name) <= 20 and between_size(hostname, 4, 50) and fee_type in 0..2 and fee > 0 do
     map_filter = Map.take(opts, Validator.optionals())
-    pubkey = Base.decode16!(pubkey)
+    pubkey = Fast64.decode64(pubkey)
 
     cond do
+      byte_size(pubkey) != 897 ->
+        raise IppanError, "Invalid pubkey size"
+
       not Match.account?(owner_id) ->
         raise IppanError, "Invalid owner"
 
@@ -89,12 +91,14 @@ defmodule Ippan.Func.Validator do
         |> MapUtil.validate_range(:fee_type, 0..2)
         |> MapUtil.transform(
           :pubkey,
-          fn
-            x when byte_size(x) == 1794 ->
-              Base.decode16!(x)
+          fn x ->
+            case Fast64.decode64(x) do
+              j when byte_size(j) != 897 ->
+                raise IppanError, "Invalid pubkey"
 
-            _ ->
-              raise IppanError, "Invalid pubkey"
+              j ->
+                j
+            end
           end
         )
         |> Map.put(:updated_at, timestamp)

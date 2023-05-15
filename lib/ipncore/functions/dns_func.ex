@@ -6,6 +6,8 @@ defmodule Ippan.Func.Dns do
   @ttl_range 0..2_147_483_648
   @token Default.token()
 
+  @dns_types ~w(A NS CNAME SOA PTR MX TXT AAAA SPF SRV DS SSHFP RRSIG NSEC DNSKEY CAA URI HINFO WKS)
+
   def new(%{account: account, timestamp: timestamp}, fullname, type, data, ttl)
       when byte_size(fullname) <= @fullname_max_size and
              type in @type_range and
@@ -16,6 +18,12 @@ defmodule Ippan.Func.Dns do
     cond do
       not Match.domain?(domain) ->
         raise IppanError, "Invalid domain"
+
+      type not in @dns_types ->
+        raise IppanError, "DNS record type not supported"
+
+      not match?({_, _, _, _, _value}, :dnslib.resource('#{domain} IN #{ttl} #{type} #{data}')) ->
+        raise IppanError, "DNS resource error"
 
       true ->
         validator = ValidatorStore.lookup(account.validator)
@@ -47,11 +55,25 @@ defmodule Ippan.Func.Dns do
 
       true ->
         if DomainStore.owner?(domain, account.id) do
-          {:ok, domain_map} = DnsStore.lookup([fullname, hash])
+          dns_map =
+            DnsStore.lookup([fullname, hash])
+            |> DNS.to_map()
+
           {:ok, validator} = ValidatorStore.lookup(account.validator)
           :ok = BalanceStore.send_fees(account.id, validator.owner, 500, timestamp)
 
-          domain_map
+          data = map_filter[:data]
+
+          if data do
+            if not match?(
+                 {_, _, _, _, _value},
+                 :dnslib.resource('#{domain} IN #{dns_map.ttl} #{dns_map.type} #{data}')
+               ) do
+              raise IppanError, "DNS resource error"
+            end
+          end
+
+          dns_map
           |> Map.merge(map_filter)
           |> MapUtil.validate_range(:ttl, @ttl_range)
           |> MapUtil.validate_bytes_range(:data, @data_range)

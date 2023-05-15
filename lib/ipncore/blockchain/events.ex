@@ -1,9 +1,31 @@
 defmodule Ippan.Events do
   alias Ippan.Event
-  alias Ippan.Func.{Env, Account, Balance, Block, Validator, Token, Domain, DNS, Round}
+  alias Ippan.Func.{Env, Account, Balance, Block, Validator, Token, Domain, DNS, Round, Wallet}
 
   @spec lookup(event_id :: non_neg_integer()) :: Event.t() | :undefined
   def lookup(n = 0),
+    do: %Event{
+      id: n,
+      name: "wallet.new",
+      base: :wallet,
+      mod: Wallet,
+      fun: :new,
+      parallel: true,
+      auth: false
+    }
+
+  def lookup(n = 1),
+    do: %Event{
+      id: n,
+      name: "wallet.subscribe",
+      base: :wallet,
+      mod: Wallet,
+      fun: :subcribe,
+      parallel: false,
+      auth: true
+    }
+
+  def lookup(n = 20),
     do: %Event{
       id: n,
       name: "account.new",
@@ -14,7 +36,7 @@ defmodule Ippan.Events do
       auth: false
     }
 
-  def lookup(n = 1),
+  def lookup(n = 21),
     do: %Event{
       id: n,
       name: "account.subscribe",
@@ -25,7 +47,7 @@ defmodule Ippan.Events do
       auth: true
     }
 
-  def lookup(n = 2),
+  def lookup(n = 22),
     do: %Event{
       id: n,
       name: "account.update",

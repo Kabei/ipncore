@@ -4,17 +4,19 @@ defmodule AccountStore do
   use Store.Sqlite,
     base: :account,
     table: @table,
-    create: """
+    create: "
     CREATE TABLE IF NOT EXISTS #{@table}(
     id BLOB PRIMARY KEY NOT NULL,
     validator UNSIGNED INTEGER NOT NULL,
-    address BLOB,
     pubkey BLOB NOT NULL,
+    type_sig INTEGER NOT NULL,
     created_at UNSIGNED BIGINT NOT NULL
     ) WITHOUT ROWID;
-    """,
+    ",
     stmt: %{
-      insert: "INSERT OR IGNORE INTO #{@table} VALUES(?1,?2,?3,?4,?5)",
+      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5) ON CONFLICT (id)
+        DO UPDATE SET validator=?2, created_at=?3
+        WHERE created_at > ?3",
       lookup: "SELECT * FROM #{@table} WHERE id=?",
       validator: "SELECT * FROM #{@table} WHERE id=? AND validator=?",
       exists: "SELECT 1 FROM #{@table} WHERE id=?",

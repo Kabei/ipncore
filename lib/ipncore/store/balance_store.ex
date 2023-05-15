@@ -7,8 +7,7 @@ defmodule BalanceStore do
   use Store.Sqlite,
     base: :balance,
     table: @table,
-    create: """
-    CREATE TABLE IF NOT EXISTS #{@table}(
+    create: "CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
       amount UNSIGNED BIGINT DEFAULT 0,
@@ -18,8 +17,7 @@ defmodule BalanceStore do
       created_at UNSIGNED BIGINT NOT NULL,
       updated_at UNSIGNED BIGINT NOT NULL,
       PRIMARY KEY (id, token)
-    ) WITHOUT ROWID;
-    """,
+    ) WITHOUT ROWID;",
     stmt: %{
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8)",
       replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8)",
@@ -27,13 +25,11 @@ defmodule BalanceStore do
       exists: "SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2",
       delete: "DELETE FROM #{@table} WHERE id = ?1 AND token = ?2",
       send:
-        "UPDATE #{@table} SET amount = amount - ?3, tx_count = tx_count + 1, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount > ?3",
-      income: """
-      INSERT INTO #{@table} (id,token,amount,tx_count,created_at,updated_at)
+        "UPDATE #{@table} SET amount = amount - ?3, tx_count = tx_count + 1, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
+      income: "INSERT INTO #{@table} (id,token,amount,tx_count,created_at,updated_at)
       VALUES(?1, ?2, ?3, 1, ?4, ?4) ON CONFLICT (id, token)
       DO UPDATE SET amount = amount + ?3, tx_count = tx_count + 1, updated_at = ?4
-      WHERE id = ?1 AND token = ?2
-      """,
+      WHERE id = ?1 AND token = ?2",
       lock:
         "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",
       unlock:
@@ -51,15 +47,13 @@ defmodule BalanceStore do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       send_stmt = Map.get(stmt, :income)
 
-      Sqlite3NIF.bind_and_step(conn, send_stmt, [
-        account_id,
-        token_id,
-        amount,
-        timestamp
-      ])
-
-      case Sqlite3NIF.changes(conn) do
-        {:ok, 1} ->
+      case Sqlite3NIF.bind_step_changes(conn, send_stmt, [
+             account_id,
+             token_id,
+             amount,
+             timestamp
+           ]) do
+        1 ->
           {:reply, :ok, state}
 
         _ ->
@@ -76,10 +70,8 @@ defmodule BalanceStore do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       send_stmt = Map.get(stmt, :send)
 
-      Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token_id, amount, timestamp])
-
-      case Sqlite3NIF.changes(conn) do
-        {:ok, 1} ->
+      case Sqlite3NIF.bind_step_changes(conn, send_stmt, [from_id, token_id, amount, timestamp]) do
+        1 ->
           {:reply, :ok, state}
 
         _ ->
@@ -94,14 +86,9 @@ defmodule BalanceStore do
           :ok | :error
   def send(from_id, to_id, token_id, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
-      send_stmt = stmt.send
-      income_stmt = stmt.income
-
-      Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token_id, amount, timestamp])
-
-      case Sqlite3NIF.changes(conn) do
-        {:ok, 1} ->
-          Sqlite3NIF.bind_and_step(conn, income_stmt, [
+      case Sqlite3NIF.bind_step_changes(conn, stmt.send, [from_id, token_id, amount, timestamp]) do
+        1 ->
+          Sqlite3NIF.bind_and_step(conn, stmt.income, [
             to_id,
             token_id,
             amount,
@@ -122,14 +109,9 @@ defmodule BalanceStore do
           :ok | :error
   def send_fees(from_id, validator_owner, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
-      send_stmt = Map.get(stmt, :send)
-      income_stmt = Map.get(stmt, :income)
-
-      Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, @token, amount, timestamp])
-
-      case Sqlite3NIF.changes(conn) do
-        {:ok, 1} ->
-          Sqlite3NIF.bind_and_step(conn, income_stmt, [
+      case Sqlite3NIF.bind_step_changes(conn, stmt.send, [from_id, @token, amount, timestamp]) do
+        1 ->
+          Sqlite3NIF.bind_and_step(conn, stmt.income, [
             validator_owner,
             @token,
             amount,
@@ -158,35 +140,30 @@ defmodule BalanceStore do
           :ok | :error
   def transaction(from_id, to_id, token, amount, validator_owner, fees, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
-      send_stmt = Map.get(stmt, :send)
-      income_stmt = Map.get(stmt, :income)
+      send_stmt = stmt.send
+      income_stmt = stmt.income
 
       ret =
         if token == @token do
           total = amount + fees
-          Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token, total, timestamp])
 
-          case Sqlite3NIF.changes(conn) do
-            {:ok, 1} ->
+          case Sqlite3NIF.bind_step_changes(conn, send_stmt, [from_id, token, total, timestamp]) do
+            1 ->
               :ok
 
             _ ->
               :error
           end
         else
-          Sqlite3NIF.bind_and_step(conn, send_stmt, [from_id, token, amount, timestamp])
-
-          case Sqlite3NIF.changes(conn) do
-            {:ok, 1} ->
-              Sqlite3NIF.bind_and_step(conn, send_stmt, [
-                from_id,
-                @token,
-                fees,
-                timestamp
-              ])
-
-              case Sqlite3NIF.changes(conn) do
-                {:ok, 1} ->
+          case Sqlite3NIF.bind_step_changes(conn, send_stmt, [from_id, token, amount, timestamp]) do
+            1 ->
+              case Sqlite3NIF.bind_step_changes(conn, send_stmt, [
+                     from_id,
+                     @token,
+                     fees,
+                     timestamp
+                   ]) do
+                1 ->
                   :ok
 
                 _ ->
@@ -230,8 +207,8 @@ defmodule BalanceStore do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       stmt = Map.get(stmt, :lock)
 
-      Sqlite3NIF.bind_and_step(conn, stmt, [id, token, amount])
-      {:reply, changes(conn) == 1, state}
+      result = Sqlite3NIF.bind_step_changes(conn, stmt, [id, token, amount])
+      {:reply, result == 1, state}
     end
 
     call(@base, {:call, fun})
@@ -242,8 +219,8 @@ defmodule BalanceStore do
     fun = fn %{conn: conn, stmt: stmt} = state ->
       stmt = Map.get(stmt, :unlock)
 
-      Sqlite3NIF.bind_and_step(conn, stmt, [id, token, amount])
-      {:reply, changes(conn) == 1, state}
+      result = Sqlite3NIF.bind_step_changes(conn, stmt, [id, token, amount])
+      {:reply, result == 1, state}
     end
 
     call(@base, {:call, fun})

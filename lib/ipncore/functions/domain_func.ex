@@ -40,7 +40,7 @@ defmodule Ippan.Func.Domain do
           |> MapUtil.validate_email(:email)
           |> Domain.to_list()
 
-        :ok = BalanceStore.send(account.id, Platform.id(), @token, amount, timestamp)
+        :ok = BalanceStore.send(account.id, Global.get(:owner), @token, amount, timestamp)
 
         DomainStore.insert(domain)
 

@@ -170,13 +170,13 @@ defmodule Store.Sqlite do
         GenServer.cast(@base, {:insert, params})
       end
 
+      @spec insert_sync(list()) :: integer() | :busy | {:error, term()}
       def insert_sync(params) do
         # call(@base, {:insert, params})
         # [{_, %{conn: conn, stmt: stmts}}] = :ets.lookup(:gs, @base)
         # %{conn: conn, stmt: stmts} = Owner.get(@base)
         %{conn: conn, stmt: stmts} = :sys.get_state(@base)
-        Sqlite3NIF.bind_and_step(conn, stmts.insert, params)
-        changes(conn)
+        Sqlite3NIF.bind_step_changes(conn, stmts.insert, params)
       end
 
       def upsert(params) do
@@ -372,9 +372,8 @@ defmodule Store.Sqlite do
             ) do
           statement = Map.get(stmt, :delete)
 
-          case Sqlite3NIF.bind_and_step(conn, statement, List.wrap(params)) do
-            :done ->
-              n = changes(conn)
+          case Sqlite3NIF.bind_step_changes(conn, statement, List.wrap(params)) do
+            n when n > 0 ->
               :ets.delete(ets, params_to_ets(params))
               {:reply, n, state}
 
@@ -449,9 +448,8 @@ defmodule Store.Sqlite do
         def handle_call({:delete, params}, _from, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :delete)
 
-          case Sqlite3NIF.bind_and_step(conn, statement, List.wrap(params)) do
-            :done ->
-              n = changes(conn)
+          case Sqlite3NIF.bind_step_changes(conn, statement, List.wrap(params)) do
+            n when n > 0 ->
               {:reply, n, state}
 
             _ ->
@@ -484,9 +482,8 @@ defmodule Store.Sqlite do
         {:ok, statement} =
           Sqlite3NIF.prepare(conn, 'UPDATE #{@table} SET #{set_fields} WHERE #{where}')
 
-        case Sqlite3NIF.bind_and_step(conn, statement, values_list) do
-          :done ->
-            n = changes(conn)
+        case Sqlite3NIF.bind_step_changes(conn, statement, values_list) do
+          n when n > 0 ->
             Sqlite3NIF.release(conn, statement)
 
             case Map.get(state, :ets) do

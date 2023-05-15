@@ -47,6 +47,10 @@ defmodule Ippan.Func.Tx do
   def coinbase(%{account: account, hash: hash, timestamp: timestamp}, token, outputs) do
     hash16 = Base.encode16(hash)
 
+    if length(outputs) == 0 do
+      raise IppanError, "No outputs"
+    end
+
     case TokenStore.execute_prepare(:owner_props, [token, account.id, "%coinbase%"]) do
       true ->
         BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
@@ -56,10 +60,15 @@ defmodule Ippan.Func.Tx do
 
             total =
               Stream.transform(outputs, 0, fn [account_id, amount], acc ->
-                if Match.account?(account_id) do
-                  BalanceStore.receive(conn, statment, account_id, token, amount, timestamp)
-                else
-                  raise ArgumentError, "Account ID invalid"
+                cond do
+                  amount <= 0 ->
+                    raise ArgumentError, "Amount must be positive number"
+
+                  not Match.account?(account_id) ->
+                    raise ArgumentError, "Account ID invalid"
+
+                  true ->
+                    BalanceStore.receive(conn, statment, account_id, token, amount, timestamp)
                 end
 
                 acc + amount

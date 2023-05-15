@@ -41,9 +41,8 @@ defmodule Ipncore.Application do
     #   # init chain
     #   :ok = Chain.start()
 
-    Platform.start()
-    HashList.start(:l1)
-    HashList.start(:l2)
+    # HashList.start(:l1)
+    # HashList.start(:l2)
 
     # services
     children = [
@@ -54,8 +53,10 @@ defmodule Ipncore.Application do
       #    keypos: :id,
       #    auto_save: :infinity
       #  ]},
-      RequestStore,
-      {AccountStore, Path.join(data_dir, "account/account.db")},
+      {MessageStore, Path.join(data_dir, "requests/messages.db")},
+      {GlobalRequestStore, Path.join(data_dir, "requests/grq.db")},
+      {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
+      # {AccountStore, Path.join(data_dir, "account/account.db")},
       {EnvStore, Path.join(data_dir, "env/env.db")},
       {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
       {TokenStore, Path.join(data_dir, "token/token.db")},
@@ -76,7 +77,9 @@ defmodule Ipncore.Application do
     ]
 
     sup = Supervisor.start_link(children, @opts)
+    Platform.start()
     Logger.info("Running IPNcore P2P with port #{p2p_opts[:port]}")
+
     sup
   end
 

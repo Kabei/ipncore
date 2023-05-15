@@ -2,22 +2,24 @@ defmodule Ippan.Func.Account do
   alias Ippan.{Address, Account}
 
   def new(
-        %{account: account_id, timestamp: timestamp},
+        %{timestamp: timestamp, sig_type: sig_type},
         validator_id,
         pubkey
       )
-      when byte_size(pubkey) == 1794 and is_integer(validator_id) do
-    pubkey = Base.decode16!(pubkey)
+      when is_integer(validator_id) do
+    pubkey = Fast64.decode64(pubkey)
 
     cond do
-      not Match.account?(account_id) ->
-        raise IppanError, "Invalid ID format"
+      byte_size(pubkey) != 897 or byte_size(pubkey) != 33 ->
+        raise IppanError, "Invalid pubkey size"
+
+      validator_id != Global.get(:validator) ->
+        raise IppanError, "Invalid Validator ID"
 
       true ->
         %Account{
-          id: account_id,
+          id: Address.hash(sig_type, pubkey),
           validator: validator_id,
-          address: Address.hash(pubkey),
           pubkey: pubkey,
           created_at: timestamp
         }
@@ -27,12 +29,15 @@ defmodule Ippan.Func.Account do
   end
 
   def subscribe(%{account: account}, validator_id) do
-    case ValidatorStore.exists?(validator_id) do
+    cond do
+      account.validator != validator_id ->
+        raise IppanError, "Already subscribe"
+
+      not ValidatorStore.exists?(validator_id) ->
+        raise IppanError, "Validator not exists"
+
       true ->
         AccountStore.update(%{validator: validator_id}, id: account.id)
-
-      false ->
-        raise IppanError, "Validator not exists"
     end
   end
 end

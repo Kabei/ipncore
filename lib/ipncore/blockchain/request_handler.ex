@@ -1,118 +1,90 @@
 defmodule Ippan.RequestHandler do
   require Logger
-  alias Ippan.Func.Account
-  alias Ippan.{Events, Utils}
+  alias Ippan.Func.Wallet
+  alias Ippan.{Wallet, Events}
   alias Ippan.Request.Source
-  alias Phoenix.PubSub
+  # alias Phoenix.PubSub
 
   @pubsub_server :pubsub
-  # @mac_algorithm :poly1305
-
-  # @type request_tuple ::
-  #         {non_neg_integer(), non_neg_integer(), binary(), [any()], binary()}
-  # @type request_list :: list()
-  # @type hash :: binary()
-
-  # def handle([type, timestamp, from, args, sig]),
-  #   do: handle({type, timestamp, from, args, sig} = request)
-
-  # def pending(hash, msg, size, sig) do
-  #   [type, timestamp, from, args]
-
-  #   event = Events.lookup(type)
-
-  # end
+  @timeout Application.compile_env(:ipncore, :message_timeout)
+  @libsecp256k1 ExSecp256k1.Impl
 
   @spec handle(binary(), list(), non_neg_integer()) ::
           :ok | {:error, term()} | no_return()
-  def handle(hash, [type, timestamp, from, args], size) do
+  def handle(hash, msg, size) do
+    [type, timestamp, args] = Jsonrs.decode!(msg)
+
+    # if :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout),
+    #   do: raise(IppanError, "Invalid timestamp")
+
     %{auth: false} = event = Events.lookup(type)
 
-    source = %Source{
+    source = %{
       hash: hash,
-      account: from,
       event: event,
       timestamp: timestamp,
       size: size
     }
 
     apply(event.mod, event.fun, [source | args])
+
+    MessageStore.insert([hash, msg, nil, size])
   end
 
-  @spec handle(binary(), list(), non_neg_integer(), binary() | nil) ::
+  @spec handle(binary(), String.t(), non_neg_integer(), binary() | nil) ::
           :ok | {:error, term()} | no_return()
-  def handle(hash, [type, timestamp, from, args] = request, size, sig) do
+  def handle(hash, msg, size, sig_with_flag) do
     try do
-      %{base: event_base, auth: false} = event = Events.lookup(type)
-      # hash = compute_hash(type, timestamp, from, args)
+      [type, timestamp, from, args] = Jsonrs.decode!(msg)
 
-      # hlist_name = :l1
-      # hlist_key = {event_base, List.first(args)}
-      # HashList.lookup!(hlist_name, hlist_key, hash, timestamp)
+      # if :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout),
+      #   do: raise(IppanError, "Invalid timestamp")
 
-      # size = Utils.estimate_size(request)
+      %{auth: true} = event = Events.lookup(type)
 
-      # Check if the request is already in process or if there is a similar one for another account, select the correct request
-      # if event.parallel, do: :l1, else: :l2
-      account = AccountStore.lookup(:validator, [from, Global.get(:validator_id)])
+      wallet = WalletStore.execute_prepare(:validator, [from, Global.get(:validator_id)])
 
-      if is_nil(account), do: raise(IppanError, "Invalid account ID or not subscribe")
+      if wallet == [], do: raise(IppanError, "Invalid wallet ID or not subscribe")
 
-      # build source
-      source = %Source{
-        hash: hash,
-        account: Ippan.Account.to_map(account),
-        event: event,
-        timestamp: timestamp,
-        size: size
-      }
+      wallet = Wallet.to_map(wallet)
 
-      <<sig_flag::bytes-size(1), signature::binary>> = sig
+      <<sig_flag::8, signature::binary>> = sig_with_flag
 
       case sig_flag do
         0 ->
-          account = AccountStore.lookup(from)
-          # build source
-          source = %Source{
-            hash: hash,
-            account: account,
-            event: event,
-            timestamp: timestamp,
-            size: size
-          }
-
           # verify falcon signature
-          if Falcon.verify(hash, signature, account.pubkey) == :ok,
+          if Falcon.verify(hash, signature, wallet.pubkey) != :ok,
             do: raise(IppanError, "Invalid signature verify")
 
-          # call function
-          # do_call(source, args)
-          apply(event.mod, event.fun, [source | args])
+        1 ->
+          if @libsecp256k1.verify(hash, signature, wallet.pubkey) != true,
+            do: raise(IppanError, "Invalid signature verify")
 
         _ ->
           raise(IppanError, "Signature type not supported")
       end
-      |> case do
-        :ok ->
-          HashList.insert(hlist_name, {hlist_key, {timestamp, hash}})
-          RequestStore.insert(hash, request)
-          {:ok, hash}
 
-        {:notify, data} ->
-          PubSub.broadcast(@pubsub_server, event.name, %{event: event.name, data: data})
+      case event.parallel do
+        true ->
+          GlobalRequestStore.insert([type, hd(args), hash, timestamp])
+          :noreply
 
-        {:continue, fallback} ->
-          HashList.insert(hlist_name, {hlist_key, {timestamp, hash, fallback}})
-          RequestStore.insert(hash, request)
-          {:ok, hash}
+        false ->
+          # build source
+          source = %{
+            hash: hash,
+            account: wallet,
+            event: event,
+            timestamp: timestamp,
+            sig_type: sig_flag,
+            size: size
+          }
 
-        1 ->
-          {:ok, hash}
-
-        error ->
-          # Logger.debug("error: #{inspect(error)}")
-          error
+          # call function
+          apply(event.mod, event.fun, [source | args])
       end
+
+      MessageStore.insert([hash, msg, signature, size])
     rescue
       e in [IppanError] ->
         {:error, e.message}
@@ -122,41 +94,4 @@ defmodule Ippan.RequestHandler do
         {:error, "Invalid operation"}
     end
   end
-
-  # defmacrop default_hash(data) do
-  #   quote do
-  #     Blake3.Native.hash(unquote(data))
-  #   end
-  # end
-
-  # defmacrop default_hash_mac(data) do
-  #   quote do
-  #     <<_::bytes-size(16), rest::binary>> = Blake3.Native.hash(unquote(data))
-  #     rest
-  #   end
-  # end
-
-  # @spec compute_hash(pos_integer(), pos_integer(), binary(), list()) :: binary()
-  # def compute_hash(type, timestamp, from, args) do
-  #   str =
-  #     Enum.reduce(args, "#{type}#{timestamp}#{from}", fn x, acc ->
-  #       :binary.list_to_bin([acc, x])
-  #     end)
-
-  #   default_hash(str)
-  # end
-
-  # defp compare_hash(seed, pkhash) do
-  #   default_hash(seed) == pkhash
-  # end
-
-  # defp compare_mac(seed, lhash, lhmac) do
-  #   mac = :crypto.mac(@mac_algorithm, seed, lhash)
-
-  #   lhmac == default_hash_mac(mac)
-  # end
-
-  # defp do_call(source, args) do
-  #   apply(source.event.mod, source.event.fun, :lists.merge([source], args))
-  # end
 end

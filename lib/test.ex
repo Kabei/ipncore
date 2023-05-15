@@ -44,7 +44,7 @@ defmodule Benchmark do
   def send_multi_random(iterations, money_min, money_random) do
     range = @total_addresses - 1
 
-    # start_time = :os.system_time(:microsecond)
+    start_time = :os.system_time(:microsecond)
     secrets =
       @secret_words
       |> Enum.map(fn x ->
@@ -69,13 +69,13 @@ defmodule Benchmark do
 
       money = money_min + :rand.uniform(money_random)
 
-      # [version, type, time, event_body, from58, sig64] =
+      [version, type, time, event_body, from58, sig64] =
         Test.tx_send(Enum.at(secrets, from), @token, addr58, addr58_to, money, @validator, "")
 
-      # Event.check(version, type, time, event_body, from58, sig64)
+      Event.check(version, type, time, event_body, from58, sig64)
     end
 
-    # Logger.info("sent to check #{length(requests)} txs | time: #{end_time - start_time} µs")
+    Logger.info("sent to check #{length(requests)} txs | time: #{end_time - start_time} µs")
   end
 
   # Benchmark.send(1, 1, 50, "round-20")

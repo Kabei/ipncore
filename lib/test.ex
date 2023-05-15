@@ -74,8 +74,9 @@ defmodule Benchmark do
 
       Event.check(version, type, time, event_body, from58, sig64)
     end
+    end_time = :os.system_time(:microsecond)
 
-    Logger.info("sent to check #{length(requests)} txs | time: #{end_time - start_time} µs")
+    Logger.info("sent to check #{iterations} txs | time: #{end_time - start_time} µs")
   end
 
   # Benchmark.send(1, 1, 50, "round-20")

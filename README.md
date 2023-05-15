@@ -50,6 +50,7 @@ Events are requests made by users or automatic operations by the system that aff
 |Code|Event|Description|Status|
 |-|-|-|-|
 |0| `wallet.new` |Account registration|✅|
+|1| `wallet.subscribe` |Subscribe wallet to a validator|✅|
 |20| `account.new` |Account registration|✅|
 |21| `account.subscribe` |Subscribe account to a validator|✅|
 |22| `account.update` |Update a account|❌|

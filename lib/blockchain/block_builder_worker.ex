@@ -21,14 +21,14 @@ defmodule BlockBuilderWork do
         Enum.map(0..(@total_threads - 1), fn thread ->
           Task.async(fn ->
             events = Mempool.select(thread, timestamp)
-            Mempool.select_delete_timestamp(thread, timestamp)
+            # Mempool.select_delete_timestamp(thread, timestamp)
 
             Enum.reduce(events, [], fn {{time, hash} = key, _thread, type_number, from, body,
                                         signature, size},
                                        acc ->
               try do
                 ev = Event.new!(next_height, hash, time, type_number, from, body, signature, size)
-                # Mempool.delete(key)
+                Mempool.delete(key)
                 acc ++ [ev]
               rescue
                 ex ->

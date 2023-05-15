@@ -1,4 +1,5 @@
 defmodule Mnemonic do
+
   @words :ipncore
          |> :code.priv_dir()
          |> Path.join("mnemonic/words.txt")

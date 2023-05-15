@@ -5,7 +5,7 @@ defmodule Benchmark do
   @token "IPN"
 
   @secret_words [
-    "eager unusual advice giraffe illness speak despair win sting fade iron poverty tower hobby carry panther start radio radio include rifle wear moon waste much fame possible romance excite reject document second cereal split rude above",
+    # "eager unusual advice giraffe illness speak despair win sting fade iron poverty tower hobby carry panther start radio radio include rifle wear moon waste much fame possible romance excite reject document second cereal split rude above",
     "input miracle deputy public grit local number street fiber dry tilt enjoy labor drip live flash can helmet combine pause adult theory engine heavy arch celery diet science bright harvest clutch erupt system wool body about",
     "clinic turtle soldier figure tool swing body horse beauty toward brisk mixed clinic display blood dash final film trial pave glory miracle lab stomach forward drill soda hood ski sadness young fish uniform focus maid acid",
     "scan teach cabbage seed hospital zero vague either stool crew melody neutral unveil child protect key maid silver cotton peasant exchange crash body glow hurry short struggle grit immense camera virtual elite beyond bargain argue abuse",
@@ -19,7 +19,7 @@ defmodule Benchmark do
   ]
 
   @addresses [
-    "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT",
+    # "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT",
     "1x3FDY6JrGYYG9GdLVyrLudrkuVXfC",
     "1xegU3RwUBAtqBGL3FxWt3MZieRG5",
     "1x3KGc1nHqLi3gUHE4NRj5zGFxD4Gr",
@@ -32,17 +32,54 @@ defmodule Benchmark do
     "1x46s977C4jd54iPNXxhycv6KGznYt"
   ]
 
+  @total_addresses length(@addresses)
+
   # {opk, osk, oaddr, oaddr58} = Test.owner_seed |> Test.wallet()
   # result = Test.tx_coinbase(osk, oaddr58, "IPN", 50_000_000_000, "1xk7PrW4TCGFmVndMD1Q2F2pvGgfT", "")
   # apply(Ipncore.Event, :check, result)
 
   @validator "ippan.uk"
 
-  # Benchmark.send(0, 1, 50, "round-15")
+  # Benchmark.send_multi_random(1, 10, 20)
+  def send_multi_random(iterations, money_min, money_random) do
+    range = @total_addresses - 1
 
-  def send(bot_index, iterations, money, note) do
     # start_time = :os.system_time(:microsecond)
-    # Logger.info("starting test #{start_time}")
+    secrets =
+      @secret_words
+      |> Enum.map(fn x ->
+        seed = Mnemonic.to_entropy(x)
+        {:ok, _pk, secret} = Falcon.gen_keys_from_seed(seed)
+        secret
+      end)
+
+    for _n <- 0..(1 - iterations) do
+      from = :rand.uniform(range)
+      to = :rand.uniform(range)
+
+      {from, to} =
+        if from == to do
+          {from, rem(to + 1, @total_addresses)}
+        else
+          {from, to}
+        end
+
+      addr58 = Enum.at(@addresses, from)
+      addr58_to = Enum.at(@addresses, to)
+
+      money = money_min + :rand.uniform(money_random)
+
+      # [version, type, time, event_body, from58, sig64] =
+        Test.tx_send(Enum.at(secrets, from), @token, addr58, addr58_to, money, @validator, "")
+
+      # Event.check(version, type, time, event_body, from58, sig64)
+    end
+
+    # Logger.info("sent to check #{length(requests)} txs | time: #{end_time - start_time} µs")
+  end
+
+  # Benchmark.send(1, 1, 50, "round-20")
+  def send(bot_index, iterations, money, note) do
     addr58 = Enum.at(@addresses, bot_index)
 
     seed = Mnemonic.to_entropy(Enum.at(@secret_words, bot_index))
@@ -58,9 +95,6 @@ defmodule Benchmark do
         Test.tx_send(secret, @token, addr58, addr58_to, money, @validator, note)
       end
 
-    # end_time = :os.system_time(:microsecond)
-    # Logger.info("build txs end #{end_time - start_time} µs")
-
     start_time = :os.system_time(:microsecond)
     Logger.info("start to send to check")
 
@@ -72,6 +106,7 @@ defmodule Benchmark do
 
     end_time = :os.system_time(:microsecond)
     Logger.info("sent to check #{length(requests)} txs | time: #{end_time - start_time} µs")
+    requests
   end
 end
 

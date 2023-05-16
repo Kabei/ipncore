@@ -84,15 +84,18 @@ defmodule Store.Sqlite do
         |> Path.dirname()
         |> File.mkdir_p()
 
-        {:ok, conn} = Sqlite3.open(path)
+        flags = [:sqlite_open_sharedcache]
+
+        {:ok, conn} = Sqlite3.open(path, flags)
         Sqlite3NIF.execute(conn, 'PRAGMA journal_mode = WAL')
-        Sqlite3NIF.execute(conn, 'PRAGMA synchronous = OFF')
-        Sqlite3NIF.execute(conn, 'PRAGMA cache_size = -1000000')
+        Sqlite3NIF.execute(conn, 'PRAGMA synchronous = 0')
+        Sqlite3NIF.execute(conn, 'PRAGMA cache_size = 1000000')
         Sqlite3NIF.execute(conn, 'PRAGMA temp_store = memory')
         Sqlite3NIF.execute(conn, 'PRAGMA mmap_size = 30000000000')
-        # Sqlite3NIF.execute(conn, 'PRAGMA locking_mode = EXCLUSIVE')
-        # Sqlite3NIF.execute(conn, 'PRAGMA page_size = 32768')
         Sqlite3NIF.execute(conn, 'PRAGMA case_sensitive_like = ON')
+        # Sqlite3NIF.execute(conn, 'PRAGMA locking_mode = EXCLUSIVE')
+        # Sqlite3NIF.execute(conn, 'PRAGMA read_uncommitted = true')
+        # Sqlite3NIF.execute(conn, 'PRAGMA page_size = 32768')
         {:ok, conn}
       end
 

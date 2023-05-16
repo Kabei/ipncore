@@ -17,31 +17,22 @@ defmodule Ipncore.Router do
 
       hash = Blake3.hash(body)
 
-      cond do
-        true ->
-          case decode64!(get_req_header(conn, "auth")) do
-            nil ->
-              size = byte_size(body)
-              RequestHandler.handle(hash, body, size)
+      case decode64!(get_req_header(conn, "auth")) do
+        nil ->
+          size = byte_size(body)
+          RequestHandler.handle(hash, body, size)
 
-            sig ->
-              size = byte_size(body) + byte_size(sig)
-              RequestHandler.handle(hash, body, size, sig)
-          end
+        sig ->
+          size = byte_size(body) + byte_size(sig)
+          RequestHandler.handle(hash, body, size, sig)
+      end
+      |> case do
+        {:error, msg} ->
+          send_resp(conn, 400, msg)
 
+        _ ->
           json(conn, %{"hash" => Base.encode16(hash)})
       end
-
-      # case
-      #   :ok ->
-
-      #   {:error, err_message} ->
-      #     json(conn, 400, %{"status" => "error", "msg" => err_message})
-
-      #   _err_message ->
-      #     # Logger.error(inspect(err_message))
-      #     send_resp(conn, 500, "")
-      # end
     rescue
       e ->
         Logger.debug(Exception.format(:error, e, __STACKTRACE__))
@@ -63,26 +54,16 @@ defmodule Ipncore.Router do
     |> send_resp(200, @json.encode!(data))
   end
 
-  # defp decode!() do
-  #   case body do
-  #     [type, timestamp, from, args, auth] ->
-  #       {type, timestamp, from, args, Base.decode64!(auth)}
-
-  #     _ ->
-  #       raise RuntimeError, "Error decode request"
-  #   end
-  # end
-
   # defp json(conn, status, data) do
   #   conn
   #   |> put_resp_content_type("application/json")
   #   |> send_resp(status, @json.encode!(data))
   # end
 
-  defp decode64!([]), do: nil
   defp decode64!(nil), do: nil
+  defp decode64!([]), do: nil
 
   defp decode64!(x) do
-    Base.decode64!(x)
+    Fast64.decode64(x)
   end
 end

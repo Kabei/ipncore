@@ -2,7 +2,7 @@ defmodule Ippan.RequestHandler do
   require Logger
   alias Ippan.Func.Wallet
   alias Ippan.{Wallet, Events}
-  alias Ippan.Request.Source
+  #  alias Ippan.Request.Source
   # alias Phoenix.PubSub
 
   @pubsub_server :pubsub
@@ -12,23 +12,32 @@ defmodule Ippan.RequestHandler do
   @spec handle(binary(), list(), non_neg_integer()) ::
           :ok | {:error, term()} | no_return()
   def handle(hash, msg, size) do
-    [type, timestamp, args] = Jsonrs.decode!(msg)
+    try do
+      [type, timestamp, args] = Jsonrs.decode!(msg)
 
-    # if :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout),
-    #   do: raise(IppanError, "Invalid timestamp")
+      # if :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout),
+      #   do: raise(IppanError, "Invalid timestamp")
 
-    %{auth: false} = event = Events.lookup(type)
+      %{auth: false} = event = Events.lookup(type)
 
-    source = %{
-      hash: hash,
-      event: event,
-      timestamp: timestamp,
-      size: size
-    }
+      source = %{
+        hash: hash,
+        event: event,
+        timestamp: timestamp,
+        size: size
+      }
 
-    apply(event.mod, event.fun, [source | args])
+      apply(event.mod, event.fun, [source | args])
 
-    MessageStore.insert([hash, msg, nil, size])
+      MessageStore.insert([hash, msg, nil, size])
+    rescue
+      e in [IppanError] ->
+        {:error, e.message}
+
+      MatchError ->
+        # Logger.info(Exception.format(:error, e, __STACKTRACE__))
+        {:error, "Invalid operation"}
+    end
   end
 
   @spec handle(binary(), String.t(), non_neg_integer(), binary() | nil) ::

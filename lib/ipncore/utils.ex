@@ -65,10 +65,10 @@ defmodule Ippan.Utils do
 
   # by percent
   def calc_fees!(1, fee_amount, tx_amount, _size),
-    do: :math.ceil(tx_amount * (fee_amount / 100)) |> trunc()
+    do: :math.ceil(tx_amount * fee_amount) |> trunc()
 
   # fixed price
   def calc_fees!(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
-  def calc_fees!(_, _, _, _), do: raise(IppanError, "Wrong fee type")
+  def calc_fees!(_, _, _, _), do: raise(IppanError, "Fee calculation error")
 end

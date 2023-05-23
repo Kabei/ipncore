@@ -7,6 +7,7 @@ defmodule BalanceStore do
   use Store.Sqlite,
     base: :balance,
     table: @table,
+    mod: Ippan.Balance,
     create: "CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
@@ -189,7 +190,7 @@ defmodule BalanceStore do
         Sqlite3NIF.bind_and_step(conn, income_stmt, [
           validator_owner,
           @token,
-          amount,
+          fees,
           timestamp
         ])
 

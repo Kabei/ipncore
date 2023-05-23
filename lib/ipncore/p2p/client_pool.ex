@@ -1,6 +1,7 @@
 defmodule Ippan.P2P.ClientPool do
   require Logger
   use GenServer
+  alias Ippan.Validator
   alias Ippan.P2P.Client
   alias Phoenix.PubSub
 
@@ -18,6 +19,7 @@ defmodule Ippan.P2P.ClientPool do
 
     clients =
       for validator when validator != myid <- validators, into: %{} do
+        validator = Validator.to_map(validator)
         hostname = validator.hostname
         {:ok, pid} = Client.start_link({hostname, @port, key_path})
         {validator.id, %{pid: pid, hostname: hostname}}

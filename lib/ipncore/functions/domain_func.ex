@@ -35,7 +35,7 @@ defmodule Ippan.Func.Domain do
             created_at: timestamp,
             updated_at: timestamp
           }
-          |> Map.merge(map_filter)
+          |> Map.merge(MapUtil.to_atoms(map_filter))
           |> MapUtil.validate_url(:avatar)
           |> MapUtil.validate_email(:email)
           |> Domain.to_list()
@@ -67,7 +67,7 @@ defmodule Ippan.Func.Domain do
         :ok = BalanceStore.send_fees(account.id, validator.owner, fees, timestamp)
 
         1 =
-          map_filter
+          MapUtil.to_atoms(map_filter)
           |> MapUtil.validate_account(:owner)
           |> MapUtil.validate_url(:avatar)
           |> MapUtil.validate_email(:email)

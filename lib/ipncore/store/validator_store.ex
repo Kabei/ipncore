@@ -14,9 +14,9 @@ defmodule ValidatorStore do
       owner BLOB NOT NULL,
       pubkey BLOB NOT NULL,
       avatar TEXT,
-      enabled BOOLEAN DEFAULT TRUE,
-      fee DOUBLE NOT NULL,
       fee_type TINYINT NOT NULL,
+      fee DOUBLE NOT NULL,
+      enabled BOOLEAN DEFAULT TRUE,
       created_at UNSIGNED BIGINT NOT NULL,
       updated_at UNSIGNED BIGINT NOT NULL
     );

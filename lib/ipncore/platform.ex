@@ -11,12 +11,12 @@ defmodule Platform do
         })
 
       token ->
-        wallet_owner = token[:owner]
-        wallet = WalletStore.lookup(wallet_owner)
+        wallet_owner = token.owner
+        [_wallet_id, wallet_pubkey | _rest] = WalletStore.lookup(wallet_owner)
 
         GlobalConst.new(Global, %{
-          owner: token[:owner],
-          owner_pubkey: wallet[:pubkey],
+          owner: wallet_owner,
+          owner_pubkey: wallet_pubkey,
           validator: validator_id
         })
     end

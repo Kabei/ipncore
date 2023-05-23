@@ -29,9 +29,9 @@ defmodule Ippan.Validator do
   ]
 
   use Ippan.Struct
-  def editable, do: ~w(hostname name avatar pubkey fee fee_type)a
+  def editable, do: ~w(hostname name avatar pubkey fee fee_type)
 
-  def optionals, do: ~w(avatar)a
+  def optionals, do: ~w(avatar)
 
   def to_list(x) do
     [
@@ -39,18 +39,34 @@ defmodule Ippan.Validator do
       x.hostname,
       x.name,
       x.owner,
-      x.avatar,
       x.pubkey,
-      x.fee,
+      x.avatar,
       x.fee_type,
+      x.fee,
       x.enabled,
       x.created_at,
       x.updated_at
     ]
   end
 
+  def to_tuple([
+        id,
+        hostname,
+        name,
+        owner,
+        avatar,
+        pubkey,
+        fee_type,
+        fee,
+        enabled,
+        created_at,
+        updated_at
+      ]) do
+    {id, hostname, name, owner, pubkey, avatar, fee_type, fee, enabled, created_at, updated_at}
+  end
+
   def to_tuple(x) do
-    {x.id, x.hostname, x.name, x.owner, x.avatar, x.pubkey, x.fee_type, x.fee, x.enabled,
+    {x.id, x.hostname, x.name, x.owner, x.pubkey, x.avatar, x.fee_type, x.fee, x.enabled,
      x.created_at, x.updated_at}
   end
 

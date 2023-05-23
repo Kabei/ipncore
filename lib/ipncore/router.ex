@@ -17,14 +17,15 @@ defmodule Ipncore.Router do
 
       hash = Blake3.hash(body)
 
-      case decode64!(get_req_header(conn, "auth")) do
-        nil ->
-          size = byte_size(body)
-          RequestHandler.handle(hash, body, size)
-
-        sig ->
+      case get_req_header(conn, "auth") do
+        [sig] ->
+          sig = Fast64.decode64(sig)
           size = byte_size(body) + byte_size(sig)
           RequestHandler.handle(hash, body, size, sig)
+
+        _ ->
+          size = byte_size(body)
+          RequestHandler.handle(hash, body, size)
       end
       |> case do
         {:error, msg} ->
@@ -60,10 +61,10 @@ defmodule Ipncore.Router do
   #   |> send_resp(status, @json.encode!(data))
   # end
 
-  defp decode64!(nil), do: nil
-  defp decode64!([]), do: nil
+  # defp decode64!(nil), do: nil
+  # defp decode64!([]), do: nil
 
-  defp decode64!(x) do
-    Fast64.decode64(x)
-  end
+  # defp decode64!(x) do
+  #   Fast64.decode64(x)
+  # end
 end

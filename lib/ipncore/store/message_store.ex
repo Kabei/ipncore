@@ -13,6 +13,8 @@ defmodule MessageStore do
     ) WITHOUT ROWID;
     """,
     stmt: %{
+      "by_block" =>
+        "SELECT hash, message, signature, size FROM (SELECT sum(size), * FROM #{@table}) WHERE size >= 10000000",
       insert: "INSERT OR IGNORE INTO #{@table} VALUES(?1,?2,?3,?4)",
       lookup: "SELECT * FROM #{@table} WHERE hash = ?1",
       exists: "SELECT 1 FROM #{@table} WHERE hash = ?1",

@@ -1,6 +1,4 @@
 defmodule Store.Sqlite do
-  alias Exqlite.Sqlite3NIF
-
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
       @base opts[:base]
@@ -38,28 +36,28 @@ defmodule Store.Sqlite do
       end
 
       @impl true
-      def init(path) when is_binary(path) do
-        {:ok, conn} = open(path)
+      # def init(conn) when is_reference(conn) do
+      #   :ok = create(conn)
 
-        :ok = create(conn)
+      #   statements =
+      #     for {name, sql} <- @stmts, into: %{} do
+      #       {:ok, statement} = Sqlite3.prepare(conn, sql)
+      #       {name, statement}
+      #     end
 
-        statements =
-          for {name, sql} <- @stmts, into: %{} do
-            {:ok, statement} = Sqlite3.prepare(conn, sql)
-            {name, statement}
-          end
+      #   check_version(conn)
+      #   begin(conn)
 
-        check_version(conn)
-        begin(conn)
+      #   if @cache do
+      #     {:ok, %{conn: conn, stmt: statements, ets: :ets.new(@base, [:set])}}
+      #   else
+      #     {:ok, %{conn: conn, stmt: statements}}
+      #   end
+      # end
 
-        if @cache do
-          {:ok, %{conn: conn, stmt: statements, ets: :ets.new(@base, [:set])}}
-        else
-          {:ok, %{conn: conn, stmt: statements}}
-        end
-      end
+      def init(opts) do
+        {:ok, conn} = open(opts[:path])
 
-      def init(conn) when is_reference(conn) do
         :ok = create(conn)
 
         statements =
@@ -104,7 +102,7 @@ defmodule Store.Sqlite do
         flags = [:sqlite_open_readonly, :sqlite_open_uri]
 
         result = {:ok, conn} = Sqlite3.open(path, flags)
-        Sqlite3NIF.execute(conn, 'PRAGMA case_sensitive_like=ON')
+        Sqlite3NIF.execute(conn, 'PRAGMA case_sensitive_like = ON')
         result
       end
 
@@ -145,7 +143,7 @@ defmodule Store.Sqlite do
 
         cond do
           v > @version ->
-            raise "Bad database api version"
+            raise "Bad database API version"
 
           v < @version ->
             :ok = alter(conn, @version)
@@ -171,6 +169,10 @@ defmodule Store.Sqlite do
         # %{conn: conn, stmt: stmts} = Owner.get(@base)
         # Sqlite3NIF.bind_and_step(conn, stmts.insert, params)
         GenServer.cast(@base, {:insert, params})
+      end
+
+      def insert_deferred(params) do
+        GenServer.cast(@base, {:insert_deferred, [params]})
       end
 
       @spec insert_sync(list()) :: integer() | :busy | {:error, term()}
@@ -241,6 +243,10 @@ defmodule Store.Sqlite do
         call(@base, :delete_all)
       end
 
+      def sync do
+        call(@base, :sync)
+      end
+
       def drop do
         call(@base, :drop)
       end
@@ -264,8 +270,14 @@ defmodule Store.Sqlite do
               %{conn: conn, ets: ets, stmt: stmt} = state
             ) do
           statement = Map.get(stmt, :insert)
-          Sqlite3NIF.bind_and_step(conn, statement, params)
+          r = Sqlite3NIF.bind_and_step(conn, statement, params)
+          IO.inspect(r)
           :ets.delete(ets, params_to_ets(params))
+          {:noreply, state}
+        end
+
+        def handle_cast({:insert_deferred, params}, %{conn: conn, stmt: stmt} = state) do
+          Sqlite3NIF.bind_and_step(conn, stmt.insert_deferred, params)
           {:noreply, state}
         end
 
@@ -277,25 +289,24 @@ defmodule Store.Sqlite do
             ) do
           ret =
             case :ets.lookup(ets, params_to_ets(params)) do
-              [{_key, value}] ->
-                {:ok, value}
-
               [] ->
                 statement = Map.get(stmt, :lookup)
-                result = Sqlite3NIF.bind_and_step(conn, statement, params)
 
-                case result do
-                  {:row, data} = result ->
+                case Sqlite3NIF.bind_and_step(conn, statement, List.wrap(params)) do
+                  {:row, data} ->
                     if :ets.info(ets, :size) > @max_cache_size do
                       :ets.delete_all_objects(ets)
                     end
 
-                    :ets.insert(ets, List.to_tuple(data))
-                    result
+                    :ets.insert(ets, apply(@mod, :to_tuple, [data]))
+                    lookup_transform(data)
 
                   error ->
                     nil
                 end
+
+              [value] ->
+                lookup_transform(value)
             end
 
           {:reply, ret, state}
@@ -309,25 +320,24 @@ defmodule Store.Sqlite do
             ) do
           ret =
             case :ets.lookup(ets, params_to_ets(params)) do
-              [{_key, value}] ->
-                {:ok, value}
-
               [] ->
                 statement = Map.get(stmt, name)
-                result = Sqlite3NIF.bind_and_step(conn, statement, params)
 
-                case result do
-                  {:row, data} = result ->
+                case Sqlite3NIF.bind_and_step(conn, statement, List.wrap(params)) do
+                  {:row, data} ->
                     if :ets.info(ets, :size) > @max_cache_size do
                       :ets.delete_all_objects(ets)
                     end
 
-                    :ets.insert(ets, List.to_tuple(data))
-                    result
+                    :ets.insert(ets, apply(@mod, :to_tuple, [data]))
+                    lookup_transform(data)
 
                   error ->
                     nil
                 end
+
+              [value] ->
+                lookup_transform(value)
             end
 
           {:reply, ret, state}
@@ -399,6 +409,11 @@ defmodule Store.Sqlite do
           {:noreply, state}
         end
 
+        def handle_cast({:insert_deferred, params}, %{conn: conn, stmt: stmt} = state) do
+          Sqlite3NIF.bind_and_step(conn, stmt.insert_deferred, params)
+          {:noreply, state}
+        end
+
         def handle_cast({:upsert, params}, %{conn: conn, stmt: stmt} = state) do
           statement = Map.get(stmt, :upsert)
           Sqlite3NIF.bind_and_step(conn, statement, params)
@@ -417,7 +432,7 @@ defmodule Store.Sqlite do
 
           case Sqlite3NIF.bind_and_step(conn, statement, List.wrap(params)) do
             {:row, data} ->
-              {:reply, data, state}
+              {:reply, lookup_transform(data), state}
 
             _ ->
               {:reply, nil, state}
@@ -429,7 +444,7 @@ defmodule Store.Sqlite do
 
           case Sqlite3NIF.bind_and_step(conn, statement, List.wrap(params)) do
             {:row, data} ->
-              {:reply, data, state}
+              {:reply, lookup_transform(data), state}
 
             _ ->
               {:reply, nil, state}
@@ -509,6 +524,14 @@ defmodule Store.Sqlite do
         {:reply, result, state}
       end
 
+      def handle_call(:sync, _from, %{conn: conn} = state) do
+        # Logger.debug("Sync #{@table}")
+        commit(conn)
+        Sqlite3NIF.execute(conn, 'PRAGMA wal_checkpoint(TRUNCATE)')
+        begin(conn)
+        {:reply, :ok, state}
+      end
+
       def handle_call(
             {:execute_prepare, stmt_name, params},
             _from,
@@ -549,16 +572,9 @@ defmodule Store.Sqlite do
         {:reply, result, state}
       end
 
-      def sync(conn) do
-        Logger.debug("Sync #{@table}")
-        commit(conn)
-        Sqlite3NIF.execute(conn, 'PRAGMA wal_checkpoint(TRUNCATE)')
-        begin(conn)
-      end
-
       @impl true
       def terminate(_reason, %{conn: conn, ets: ets} = state) do
-        sync(conn)
+        commit(conn)
         Sqlite3NIF.execute(conn, 'VACUUM')
         Sqlite3NIF.execute(conn, 'PRAGMA optimize')
         Sqlite3NIF.close(conn)
@@ -566,7 +582,7 @@ defmodule Store.Sqlite do
       end
 
       def terminate(_reason, %{conn: conn, stmt: stmts} = state) do
-        sync(conn)
+        commit(conn)
         Sqlite3NIF.execute(conn, 'VACUUM')
         Sqlite3NIF.execute(conn, 'PRAGMA optimize')
 
@@ -582,9 +598,18 @@ defmodule Store.Sqlite do
         n
       end
 
+      # take a key value from params to ETS
       defp params_to_ets([key]), do: key
       defp params_to_ets(params) when is_list(params), do: Enum.take(params, @keys)
       defp params_to_ets(key), do: key
+
+      if @mod do
+        defp lookup_transform(x) do
+          apply(@mod, :to_map, [x])
+        end
+      else
+        defp lookup_transform(x), do: x
+      end
     end
   end
 end

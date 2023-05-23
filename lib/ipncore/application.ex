@@ -53,19 +53,19 @@ defmodule Ipncore.Application do
       #    keypos: :id,
       #    auto_save: :infinity
       #  ]},
-      {MessageStore, Path.join(data_dir, "requests/messages.db")},
-      {GlobalRequestStore, Path.join(data_dir, "requests/grq.db")},
-      {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
+      {MessageStore, [path: Path.join(data_dir, "requests/messages.db")]},
+      # {GlobalRequestStore, path: Path.join(data_dir, "requests/grq.db")},
+      {WalletStore, [path: Path.join(data_dir, "wallet/wallet.db")]},
       # {AccountStore, Path.join(data_dir, "account/account.db")},
-      {EnvStore, Path.join(data_dir, "env/env.db")},
-      {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
-      {TokenStore, Path.join(data_dir, "token/token.db")},
-      {BalanceStore, Path.join(data_dir, "txs/balance.db")},
-      {RefundStore, Path.join(data_dir, "txs/refund.db")},
-      {DomainStore, Path.join(data_dir, "domain/domain.db")},
-      {DnsStore, Path.join(data_dir, "dns/dns.db")},
-      {BlockStore, Path.join(data_dir, "chain/block.db")},
-      {RoundStore, Path.join(data_dir, "chain/round.db")},
+      {EnvStore, [path: Path.join(data_dir, "env/env.db")]},
+      {ValidatorStore, [path: Path.join(data_dir, "validator/validator.db")]},
+      {TokenStore, [path: Path.join(data_dir, "token/token.db")]},
+      {BalanceStore, [path: Path.join(data_dir, "txs/balance.db")]},
+      {RefundStore, [path: Path.join(data_dir, "txs/refund.db")]},
+      {DomainStore, [path: Path.join(data_dir, "domain/domain.db")]},
+      {DnsStore, [path: Path.join(data_dir, "dns/dns.db")]},
+      {BlockStore, [path: Path.join(data_dir, "chain/block.db")]},
+      {RoundStore, [path: Path.join(data_dir, "chain/round.db")]},
       # pubsub
       Supervisor.child_spec({Phoenix.PubSub, pubsub2_opts}, id: :pubsub2),
       Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub),
@@ -76,11 +76,16 @@ defmodule Ipncore.Application do
       {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
     ]
 
-    sup = Supervisor.start_link(children, @opts)
-    Platform.start()
-    Logger.info("Running IPNcore P2P with port #{p2p_opts[:port]}")
+    case Supervisor.start_link(children, @opts) do
+      {:ok, _pid} = result ->
+        Platform.start()
+        BlockBuilderWork.run()
+        Logger.info("Running IPNcore P2P with port #{p2p_opts[:port]}")
+        result
 
-    sup
+      error ->
+        error
+    end
   end
 
   @impl true

@@ -29,10 +29,6 @@ defmodule Ippan.P2P.Client do
 
     {:ok, pid} = GenServer.start_link(@module, {hostname, port, pubkey, privkey})
 
-    :erlang.spawn(fn ->
-      reconnect(pid)
-    end)
-
     {:ok, pid}
   end
 
@@ -40,7 +36,7 @@ defmodule Ippan.P2P.Client do
   def init({hostname, port, falconPubkey, falconPrivkey}) do
     Process.flag(:trap_exit, true)
 
-    address = Address.hash(0, falconPubkey)
+    address = Address.hash(1, falconPubkey)
 
     {:ok,
      %{
@@ -49,7 +45,7 @@ defmodule Ippan.P2P.Client do
        address: address,
        pubkey: falconPubkey,
        privkey: falconPrivkey
-     }}
+     }, {:continue, :reconnect}}
   end
 
   @spec connect(pid()) :: {:ok, port()} | :error
@@ -83,6 +79,12 @@ defmodule Ippan.P2P.Client do
 
   def stop(pid) do
     GenServer.call(pid, :stop)
+  end
+
+  @impl true
+  def handle_continue(:reconnect, initial_state) do
+    reconnect(self())
+    {:noreply, initial_state}
   end
 
   @impl true

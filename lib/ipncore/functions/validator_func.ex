@@ -17,7 +17,7 @@ defmodule Ippan.Func.Validator do
           map()
         ) :: result()
   def new(
-        %{account: account},
+        %{account: account, timestamp: timestamp},
         id,
         owner_id,
         hostname,
@@ -28,11 +28,18 @@ defmodule Ippan.Func.Validator do
         opts \\ %{}
       )
       when is_positive(id) and
-             byte_size(name) <= 20 and between_size(hostname, 4, 50) and fee_type in 0..2 and fee > 0 do
+             byte_size(name) <= 20 and between_size(hostname, 4, 50) and fee_type in 0..2 and
+             fee > 0 and is_float(fee) do
     map_filter = Map.take(opts, Validator.optionals())
     pubkey = Fast64.decode64(pubkey)
 
     cond do
+      fee_type == 0 and fee < 1 ->
+        raise IppanError, "Invalid fee config"
+
+      fee_type == 2 and fee < 1 ->
+        raise IppanError, "Invalid fee config"
+
       byte_size(pubkey) != 897 ->
         raise IppanError, "Invalid pubkey size"
 
@@ -42,10 +49,10 @@ defmodule Ippan.Func.Validator do
       map_filter != opts ->
         raise IppanError, "Invalid options parameter"
 
-      Match.domain?(hostname) ->
+      not Match.domain?(hostname) ->
         raise IppanError, "Invalid hostname"
 
-      Platform.owner?(account.id) ->
+      not Platform.owner?(account.id) ->
         raise IppanError, "Invalid operation"
 
       true ->
@@ -57,13 +64,14 @@ defmodule Ippan.Func.Validator do
             pubkey: pubkey,
             owner: owner_id,
             fee: fee,
-            fee_type: fee_type
+            fee_type: fee_type,
+            created_at: timestamp,
+            updated_at: timestamp
           }
-          |> Map.merge(map_filter)
+          |> Map.merge(MapUtil.to_atoms(map_filter))
           |> MapUtil.validate_url(:avatar)
 
         ValidatorStore.insert(Validator.to_list(object))
-
         {:notify, object}
     end
   end
@@ -83,7 +91,7 @@ defmodule Ippan.Func.Validator do
         raise IppanError, "Invalid owner"
 
       true ->
-        map_filter
+        MapUtil.to_atoms(map_filter)
         |> MapUtil.validate_hostname(:hostname)
         |> MapUtil.validate_length_range(:name, 1..20)
         |> MapUtil.validate_url(:url)

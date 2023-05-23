@@ -4,6 +4,7 @@ defmodule BlockStore do
   use Store.Sqlite,
     base: :block,
     table: @table,
+    mod: Ippan.Block,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(
       height UNSIGNED BIGINT PRIMARY KEY,

@@ -4,6 +4,7 @@ defmodule RoundStore do
   use Store.Sqlite,
     base: :round,
     table: @table,
+    mod: Ippan.Round,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(
       id UNSIGNED BIGINT PRIMARY KEY NOT NULL,

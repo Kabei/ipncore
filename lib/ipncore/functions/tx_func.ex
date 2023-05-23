@@ -1,7 +1,8 @@
 defmodule Ippan.Func.Tx do
   @max_tx_amount 1_000_000_000_000_000
-  alias Exqlite.Sqlite3
+  alias Exqlite.Sqlite3NIF
   alias Ippan.Utils
+  require Logger
 
   # @token Default.token()
 
@@ -23,8 +24,8 @@ defmodule Ippan.Func.Tx do
       )
       when byte_size(token) <= 10 and amount <= @max_tx_amount and account.id != to do
     # hash16 = Base.encode16(hash)
-    account_id = Map.get(account, :id)
-    validator_id = Map.get(account, :id)
+    account_id = account.id
+    validator_id = Default.validator_id()
 
     %{fee: fee, fee_type: fee_type, owner: validator_owner} = ValidatorStore.lookup(validator_id)
 
@@ -44,25 +45,29 @@ defmodule Ippan.Func.Tx do
     RefundStore.replace([hash, account_id, to, token, amount, timestamp + :timer.hours(72)])
   end
 
-  def coinbase(%{account: account, hash: hash, timestamp: timestamp}, token, outputs) do
+  def coinbase(%{account: account, hash: hash, timestamp: timestamp}, token, outputs)
+      when length(outputs) > 0 do
     hash16 = Base.encode16(hash)
 
-    if length(outputs) == 0 do
-      raise IppanError, "No outputs"
-    end
-
     case TokenStore.execute_prepare(:owner_props, [token, account.id, "%coinbase%"]) do
-      true ->
+      {:ok, [[1]]} ->
+        Logger.info("Intro")
+        Logger.info(inspect(outputs))
+
         BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
           try do
-            Sqlite3.execute(conn, "SAVEPOINT #{hash16}")
+            Logger.info("begin")
+            Sqlite3NIF.execute(conn, 'SAVEPOINT #{hash16}')
             statment = Map.get(stmt, :income)
 
             total =
-              Stream.transform(outputs, 0, fn [account_id, amount], acc ->
+              Enum.reduce(outputs, 0, fn [account_id, amount], acc ->
                 cond do
                   amount <= 0 ->
                     raise ArgumentError, "Amount must be positive number"
+
+                  amount > @max_tx_amount ->
+                    raise ArgumentError, "Amount exceeded max value"
 
                   not Match.account?(account_id) ->
                     raise ArgumentError, "Account ID invalid"
@@ -73,21 +78,22 @@ defmodule Ippan.Func.Tx do
 
                 acc + amount
               end)
-              |> Enum.to_list()
-              |> List.first()
+
+            Logger.info(inspect(total))
 
             # sum supply
             TokenStore.execute_prepare(:sum_supply, [token, total])
-            Sqlite3.execute(conn, "RELEASE #{hash16}")
+            Sqlite3NIF.execute(conn, 'RELEASE #{hash16}')
             {:reply, :ok, state}
           rescue
             ex ->
-              Sqlite3.execute(conn, "ROLLBACK TO #{hash16}")
+              Logger.error(Exception.format(:error, ex, __STACKTRACE__))
+              Sqlite3NIF.execute(conn, 'ROLLBACK TO #{hash16}')
               {:reply, {:error, ex.message}, state}
           end
         end)
 
-      false ->
+      _ ->
         raise IppanError, "Invalid owner"
     end
   end

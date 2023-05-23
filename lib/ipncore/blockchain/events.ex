@@ -1,6 +1,6 @@
 defmodule Ippan.Events do
   alias Ippan.Event
-  alias Ippan.Func.{Env, Account, Balance, Block, Validator, Token, Domain, DNS, Round, Wallet}
+  alias Ippan.Func.{Env, Account, Balance, Tx, Block, Validator, Token, Domain, DNS, Round, Wallet}
 
   @spec lookup(event_id :: non_neg_integer()) :: Event.t() | :undefined
   def lookup(n = 0),
@@ -10,7 +10,7 @@ defmodule Ippan.Events do
       base: :wallet,
       mod: Wallet,
       fun: :new,
-      parallel: true,
+      parallel: false,
       auth: false
     }
 

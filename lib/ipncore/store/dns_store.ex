@@ -4,6 +4,7 @@ defmodule DnsStore do
   use Store.Sqlite,
     base: :dns,
     table: @table,
+    mod: Ippan.DNS,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(
       domain TEXT NOT NULL,

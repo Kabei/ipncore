@@ -13,9 +13,9 @@ defmodule Ippan.Domain do
 
   use Ippan.Struct
 
-  def optionals, do: ~w(email avatar)a
+  def optionals, do: ~w(email avatar)
 
-  def editable, do: ~w(owner email avatar)a
+  def editable, do: ~w(owner email avatar)
 
   @doc "Return subdomain and domain in a tuple from hostname or list hostname"
   def split(hostname_parts) when is_list(hostname_parts) do

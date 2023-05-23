@@ -15,9 +15,9 @@ defmodule Ippan.Token do
           updated_at: non_neg_integer()
         }
 
-  def optionals, do: ~w(avatar props)a
+  def optionals, do: ~w(avatar props)
 
-  def editable, do: ~w(avatar name owner)a
+  def editable, do: ~w(avatar name owner)
 
   def props, do: ~w(burn coinbase lock vote)
 
@@ -37,8 +37,8 @@ defmodule Ippan.Token do
   def to_list(x) do
     [
       x.id,
-      x.name,
       x.owner,
+      x.name,
       x.avatar,
       x.decimal,
       x.symbol,
@@ -51,9 +51,45 @@ defmodule Ippan.Token do
     ]
   end
 
+  def to_list_def(x, hash, round) do
+    [
+      x.id,
+      x.owner,
+      x.name,
+      x.avatar,
+      x.decimal,
+      x.symbol,
+      x.enabled,
+      x.supply,
+      x.burned,
+      @json.encode!(x.props),
+      x.created_at,
+      hash,
+      round
+    ]
+  end
+
+  def to_tuple([
+        id,
+        owner,
+        name,
+        avatar,
+        decimal,
+        symbol,
+        enabled,
+        supply,
+        burned,
+        props,
+        created_at,
+        updated_at
+      ]) do
+    {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, @json.encode!(props),
+     created_at, updated_at}
+  end
+
   def to_tuple(x) do
-    {x.id, x.name, x.owner, x.avatar, x.decimal, x.symbol, x.enabled, x.supply, x.burned, x.props,
-     x.created_at, x.updated_at}
+    {x.id, x.owner, x.name, x.avatar, x.decimal, x.symbol, x.enabled, x.supply, x.burned,
+     @json.encode!(x.props), x.created_at, x.updated_at}
   end
 
   def to_map(
@@ -70,7 +106,7 @@ defmodule Ippan.Token do
       enabled: enabled,
       supply: supply,
       burned: burned,
-      props: props,
+      props: @json.decode!(props),
       created_at: created_at,
       updated_at: updated_at
     }
@@ -78,8 +114,8 @@ defmodule Ippan.Token do
 
   def to_map([
         id,
-        name,
         owner,
+        name,
         avatar,
         decimal,
         symbol,

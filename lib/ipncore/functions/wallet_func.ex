@@ -7,10 +7,10 @@ defmodule Ippan.Func.Wallet do
 
     sig_type =
       case byte_size(pubkey) do
-        897 ->
+        33 ->
           0
 
-        33 ->
+        897 ->
           1
 
         _ ->

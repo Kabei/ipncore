@@ -4,6 +4,7 @@ defmodule DomainStore do
   use Store.Sqlite,
     base: :domain,
     table: @table,
+    mod: Ippan.Domain,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(
     name TEXT PRIMARY KEY NOT NULL,

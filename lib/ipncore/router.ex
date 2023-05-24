@@ -21,7 +21,7 @@ defmodule Ipncore.Router do
         [sig] ->
           sig = Fast64.decode64(sig)
           size = byte_size(body) + byte_size(sig)
-          RequestHandler.handle(hash, body, size, sig)
+          RequestHandler.handle(hash, body, size, sig, 0)
 
         _ ->
           size = byte_size(body)

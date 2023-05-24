@@ -23,4 +23,6 @@ defmodule RefundStore do
       exists: "SELECT 1 FROM #{@table} WHERE hash = ?1 AND `to` = ?2 AND expiry_in > ?3",
       delete: "DELETE FROM #{@table} WHERE hash = ?"
     }
+
+  # "DELETE FROM #{@table} WHERE hash = ?1 AND `to` = ?2 AND expiry_in > ?3 RETURNING sender, token, amount",
 end

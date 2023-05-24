@@ -71,8 +71,13 @@ defmodule Ippan.Func.Validator do
           |> Map.merge(MapUtil.to_atoms(map_filter))
           |> MapUtil.validate_url(:avatar)
 
-        ValidatorStore.insert(Validator.to_list(object))
-        {:notify, object}
+        case ValidatorStore.insert_sync(Validator.to_list(object)) do
+          {:error, _} ->
+            raise IppanError, "Invalid operation"
+
+          _ ->
+            {:notify, object}
+        end
     end
   end
 

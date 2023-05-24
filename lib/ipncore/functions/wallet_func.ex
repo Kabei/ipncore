@@ -29,7 +29,7 @@ defmodule Ippan.Func.Wallet do
 
   def subscribe(%{account: wallet, timestamp: timestamp, size: size}, validator_id) do
     cond do
-      wallet.validator != validator_id ->
+      wallet.validator == validator_id ->
         raise IppanError, "Already subscribe"
 
       not ValidatorStore.exists?(validator_id) ->

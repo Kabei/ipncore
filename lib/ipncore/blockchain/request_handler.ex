@@ -1,6 +1,5 @@
 defmodule Ippan.RequestHandler do
   require Logger
-  alias Ippan.Func.Wallet
   alias Ippan.Events
   #  alias Ippan.Request.Source
   # alias Phoenix.PubSub
@@ -8,9 +7,10 @@ defmodule Ippan.RequestHandler do
   @pubsub_server :pubsub
   @timeout Application.compile_env(:ipncore, :message_timeout)
   @libsecp256k1 ExSecp256k1.Impl
-
   @origin_from_client 0
   @origin_from_peer 1
+
+  @type origin :: 0 | 1
 
   @spec handle(binary(), list(), non_neg_integer()) ::
           :ok | {:error, term()} | no_return()
@@ -30,7 +30,7 @@ defmodule Ippan.RequestHandler do
         size: size
       }
 
-      apply(event.mod, event.fun, [source | args])
+      apply(event.mod, event.fun, [source | List.wrap(args)])
 
       MessageStore.insert([hash, msg, nil, size])
     rescue
@@ -43,9 +43,9 @@ defmodule Ippan.RequestHandler do
     end
   end
 
-  @spec handle(binary(), String.t(), non_neg_integer(), binary() | nil) ::
+  @spec handle(binary(), String.t(), non_neg_integer(), binary() | nil, origin()) ::
           :ok | {:error, term()} | no_return()
-  def handle(hash, msg, size, sig_with_flag) do
+  def handle(hash, msg, size, sig_with_flag, origin) do
     try do
       [type, timestamp, from, args] = Jsonrs.decode!(msg)
 
@@ -54,11 +54,18 @@ defmodule Ippan.RequestHandler do
 
       %{auth: true} = event = Events.lookup(type)
 
-      [wallet_id, wallet_pubkey, _wallet_validator, _wallet_created_at] = WalletStore.lookup(from)
+      [wallet_pubkey, wallet_validator] =
+        case origin do
+          0 ->
+            WalletStore.lookup(from)
 
-      # wallet = WalletStore.execute_prepare(:validator, [from, Global.get(:validator_id)])
+          1 ->
+            WalletStore.lookup(from)
+            # {:ok, [data]} =
+            #   WalletStore.execute_prepare(:validator, [from, Default.validator_id()])
 
-      # if length(wallet) == 0, do: raise(IppanError, "Invalid wallet ID or not subscribe")
+            # data
+        end
 
       <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
 
@@ -87,7 +94,7 @@ defmodule Ippan.RequestHandler do
 
       source = %{
         hash: hash,
-        account: %{id: wallet_id},
+        account: %{id: from, validator: wallet_validator},
         event: event,
         timestamp: timestamp,
         sig_type: sig_flag,
@@ -95,15 +102,7 @@ defmodule Ippan.RequestHandler do
       }
 
       # call function
-      apply(event.mod, event.fun, [source | args])
-      # case event.parallel do
-      #   true ->
-      #     # GlobalRequestStore.insert([type, hd(args), hash, timestamp])
-      #     :noreply
-
-      #   false ->
-      #     # build source
-      # end
+      apply(event.mod, event.fun, [source | List.wrap(args)])
 
       MessageStore.insert([hash, msg, signature, size])
     rescue

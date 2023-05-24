@@ -6,6 +6,8 @@ defmodule Ippan.Func.Tx do
 
   # @token Default.token()
 
+  @refund_timeout :timer.hours(72)
+
   def send(_, token, outputs)
       when byte_size(token) <= 10 and is_list(outputs) do
     raise IppanError, "multisend no supported yet"
@@ -42,7 +44,7 @@ defmodule Ippan.Func.Tx do
         timestamp
       )
 
-    RefundStore.replace([hash, account_id, to, token, amount, timestamp + :timer.hours(72)])
+    RefundStore.replace([hash, account_id, to, token, amount, timestamp + @refund_timeout])
   end
 
   def coinbase(%{account: account, hash: hash, timestamp: timestamp}, token, outputs)
@@ -51,12 +53,8 @@ defmodule Ippan.Func.Tx do
 
     case TokenStore.execute_prepare(:owner_props, [token, account.id, "%coinbase%"]) do
       {:ok, [[1]]} ->
-        Logger.info("Intro")
-        Logger.info(inspect(outputs))
-
         BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
           try do
-            Logger.info("begin")
             Sqlite3NIF.execute(conn, 'SAVEPOINT #{hash16}')
             statment = Map.get(stmt, :income)
 
@@ -102,8 +100,14 @@ defmodule Ippan.Func.Tx do
     account_id = account.id
 
     case TokenStore.execute_prepare(:props, [token, "%burn%"]) do
-      {:ok, [1]} ->
-        BalanceStore.burn(account_id, token, amount, timestamp)
+      {:ok, [[1]]} ->
+        case BalanceStore.burn(account_id, token, amount, timestamp) do
+          :ok ->
+            TokenStore.execute_prepare(:sum_burned, [token, amount])
+
+          :error ->
+            raise IppanError, "Invalid operation"
+        end
 
       _ ->
         raise IppanError, "Invalid operation"
@@ -113,10 +117,17 @@ defmodule Ippan.Func.Tx do
   def refund(%{account: account, timestamp: timestamp}, hash)
       when byte_size(hash) == 64 do
     hash = Base.decode16!(hash)
-    account_id = Map.get(account, :id)
+    account_id = account.id
+    require Logger
+    Logger.debug(inspect({hash, account_id, timestamp}))
     [sender_id, token, refund_amount] = RefundStore.lookup([hash, account_id, timestamp])
 
-    BalanceStore.send(account_id, sender_id, token, refund_amount, timestamp)
-    RefundStore.delete(hash)
+    case BalanceStore.send(account_id, sender_id, token, refund_amount, timestamp) do
+      :ok ->
+        RefundStore.delete(hash)
+
+      _ ->
+        raise IppanError, "Invalid operation"
+    end
   end
 end

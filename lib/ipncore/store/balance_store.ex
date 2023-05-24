@@ -69,7 +69,7 @@ defmodule BalanceStore do
           :ok | :error
   def burn(from_id, token_id, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
-      send_stmt = Map.get(stmt, :send)
+      send_stmt = stmt.send
 
       case Sqlite3NIF.bind_step_changes(conn, send_stmt, [from_id, token_id, amount, timestamp]) do
         1 ->

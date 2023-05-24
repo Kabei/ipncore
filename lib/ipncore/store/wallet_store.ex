@@ -14,8 +14,8 @@ defmodule WalletStore do
     ",
     stmt: %{
       insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4)",
-      validator: "SELECT * FROM #{@table} WHERE id=?1 AND validator=?2",
-      lookup: "SELECT * FROM #{@table} WHERE id=?",
+      validator: "SELECT pubkey, validator FROM #{@table} WHERE id=?1 AND validator=?2",
+      lookup: "SELECT pubkey, validator FROM #{@table} WHERE id=?",
       exists: "SELECT 1 FROM #{@table} WHERE id=?",
       delete: "DELETE FROM #{@table} WHERE id=?"
     }

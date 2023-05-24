@@ -12,10 +12,6 @@ defmodule Test do
         236, 6, 168, 77, 247, 60, 145, 142, 137, 32, 81, 188, 167, 95, 239, 138, 212, 128, 12,
         211, 239, 154, 118, 40, 154, 90, 156, 28>>
 
-    _sk2 =
-      <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
-        100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
-
     {pk, address} = Test.gen_secp256k1(sk)
     # {pk2, address2} = Test.gen_secp256k1(sk2)
     # IO.inspect(byte_size(pk))
@@ -35,6 +31,21 @@ defmodule Test do
     |> run()
   end
 
+  # {sk, sk2, address, address2} = Test.test()
+  def test do
+    sk =
+      <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
+        100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 83>>
+
+    sk2 =
+      <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
+        100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
+
+    {_pk, address} = Test.gen_secp256k1(sk)
+    {_pk2, address2} = Test.gen_secp256k1(sk2)
+    {sk, sk2, address, address2}
+  end
+
   def build_request({body, sig}) do
     IO.puts(body)
     IO.puts(Fast64.encode64(sig))
@@ -49,7 +60,7 @@ defmodule Test do
     size = byte_size(body) + byte_size(sig)
     fsig = sig
     # IO.inspect(fsig)
-    RequestHandler.handle(hash, body, size, fsig)
+    RequestHandler.handle(hash, body, size, fsig, 0)
   end
 
   def run(body) do
@@ -87,10 +98,10 @@ defmodule Test do
     body
   end
 
-  # Test.wallet_subscribe(sk, address, 1)
+  # Test.wallet_subscribe(sk, address, 1) |> Test.build_request
   def wallet_subscribe(secret, address, validator_id) do
     body =
-      [1, :os.system_time(:millisecond), address, [validator_id]]
+      [1, :os.system_time(:millisecond), address, validator_id]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -116,7 +127,7 @@ defmodule Test do
   # Test.env_delete(sk, address, "test") |> Test.build_request
   def env_delete(secret, address, name) do
     body =
-      [51, :os.system_time(:millisecond), address, [name]]
+      [51, :os.system_time(:millisecond), address, name]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -156,7 +167,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.validator_new(sk, address, 0, address, "ippan.uk", "main core", pkv, 1, 5)
+  # Test.validator_new(sk, address, 0, address, "ippan.net", "net core", pkv, 1, 5.0) |> Test.build_request()
   def validator_new(
         secret,
         address,
@@ -207,9 +218,36 @@ defmodule Test do
   end
 
   # Test.tx_send(sk2, address2, address, "IPN", 50000) |> Test.build_request()
+  # Test.tx_send(sk2, address2, address, "IPN", 4000) |> Test.build_request()
   def tx_send(secret, address, to, token, amount) do
     body =
       [301, :os.system_time(:millisecond), address, [to, token, amount]]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Test.tx_burn(sk2, address2, "IPN", 1000) |> Test.build_request()
+  def tx_burn(secret, address, token, amount) do
+    body =
+      [302, :os.system_time(:millisecond), address, [token, amount]]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Test.tx_refund(sk, address, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Test.build_request()
+  def tx_refund(secret, address, hash) do
+    body =
+      [303, :os.system_time(:millisecond), address, hash]
       |> Jason.encode!()
 
     hash = hash_fun(body)

@@ -20,7 +20,7 @@ defmodule Ippan.Events do
       name: "wallet.subscribe",
       base: :wallet,
       mod: Wallet,
-      fun: :subcribe,
+      fun: :subscribe,
       parallel: false,
       auth: true
     }

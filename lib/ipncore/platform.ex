@@ -2,7 +2,7 @@ defmodule Platform do
   @token Application.compile_env(:ipncore, :token)
 
   def start do
-    validator_id = Application.get_env(:ipncore, :validator)
+    validator_id = Default.validator_id()
 
     case TokenStore.lookup(@token) do
       nil ->
@@ -12,7 +12,7 @@ defmodule Platform do
 
       token ->
         wallet_owner = token.owner
-        [_wallet_id, wallet_pubkey | _rest] = WalletStore.lookup(wallet_owner)
+        [wallet_pubkey, _wallet_validator] = WalletStore.lookup(wallet_owner)
 
         GlobalConst.new(Global, %{
           owner: wallet_owner,

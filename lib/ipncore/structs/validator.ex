@@ -18,7 +18,6 @@ defmodule Ippan.Validator do
     :hostname,
     :name,
     :owner,
-    # :address,
     :avatar,
     :pubkey,
     :fee_type,

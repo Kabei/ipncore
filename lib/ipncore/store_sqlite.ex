@@ -172,7 +172,7 @@ defmodule Store.Sqlite do
       end
 
       def insert_deferred(params) do
-        GenServer.cast(@base, {:insert_deferred, [params]})
+        GenServer.cast(@base, {:insert_deferred, params})
       end
 
       @spec insert_sync(list()) :: integer() | :busy | {:error, term()}
@@ -182,6 +182,11 @@ defmodule Store.Sqlite do
         # %{conn: conn, stmt: stmts} = Owner.get(@base)
         %{conn: conn, stmt: stmts} = :sys.get_state(@base)
         Sqlite3NIF.bind_step_changes(conn, stmts.insert, params)
+      end
+
+      def insert_sync_deferred(params) do
+        %{conn: conn, stmt: stmts} = :sys.get_state(@base)
+        Sqlite3NIF.bind_step_changes(conn, stmts.insert_deferred, params)
       end
 
       def upsert(params) do
@@ -223,7 +228,7 @@ defmodule Store.Sqlite do
           for key <- fields do
             "#{key}=?"
           end
-          |> Enum.join(" ")
+          |> Enum.join(", ")
 
         where =
           for key <- w_fields do
@@ -247,12 +252,26 @@ defmodule Store.Sqlite do
         call(@base, :sync)
       end
 
+      def move_deferred(round) do
+        %{conn: conn, stmt: stmt} = :sys.get_state(@base)
+        Sqlite3NIF.bind_and_step(conn, stmt.move, [round])
+        Sqlite3NIF.bind_and_step(conn, stmt.delete_deferred, [round])
+      end
+
       def drop do
         call(@base, :drop)
       end
 
-      def execute_prepare(stmt_name, params) do
-        call(@base, {:execute_prepare, stmt_name, params})
+      def execute_fetch(stmt_name, params) do
+        call(@base, {:execute_fetch, stmt_name, params})
+      end
+
+      def execute_step(stmt_name, params) do
+        call(@base, {:execute_step, stmt_name, params})
+      end
+
+      def execute_changes(stmt_name, params) do
+        call(@base, {:execute_changes, stmt_name, params})
       end
 
       def execute(sql) do
@@ -366,14 +385,11 @@ defmodule Store.Sqlite do
             ) do
           case :ets.lookup(ets, id) do
             [] ->
-              statement = Map.get(stmt, :owner)
-
-              result = {:row, [1]} == Sqlite3NIF.bind_and_step(conn, statement, [id, owner])
-
+              result = {:row, [1]} == Sqlite3NIF.bind_and_step(conn, stmt.owner, [id, owner])
               {:reply, result, state}
 
             [{_, value}] ->
-              map = call(@mod, :to_map, [value])
+              map = apply(@mod, :to_map, [value])
               {:reply, map.owner == owner, state}
           end
         end
@@ -383,7 +399,7 @@ defmodule Store.Sqlite do
               _from,
               %{conn: conn, ets: ets, stmt: stmt} = state
             ) do
-          statement = Map.get(stmt, :delete)
+          statement = stmt.delete
 
           case Sqlite3NIF.bind_step_changes(conn, statement, List.wrap(params)) do
             n when n > 0 ->
@@ -458,13 +474,12 @@ defmodule Store.Sqlite do
         end
 
         def handle_call({:owner, id, owner}, _from, %{conn: conn, stmt: stmt} = state) do
-          statement = Map.get(stmt, :owner)
-          result = {:row, [1]} == Sqlite3NIF.bind_and_step(conn, statement, [id, owner])
+          result = {:row, [1]} == Sqlite3NIF.bind_and_step(conn, stmt.owner, [id, owner])
           {:reply, result, state}
         end
 
         def handle_call({:delete, params}, _from, %{conn: conn, stmt: stmt} = state) do
-          statement = Map.get(stmt, :delete)
+          statement = stmt.delete
 
           case Sqlite3NIF.bind_step_changes(conn, statement, List.wrap(params)) do
             n when n > 0 ->
@@ -504,9 +519,11 @@ defmodule Store.Sqlite do
           n when n > 0 ->
             Sqlite3NIF.release(conn, statement)
 
-            case Map.get(state, :ets) do
-              nil -> :ok
-              ets -> :ets.delete(ets, params_to_ets(values_list))
+            if @cache do
+              case Map.get(state, :ets) do
+                nil -> :ok
+                ets -> :ets.delete(ets, params_to_ets(values_list))
+              end
             end
 
             {:reply, n, state}
@@ -524,7 +541,7 @@ defmodule Store.Sqlite do
         {:reply, result, state}
       end
 
-      def handle_call(:sync, _from, %{conn: conn} = state) do
+      def handle_call(:sync, _from, %{conn: conn, stmt: stmt} = state) do
         # Logger.debug("Sync #{@table}")
         commit(conn)
         Sqlite3NIF.execute(conn, 'PRAGMA wal_checkpoint(TRUNCATE)')
@@ -533,7 +550,16 @@ defmodule Store.Sqlite do
       end
 
       def handle_call(
-            {:execute_prepare, stmt_name, params},
+            {:execute_step, stmt_name, params},
+            _from,
+            %{conn: conn, stmt: stmt} = state
+          ) do
+        statement = Map.get(stmt, stmt_name)
+        {:reply, Sqlite3NIF.bind_and_step(conn, statement, params), state}
+      end
+
+      def handle_call(
+            {:execute_fetch, stmt_name, params},
             _from,
             %{conn: conn, stmt: stmt} = state
           ) do
@@ -541,6 +567,15 @@ defmodule Store.Sqlite do
         Sqlite3NIF.bind(conn, statement, params)
         result = Sqlite3.fetch_all(conn, statement)
         {:reply, result, state}
+      end
+
+      def handle_call(
+            {:execute_changes, stmt_name, params},
+            _from,
+            %{conn: conn, stmt: stmt} = state
+          ) do
+        statement = Map.get(stmt, stmt_name)
+        {:reply, Sqlite3NIF.bind_step_changes(conn, statement, params), state}
       end
 
       def handle_call({:execute, sql}, _from, %{conn: conn} = state) do

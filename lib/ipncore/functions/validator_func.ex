@@ -124,11 +124,11 @@ defmodule Ippan.Func.Validator do
   @spec delete(Source.t(), term) :: result()
   def delete(%{account: account}, id) do
     cond do
-      not ValidatorStore.owner?(id, account.id) ->
+      not Platform.owner?(account.id) and not ValidatorStore.owner?(id, account.id) ->
         raise IppanError, "Invalid owner"
 
       true ->
-        ValidatorStore.delete([id, account.id])
+        ValidatorStore.delete(id)
 
         {:notify, id}
     end

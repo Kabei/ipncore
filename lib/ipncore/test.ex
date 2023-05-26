@@ -138,6 +138,7 @@ defmodule Test do
   end
 
   # Test.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
+  # Test.token_new(sk, address, "USD", address, "DOLLAR", 5, "$", %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Test.build_request
   def token_new(
         secret,
         address,
@@ -164,6 +165,32 @@ defmodule Test do
 
     sig = signature64(address, secret, hash)
     # IO.inspect(sig)
+    {body, sig}
+  end
+
+  # Test.token_update(sk, address, "USD", %{"name" => "Dollar"}) |> Test.build_request()
+  def token_update(secret, address, id, params) do
+    body =
+      [201, :os.system_time(:millisecond), address, [id, params]]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Test.token_delete(sk, address, "USD") |> Test.build_request()
+  def token_delete(secret, address, id) do
+    body =
+      [202, :os.system_time(:millisecond), address, id]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
     {body, sig}
   end
 
@@ -195,6 +222,32 @@ defmodule Test do
           fee
         ]
       ]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Test.validator_update(sk, address, 1, %{"fee" => 7.0}) |> Test.build_request()
+  def validator_update(secret, address, id, params) do
+    body =
+      [101, :os.system_time(:millisecond), address, [id, params]]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Test.validator_delete(sk, address, 1) |> Test.build_request()
+  def validator_delete(secret, address, id) do
+    body =
+      [102, :os.system_time(:millisecond), address, id]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -257,26 +310,78 @@ defmodule Test do
     {body, sig}
   end
 
+  # Test.domain_new(sk, address, "example.ipn", address, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Test.build_request()
+  def domain_new(
+        secret,
+        address,
+        domain_name,
+        owner,
+        years,
+        %{
+          "email" => _email,
+          "avatar" => _avatar
+        } = params
+      ) do
+    body =
+      [400, :os.system_time(:millisecond), address, [domain_name, owner, years, params]]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Test.domain_delete(sk2, address2, "example.ipn", %{"email" => "@email.com"}) |> Test.build_request()
+  def domain_update(
+        secret,
+        address,
+        domain_name,
+        params
+      ) do
+    body =
+      [401, :os.system_time(:millisecond), address, domain_name, params]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Test.domain_delete(sk, address, "example.ipn") |> Test.build_request()
+  def domain_delete(
+        secret,
+        address,
+        domain_name
+      ) do
+    body =
+      [402, :os.system_time(:millisecond), address, domain_name]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
   defp signature64(address, secret, msg) do
     <<first::bytes-size(1), _rest::binary>> = address
-    # IO.inspect(first)
-    s =
-      first <>
-        case first do
-          "0" ->
-            ExSecp256k1.Impl.sign_compact(msg, secret)
-            |> elem(1)
-            |> elem(0)
 
-          "1" ->
-            Falcon.sign(secret, msg)
-            |> elem(1)
-        end
+    first <>
+      case first do
+        "0" ->
+          ExSecp256k1.Impl.sign_compact(msg, secret)
+          |> elem(1)
+          |> elem(0)
 
-    #  IO.inspect(s)
-
-    s
-    # |> Fast64.encode64()
+        "1" ->
+          Falcon.sign(secret, msg)
+          |> elem(1)
+      end
   end
 
   defp hash_fun(msg) do

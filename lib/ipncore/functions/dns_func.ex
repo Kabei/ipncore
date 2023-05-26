@@ -91,7 +91,7 @@ defmodule Ippan.Func.Dns do
           DnsStore.delete(domain)
 
         subdomain ->
-          DnsStore.execute_prepare("delete_name", [domain, subdomain])
+          DnsStore.execute_fetch("delete_name", [domain, subdomain])
       end
     else
       raise IppanError, "Invalid Owner"
@@ -102,7 +102,7 @@ defmodule Ippan.Func.Dns do
     {subdomain, domain} = Domain.split(fullname)
 
     if DomainStore.owner?(domain, account.id) do
-      DnsStore.execute_prepare("delete_type", [domain, subdomain, type])
+      DnsStore.execute_fetch("delete_type", [domain, subdomain, type])
     else
       raise IppanError, "Invalid Owner"
     end
@@ -112,7 +112,7 @@ defmodule Ippan.Func.Dns do
     {subdomain, domain} = Domain.split(fullname)
 
     if DomainStore.owner?(domain, account.id) do
-      DnsStore.execute_prepare("delete_hash", [domain, subdomain, hash])
+      DnsStore.execute_fetch("delete_hash", [domain, subdomain, hash])
     else
       raise IppanError, "Invalid Owner"
     end

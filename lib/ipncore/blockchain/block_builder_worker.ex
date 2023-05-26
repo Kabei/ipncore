@@ -32,7 +32,7 @@ defmodule BlockBuilderWork do
 
   # def run do
   # last_block = Chain.get_last_block()
-  # {:ok, records} = MessageStore.execute_prepare("by_block")
+  # {:ok, records} = MessageStore.execute_fetch("by_block")
 
   # current_block_number = last_block.height + 1
   # data_dir = Application.get_env(@otp_app, :data_dir, "data")

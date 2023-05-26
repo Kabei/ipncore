@@ -62,20 +62,20 @@ defmodule Ippan.RequestHandler do
           1 ->
             WalletStore.lookup(from)
             # {:ok, [data]} =
-            #   WalletStore.execute_prepare(:validator, [from, Default.validator_id()])
+            #   WalletStore.execute_fetch(:validator, [from, Default.validator_id()])
 
             # data
         end
 
       <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
 
-      IO.inspect("sig_flag")
-      IO.inspect(sig_flag)
+      # IO.inspect("sig_flag")
+      # IO.inspect(sig_flag)
 
       case sig_flag do
         "0" ->
           # verify secp256k1 signature
-          IO.inspect(wallet_pubkey)
+          # IO.inspect(wallet_pubkey)
           {:ok, pub} = ExSecp256k1.Impl.public_key_decompress(wallet_pubkey)
           # IO.inspect(signature)
           # IO.inspect(byte_size(signature))

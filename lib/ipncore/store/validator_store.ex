@@ -32,8 +32,8 @@ defmodule ValidatorStore do
       # enabled = EXCLUDED.enabled, created_at = EXCLUDED.created_at,
       # updated_at = EXCLUDED.updated_at WHERE created_at < EXCLUDED.created_at;
       lookup: "SELECT * FROM #{@table} WHERE id = ?1",
+      owner: "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?1",
-      delete: "DELETE FROM #{@table} WHERE id = ?1 AND owner = ?2",
-      owner: "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2"
+      delete: "DELETE FROM #{@table} WHERE id = ?1"
     }
 end

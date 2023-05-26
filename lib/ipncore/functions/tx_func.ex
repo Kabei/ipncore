@@ -51,7 +51,7 @@ defmodule Ippan.Func.Tx do
       when length(outputs) > 0 do
     hash16 = Base.encode16(hash)
 
-    case TokenStore.execute_prepare(:owner_props, [token, account.id, "%coinbase%"]) do
+    case TokenStore.execute_fetch(:owner_props, [token, account.id, "%coinbase%"]) do
       {:ok, [[1]]} ->
         BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
           try do
@@ -80,7 +80,7 @@ defmodule Ippan.Func.Tx do
             Logger.info(inspect(total))
 
             # sum supply
-            TokenStore.execute_prepare(:sum_supply, [token, total])
+            TokenStore.execute_fetch(:sum_supply, [token, total])
             Sqlite3NIF.execute(conn, 'RELEASE #{hash16}')
             {:reply, :ok, state}
           rescue
@@ -99,13 +99,13 @@ defmodule Ippan.Func.Tx do
   def burn(%{account: account, timestamp: timestamp}, token, amount) do
     account_id = account.id
 
-    case TokenStore.execute_prepare(:props, [token, "%burn%"]) do
+    case TokenStore.execute_fetch(:props, [token, "%burn%"]) do
       {:ok, [[1]]} ->
         case BalanceStore.burn(account_id, token, amount, timestamp) do
-          :ok ->
-            TokenStore.execute_prepare(:sum_burned, [token, amount])
+          1 ->
+            TokenStore.execute_fetch(:sum_burned, [token, amount])
 
-          :error ->
+          _ ->
             raise IppanError, "Invalid operation"
         end
 

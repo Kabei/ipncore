@@ -9,9 +9,12 @@ defmodule Ippan.Func.Balance do
       |> Token.to_map()
 
     if token.owner == account_id and "lock" in token.props do
-      BalanceStore.lock(to_id, token_id, amount)
+      case BalanceStore.lock(to_id, token_id, amount) do
+        false -> raise IppanError, "Invalid operation"
+        true -> :ok
+      end
     else
-      false
+      raise IppanError, "Invalid operation"
     end
   end
 
@@ -23,9 +26,12 @@ defmodule Ippan.Func.Balance do
       |> Token.to_map()
 
     if token.owner == account_id and "lock" in token.props do
-      BalanceStore.unlock(to_id, token_id, amount)
+      case BalanceStore.unlock(to_id, token_id, amount) do
+        false -> raise IppanError, "Invalid operation"
+        true -> :ok
+      end
     else
-      false
+      raise IppanError, "Invalid operation"
     end
   end
 end

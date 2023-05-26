@@ -27,7 +27,7 @@ defmodule TokenStore do
     CREATE TABLE IF NOT EXISTS #{@table_df}(
       id VARCHAR(20) PRIMARY KEY NOT NULL,
       owner BLOB NOT NULL,
-      name TEXT,
+      name TEXT NOT NULL,
       avatar TEXT,
       decimal TINYINT DEFAULT 0,
       symbol VARCHAR(5) NOT NULL,
@@ -44,10 +44,10 @@ defmodule TokenStore do
     stmt: %{
       insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
       insert_deferred:
-        "INSERT INTO #{@table_df} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13) ON CONFLICT (id)
-      DO UPDATE SET owner=?2, name=?3, avatar=?4, decimal=?5, symbol=?6, enabled=?7, supply=?8, burned=?9, props=?10, created_at=?11, hash=?12
-      WHERE created_at=?11 OR created_at=?11 AND hash=?12",
-      replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+        "INSERT INTO #{@table_df} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13) ON CONFLICT (id)
+        DO UPDATE SET owner=?2, name=?3, avatar=?4, decimal=?5, symbol=?6, enabled=?7, supply=?8, burned=?9, props=?10, created_at=?11, hash=?12, round=?13
+        WHERE created_at > EXCLUDED.created_at OR created_at = EXCLUDED.created_at AND hash > EXCLUDED.hash",
+      replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
       lookup: "SELECT * FROM #{@table} WHERE id = ?",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?",
       delete: "DELETE FROM #{@table} WHERE id = ? AND owner = ? AND supply = 0 AND burned = 0",
@@ -57,7 +57,8 @@ defmodule TokenStore do
       owner_props: "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2 AND props LIKE ?3",
       props: "SELECT 1 FROM #{@table} WHERE id = ?1 AND props LIKE ?2",
       move:
-        "INSERT INTO token (id, owner, name, avatar, decimal, symbol, enabled, supply, burned, props, created_at, updated_at) SELECT id, owner, name, avatar, decimal, symbol, enabled, supply, burned, props, created_at, created_at FROM token_df WHERE round=?1;
-        DELETE * FROM WHERE round=?1;"
+        "INSERT OR IGNORE INTO #{@table} (id, owner, name, avatar, decimal, symbol, enabled, supply, burned, props, created_at, updated_at)
+        SELECT id, owner, name, avatar, decimal, symbol, enabled, supply, burned, props, created_at, created_at FROM #{@table_df} WHERE round=?1",
+      delete_deferred: "DELETE FROM #{@table_df} WHERE round=?1"
     }
 end

@@ -34,6 +34,10 @@ defmodule Ippan.Balance do
     ]
   end
 
+  # def to_list_def(id, type, from, token, to, amount, timestamp, hash, round) do
+  #   [id, type, from, token, to, amount, timestamp, hash, round]
+  # end
+
   def to_tuple(x) do
     {
       x.id,

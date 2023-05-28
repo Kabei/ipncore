@@ -49,17 +49,18 @@ defmodule Ippan.RequestHandler do
     try do
       [type, timestamp, from, args] = Jsonrs.decode!(msg)
 
-      # if :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout),
-      #   do: raise(IppanError, "Invalid timestamp")
-
       %{auth: true} = event = Events.lookup(type)
 
-      [wallet_pubkey, wallet_validator] =
+      # fetch pubkey and validator subscription
+      [_, wallet_pubkey, wallet_validator] =
         case origin do
-          0 ->
+          @origin_from_client ->
+            # if :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout),
+            #   do: raise(IppanError, "Invalid timestamp")
+
             WalletStore.lookup(from)
 
-          1 ->
+          @origin_from_peer ->
             WalletStore.lookup(from)
             # {:ok, [data]} =
             #   WalletStore.execute_fetch(:validator, [from, Default.validator_id()])
@@ -67,10 +68,8 @@ defmodule Ippan.RequestHandler do
             # data
         end
 
+      # check signature type
       <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
-
-      # IO.inspect("sig_flag")
-      # IO.inspect(sig_flag)
 
       case sig_flag do
         "0" ->
@@ -95,9 +94,9 @@ defmodule Ippan.RequestHandler do
       source = %{
         hash: hash,
         account: %{id: from, validator: wallet_validator},
-        event: event,
+        # event: event,
         timestamp: timestamp,
-        sig_type: sig_flag,
+        # sig_type: sig_flag,
         size: size
       }
 

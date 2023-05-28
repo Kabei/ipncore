@@ -218,6 +218,18 @@ defmodule Store.Sqlite do
         call(@base, :all)
       end
 
+      def savepoint(id) do
+        call(@base, {:execute, 'SAVEPOINT #{id}'})
+      end
+
+      def sv_release(id) do
+        call(@base, {:execute, 'RELEASE #{id}'})
+      end
+
+      def sv_rollback(id) do
+        call(@base, {:execute, 'ROLLBACK TO #{id}'})
+      end
+
       @spec update(map | Keyword.t(), map | Keyword.t()) ::
               non_neg_integer() | {:error, term()}
       def update(map_set_fields, map_where) do
@@ -309,7 +321,7 @@ defmodule Store.Sqlite do
           ret =
             case :ets.lookup(ets, params_to_ets(params)) do
               [] ->
-                statement = Map.get(stmt, :lookup)
+                statement = stmt.lookup
 
                 case Sqlite3NIF.bind_and_step(conn, statement, List.wrap(params)) do
                   {:row, data} ->

@@ -256,26 +256,12 @@ defmodule BalanceStore do
 
   @spec lock(binary, String.t(), non_neg_integer()) :: boolean()
   def lock(id, token, amount) do
-    fun = fn %{conn: conn, stmt: stmt} = state ->
-      stmt = Map.get(stmt, :lock)
-
-      result = Sqlite3NIF.bind_step_changes(conn, stmt, [id, token, amount])
-      {:reply, result == 1, state}
-    end
-
-    call(@base, {:call, fun})
+    call(@base, {:execute_changes, :lock, [id, token, amount]})
   end
 
   @spec unlock(binary, String.t(), non_neg_integer()) :: boolean()
   def unlock(id, token, amount) do
-    fun = fn %{conn: conn, stmt: stmt} = state ->
-      stmt = Map.get(stmt, :unlock)
-
-      result = Sqlite3NIF.bind_step_changes(conn, stmt, [id, token, amount])
-      {:reply, result == 1, state}
-    end
-
-    call(@base, {:call, fun})
+    call(@base, {:execute_changes, :unlock, [id, token, amount]})
   end
 
   def receive(conn, recv_stmt, to_id, token, amount, timestamp)

@@ -11,6 +11,7 @@ defmodule DnsStore do
       name TEXT NOT NULL,
       type TINYINT NOT NULL,
       data TEXT,
+      ttl integer DEFAULT 0,
       hash BLOB NOT NULL
     );
     """,

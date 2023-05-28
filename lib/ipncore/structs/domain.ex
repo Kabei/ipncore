@@ -34,7 +34,7 @@ defmodule Ippan.Domain do
     {Enum.join(subdomain, "."), Enum.join(domain, ".")}
   end
 
-  def price(name, years) do
+  def price(name, days) do
     x =
       name
       |> String.split(".")
@@ -44,20 +44,16 @@ defmodule Ippan.Domain do
     base =
       cond do
         x <= 5 ->
-          100_000
+          1000
 
         x <= 8 ->
-          75_000
+          750
 
         true ->
-          5_000
+          500
       end
 
-    base + (years - 1) * 5_000
-  end
-
-  def priceRenew(years) do
-    years * 5_000
+    base * days
   end
 
   defstruct name: nil,

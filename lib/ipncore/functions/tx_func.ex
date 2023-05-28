@@ -16,7 +16,7 @@ defmodule Ippan.Func.Tx do
   def send(
         %{
           account: account,
-          hash: hash,
+          # hash: hash,
           timestamp: timestamp,
           size: size
         },
@@ -44,7 +44,15 @@ defmodule Ippan.Func.Tx do
         timestamp
       )
 
-    RefundStore.replace([hash, account_id, to, token, amount, timestamp + @refund_timeout])
+    # RefundStore.replace([hash, account_id, to, token, amount, timestamp + @refund_timeout])
+  end
+
+  # with refund enabled
+  def send(source, to, token, amount, 1) do
+    :ok = send(source, to, token, amount)
+
+    %{account: account, hash: hash, timestamp: timestamp} = source
+    RefundStore.replace([hash, account.id, to, token, amount, timestamp + @refund_timeout])
   end
 
   def coinbase(%{account: account, hash: hash, timestamp: timestamp}, token, outputs)

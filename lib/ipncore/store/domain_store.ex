@@ -44,10 +44,17 @@ defmodule DomainStore do
       replace: "REPLACE INTO #{@table} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
       lookup: "SELECT * FROM #{@table} WHERE name = ?",
       exists: "SELECT 1 FROM #{@table} WHERE name = ?",
+      owner: "SELECT 1 FROM #{@table} WHERE name = ? AND owner = ?",
+      renew:
+        "UPDATE #{@table} SET renewed_at = renewed_at + ?3, updated_at = ?4 WHERE name=?1 AND owner=?2",
       delete: "DELETE FROM #{@table} WHERE name = ?",
       move:
         "INSERT OR IGNORE INTO #{@table} (name, owner, email, avatar, records, enabled, created_at, renewed_at, updated_at)
         SELECT name, owner, email, avatar, records, enabled, created_at, renewed_at, created_at FROM #{@table_df} WHERE round=?1",
       delete_deferred: "DELETE FROM #{@table_df} WHERE round=?1"
     }
+
+  def renew(name, account_id, millis, timestamp) do
+    call(@base, {:execute_changes, :renew, [name, account_id, millis, timestamp]})
+  end
 end

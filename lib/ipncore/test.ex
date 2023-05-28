@@ -46,6 +46,37 @@ defmodule Test do
     {sk, sk2, address, address2}
   end
 
+  # Test.bench_send(10_000)
+  def bench_send(n) do
+    {_sk, sk2, address, address2} = Test.test()
+
+    cpus = System.schedulers()
+
+    chunks = div(n, cpus)
+
+    list =
+      for _ <- 1..n do
+        Test.tx_send(sk2, address2, address, "IPN", 10)
+      end
+      |> Enum.chunk_every(chunks)
+
+    tstream =
+      list
+      |> Task.async_stream(fn data ->
+        for item <- data do
+          run(item)
+        end
+      end, timeout: :infinity)
+
+    start_time = :os.system_time(:microsecond)
+
+    Enum.to_list(tstream)
+
+    end_time = :os.system_time(:microsecond)
+
+    IO.puts("Time elapsed: #{end_time - start_time} µs")
+  end
+
   def build_request({body, sig}) do
     IO.puts(body)
     IO.puts(Fast64.encode64(sig))
@@ -310,7 +341,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.domain_new(sk, address, "example.ipn", address, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Test.build_request()
+  # Test.domain_new(sk2, address2, "example.ipn", address, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Test.build_request()
   def domain_new(
         secret,
         address,
@@ -333,7 +364,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.domain_delete(sk2, address2, "example.ipn", %{"email" => "@email.com"}) |> Test.build_request()
+  # Test.domain_update(sk, address, "example.ipn", %{"email" => "pop@email.com"}) |> Test.build_request()
   def domain_update(
         secret,
         address,
@@ -341,7 +372,7 @@ defmodule Test do
         params
       ) do
     body =
-      [401, :os.system_time(:millisecond), address, domain_name, params]
+      [401, :os.system_time(:millisecond), address, [domain_name, params]]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -359,6 +390,24 @@ defmodule Test do
       ) do
     body =
       [402, :os.system_time(:millisecond), address, domain_name]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Test.domain_renew(sk, address, "example.ipn", 1000) |> Test.build_request()
+  def domain_renew(
+        secret,
+        address,
+        domain_name,
+        days
+      ) do
+    body =
+      [402, :os.system_time(:millisecond), address, domain_name, days]
       |> Jason.encode!()
 
     hash = hash_fun(body)

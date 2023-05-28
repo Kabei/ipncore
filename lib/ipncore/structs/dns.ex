@@ -1,11 +1,11 @@
 defmodule Ippan.DNS do
   @type t :: %__MODULE__{
+          hash: binary(),
           domain: String.t(),
           name: String.t(),
           type: non_neg_integer(),
           data: String.t(),
-          ttl: non_neg_integer(),
-          hash: binary()
+          ttl: non_neg_integer()
         }
 
   use Ippan.Struct

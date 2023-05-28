@@ -12,7 +12,7 @@ defmodule Platform do
 
       token ->
         wallet_owner = token.owner
-        [wallet_pubkey, _wallet_validator] = WalletStore.lookup(wallet_owner)
+        [_, wallet_pubkey, _wallet_validator] = WalletStore.lookup(wallet_owner)
 
         GlobalConst.new(Global, %{
           owner: wallet_owner,

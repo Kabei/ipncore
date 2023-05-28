@@ -1,18 +1,17 @@
 defmodule Ippan.Func.Domain do
   alias Ippan.Domain
   @fullname_max_size 255
-  @years_range 1..2
   @token Default.token()
 
   def new(
         %{account: account, hash: hash, timestamp: timestamp},
         domain_name,
         owner,
-        years,
+        days,
         opts \\ %{}
       )
       when byte_size(domain_name) <= @fullname_max_size and
-             years in @years_range do
+             days > 0 do
     account_id = account.id
     map_filter = Map.take(opts, Domain.optionals())
 
@@ -30,24 +29,22 @@ defmodule Ippan.Func.Domain do
         raise IppanError, "domain already has a owner"
 
       true ->
-        amount = Domain.price(domain_name, years)
-
+        amount = Domain.price(domain_name, days)
         current_round = 0
+        chain_owner = Global.get(:owner)
 
         domain =
           %Domain{
             name: domain_name,
             owner: owner,
             created_at: timestamp,
-            renewed_at: timestamp + years * 31_536_000_000,
+            renewed_at: timestamp + days * 86_400_000,
             updated_at: timestamp
           }
           |> Map.merge(MapUtil.to_atoms(map_filter))
           |> MapUtil.validate_url(:avatar)
           |> MapUtil.validate_email(:email)
           |> Domain.to_list_def(hash, current_round)
-
-        chain_owner = Global.get(:owner)
 
         case BalanceStore.deferred(
                domain_name,
@@ -104,11 +101,24 @@ defmodule Ippan.Func.Domain do
     DomainStore.delete([domain_name, account.id])
   end
 
-  # def renew(%{account: account, timestamp: timestamp}, years) do
-  #   cond do
-  #     not DomainStore.owner?(domain_name, account.id) ->
-  #       raise IppanError, "Invalid owner"
+  def renew(%{account: account, timestamp: timestamp}, name, days)
+      when is_integer(days) and days > 0 do
+    account_id = account.id
+    amount = Domain.price(name, days)
+    chain_owner = Global.get(:owner)
 
-  #   end
-  # end
+    cond do
+      not DomainStore.owner?(name, account_id) ->
+        raise IppanError, "Invalid owner"
+
+      BalanceStore.send(account_id, chain_owner, @token, amount, timestamp) != :ok ->
+        raise IppanError, "Insufficient balance"
+
+      DomainStore.renew(name, account_id, days * 86_400_000, timestamp) != 1 ->
+        raise IppanError, "Invalid operation"
+
+      true ->
+        :ok
+    end
+  end
 end

@@ -1,14 +1,20 @@
 defmodule Ippan.Func.Dns do
   alias Ippan.{Domain, DNS}
   @fullname_max_size 255
-  @type_range 0..255
+  @type_range [1, 2, 6, 15, 16, 28]
   @data_range 1..255
   @ttl_range 0..2_147_483_648
   @token Default.token()
 
-  @dns_types ~w(A NS CNAME SOA PTR MX TXT AAAA SPF SRV DS SSHFP RRSIG NSEC DNSKEY CAA URI HINFO WKS)
+  # @dns_types ~w(A NS CNAME SOA PTR MX TXT AAAA SPF SRV DS SSHFP RRSIG NSEC DNSKEY CAA URI HINFO WKS)
 
-  def new(%{account: account, timestamp: timestamp}, fullname, type, data, ttl)
+  def new(
+        %{account: account, hash: hash, size: size, timestamp: timestamp},
+        fullname,
+        type,
+        data,
+        ttl
+      )
       when byte_size(fullname) <= @fullname_max_size and
              type in @type_range and
              byte_size(data) in @data_range and
@@ -19,65 +25,92 @@ defmodule Ippan.Func.Dns do
       not Match.domain?(domain) ->
         raise IppanError, "Invalid domain"
 
-      type not in @dns_types ->
-        raise IppanError, "DNS record type not supported"
+      # type not in @dns_types ->
+      #   raise IppanError, "DNS record type not supported"
 
       not match?({_, _, _, _, _value}, :dnslib.resource('#{domain} IN #{ttl} #{type} #{data}')) ->
         raise IppanError, "DNS resource error"
 
       true ->
-        validator = ValidatorStore.lookup(account.validator)
-        :ok = BalanceStore.send(account.id, validator.owner, @token, 500, timestamp)
+        case ValidatorStore.lookup(account.validator) do
+          nil ->
+            raise IppanError, "Invalid validator"
 
-        %DNS{
-          domain: domain,
-          name: subdomain,
-          data: data,
-          ttl: ttl
-        }
-        |> DNS.to_list()
-        |> DnsStore.insert()
+          validator ->
+            hash16 = Base.encode16(hash)
+            BalanceStore.savepoint(hash16)
+
+            :ok = BalanceStore.send(account.id, validator.owner, @token, size, timestamp)
+
+            dns =
+              %DNS{
+                domain: domain,
+                name: subdomain,
+                data: data,
+                type: type,
+                ttl: ttl,
+                hash: fun_hash([fullname, "#{type}", data])
+              }
+              |> DNS.to_list()
+              |> DnsStore.insert_sync()
+
+            case dns do
+              1 ->
+                BalanceStore.sv_release(hash16)
+
+              _ ->
+                BalanceStore.sv_rollback(hash16)
+                raise IppanError, "Invalid operation"
+            end
+        end
     end
   end
 
-  def update(%{account: account, timestamp: timestamp}, fullname, hash, opts \\ %{})
-      when byte_size(fullname) <= @fullname_max_size do
-    map_filter = Map.take(opts, DNS.editable())
-
+  def update(
+        %{account: account, timestamp: timestamp, size: size},
+        fullname,
+        dns_hash16,
+        params
+      ) do
+    map_filter = Map.take(params, DNS.editable())
+    account_id = account.id
     {_subdomain, domain} = Domain.split(fullname)
+    dns_hash = Base.decode16(dns_hash16)
 
     cond do
-      opts == %{} or map_filter != opts ->
-        raise IppanError, "Invalid option field"
+      map_filter != params ->
+        raise IppanError, "Invalid optional arguments"
 
-      not Match.domain?(domain) ->
-        raise IppanError, "Invalid domain"
+      not DomainStore.owner?(domain, account_id) ->
+        raise IppanError, "Invalid owner"
 
       true ->
-        if DomainStore.owner?(domain, account.id) do
-          dns_map =
-            DnsStore.lookup([fullname, hash])
-            |> DNS.to_map()
+        case ValidatorStore.lookup(account.validator) do
+          nil ->
+            raise IppanError, "Invalid validator"
 
-          {:ok, validator} = ValidatorStore.lookup(account.validator)
-          :ok = BalanceStore.send_fees(account.id, validator.owner, 500, timestamp)
+          validator ->
+            dns_map = DnsStore.lookup([domain, dns_hash])
 
-          data = map_filter[:data]
+            data = map_filter["data"]
 
-          if data do
-            if not match?(
-                 {_, _, _, _, _value},
-                 :dnslib.resource('#{domain} IN #{dns_map.ttl} #{dns_map.type} #{data}')
-               ) do
-              raise IppanError, "DNS resource error"
+            if data do
+              if not match?(
+                   {_, _, _, _, _value},
+                   :dnslib.resource('#{domain} IN #{dns_map.ttl} #{dns_map.type} #{data}')
+                 ) do
+                raise IppanError, "DNS resource error"
+              end
             end
-          end
 
-          dns_map
-          |> Map.merge(map_filter)
-          |> MapUtil.validate_range(:ttl, @ttl_range)
-          |> MapUtil.validate_bytes_range(:data, @data_range)
-          |> DnsStore.update(domain: domain, hash: hash)
+            ref =
+              MapUtil.to_atoms(map_filter)
+              |> MapUtil.validate_range(:ttl, @ttl_range)
+              |> MapUtil.validate_bytes_range(:data, @data_range)
+
+            :ok = BalanceStore.send_fees(account.id, validator.owner, size, timestamp)
+
+            DnsStore.update(ref, domain: domain, hash: dns_hash, owner: account_id)
         end
     end
   end
@@ -91,7 +124,7 @@ defmodule Ippan.Func.Dns do
           DnsStore.delete(domain)
 
         subdomain ->
-          DnsStore.execute_fetch("delete_name", [domain, subdomain])
+          DnsStore.execute_changes("delete_name", [domain, subdomain])
       end
     else
       raise IppanError, "Invalid Owner"
@@ -102,7 +135,7 @@ defmodule Ippan.Func.Dns do
     {subdomain, domain} = Domain.split(fullname)
 
     if DomainStore.owner?(domain, account.id) do
-      DnsStore.execute_fetch("delete_type", [domain, subdomain, type])
+      DnsStore.execute_changes("delete_type", [domain, subdomain, type])
     else
       raise IppanError, "Invalid Owner"
     end
@@ -112,9 +145,13 @@ defmodule Ippan.Func.Dns do
     {subdomain, domain} = Domain.split(fullname)
 
     if DomainStore.owner?(domain, account.id) do
-      DnsStore.execute_fetch("delete_hash", [domain, subdomain, hash])
+      DnsStore.execute_changes("delete_hash", [domain, subdomain, hash])
     else
       raise IppanError, "Invalid Owner"
     end
+  end
+
+  defp fun_hash(data) do
+    :crypto.hash(:md5, data)
   end
 end

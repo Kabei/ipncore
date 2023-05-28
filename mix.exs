@@ -62,6 +62,7 @@ defmodule Ipncore.MixProject do
       # {:socket, "~> 0.3"},
       {:sntp, "~> 0.2.0"},
       {:jason, "~> 1.4"},
+      # {:uuidv4, "1.0.0"},
       # {:jsonrs, "~> 0.3.0"},
       # {:ecto_sql, "~> 3.8"},
       # {:postgrex, ">= 0.0.0"},

@@ -4,7 +4,7 @@ defmodule Ippan.Func.Domain do
   @token Default.token()
 
   def new(
-        %{account: account, hash: hash, timestamp: timestamp},
+        %{id: account_id, hash: hash, timestamp: timestamp},
         domain_name,
         owner,
         days,
@@ -12,7 +12,6 @@ defmodule Ippan.Func.Domain do
       )
       when byte_size(domain_name) <= @fullname_max_size and
              days > 0 do
-    account_id = account.id
     map_filter = Map.take(opts, Domain.optionals())
 
     cond do
@@ -69,7 +68,11 @@ defmodule Ippan.Func.Domain do
     end
   end
 
-  def update(%{account: account, timestamp: timestamp}, domain_name, opts \\ %{}) do
+  def update(
+        %{id: account_id, validator: validator_id, timestamp: timestamp},
+        domain_name,
+        opts \\ %{}
+      ) do
     map_filter = Map.take(opts, Domain.editable())
 
     cond do
@@ -79,13 +82,13 @@ defmodule Ippan.Func.Domain do
       map_filter != opts ->
         raise IppanError, "Invalid option field"
 
-      not DomainStore.owner?(domain_name, account.id) ->
+      not DomainStore.owner?(domain_name, account_id) ->
         raise IppanError, "Invalid owner"
 
       true ->
-        validator = ValidatorStore.lookup(account.validator)
+        validator = ValidatorStore.lookup([validator_id])
         fees = EnvStore.get("fee_update", 500)
-        :ok = BalanceStore.send_fees(account.id, validator.owner, fees, timestamp)
+        :ok = BalanceStore.send_fees(account_id, validator.owner, fees, timestamp)
 
         1 =
           MapUtil.to_atoms(map_filter)
@@ -97,13 +100,12 @@ defmodule Ippan.Func.Domain do
     end
   end
 
-  def delete(%{account: account}, domain_name) do
-    DomainStore.delete([domain_name, account.id])
+  def delete(%{id: account_id}, domain_name) do
+    DomainStore.delete([domain_name, account_id])
   end
 
-  def renew(%{account: account, timestamp: timestamp}, name, days)
+  def renew(%{id: account_id, timestamp: timestamp}, name, days)
       when is_integer(days) and days > 0 do
-    account_id = account.id
     amount = Domain.price(name, days)
     chain_owner = Global.get(:owner)
 

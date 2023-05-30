@@ -28,9 +28,9 @@ defmodule Ippan.Func.Account do
     end
   end
 
-  def subscribe(%{account: account}, validator_id) do
+  def subscribe(%{id: account, validator: sub_validator_id}, validator_id) do
     cond do
-      account.validator != validator_id ->
+      sub_validator_id != validator_id ->
         raise IppanError, "Already subscribe"
 
       not ValidatorStore.exists?(validator_id) ->

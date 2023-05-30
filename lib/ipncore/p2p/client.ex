@@ -89,7 +89,7 @@ defmodule Ippan.P2P.Client do
 
   @impl true
   def handle_info({:tcp, socket, "blockfile:ok:" <> block_id}, state) do
-    block = BlockStore.lookup(block_id)
+    block = BlockStore.lookup([block_id])
     receive_blockfile(socket, block)
     {:noreply, state}
   end

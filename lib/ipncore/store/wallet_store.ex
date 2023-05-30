@@ -5,6 +5,7 @@ defmodule WalletStore do
     base: :wallet,
     table: @table,
     cache: true,
+    cache_size: 50_000_000,
     mod: Ippan.Wallet,
     create: "
     CREATE TABLE IF NOT EXISTS #{@table}(

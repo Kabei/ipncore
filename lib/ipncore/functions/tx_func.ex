@@ -8,14 +8,15 @@ defmodule Ippan.Func.Tx do
 
   @refund_timeout :timer.hours(72)
 
-  def send(_, token, outputs)
-      when byte_size(token) <= 10 and is_list(outputs) do
-    raise IppanError, "multisend no supported yet"
-  end
+  # def send(_, token, outputs)
+  #     when byte_size(token) <= 10 and is_list(outputs) do
+  #   raise IppanError, "multisend no supported yet"
+  # end
 
   def send(
         %{
-          account: account,
+          id: account_id,
+          validator: validator_id,
           # hash: hash,
           timestamp: timestamp,
           size: size
@@ -24,12 +25,13 @@ defmodule Ippan.Func.Tx do
         token,
         amount
       )
-      when byte_size(token) <= 10 and amount <= @max_tx_amount and account.id != to do
+      when amount <= @max_tx_amount and account_id != to do
     # hash16 = Base.encode16(hash)
-    account_id = account.id
-    validator_id = Default.validator_id()
+    # account_id = account.id
+    # validator_id = Default.validator_id()
 
-    %{fee: fee, fee_type: fee_type, owner: validator_owner} = ValidatorStore.lookup(validator_id)
+    %{fee: fee, fee_type: fee_type, owner: validator_owner} =
+      ValidatorStore.lookup([validator_id])
 
     fee_amount = Utils.calc_fees!(fee_type, fee, amount, size)
 
@@ -51,15 +53,23 @@ defmodule Ippan.Func.Tx do
   def send(source, to, token, amount, 1) do
     :ok = send(source, to, token, amount)
 
-    %{account: account, hash: hash, timestamp: timestamp} = source
-    RefundStore.replace([hash, account.id, to, token, amount, timestamp + @refund_timeout])
+    %{id: account_id, hash: hash, timestamp: timestamp} = source
+
+    RefundStore.replace([
+      hash,
+      account_id,
+      to,
+      token,
+      amount,
+      timestamp + @refund_timeout
+    ])
   end
 
-  def coinbase(%{account: account, hash: hash, timestamp: timestamp}, token, outputs)
+  def coinbase(%{id: account_id, hash: hash, timestamp: timestamp}, token, outputs)
       when length(outputs) > 0 do
     hash16 = Base.encode16(hash)
 
-    case TokenStore.execute_fetch(:owner_props, [token, account.id, "%coinbase%"]) do
+    case TokenStore.execute_fetch(:owner_props, [token, account_id, "%coinbase%"]) do
       {:ok, [[1]]} ->
         BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
           try do
@@ -79,13 +89,20 @@ defmodule Ippan.Func.Tx do
                     raise ArgumentError, "Account ID invalid"
 
                   true ->
-                    BalanceStore.receive(conn, statment, account_id, token, amount, timestamp)
+                    BalanceStore.receive(
+                      conn,
+                      statment,
+                      account_id,
+                      token,
+                      amount,
+                      timestamp
+                    )
                 end
 
                 acc + amount
               end)
 
-            Logger.info(inspect(total))
+            # Logger.info(inspect(total))
 
             # sum supply
             TokenStore.execute_fetch(:sum_supply, [token, total])
@@ -104,9 +121,7 @@ defmodule Ippan.Func.Tx do
     end
   end
 
-  def burn(%{account: account, timestamp: timestamp}, token, amount) do
-    account_id = account.id
-
+  def burn(%{id: account_id, timestamp: timestamp}, token, amount) do
     case TokenStore.execute_fetch(:props, [token, "%burn%"]) do
       {:ok, [[1]]} ->
         case BalanceStore.burn(account_id, token, amount, timestamp) do
@@ -122,13 +137,13 @@ defmodule Ippan.Func.Tx do
     end
   end
 
-  def refund(%{account: account, timestamp: timestamp}, hash)
+  def refund(%{id: account_id, timestamp: timestamp}, hash)
       when byte_size(hash) == 64 do
     hash = Base.decode16!(hash)
-    account_id = account.id
-    require Logger
-    Logger.debug(inspect({hash, account_id, timestamp}))
-    [sender_id, token, refund_amount] = RefundStore.lookup([hash, account_id, timestamp])
+
+    # Logger.debug(inspect({hash, account_id, timestamp}))
+    [sender_id, token, refund_amount] =
+      RefundStore.lookup([hash, account_id, timestamp])
 
     case BalanceStore.send(account_id, sender_id, token, refund_amount, timestamp) do
       :ok ->

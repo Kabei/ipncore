@@ -16,7 +16,7 @@ defmodule Ippan.RequestHandler do
           :ok | {:error, term()} | no_return()
   def handle(hash, msg, size) do
     try do
-      [type, timestamp, args] = Jsonrs.decode!(msg)
+      [type, timestamp | args] = Jason.decode!(msg)
 
       # if :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout),
       #   do: raise(IppanError, "Invalid timestamp")
@@ -25,12 +25,12 @@ defmodule Ippan.RequestHandler do
 
       source = %{
         hash: hash,
-        event: event,
+        # event: event,
         timestamp: timestamp,
         size: size
       }
 
-      apply(event.mod, event.fun, [source | List.wrap(args)])
+      apply(event.mod, event.fun, [source | args])
 
       MessageStore.insert([hash, msg, nil, size])
     rescue
@@ -47,7 +47,8 @@ defmodule Ippan.RequestHandler do
           :ok | {:error, term()} | no_return()
   def handle(hash, msg, size, sig_with_flag, origin) do
     try do
-      [type, timestamp, from, args] = Jsonrs.decode!(msg)
+      # :erlang.binary_to_term(msg)
+      [type, timestamp, from | args] = Jason.decode!(msg)
 
       %{auth: true} = event = Events.lookup(type)
 
@@ -58,10 +59,17 @@ defmodule Ippan.RequestHandler do
             # if :os.timestamp() in (timestamp - @timeout)..(timestamp - @timeout),
             #   do: raise(IppanError, "Invalid timestamp")
 
-            WalletStore.lookup(from)
+            WalletStore.lookup([from])
+
+          # [
+          #   "0x3jRrjwFU6EqYSdHYS9byJhhDygob",
+          #   <<2, 19, 233, 245, 47, 211, 14, 3, 97, 182, 86, 42, 145, 182, 195, 41, 13, 163, 44,
+          #     93, 80, 171, 222, 227, 2, 60, 37, 214, 220, 126, 96, 87, 216>>,
+          #   0
+          # ]
 
           @origin_from_peer ->
-            WalletStore.lookup(from)
+            WalletStore.lookup([from])
             # {:ok, [data]} =
             #   WalletStore.execute_fetch(:validator, [from, Default.validator_id()])
 
@@ -74,7 +82,6 @@ defmodule Ippan.RequestHandler do
       case sig_flag do
         "0" ->
           # verify secp256k1 signature
-          # IO.inspect(wallet_pubkey)
           {:ok, pub} = ExSecp256k1.Impl.public_key_decompress(wallet_pubkey)
           # IO.inspect(signature)
           # IO.inspect(byte_size(signature))
@@ -93,7 +100,10 @@ defmodule Ippan.RequestHandler do
 
       source = %{
         hash: hash,
-        account: %{id: from, validator: wallet_validator},
+        # account: %{
+        id: from,
+        validator: wallet_validator,
+        # },
         # event: event,
         timestamp: timestamp,
         # sig_type: sig_flag,
@@ -101,7 +111,7 @@ defmodule Ippan.RequestHandler do
       }
 
       # call function
-      apply(event.mod, event.fun, [source | List.wrap(args)])
+      apply(event.mod, event.fun, [source | args])
 
       MessageStore.insert([hash, msg, signature, size])
     rescue

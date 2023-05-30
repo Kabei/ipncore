@@ -17,7 +17,7 @@ defmodule Ippan.Func.Validator do
           map()
         ) :: result()
   def new(
-        %{account: account, timestamp: timestamp},
+        %{id: account_id, timestamp: timestamp},
         id,
         owner_id,
         hostname,
@@ -52,7 +52,7 @@ defmodule Ippan.Func.Validator do
       not Match.domain?(hostname) ->
         raise IppanError, "Invalid hostname"
 
-      not Platform.owner?(account.id) ->
+      not Platform.owner?(account_id) ->
         raise IppanError, "Invalid operation"
 
       true ->
@@ -82,7 +82,7 @@ defmodule Ippan.Func.Validator do
   end
 
   @spec update(Source.t(), number(), map()) :: result()
-  def update(%{account: account, timestamp: timestamp}, id, opts \\ %{}) do
+  def update(%{id: account_id, timestamp: timestamp}, id, opts \\ %{}) do
     map_filter = Map.take(opts, Validator.editable())
 
     cond do
@@ -92,7 +92,7 @@ defmodule Ippan.Func.Validator do
       map_filter != opts ->
         raise IppanError, "Invalid option field"
 
-      not ValidatorStore.owner?(id, account.id) ->
+      not ValidatorStore.owner?(id, account_id) ->
         raise IppanError, "Invalid owner"
 
       true ->
@@ -122,9 +122,9 @@ defmodule Ippan.Func.Validator do
   end
 
   @spec delete(Source.t(), term) :: result()
-  def delete(%{account: account}, id) do
+  def delete(%{id: account_id}, id) do
     cond do
-      not Platform.owner?(account.id) and not ValidatorStore.owner?(id, account.id) ->
+      not Platform.owner?(account_id) and not ValidatorStore.owner?(id, account_id) ->
         raise IppanError, "Invalid owner"
 
       true ->

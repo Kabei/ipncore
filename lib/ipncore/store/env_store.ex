@@ -5,7 +5,7 @@ defmodule EnvStore do
   use Store.Sqlite,
     base: :env,
     table: @table,
-    cache: true,
+    cache: false,
     mod: Ippan.Env,
     create: ["
     CREATE TABLE IF NOT EXISTS #{@table}(
@@ -28,6 +28,12 @@ defmodule EnvStore do
     }
 
   def get(name, default \\ nil) do
-    lookup(name) || default
+    case lookup(name) do
+      nil ->
+        default
+
+      val ->
+        :erlang.term_to_binary(val)
+    end
   end
 end

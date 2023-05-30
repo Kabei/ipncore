@@ -1,11 +1,9 @@
 defmodule Ippan.Func.Balance do
   alias Ippan.Token
 
-  def lock(%{account: account}, token_id, to_id, amount) do
-    account_id = account.id
-
+  def lock(%{id: account_id}, token_id, to_id, amount) do
     token =
-      TokenStore.lookup(token_id)
+      TokenStore.lookup([token_id])
       |> Token.to_map()
 
     if token.owner == account_id and "lock" in token.props do
@@ -18,11 +16,9 @@ defmodule Ippan.Func.Balance do
     end
   end
 
-  def unlock(%{account: account}, token_id, to_id, amount) do
-    account_id = account.id
-
+  def unlock(%{id: account_id}, token_id, to_id, amount) do
     token =
-      TokenStore.lookup(token_id)
+      TokenStore.lookup([token_id])
       |> Token.to_map()
 
     if token.owner == account_id and "lock" in token.props do

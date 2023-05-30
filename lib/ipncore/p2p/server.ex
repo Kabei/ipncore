@@ -105,7 +105,7 @@ defmodule Ippan.P2P.Server do
 
             case Falcon.verify(msg, signature, clientPubkey) do
               :ok ->
-                case ValidatorStore.lookup(id) do
+                case ValidatorStore.lookup([id]) do
                   nil ->
                     {:close, state}
 

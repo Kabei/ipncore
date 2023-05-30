@@ -1,12 +1,13 @@
 defmodule Ippan.Request.Source do
-  alias Ippan.{Account, Event}
+  alias Ippan.Event
 
   @type t :: %__MODULE__{
           hash: binary(),
           event: Event.t(),
-          account: Account.t() | nil,
+          id: String.t() | nil,
+          validator: String.t() | nil,
           timestamp: non_neg_integer(),
           size: non_neg_integer()
         }
-  defstruct [:hash, :event, :account, :timestamp, :size]
+  defstruct [:hash, :event, :id, :validator, :timestamp, :size]
 end

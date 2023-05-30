@@ -4,43 +4,49 @@ defmodule Ippan.Func.Wallet do
   def new(%{timestamp: timestamp}, validator_id, pubkey)
       when is_integer(validator_id) do
     pubkey = Fast64.decode64(pubkey)
+    # {:ok, pub} = ExSecp256k1.Impl.public_key_decompress(pubkey)
 
-    sig_type =
-      case byte_size(pubkey) do
-        33 ->
-          0
+    case byte_size(pubkey) do
+      33 ->
+        %Wallet{
+          id: Address.hash(0, pubkey),
+          pubkey: pubkey,
+          validator: validator_id,
+          created_at: timestamp
+        }
 
-        897 ->
-          1
+      897 ->
+        %Wallet{
+          id: Address.hash(1, pubkey),
+          pubkey: pubkey,
+          validator: validator_id,
+          created_at: timestamp
+        }
 
-        _ ->
-          raise IppanError, "Invalid pubkey size"
-      end
-
-    %Wallet{
-      id: Address.hash(sig_type, pubkey),
-      pubkey: pubkey,
-      validator: validator_id,
-      created_at: timestamp
-    }
+      _ ->
+        raise IppanError, "Invalid pubkey size"
+    end
     |> Wallet.to_list()
     |> WalletStore.insert()
   end
 
-  def subscribe(%{account: wallet, timestamp: timestamp, size: size}, validator_id) do
+  def subscribe(
+        %{id: account_id, validator: validator_id, timestamp: timestamp, size: size},
+        new_validator_id
+      ) do
     cond do
-      wallet.validator == validator_id ->
+      validator_id == new_validator_id ->
         raise IppanError, "Already subscribe"
 
       not ValidatorStore.exists?(validator_id) ->
         raise IppanError, "Validator not exists"
 
       true ->
-        validator = ValidatorStore.lookup(wallet.validator)
+        validator = ValidatorStore.lookup([new_validator_id])
         # fee amount is tx size
-        :ok = BalanceStore.send_fees(wallet.id, validator.owner, size, timestamp)
+        :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
 
-        WalletStore.update(%{validator: validator_id}, id: wallet.id)
+        WalletStore.update(%{validator: validator_id}, id: account_id)
     end
   end
 end

@@ -4,7 +4,7 @@ defmodule Platform do
   def start do
     validator_id = Default.validator_id()
 
-    case TokenStore.lookup(@token) do
+    case TokenStore.lookup([@token]) do
       nil ->
         GlobalConst.new(Global, %{
           validator: validator_id
@@ -12,7 +12,7 @@ defmodule Platform do
 
       token ->
         wallet_owner = token.owner
-        [_, wallet_pubkey, _wallet_validator] = WalletStore.lookup(wallet_owner)
+        [_, wallet_pubkey, _wallet_validator] = WalletStore.lookup([wallet_owner])
 
         GlobalConst.new(Global, %{
           owner: wallet_owner,

@@ -3,6 +3,7 @@ defmodule MessageStore do
 
   use Store.Sqlite,
     base: :msg,
+    # pool: :msg_pool,
     table: @table,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(

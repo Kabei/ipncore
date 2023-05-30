@@ -21,6 +21,8 @@ defmodule Test do
     Test.wallet_new(pk, 0)
     |> run()
 
+    Test.wallet_new(pkv, 1) |> run()
+
     Test.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", %{
       "avatar" => "https://avatar.com",
       "props" => ["coinbase", "lock", "burn"]
@@ -31,7 +33,7 @@ defmodule Test do
     |> run()
   end
 
-  # {sk, sk2, address, address2} = Test.test()
+  # {pk, sk, pk2, sk2, address, address2} = Test.test()
   def test do
     sk =
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
@@ -41,14 +43,14 @@ defmodule Test do
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
         100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
 
-    {_pk, address} = Test.gen_secp256k1(sk)
-    {_pk2, address2} = Test.gen_secp256k1(sk2)
-    {sk, sk2, address, address2}
+    {pk, address} = Test.gen_secp256k1(sk)
+    {pk2, address2} = Test.gen_secp256k1(sk2)
+    {pk, sk, pk2, sk2, address, address2}
   end
 
   # Test.bench_send(10_000)
   def bench_send(n) do
-    {_sk, sk2, address, address2} = Test.test()
+    {_pk, _sk, _pk2, sk2, address, address2} = Test.test()
 
     cpus = System.schedulers()
 
@@ -62,11 +64,12 @@ defmodule Test do
 
     tstream =
       list
-      |> Task.async_stream(fn data ->
-        for item <- data do
-          run(item)
-        end
-      end, timeout: :infinity)
+      |> Task.async_stream(
+        fn data ->
+          run_list(data)
+        end,
+        timeout: :infinity
+      )
 
     start_time = :os.system_time(:microsecond)
 
@@ -86,12 +89,17 @@ defmodule Test do
     IO.puts(body)
   end
 
+  def run_list([]), do: :ok
+
+  def run_list([first | rest]) do
+    run(first)
+    run_list(rest)
+  end
+
   def run({body, sig}) do
     hash = Blake3.hash(body)
     size = byte_size(body) + byte_size(sig)
-    fsig = sig
-    # IO.inspect(fsig)
-    RequestHandler.handle(hash, body, size, fsig, 0)
+    RequestHandler.handle(hash, body, size, sig, 0)
   end
 
   def run(body) do
@@ -123,7 +131,7 @@ defmodule Test do
   # Test.wallet_new(pk, 0) |> Test.build_request
   def wallet_new(pk, validator_id) do
     body =
-      [0, :os.system_time(:millisecond), [validator_id, Fast64.encode64(pk)]]
+      [0, :os.system_time(:millisecond), validator_id, Fast64.encode64(pk)]
       |> Jason.encode!()
 
     body
@@ -145,7 +153,7 @@ defmodule Test do
   # Test.env_set(sk, address, "test", "value-test") |> Test.build_request
   def env_set(secret, address, name, value) do
     body =
-      [50, :os.system_time(:millisecond), address, [name, value]]
+      [50, :os.system_time(:millisecond), address, name, value]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -188,7 +196,7 @@ defmodule Test do
         200,
         :os.system_time(:millisecond),
         address,
-        [token_id, owner, name, decimal, symbol, opts]
+        token_id, owner, name, decimal, symbol, opts
       ]
       |> Jason.encode!()
 
@@ -202,7 +210,7 @@ defmodule Test do
   # Test.token_update(sk, address, "USD", %{"name" => "Dollar"}) |> Test.build_request()
   def token_update(secret, address, id, params) do
     body =
-      [201, :os.system_time(:millisecond), address, [id, params]]
+      [201, :os.system_time(:millisecond), address, id, params]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -243,15 +251,13 @@ defmodule Test do
         100,
         :os.system_time(:millisecond),
         address,
-        [
-          id,
-          owner,
-          hostname,
-          name,
-          Fast64.encode64(pubkey),
-          fee_type,
-          fee
-        ]
+        id,
+        owner,
+        hostname,
+        name,
+        Fast64.encode64(pubkey),
+        fee_type,
+        fee
       ]
       |> Jason.encode!()
 
@@ -265,7 +271,7 @@ defmodule Test do
   # Test.validator_update(sk, address, 1, %{"fee" => 7.0}) |> Test.build_request()
   def validator_update(secret, address, id, params) do
     body =
-      [101, :os.system_time(:millisecond), address, [id, params]]
+      [101, :os.system_time(:millisecond), address, id, params]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -291,7 +297,7 @@ defmodule Test do
   # Test.tx_coinbase(sk, address, "IPN", [[address2, 50000000]]) |> Test.build_request()
   def tx_coinbase(secret, address, token, outputs) do
     body =
-      [300, :os.system_time(:millisecond), address, [token, outputs]]
+      [300, :os.system_time(:millisecond), address, token, outputs]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -305,8 +311,10 @@ defmodule Test do
   # Test.tx_send(sk2, address2, address, "IPN", 4000) |> Test.build_request()
   def tx_send(secret, address, to, token, amount) do
     body =
-      [301, :os.system_time(:millisecond), address, [to, token, amount]]
+      [301, :os.system_time(:millisecond), address, to, token, amount]
       |> Jason.encode!()
+
+    # |> :erlang.term_to_binary()
 
     hash = hash_fun(body)
 
@@ -318,7 +326,7 @@ defmodule Test do
   # Test.tx_burn(sk2, address2, "IPN", 1000) |> Test.build_request()
   def tx_burn(secret, address, token, amount) do
     body =
-      [302, :os.system_time(:millisecond), address, [token, amount]]
+      [302, :os.system_time(:millisecond), address, token, amount]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -354,7 +362,7 @@ defmodule Test do
         } = params
       ) do
     body =
-      [400, :os.system_time(:millisecond), address, [domain_name, owner, years, params]]
+      [400, :os.system_time(:millisecond), address, domain_name, owner, years, params]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -372,7 +380,7 @@ defmodule Test do
         params
       ) do
     body =
-      [401, :os.system_time(:millisecond), address, [domain_name, params]]
+      [401, :os.system_time(:millisecond), address, domain_name, params]
       |> Jason.encode!()
 
     hash = hash_fun(body)

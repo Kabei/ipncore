@@ -9,7 +9,7 @@ defmodule Ippan.Func.Dns do
   # @dns_types ~w(A NS CNAME SOA PTR MX TXT AAAA SPF SRV DS SSHFP RRSIG NSEC DNSKEY CAA URI HINFO WKS)
 
   def new(
-        %{account: account, hash: hash, size: size, timestamp: timestamp},
+        %{id: account_id, hash: hash, size: size, validator: validator_id, timestamp: timestamp},
         fullname,
         type,
         data,
@@ -32,7 +32,7 @@ defmodule Ippan.Func.Dns do
         raise IppanError, "DNS resource error"
 
       true ->
-        case ValidatorStore.lookup(account.validator) do
+        case ValidatorStore.lookup([validator_id]) do
           nil ->
             raise IppanError, "Invalid validator"
 
@@ -40,7 +40,7 @@ defmodule Ippan.Func.Dns do
             hash16 = Base.encode16(hash)
             BalanceStore.savepoint(hash16)
 
-            :ok = BalanceStore.send(account.id, validator.owner, @token, size, timestamp)
+            :ok = BalanceStore.send(account_id, validator.owner, @token, size, timestamp)
 
             dns =
               %DNS{
@@ -67,13 +67,12 @@ defmodule Ippan.Func.Dns do
   end
 
   def update(
-        %{account: account, timestamp: timestamp, size: size},
+        %{id: account_id, validator: validator_id, timestamp: timestamp, size: size},
         fullname,
         dns_hash16,
         params
       ) do
     map_filter = Map.take(params, DNS.editable())
-    account_id = account.id
     {_subdomain, domain} = Domain.split(fullname)
     dns_hash = Base.decode16(dns_hash16)
 
@@ -85,7 +84,7 @@ defmodule Ippan.Func.Dns do
         raise IppanError, "Invalid owner"
 
       true ->
-        case ValidatorStore.lookup(account.validator) do
+        case ValidatorStore.lookup([validator_id]) do
           nil ->
             raise IppanError, "Invalid validator"
 
@@ -108,17 +107,17 @@ defmodule Ippan.Func.Dns do
               |> MapUtil.validate_range(:ttl, @ttl_range)
               |> MapUtil.validate_bytes_range(:data, @data_range)
 
-            :ok = BalanceStore.send_fees(account.id, validator.owner, size, timestamp)
+            :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
 
             DnsStore.update(ref, domain: domain, hash: dns_hash, owner: account_id)
         end
     end
   end
 
-  def delete(%{account: account}, fullname) when byte_size(fullname) <= @fullname_max_size do
+  def delete(%{id: account_id}, fullname) when byte_size(fullname) <= @fullname_max_size do
     {subdomain, domain} = Domain.split(fullname)
 
-    if DomainStore.owner?(domain, account.id) do
+    if DomainStore.owner?(domain, account_id) do
       case subdomain do
         "" ->
           DnsStore.delete(domain)
@@ -131,20 +130,20 @@ defmodule Ippan.Func.Dns do
     end
   end
 
-  def delete(%{account: account}, fullname, type) when type in @type_range do
+  def delete(%{id: account_id}, fullname, type) when type in @type_range do
     {subdomain, domain} = Domain.split(fullname)
 
-    if DomainStore.owner?(domain, account.id) do
+    if DomainStore.owner?(domain, account_id) do
       DnsStore.execute_changes("delete_type", [domain, subdomain, type])
     else
       raise IppanError, "Invalid Owner"
     end
   end
 
-  def delete(%{account: account}, fullname, hash) do
+  def delete(%{id: account_id}, fullname, hash) do
     {subdomain, domain} = Domain.split(fullname)
 
-    if DomainStore.owner?(domain, account.id) do
+    if DomainStore.owner?(domain, account_id) do
       DnsStore.execute_changes("delete_hash", [domain, subdomain, hash])
     else
       raise IppanError, "Invalid Owner"

@@ -5,7 +5,7 @@ defmodule Ippan.Func.Token do
   @token Application.compile_env(:ipncore, :token)
 
   def new(
-        %{account: account, timestamp: timestamp, hash: hash},
+        %{id: account_id, timestamp: timestamp, hash: hash},
         id,
         owner_id,
         name,
@@ -29,7 +29,7 @@ defmodule Ippan.Func.Token do
       map_filter != opts ->
         raise IppanError, "Invalid options parameter"
 
-      Platform.has_owner?() and not Platform.owner?(account.id) ->
+      Platform.has_owner?() and not Platform.owner?(account_id) ->
         raise IppanError, "Invalid operation"
 
       true ->
@@ -65,7 +65,7 @@ defmodule Ippan.Func.Token do
     end
   end
 
-  def update(%{account: account, timestamp: timestamp}, id, opts \\ %{})
+  def update(%{id: account_id, timestamp: timestamp}, id, opts \\ %{})
       when byte_size(id) <= 10 do
     map_filter = Map.take(opts, Token.editable())
 
@@ -82,11 +82,11 @@ defmodule Ippan.Func.Token do
         |> MapUtil.validate_url(:avatar)
         |> MapUtil.validate_account(:owner)
         |> Map.put(:updated_at, timestamp)
-        |> TokenStore.update(id: id, owner: account.id)
+        |> TokenStore.update(id: id, owner: account_id)
     end
   end
 
-  def delete(%{account: account}, id) when byte_size(id) <= 10 do
-    TokenStore.delete([id, account.id])
+  def delete(%{id: account_id}, id) when byte_size(id) <= 10 do
+    TokenStore.delete([id, account_id])
   end
 end

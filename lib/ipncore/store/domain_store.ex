@@ -55,6 +55,6 @@ defmodule DomainStore do
     }
 
   def renew(name, account_id, millis, timestamp) do
-    call(@base, {:execute_changes, :renew, [name, account_id, millis, timestamp]})
+    call({:execute_changes, :renew, [name, account_id, millis, timestamp]})
   end
 end

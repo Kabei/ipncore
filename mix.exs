@@ -81,7 +81,7 @@ defmodule Ipncore.MixProject do
       {:exqlite, path: "../exqlite"},
       {:falcon, path: "../falcon"},
       {:ntrukem, path: "../ntrukem"},
-      {:fast64, path: "../fast64_elixir"}
+      {:fast64, path: "../fast64"}
       # {:ipnutils, path: "../ipnutils"}
     ]
   end

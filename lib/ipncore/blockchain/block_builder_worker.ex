@@ -8,21 +8,26 @@ defmodule BlockBuilderWork do
   # @timeout :infinity
   # @pubsub_server :pubsub
 
+  def sync_all do
+    MessageStore.sync()
+    WalletStore.sync()
+    ValidatorStore.sync()
+    BalanceStore.sync()
+    DomainStore.sync()
+    DnsStore.sync()
+    TokenStore.sync()
+    EnvStore.sync()
+    RefundStore.sync()
+    BlockStore.sync()
+    RoundStore.sync()
+    EnvStore.sync()
+  end
+
   def run do
     spawn(fn ->
-      MessageStore.sync()
-      WalletStore.sync()
-      ValidatorStore.sync()
-      BalanceStore.sync()
-      DomainStore.sync()
-      DnsStore.sync()
-      TokenStore.sync()
-      EnvStore.sync()
-      RefundStore.sync()
-      BlockStore.sync()
-      RoundStore.sync()
-      EnvStore.sync()
+      sync_all()
       :timer.send_after(@interval, "next")
+
       receive do
         "next" ->
           run()

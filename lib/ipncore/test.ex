@@ -49,6 +49,12 @@ defmodule Test do
   end
 
   # Test.bench_send(10_000)
+  @doc """
+  Test.init()
+  {pk, sk, pk2, sk2, address, address2} = Test.test()
+  Test.wallet_new(pk2, 0) |> Test.run()
+  Test.tx_coinbase(sk, address, "IPN", [[address2, 50000000]]) |> Test.run()
+  """
   def bench_send(n) do
     {_pk, _sk, _pk2, sk2, address, address2} = Test.test()
 
@@ -196,7 +202,12 @@ defmodule Test do
         200,
         :os.system_time(:millisecond),
         address,
-        token_id, owner, name, decimal, symbol, opts
+        token_id,
+        owner,
+        name,
+        decimal,
+        symbol,
+        opts
       ]
       |> Jason.encode!()
 

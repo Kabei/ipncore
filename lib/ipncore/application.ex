@@ -50,6 +50,7 @@ defmodule Ipncore.Application do
       {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
       {TokenStore, Path.join(data_dir, "token/token.db")},
       {BalanceStore, Path.join(data_dir, "txs/balance.db")},
+      # BalanceStore.child_spec(Path.join(data_dir, "txs/refund.db")),
       {RefundStore, Path.join(data_dir, "txs/refund.db")},
       {DomainStore, Path.join(data_dir, "domain/domain.db")},
       {DnsStore, Path.join(data_dir, "dns/dns.db")},

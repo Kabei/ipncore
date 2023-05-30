@@ -83,8 +83,6 @@ defmodule Ippan.RequestHandler do
         "0" ->
           # verify secp256k1 signature
           {:ok, pub} = ExSecp256k1.Impl.public_key_decompress(wallet_pubkey)
-          # IO.inspect(signature)
-          # IO.inspect(byte_size(signature))
 
           if @libsecp256k1.verify(hash, signature, pub) != :ok,
             do: raise(IppanError, "Invalid signature verify")
@@ -113,7 +111,7 @@ defmodule Ippan.RequestHandler do
       # call function
       apply(event.mod, event.fun, [source | args])
 
-      MessageStore.insert([hash, msg, signature, size])
+      # MessageStore.insert([hash, msg, signature, size])
     rescue
       e in [IppanError] ->
         {:error, e.message}

@@ -54,7 +54,10 @@ defmodule Test do
   {pk, sk, pk2, sk2, address, address2} = Test.test()
   Test.wallet_new(pk2, 0) |> Test.run()
   Test.tx_coinbase(sk, address, "IPN", [[address2, 50000000]]) |> Test.run()
+  BlockBuilderWork.sync_all()
   """
+  require Logger
+
   def bench_send(n) do
     {_pk, _sk, _pk2, sk2, address, address2} = Test.test()
 
@@ -68,22 +71,21 @@ defmodule Test do
       end
       |> Enum.chunk_every(chunks)
 
-    tstream =
-      list
-      |> Task.async_stream(
-        fn data ->
-          run_list(data)
-        end,
-        timeout: :infinity
-      )
+    # tstream =
+    Enum.each(list, fn data ->
+      Task.async(fn ->
+        start_time = :os.system_time(:microsecond)
+        run_list(data)
+        end_time = :os.system_time(:microsecond)
+        Logger.info("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
+      end)
+    end)
 
-    start_time = :os.system_time(:microsecond)
+    # Enum.to_list(tstream)
 
-    Enum.to_list(tstream)
+    # end_time = :os.system_time(:microsecond)
 
-    end_time = :os.system_time(:microsecond)
-
-    IO.puts("Time elapsed: #{end_time - start_time} µs")
+    # IO.puts("Time elapsed: #{end_time - start_time} µs")
   end
 
   def build_request({body, sig}) do

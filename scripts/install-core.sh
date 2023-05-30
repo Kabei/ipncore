@@ -1,8 +1,12 @@
 #!/usr/bin/bash
 # debian 11
 
+wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
+dpkg -i erlang-solutions_2.0_all.deb
+wget https://packages.erlang-solutions.com/debian/erlang_solutions.asc
+apt-key add erlang_solutions.asc
 apt-get update
-apt-get install erlang elixir git build-essential -y
+apt-get install erlang elixir git build-essential cargo -y
 
 git clone --branch beta2 https://kabei@github.com/kabei/ipncore.git
 git clone https://kabei@github.com/kabei/falcon.git

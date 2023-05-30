@@ -7,6 +7,7 @@ defmodule BalanceStore do
 
   use Store.Sqlite,
     base: :balance,
+    # pool: :bal_pool,
     table: @table,
     mod: Ippan.Balance,
     create: ["

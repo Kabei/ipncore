@@ -3,8 +3,8 @@ defmodule BaseTest do
   doctest Ipncore
 
   test "base" do
-    data16 = :crypto.strong_rand_bytes(32) |> Base.encode16()
-    data64 = :crypto.strong_rand_bytes(32) |> Base.encode64()
+    data16 = :crypto.strong_rand_bytes(75) |> Base.encode16()
+    data64 = :crypto.strong_rand_bytes(75) |> Base.encode64()
 
     Benchee.run(%{
       "base16" => fn ->

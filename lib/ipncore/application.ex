@@ -46,6 +46,7 @@ defmodule Ipncore.Application do
       # # {AccountStore, Path.join(data_dir, "account/account.db")},
       {MessageStore, Path.join(data_dir, "requests/messages.db")},
       {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
+      # WalletStore.child_spec(Path.join(data_dir, "wallet/wallet.db")),
       {EnvStore, Path.join(data_dir, "env/env.db")},
       {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
       {TokenStore, Path.join(data_dir, "token/token.db")},
@@ -55,7 +56,7 @@ defmodule Ipncore.Application do
       {DomainStore, Path.join(data_dir, "domain/domain.db")},
       {DnsStore, Path.join(data_dir, "dns/dns.db")},
       {BlockStore, Path.join(data_dir, "chain/block.db")},
-      {RoundStore, Path.join(data_dir, "chain/round.db")}
+      {RoundStore, Path.join(data_dir, "chain/round.db")},
       # # pubsub
       # Supervisor.child_spec({Phoenix.PubSub, pubsub2_opts}, id: :pubsub2),
       # Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub),
@@ -63,7 +64,7 @@ defmodule Ipncore.Application do
       # {ThousandIsland, p2p_opts},
       # {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :falcon_dir)}
       # http
-      # {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
+      {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
     ]
 
     case Supervisor.start_link(children, @opts) do

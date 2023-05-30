@@ -3,6 +3,7 @@ defmodule WalletStore do
 
   use Store.Sqlite,
     base: :wallet,
+    # pool: :wallet_pool,
     table: @table,
     cache: true,
     cache_size: 50_000_000,

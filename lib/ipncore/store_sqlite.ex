@@ -11,7 +11,7 @@ defmodule Store.Sqlite do
       @version opts[:alter] || 0
       @keys opts[:keys] || 1
       @cache opts[:cache] || false
-      @max_cache_size opts[:cache_size] || 1_000_000
+      @max_cache_size opts[:cache_size] || 10_000_000
       require Logger
       alias Exqlite.Sqlite3NIF
       alias Exqlite.Sqlite3
@@ -139,6 +139,7 @@ defmodule Store.Sqlite do
         Sqlite3NIF.execute(conn, 'PRAGMA temp_store = memory')
         Sqlite3NIF.execute(conn, 'PRAGMA mmap_size = 30000000000')
         Sqlite3NIF.execute(conn, 'PRAGMA case_sensitive_like = ON')
+        # Sqlite3NIF.execute(conn, 'PRAGMA threads = #{:erlang.system_info(:schedulers_online)}')
         # Sqlite3NIF.execute(conn, 'PRAGMA locking_mode = EXCLUSIVE')
         # Sqlite3NIF.execute(conn, 'PRAGMA read_uncommitted = true')
         # Sqlite3NIF.execute(conn, 'PRAGMA page_size = 32768')
@@ -669,7 +670,6 @@ defmodule Store.Sqlite do
     end
   end
 end
-
 
 # defmodule Store.Sqlite do
 #   defmacro __using__(opts) do

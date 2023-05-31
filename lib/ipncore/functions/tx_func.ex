@@ -4,20 +4,17 @@ defmodule Ippan.Func.Tx do
   alias Ippan.Utils
   require Logger
 
-  # @token Default.token()
-
   @refund_timeout :timer.hours(72)
 
-  # def send(_, token, outputs)
-  #     when byte_size(token) <= 10 and is_list(outputs) do
-  #   raise IppanError, "multisend no supported yet"
-  # end
+  def send(_, token, outputs)
+      when byte_size(token) <= 10 and is_list(outputs) do
+    raise IppanError, "multisend no supported yet"
+  end
 
   def send(
         %{
           id: account_id,
           validator: validator_id,
-          # hash: hash,
           timestamp: timestamp,
           size: size
         },
@@ -26,10 +23,6 @@ defmodule Ippan.Func.Tx do
         amount
       )
       when amount <= @max_tx_amount and account_id != to do
-    # hash16 = Base.encode16(hash)
-    # account_id = account.id
-    # validator_id = Default.validator_id()
-
     %{fee: fee, fee_type: fee_type, owner: validator_owner} =
       ValidatorStore.lookup([validator_id])
 
@@ -45,8 +38,6 @@ defmodule Ippan.Func.Tx do
         fee_amount,
         timestamp
       )
-
-    # RefundStore.replace([hash, account_id, to, token, amount, timestamp + @refund_timeout])
   end
 
   # with refund enabled
@@ -142,8 +133,7 @@ defmodule Ippan.Func.Tx do
     hash = Base.decode16!(hash)
 
     # Logger.debug(inspect({hash, account_id, timestamp}))
-    [sender_id, token, refund_amount] =
-      RefundStore.lookup([hash, account_id, timestamp])
+    [sender_id, token, refund_amount] = RefundStore.lookup([hash, account_id, timestamp])
 
     case BalanceStore.send(account_id, sender_id, token, refund_amount, timestamp) do
       :ok ->

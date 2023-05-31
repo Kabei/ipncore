@@ -69,7 +69,7 @@ defmodule Ippan.Address do
   #   IO.iodata_to_binary(["1x", Base58.encode(address)])
   # end
 
-  # def hash(pubkey) when byte_size(pubkey) == 33 do
+  # def hash(pubkey) when byte_size(pubkey) == 65 do
   #   <<address::bytes-size(20), _::binary>> = Blake3.hash(pubkey)
   #   IO.iodata_to_binary(["0x", Base58.encode(address)])
   # end
@@ -79,7 +79,7 @@ defmodule Ippan.Address do
     <<address::bytes-size(20), _::binary>> = Blake3.hash(pubkey)
 
     cond do
-      type == 0 and byte_size(pubkey) == 33 ->
+      type == 0 and byte_size(pubkey) == 65 ->
         IO.iodata_to_binary(["0x", Base58.encode(address)])
 
       type == 1 and byte_size(pubkey) == 897 ->

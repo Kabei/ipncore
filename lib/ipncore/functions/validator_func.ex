@@ -76,7 +76,7 @@ defmodule Ippan.Func.Validator do
             raise IppanError, "Invalid operation"
 
           _ ->
-            {:notify, object}
+            :ok
         end
     end
   end
@@ -117,7 +117,7 @@ defmodule Ippan.Func.Validator do
         |> Map.put(:updated_at, timestamp)
         |> ValidatorStore.update(id: id)
 
-        {:notify, {id, map_filter}}
+        :ok
     end
   end
 

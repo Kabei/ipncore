@@ -10,7 +10,7 @@ defmodule Ippan.Func.Account do
     pubkey = Fast64.decode64(pubkey)
 
     cond do
-      byte_size(pubkey) != 897 or byte_size(pubkey) != 33 ->
+      byte_size(pubkey) != 897 or byte_size(pubkey) != 65 ->
         raise IppanError, "Invalid pubkey size"
 
       validator_id != Global.get(:validator) ->

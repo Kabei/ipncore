@@ -47,7 +47,6 @@ defmodule Ippan.RequestHandler do
           :ok | {:error, term()} | no_return()
   def handle(hash, msg, size, sig_with_flag, origin) do
     try do
-      # :erlang.binary_to_term(msg)
       [type, timestamp, from | args] = Jason.decode!(msg)
 
       %{auth: true} = event = Events.lookup(type)
@@ -82,9 +81,8 @@ defmodule Ippan.RequestHandler do
       case sig_flag do
         "0" ->
           # verify secp256k1 signature
-          {:ok, pub} = ExSecp256k1.Impl.public_key_decompress(wallet_pubkey)
-
-          if @libsecp256k1.verify(hash, signature, pub) != :ok,
+          # {:ok, pub} = ExSecp256k1.Impl.public_key_decompress(wallet_pubkey)
+          if @libsecp256k1.verify(hash, signature, wallet_pubkey) != :ok,
             do: raise(IppanError, "Invalid signature verify")
 
         "1" ->
@@ -96,22 +94,22 @@ defmodule Ippan.RequestHandler do
           raise(IppanError, "Signature type not supported")
       end
 
-      source = %{
-        hash: hash,
-        # account: %{
-        id: from,
-        validator: wallet_validator,
-        # },
-        # event: event,
-        timestamp: timestamp,
-        # sig_type: sig_flag,
-        size: size
-      }
+      case MessageStore.insert_sync([hash, msg, signature, size]) do
+        1 ->
+          source = %{
+            hash: hash,
+            id: from,
+            validator: wallet_validator,
+            timestamp: timestamp,
+            size: size
+          }
 
-      # call function
-      apply(event.mod, event.fun, [source | args])
+          # call function
+          apply(event.mod, event.fun, [source | args])
 
-      # MessageStore.insert([hash, msg, signature, size])
+        _ ->
+          raise IppanError, "Invalid transaction"
+      end
     rescue
       e in [IppanError] ->
         {:error, e.message}

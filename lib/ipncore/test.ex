@@ -48,36 +48,62 @@ defmodule Test do
     {pk, sk, pk2, sk2, address, address2}
   end
 
+  def test_falcon do
+    seed1 =
+      <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
+        100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 83>>
+
+    seed2 =
+      <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
+        100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
+
+    {pk1, sk1, address1} = Test.gen_falcon(seed1)
+    {pk2, sk2, address2} = Test.gen_falcon(seed2)
+
+    {pk1, sk1, address1, pk2, sk2, address2}
+  end
+
   # Test.bench_send(10_000)
   @doc """
   Test.init()
-  {pk, sk, pk2, sk2, address, address2} = Test.test()
-  Test.wallet_new(pk2, 0) |> Test.run()
-  Test.tx_coinbase(sk, address, "IPN", [[address2, 50000000]]) |> Test.run()
+  {pk, sk, pk1, sk1, address, address1} = Test.test()
+
+  Test.tx_coinbase(sk, address, "IPN", [[address1, 50000000000]]) |> Test.run()
   BlockBuilderWork.sync_all()
+
+  # falcon
+  {pk2, sk2, address2, pk3, sk3, address3} = Test.test_falcon()
+  Test.wallet_new(pk2, 0) |> Test.run()
+  Test.wallet_new(pk3, 0) |> Test.run()
+
+  Test.tx_coinbase(sk, address, "IPN", [[address2, 50000000000]]) |> Test.run()
   """
   require Logger
 
+  @spec bench_send(integer()) :: no_return()
   def bench_send(n) do
-    {_pk, _sk, _pk2, sk2, address, address2} = Test.test()
+    # {_pk, _sk, _pk2, sk2, address, address2} = Test.test()
+    spawn(fn ->
+      {_pk1, sk1, address1, _pk2, _sk2, address2} = Test.test_falcon()
 
-    cpus = System.schedulers()
+      cpus = System.schedulers()
 
-    chunks = div(n, cpus)
+      chunks = div(n, cpus)
 
-    list =
-      for _ <- 1..n do
-        Test.tx_send(sk2, address2, address, "IPN", 10)
-      end
-      |> Enum.chunk_every(chunks)
+      list =
+        for _ <- 1..n do
+          Test.tx_send(sk1, address1, address2, "IPN", 10 + :rand.uniform(10000))
+        end
+        |> Enum.chunk_every(chunks)
 
-    # tstream =
-    Enum.each(list, fn data ->
-      Task.async(fn ->
-        start_time = :os.system_time(:microsecond)
-        run_list(data)
-        end_time = :os.system_time(:microsecond)
-        Logger.info("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
+      # tstream =
+      Enum.each(list, fn data ->
+        spawn(fn ->
+          start_time = :os.system_time(:microsecond)
+          run_list(data)
+          end_time = :os.system_time(:microsecond)
+          IO.puts("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
+        end)
       end)
     end)
 
@@ -106,6 +132,7 @@ defmodule Test do
 
   def run({body, sig}) do
     hash = Blake3.hash(body)
+    sig = Fast64.decode64(sig)
     size = byte_size(body) + byte_size(sig)
     RequestHandler.handle(hash, body, size, sig, 0)
   end
@@ -123,13 +150,14 @@ defmodule Test do
       sk
       |> ExSecp256k1.Impl.create_public_key()
       |> elem(1)
-      |> ExSecp256k1.Impl.public_key_compress()
-      |> elem(1)
+
+    # |> ExSecp256k1.Impl.public_key_compress()
+    # |> elem(1)
 
     {pk, Address.hash(0, pk)}
   end
 
-  # {pkv, skv, seedv, addressv} = Test.gen_falcon()
+  # {pkv, skv, addressv} = Test.gen_falcon(seed)
   def gen_falcon(seed) do
     {:ok, pk, sk} = Falcon.gen_keys_from_seed(seed)
 
@@ -441,17 +469,18 @@ defmodule Test do
   defp signature64(address, secret, msg) do
     <<first::bytes-size(1), _rest::binary>> = address
 
-    first <>
-      case first do
-        "0" ->
-          ExSecp256k1.Impl.sign_compact(msg, secret)
-          |> elem(1)
-          |> elem(0)
+    (first <>
+       case first do
+         "0" ->
+           ExSecp256k1.Impl.sign_compact(msg, secret)
+           |> elem(1)
+           |> elem(0)
 
-        "1" ->
-          Falcon.sign(secret, msg)
-          |> elem(1)
-      end
+         "1" ->
+           Falcon.sign(secret, msg)
+           |> elem(1)
+       end)
+    |> Fast64.encode64()
   end
 
   defp hash_fun(msg) do

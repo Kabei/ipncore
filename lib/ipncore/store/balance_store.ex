@@ -10,12 +10,12 @@ defmodule BalanceStore do
     # pool: :bal_pool,
     table: @table,
     mod: Ippan.Balance,
+    # deferred UNSIGNED BIGINT DEFAULT 0,
     create: ["
     CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
       amount UNSIGNED BIGINT DEFAULT 0,
-      deferred UNSIGNED BIGINT DEFAULT 0,
       locked UNSIGNED BIGINT DEFAULT 0,
       tx_count UNSIGNED BIGINT DEFAULT 0,
       created_at UNSIGNED BIGINT NOT NULL,
@@ -36,8 +36,8 @@ defmodule BalanceStore do
     ) WITHOUT ROWID;
     "],
     stmt: %{
-      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",
-      replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8)",
+      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7)",
+      replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7)",
       balance: "SELECT amount FROM #{@table} WHERE id = ?1 AND token = ?2",
       lookup: "SELECT * FROM #{@table} WHERE id = ?1 AND token = ?2",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2",

@@ -7,7 +7,7 @@ defmodule Ippan.Func.Wallet do
     # {:ok, pub} = ExSecp256k1.Impl.public_key_decompress(pubkey)
 
     case byte_size(pubkey) do
-      33 ->
+      65 ->
         %Wallet{
           id: Address.hash(0, pubkey),
           pubkey: pubkey,

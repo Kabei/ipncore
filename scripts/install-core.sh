@@ -19,3 +19,15 @@ cd ipncore
 mix local.hex --force
 mix deps.get
 mix local.rebar --force
+
+# redhat 9
+dnf update -y
+curl https://sh.rustup.rs -sSf | sh
+dnf install make wget git -y
+
+wget https://packages.erlang-solutions.com/erlang-solutions-2.0-1.noarch.rpm
+sudo rpm -Uvh erlang-solutions-2.0-1.noarch.rpm
+sudo yum install erlang
+
+
+sudo docker exec -it 6bdb0d46f110 /bin/bash

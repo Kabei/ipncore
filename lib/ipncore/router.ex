@@ -21,23 +21,21 @@ defmodule Ipncore.Router do
         [sig] ->
           sig = Fast64.decode64(sig)
           size = byte_size(body) + byte_size(sig)
-          RequestHandler.handle(hash, body, size, sig, 0)
+          RequestHandler.handle!(hash, body, size, sig)
 
         _ ->
           size = byte_size(body)
-          RequestHandler.handle(hash, body, size)
+          RequestHandler.handle!(hash, body, size)
       end
-      |> case do
-        {:error, msg} ->
-          send_resp(conn, 400, msg)
 
-        _ ->
-          json(conn, %{"hash" => Base.encode16(hash)})
-      end
+      json(conn, %{"hash" => Base.encode16(hash)})
     rescue
+      e in [IppanError] ->
+        send_resp(conn, 400, e.message)
+
       e ->
         Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-        send_resp(conn, 400, "")
+        send_resp(conn, 400, "Invalid operation")
     end
   end
 

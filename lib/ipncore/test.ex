@@ -67,30 +67,29 @@ defmodule Test do
   @doc """
   Test.init()
   {pk, sk, pk1, sk1, address, address1} = Test.test()
-
+  Test.wallet_new(pk1, 0) |> Test.run()
   Test.tx_coinbase(sk, address, "IPN", [[address1, 50000000000]]) |> Test.run()
-  BlockBuilderWork.sync_all()
 
   # falcon
   {pk2, sk2, address2, pk3, sk3, address3} = Test.test_falcon()
   Test.wallet_new(pk2, 0) |> Test.run()
   Test.wallet_new(pk3, 0) |> Test.run()
-
   Test.tx_coinbase(sk, address, "IPN", [[address2, 50000000000]]) |> Test.run()
+
+  BlockBuilderWork.sync_all()
   """
   require Logger
 
   @spec bench_send(integer()) :: no_return()
   def bench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
-    # {_pk, _sk, _pk2, sk2, address, address2} = Test.test()
     spawn(fn ->
-      {_pk1, sk1, address1, _pk2, _sk2, address2} = Test.test_falcon()
+      {_pk, _sk, _pk2, sk1, address, address1} = Test.test()
 
       chunks = div(n, cpus)
 
       list =
         for _ <- 1..n do
-          Test.tx_send(sk1, address1, address2, "IPN", 10 + :rand.uniform(10000))
+          Test.tx_send(sk1, address1, address, "IPN", 10 + :rand.uniform(10000))
         end
         |> Enum.chunk_every(chunks)
 
@@ -112,6 +111,31 @@ defmodule Test do
     # IO.puts("Time elapsed: #{end_time - start_time} µs")
   end
 
+  # Test.fbench_send(10_000)
+  def fbench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
+    spawn(fn ->
+      {_pk2, sk2, address2, _pk3, _sk3, address3} = Test.test_falcon()
+
+      chunks = div(n, cpus)
+
+      list =
+        for _ <- 1..n do
+          Test.tx_send(sk2, address2, address3, "IPN", 10 + :rand.uniform(50000))
+        end
+        |> Enum.chunk_every(chunks)
+
+      # tstream =
+      Enum.each(list, fn data ->
+        spawn(fn ->
+          start_time = :os.system_time(:microsecond)
+          run_list(data)
+          end_time = :os.system_time(:microsecond)
+          IO.puts("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
+        end)
+      end)
+    end)
+  end
+
   def build_request({body, sig}) do
     IO.puts(body)
     IO.puts(Fast64.encode64(sig))
@@ -129,16 +153,27 @@ defmodule Test do
   end
 
   def run({body, sig}) do
-    hash = Blake3.hash(body)
-    sig = Fast64.decode64(sig)
-    size = byte_size(body) + byte_size(sig)
-    RequestHandler.handle(hash, body, size, sig, 0)
+    try do
+      hash = Blake3.hash(body)
+      sig = Fast64.decode64(sig)
+      size = byte_size(body) + byte_size(sig)
+      # RequestHandler.handle_import!(hash, body, size)
+      RequestHandler.handle!(hash, body, size, sig)
+    rescue
+      e ->
+        Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+    end
   end
 
   def run(body) do
-    hash = Blake3.hash(body)
-    size = byte_size(body)
-    RequestHandler.handle(hash, body, size)
+    try do
+      hash = Blake3.hash(body)
+      size = byte_size(body)
+      RequestHandler.handle!(hash, body, size)
+    rescue
+      e ->
+        Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+    end
   end
 
   # {pk, address} = Test.gen_secp256k1(sk)

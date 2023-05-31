@@ -11,13 +11,13 @@ defmodule BalanceStore do
     table: @table,
     mod: Ippan.Balance,
     # deferred UNSIGNED BIGINT DEFAULT 0,
+    # tx_count UNSIGNED BIGINT DEFAULT 0,
     create: ["
     CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
       amount UNSIGNED BIGINT DEFAULT 0,
       locked UNSIGNED BIGINT DEFAULT 0,
-      tx_count UNSIGNED BIGINT DEFAULT 0,
       created_at UNSIGNED BIGINT NOT NULL,
       updated_at UNSIGNED BIGINT NOT NULL,
       PRIMARY KEY (id, token)
@@ -36,21 +36,21 @@ defmodule BalanceStore do
     ) WITHOUT ROWID;
     "],
     stmt: %{
-      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7)",
-      replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7)",
+      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
+      replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
       balance: "SELECT amount FROM #{@table} WHERE id = ?1 AND token = ?2",
       lookup: "SELECT * FROM #{@table} WHERE id = ?1 AND token = ?2",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2",
       delete: "DELETE FROM #{@table} WHERE id = ?1 AND token = ?2",
       send:
-        "UPDATE #{@table} SET amount = amount - ?3, tx_count = tx_count + 1, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
+        "UPDATE #{@table} SET amount = amount - ?3, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
       deferred:
         "INSERT INTO #{@table_df} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT (id, type)
         DO UPDATE SET amount = amount + ?6, created_at=?7, hash=?8, round=?9
         WHERE created_at > ?7 OR created_at=?7 AND hash > ?8 RETURNING `from`, token, amount",
-      income: "INSERT INTO #{@table} (id,token,amount,tx_count,created_at,updated_at)
-      VALUES(?1, ?2, ?3, 1, ?4, ?4) ON CONFLICT (id, token)
-      DO UPDATE SET amount = amount + ?3, tx_count = tx_count + 1, updated_at = ?4
+      income: "INSERT INTO #{@table} (id,token,amount,created_at,updated_at)
+      VALUES(?1, ?2, ?3, ?4, ?4) ON CONFLICT (id, token)
+      DO UPDATE SET amount = amount + ?3, updated_at = ?4
       WHERE id = ?1 AND token = ?2",
       lock:
         "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",

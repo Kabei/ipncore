@@ -5,7 +5,7 @@ defmodule Ippan.Balance do
           amount: non_neg_integer(),
           locked: non_neg_integer(),
           # deferred: non_neg_integer(),
-          tx_count: non_neg_integer(),
+          # tx_count: non_neg_integer(),
           created_at: integer(),
           updated_at: integer()
         }
@@ -17,7 +17,7 @@ defmodule Ippan.Balance do
             amount: 0,
             locked: 0,
             # deferred: 0,
-            tx_count: 0,
+            # tx_count: 0,
             created_at: nil,
             updated_at: nil
 
@@ -28,7 +28,7 @@ defmodule Ippan.Balance do
       x.amount,
       x.locked,
       # x.deferred,
-      x.tx_count,
+      # x.tx_count,
       x.created_at,
       x.updated_at
     ]
@@ -45,33 +45,33 @@ defmodule Ippan.Balance do
       x.amount,
       x.locked,
       # x.deferred,
-      x.tx_count,
+      # x.tx_count,
       x.created_at,
       x.updated_at
     }
   end
 
-  def to_map({id, token, amount, locked, tx_count, created_at, updated_at}) do
+  def to_map({id, token, amount, locked, created_at, updated_at}) do
     %{
       id: id,
       token: token,
       amount: amount,
       locked: locked,
       # deferred: deferred,
-      tx_count: tx_count,
+      # tx_count: tx_count,
       created_at: created_at,
       updated_at: updated_at
     }
   end
 
-  def to_map([id, token, amount, locked, tx_count, created_at, updated_at]) do
+  def to_map([id, token, amount, locked, created_at, updated_at]) do
     %{
       id: id,
       token: token,
       amount: amount,
       locked: locked,
       # deferred: deferred,
-      tx_count: tx_count,
+      # tx_count: tx_count,
       created_at: created_at,
       updated_at: updated_at
     }

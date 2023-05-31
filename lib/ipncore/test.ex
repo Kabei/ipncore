@@ -81,12 +81,10 @@ defmodule Test do
   require Logger
 
   @spec bench_send(integer()) :: no_return()
-  def bench_send(n) do
+  def bench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
     # {_pk, _sk, _pk2, sk2, address, address2} = Test.test()
     spawn(fn ->
       {_pk1, sk1, address1, _pk2, _sk2, address2} = Test.test_falcon()
-
-      cpus = System.schedulers()
 
       chunks = div(n, cpus)
 

@@ -512,6 +512,11 @@ defmodule Test do
          "1" ->
            Falcon.sign(secret, msg)
            |> elem(1)
+
+         "2" ->
+          # set secret_with_pk
+           Ed25519Blake2b.Native.sign(secret, msg)
+           |> elem(1)
        end)
     |> Fast64.encode64()
   end
@@ -520,24 +525,3 @@ defmodule Test do
     Blake3.hash(msg)
   end
 end
-
-# hash file blake3 with rust example
-# use std::fs::File;
-# use std::io::{BufReader, Read};
-# use blake3::Hasher;
-
-# fn hash_file(path: &str) -> String {
-#     let file = File::open(path).expect("Unable to open file");
-#     let mut reader = BufReader::new(file);
-#     let mut hasher = Hasher::new();
-#     let mut buffer = [0; 1024];
-#     loop {
-#         let count = reader.read(&mut buffer).expect("Unable to read data");
-#         if count == 0 {
-#             break;
-#         }
-#         hasher.update(&buffer[..count]);
-#     }
-#     let hash = hasher.finalize();
-#     format!("{}", hash)
-# }

@@ -56,28 +56,21 @@ defmodule Ippan.Func.Validator do
         raise IppanError, "Invalid operation"
 
       true ->
-        object =
-          %Validator{
-            id: id,
-            hostname: hostname,
-            name: name,
-            pubkey: pubkey,
-            owner: owner_id,
-            fee: fee,
-            fee_type: fee_type,
-            created_at: timestamp,
-            updated_at: timestamp
-          }
-          |> Map.merge(MapUtil.to_atoms(map_filter))
-          |> MapUtil.validate_url(:avatar)
-
-        case ValidatorStore.insert_sync(Validator.to_list(object)) do
-          {:error, _} ->
-            raise IppanError, "Invalid operation"
-
-          _ ->
-            :ok
-        end
+        %Validator{
+          id: id,
+          hostname: hostname,
+          name: name,
+          pubkey: pubkey,
+          owner: owner_id,
+          fee: fee,
+          fee_type: fee_type,
+          created_at: timestamp,
+          updated_at: timestamp
+        }
+        |> Map.merge(MapUtil.to_atoms(map_filter))
+        |> MapUtil.validate_url(:avatar)
+        |> Validator.to_list()
+        |> ValidatorStore.insert_deferred()
     end
   end
 

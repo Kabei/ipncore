@@ -8,7 +8,6 @@ defmodule Ippan.Validator do
           pubkey: binary(),
           fee_type: integer(),
           fee: 0 | 1 | 2,
-          enabled: boolean(),
           created_at: non_neg_integer(),
           updated_at: non_neg_integer()
         }
@@ -23,8 +22,7 @@ defmodule Ippan.Validator do
     :fee_type,
     :fee,
     :created_at,
-    :updated_at,
-    enabled: true
+    :updated_at
   ]
 
   use Ippan.Struct
@@ -42,7 +40,6 @@ defmodule Ippan.Validator do
       x.avatar,
       x.fee_type,
       x.fee,
-      x.enabled,
       x.created_at,
       x.updated_at
     ]
@@ -57,20 +54,18 @@ defmodule Ippan.Validator do
         pubkey,
         fee_type,
         fee,
-        enabled,
         created_at,
         updated_at
       ]) do
-    {id, hostname, name, owner, pubkey, avatar, fee_type, fee, enabled, created_at, updated_at}
+    {id, hostname, name, owner, pubkey, avatar, fee_type, fee, created_at, updated_at}
   end
 
   def to_tuple(x) do
-    {x.id, x.hostname, x.name, x.owner, x.pubkey, x.avatar, x.fee_type, x.fee, x.enabled,
-     x.created_at, x.updated_at}
+    {x.id, x.hostname, x.name, x.owner, x.pubkey, x.avatar, x.fee_type, x.fee, x.created_at, x.updated_at}
   end
 
   def to_map(
-        {id, hostname, name, owner, avatar, pubkey, fee_type, fee, enabled, created_at,
+        {id, hostname, name, owner, avatar, pubkey, fee_type, fee, created_at,
          updated_at}
       ) do
     %{
@@ -82,7 +77,6 @@ defmodule Ippan.Validator do
       pubkey: pubkey,
       fee: fee,
       fee_type: fee_type,
-      enabled: enabled,
       created_at: created_at,
       updated_at: updated_at
     }
@@ -97,7 +91,6 @@ defmodule Ippan.Validator do
         pubkey,
         fee_type,
         fee,
-        enabled,
         created_at,
         updated_at
       ]) do
@@ -110,7 +103,6 @@ defmodule Ippan.Validator do
       pubkey: pubkey,
       fee: fee,
       fee_type: fee_type,
-      enabled: enabled,
       created_at: created_at,
       updated_at: updated_at
     }

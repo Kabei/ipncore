@@ -9,13 +9,26 @@ defmodule Ippan.Event do
           base: atom(),
           mod: module(),
           fun: atom() | function(),
-          parallel: boolean(),
+          deferred: boolean(),
           system: boolean(),
           auth: boolean(),
+          validator: boolean(),
           before: atom() | function(),
           after: atom() | function()
         }
 
-  @enforce_keys [:id, :name, :base, :mod, :fun, :parallel, :auth]
-  defstruct [:id, :name, :base, :mod, :fun, :parallel, :after, :before, auth: true, system: false]
+  @enforce_keys [:id, :name, :base, :mod, :fun]
+  defstruct [
+    :id,
+    :name,
+    :base,
+    :mod,
+    :fun,
+    :after,
+    :before,
+    deferred: false,
+    validator: true,
+    auth: true,
+    system: false
+  ]
 end

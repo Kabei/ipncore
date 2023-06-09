@@ -21,11 +21,11 @@ defmodule Ipncore.Router do
         [sig] ->
           sig = Fast64.decode64(sig)
           size = byte_size(body) + byte_size(sig)
-          RequestHandler.handle!(hash, body, size, sig)
+          RequestHandler.valid!(hash, body, size, sig, Default.validator_id())
 
         _ ->
           size = byte_size(body)
-          RequestHandler.handle!(hash, body, size)
+          RequestHandler.valid!(hash, body, size)
       end
 
       json(conn, %{"hash" => Base.encode16(hash)})

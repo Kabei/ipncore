@@ -15,27 +15,6 @@ defmodule Ippan.RequestHandler do
     end
   end
 
-  defmacrop chech_signature!(hash, sig_flag, signature, wallet_pubkey) do
-    quote do
-      # check signature type
-      case unquote(sig_flag) do
-        "0" ->
-          # verify secp256k1 signature
-          if @libsecp256k1.verify(unquote(hash), unquote(signature), unquote(wallet_pubkey)) !=
-               :ok,
-             do: raise(IppanError, "Invalid signature verify")
-
-        "1" ->
-          # verify falcon-512 signature
-          if Falcon.verify(unquote(hash), unquote(signature), unquote(wallet_pubkey)) != :ok,
-            do: raise(IppanError, "Invalid signature verify")
-
-        _ ->
-          raise(IppanError, "Signature type not supported")
-      end
-    end
-  end
-
   defmacrop run!(event, hash, msg, signature, size, from, wallet_validator, timestamp, args) do
     quote do
       case MessageStore.insert_sync([
@@ -85,6 +64,47 @@ defmodule Ippan.RequestHandler do
     end
   end
 
+  @spec valid!(binary, binary, non_neg_integer()) :: any
+  def valid!(hash, msg, size) do
+    [type, timestamp | _args] = Jason.decode!(msg)
+
+    check_timestamp!(timestamp)
+
+    %{auth: false} = Events.lookup(type)
+
+    if MessageStore.insert_sync([hash, msg, nil, size]) != 1,
+      do: raise(IppanError, "Invalid hash transaction")
+  end
+
+  @spec valid!(binary, binary, non_neg_integer(), binary, non_neg_integer()) :: any
+  def valid!(hash, msg, size, sig_with_flag, node_validator) do
+    [type, timestamp, from | _args] = Jason.decode!(msg)
+
+    check_timestamp!(timestamp)
+
+    %{auth: true, validator: valid_validator} = Events.lookup(type)
+
+    wallet_pubkey =
+      case valid_validator do
+        true ->
+          [_, wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
+          if wallet_validator != node_validator, do: raise(IppanError, "Invalid validator")
+          wallet_pubkey
+
+        false ->
+          [_, wallet_pubkey, _wallet_validator] = WalletStore.lookup([from])
+          wallet_pubkey
+      end
+
+    <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
+    chech_signature!(sig_flag, signature, hash, wallet_pubkey)
+
+    if MessageStore.insert_sync([hash, msg, nil, size]) != 1,
+      do: raise(IppanError, "Invalid hash transaction")
+  end
+
+  # ======================================================
+
   @spec handle!(binary(), list(), non_neg_integer()) ::
           any()
   def handle!(hash, msg, size) do
@@ -107,20 +127,20 @@ defmodule Ippan.RequestHandler do
       do: raise(IppanError, "Invalid hash transaction")
   end
 
-  @spec handle!(binary(), String.t(), non_neg_integer(), binary() | nil) ::
+  @spec handle!(binary(), String.t(), non_neg_integer(), binary()) ::
           any()
 
   def handle!(hash, msg, size, sig_with_flag) do
     [type, timestamp, from | args] = Jason.decode!(msg)
 
-    check_timestamp!(timestamp)
+    # check_timestamp!(timestamp)
 
     %{auth: true} = event = Events.lookup(type)
 
     [_, wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
 
     <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
-    chech_signature!(hash, sig_flag, signature, wallet_pubkey)
+    chech_signature!(sig_flag, signature, hash, wallet_pubkey)
 
     run!(event, hash, msg, signature, size, from, wallet_validator, timestamp, args)
   end
@@ -135,7 +155,7 @@ defmodule Ippan.RequestHandler do
     [_, wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
 
     <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
-    chech_signature!(hash, sig_flag, signature, wallet_pubkey)
+    chech_signature!(sig_flag, signature, hash, wallet_pubkey)
 
     run!(event, hash, msg, signature, size, from, wallet_validator, timestamp, args)
   end
@@ -148,5 +168,33 @@ defmodule Ippan.RequestHandler do
     [_, _wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
 
     run_import!(event, hash, size, from, wallet_validator, timestamp, args)
+  end
+
+  # check signature by type
+  # verify secp256k1 signature
+  defp chech_signature!("0", signature, hash, wallet_pubkey) do
+    if @libsecp256k1.verify(hash, signature, wallet_pubkey) !=
+         :ok,
+       do: raise(IppanError, "Invalid signature verify")
+  end
+
+  # verify falcon-512 signature
+  defp chech_signature!("1", signature, hash, wallet_pubkey) do
+    if Falcon.verify(hash, signature, wallet_pubkey) != :ok,
+      do: raise(IppanError, "Invalid signature verify")
+  end
+
+  # verify ed25519 signature
+  defp chech_signature!("2", signature, hash, wallet_pubkey) do
+    if Ed25519Blake2b.Native.verify(
+         hash,
+         signature,
+         wallet_pubkey
+       ) != :ok,
+       do: raise(IppanError, "Invalid signature verify")
+  end
+
+  defp chech_signature!(_, _signature, _hash, _wallet_pubkey) do
+    raise(IppanError, "Signature type not supported")
   end
 end

@@ -1,6 +1,19 @@
 defmodule Ippan.Events do
   alias Ippan.Event
-  alias Ippan.Func.{Env, Account, Balance, Tx, Block, Validator, Token, Domain, DNS, Round, Wallet}
+
+  alias Ippan.Func.{
+    Env,
+    Account,
+    Balance,
+    Tx,
+    Block,
+    Validator,
+    Token,
+    Domain,
+    DNS,
+    Round,
+    Wallet
+  }
 
   @spec lookup(event_id :: non_neg_integer()) :: Event.t() | :undefined
   def lookup(n = 0),
@@ -10,7 +23,8 @@ defmodule Ippan.Events do
       base: :wallet,
       mod: Wallet,
       fun: :new,
-      parallel: false,
+      deferred: true,
+      validator: false,
       auth: false
     }
 
@@ -21,40 +35,8 @@ defmodule Ippan.Events do
       base: :wallet,
       mod: Wallet,
       fun: :subscribe,
-      parallel: false,
-      auth: true
-    }
-
-  def lookup(n = 20),
-    do: %Event{
-      id: n,
-      name: "account.new",
-      base: :account,
-      mod: Account,
-      fun: :new,
-      parallel: false,
-      auth: false
-    }
-
-  def lookup(n = 21),
-    do: %Event{
-      id: n,
-      name: "account.subscribe",
-      base: :account,
-      mod: Account,
-      parallel: false,
-      fun: :subscribe,
-      auth: true
-    }
-
-  def lookup(n = 22),
-    do: %Event{
-      id: n,
-      name: "account.update",
-      base: :account,
-      mod: Account,
-      fun: :update,
-      parallel: true,
+      deferred: true,
+      validator: false,
       auth: true
     }
 
@@ -65,7 +47,7 @@ defmodule Ippan.Events do
       base: :env,
       mod: Env,
       fun: :set,
-      parallel: false,
+      deferred: true,
       auth: true
     }
 
@@ -76,7 +58,7 @@ defmodule Ippan.Events do
       base: :env,
       mod: Env,
       fun: :delete,
-      parallel: false,
+      deferred: true,
       auth: true
     }
 
@@ -87,7 +69,7 @@ defmodule Ippan.Events do
       base: :validator,
       mod: Validator,
       fun: :new,
-      parallel: false,
+      deferred: true,
       auth: true
     }
 
@@ -98,7 +80,6 @@ defmodule Ippan.Events do
       base: :validator,
       mod: Validator,
       fun: :update,
-      parallel: false,
       auth: true
     }
 
@@ -109,7 +90,6 @@ defmodule Ippan.Events do
       base: :validator,
       mod: Validator,
       fun: :delete,
-      parallel: false,
       auth: true
     }
 
@@ -120,7 +100,7 @@ defmodule Ippan.Events do
       base: :token,
       mod: Token,
       fun: :new,
-      parallel: false,
+      deferred: true,
       auth: true
     }
 
@@ -131,7 +111,6 @@ defmodule Ippan.Events do
       base: :token,
       mod: Token,
       fun: :update,
-      parallel: true,
       auth: true
     }
 
@@ -142,7 +121,6 @@ defmodule Ippan.Events do
       base: :token,
       mod: Token,
       fun: :delete,
-      parallel: true,
       auth: true
     }
 
@@ -153,7 +131,6 @@ defmodule Ippan.Events do
       base: :balance,
       mod: Balance,
       fun: :lock,
-      parallel: true,
       auth: true
     }
 
@@ -164,7 +141,6 @@ defmodule Ippan.Events do
       base: :balance,
       mod: Balance,
       fun: :unlock,
-      parallel: true,
       auth: true
     }
 
@@ -175,7 +151,6 @@ defmodule Ippan.Events do
       base: :tx,
       mod: Tx,
       fun: :coinbase,
-      parallel: true,
       auth: true
     }
 
@@ -186,7 +161,6 @@ defmodule Ippan.Events do
       base: :tx,
       mod: Tx,
       fun: :send,
-      parallel: true,
       auth: true
     }
 
@@ -197,7 +171,6 @@ defmodule Ippan.Events do
       base: :tx,
       mod: Tx,
       fun: :burn,
-      parallel: true,
       auth: true
     }
 
@@ -208,7 +181,6 @@ defmodule Ippan.Events do
       mod: Tx,
       base: :tx,
       fun: :refund,
-      parallel: true,
       auth: true
     }
 
@@ -219,7 +191,7 @@ defmodule Ippan.Events do
       mod: Domain,
       base: :domain,
       fun: :new,
-      parallel: false,
+      deferred: true,
       auth: true
     }
 
@@ -230,7 +202,6 @@ defmodule Ippan.Events do
       base: :domain,
       mod: Domain,
       fun: :update,
-      parallel: true,
       auth: true
     }
 
@@ -241,7 +212,6 @@ defmodule Ippan.Events do
       base: :domain,
       mod: Domain,
       fun: :delete,
-      parallel: true,
       auth: true
     }
 
@@ -252,7 +222,6 @@ defmodule Ippan.Events do
       base: :domain,
       mod: Domain,
       fun: :renew,
-      parallel: true,
       auth: true
     }
 
@@ -263,7 +232,7 @@ defmodule Ippan.Events do
   #     base: :domain,
   #     mod: Domain,
   #     fun: :expiry,
-  #     parallel: true,
+  #
   #     system: true,
   #     auth: false
   #   }
@@ -275,7 +244,6 @@ defmodule Ippan.Events do
       base: :dns,
       mod: DNS,
       fun: :new,
-      parallel: true,
       auth: true
     }
 
@@ -286,7 +254,6 @@ defmodule Ippan.Events do
       base: :dns,
       mod: DNS,
       fun: :update,
-      parallel: true,
       auth: true
     }
 
@@ -297,7 +264,6 @@ defmodule Ippan.Events do
       base: :dns,
       mod: DNS,
       fun: :delete,
-      parallel: true,
       auth: true
     }
 
@@ -308,7 +274,7 @@ defmodule Ippan.Events do
   #     base: :block,
   #     mod: Block,
   #     fun: :new,
-  #     parallel: true,
+  #
   #     system: true,
   #     auth: false
   #   }
@@ -320,7 +286,7 @@ defmodule Ippan.Events do
   #     base: :block,
   #     mod: Block,
   #     fun: :received,
-  #     parallel: true,
+  #
   #     system: true,
   #     auth: false
   #   }
@@ -332,7 +298,7 @@ defmodule Ippan.Events do
   #     base: :round,
   #     mod: Round,
   #     fun: :start,
-  #     parallel: true,
+  #
   #     system: true,
   #     auth: false
   #   }
@@ -344,7 +310,7 @@ defmodule Ippan.Events do
   #     base: :round,
   #     mod: Round,
   #     fun: :end,
-  #     parallel: true,
+  #
   #     system: true,
   #     auth: false
   #   }

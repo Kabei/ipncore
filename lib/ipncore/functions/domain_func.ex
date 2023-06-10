@@ -1,10 +1,11 @@
 defmodule Ippan.Func.Domain do
   alias Ippan.Domain
+  alias Ippan.Utils
   @fullname_max_size 255
   @token Default.token()
 
   def new(
-        %{id: account_id, hash: hash, timestamp: timestamp},
+        %{id: account_id, size: size, timestamp: timestamp, validator: validator_id},
         domain_name,
         owner,
         days,
@@ -29,7 +30,6 @@ defmodule Ippan.Func.Domain do
 
       true ->
         amount = Domain.price(domain_name, days)
-        current_round = 0
         chain_owner = Global.get(:owner)
 
         domain =
@@ -43,21 +43,24 @@ defmodule Ippan.Func.Domain do
           |> Map.merge(MapUtil.to_atoms(map_filter))
           |> MapUtil.validate_url(:avatar)
           |> MapUtil.validate_email(:email)
-          |> Domain.to_list_def(hash, current_round)
+          |> Domain.to_list()
 
-        case BalanceStore.deferred(
-               domain_name,
-               400,
+        %{fee: fee, fee_type: fee_type, owner: validator_owner} =
+          ValidatorStore.lookup([validator_id])
+
+        fee_amount = Utils.calc_fees!(fee_type, fee, amount, size)
+
+        case BalanceStore.transaction(
                account_id,
                chain_owner,
                @token,
                amount,
-               timestamp,
-               hash,
-               current_round
+               validator_owner,
+               fee_amount,
+               timestamp
              ) do
           :ok ->
-            DomainStore.insert_deferred(domain)
+            DomainStore.insert(domain)
 
           0 ->
             raise IppanError, "Resource already taken"

@@ -10,16 +10,16 @@ defmodule BalanceStore do
     # pool: :bal_pool,
     table: @table,
     mod: Ippan.Balance,
-    # deferred UNSIGNED BIGINT DEFAULT 0,
-    # tx_count UNSIGNED BIGINT DEFAULT 0,
+    # deferred BIGINT DEFAULT 0,
+    # tx_count BIGINT DEFAULT 0,
     create: ["
     CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
-      amount UNSIGNED BIGINT DEFAULT 0,
-      locked UNSIGNED BIGINT DEFAULT 0,
-      created_at UNSIGNED BIGINT NOT NULL,
-      updated_at UNSIGNED BIGINT NOT NULL,
+      amount BIGINT DEFAULT 0,
+      locked BIGINT DEFAULT 0,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL,
       PRIMARY KEY (id, token)
     ) WITHOUT ROWID;", "
     CREATE TABLE IF NOT EXISTS #{@table_df}(
@@ -29,7 +29,7 @@ defmodule BalanceStore do
       token VARCHAR(20) NOT NULL,
       `to` BLOB NOT NULL,
       amount BIGINT DEFAULT 0,
-      created_at UNSIGNED BIGINT NOT NULL,
+      created_at BIGINT NOT NULL,
       hash BLOB NOT NULL,
       round BIGINT NOT NULL,
       PRIMARY KEY (id, type)

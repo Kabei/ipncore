@@ -14,12 +14,12 @@ defmodule WalletStore do
       id TEXT PRIMARY KEY NOT NULL,
       pubkey BLOB NOT NULL,
       validator UNSIGNED INTEGER NOT NULL,
-      created_at UNSIGNED BIGINT NOT NULL
+      created_at BIGINT NOT NULL
     ) WITHOUT ROWID;", "CREATE TABLE IF NOT EXISTS #{@table_df}(
       id TEXT PRIMARY KEY NOT NULL,
       pubkey BLOB NOT NULL,
       validator UNSIGNED INTEGER NOT NULL,
-      created_at UNSIGNED BIGINT NOT NULL,
+      created_at BIGINT NOT NULL,
       hash BLOB NOT NULL,
       round integer NOT nULL
     ) WITHOUT ROWID;"],

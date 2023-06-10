@@ -15,9 +15,9 @@ defmodule DomainStore do
       avatar TEXT,
       records UNSIGNED INTEGER DEFAULT 0,
       enabled BOOLEAN DEFAULT TRUE,
-      created_at UNSIGNED BIGINT NOT NULL,
-      renewed_at UNSIGNED BIGINT NOT NULL,
-      updated_at UNSIGNED BIGINT NOT NULL
+      created_at BIGINT NOT NULL,
+      renewed_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
       ) WITHOUT ROWID;
       """,
       """
@@ -28,8 +28,8 @@ defmodule DomainStore do
       avatar TEXT,
       records UNSIGNED INTEGER DEFAULT 0,
       enabled BOOLEAN DEFAULT TRUE,
-      created_at UNSIGNED BIGINT NOT NULL,
-      renewed_at UNSIGNED BIGINT NOT NULL,
+      created_at BIGINT NOT NULL,
+      renewed_at BIGINT NOT NULL,
       hash BLOB NOT NULL,
       round BIGINT NOT NULL
       ) WITHOUT ROWID;

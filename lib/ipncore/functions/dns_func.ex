@@ -9,7 +9,7 @@ defmodule Ippan.Func.Dns do
   # @dns_types ~w(A NS CNAME SOA PTR MX TXT AAAA SPF SRV DS SSHFP RRSIG NSEC DNSKEY CAA URI HINFO WKS)
 
   def new(
-        %{id: account_id, hash: hash, size: size, validator: validator_id, timestamp: timestamp},
+        %{id: account_id, size: size, validator: validator_id, timestamp: timestamp},
         fullname,
         type,
         data,
@@ -37,31 +37,18 @@ defmodule Ippan.Func.Dns do
             raise IppanError, "Invalid validator"
 
           validator ->
-            hash16 = Base.encode16(hash)
-            BalanceStore.savepoint(hash16)
-
             :ok = BalanceStore.send(account_id, validator.owner, @token, size, timestamp)
 
-            dns =
-              %DNS{
-                domain: domain,
-                name: subdomain,
-                data: data,
-                type: type,
-                ttl: ttl,
-                hash: fun_hash([fullname, "#{type}", data])
-              }
-              |> DNS.to_list()
-              |> DnsStore.insert_sync()
-
-            case dns do
-              1 ->
-                BalanceStore.sv_release(hash16)
-
-              _ ->
-                BalanceStore.sv_rollback(hash16)
-                raise IppanError, "Invalid operation"
-            end
+            %DNS{
+              domain: domain,
+              name: subdomain,
+              data: data,
+              type: type,
+              ttl: ttl,
+              hash: fun_hash([fullname, "#{type}", data])
+            }
+            |> DNS.to_list()
+            |> DnsStore.replace()
         end
     end
   end

@@ -17,8 +17,8 @@ defmodule ValidatorStore do
       avatar TEXT,
       fee_type TINYINT NOT NULL,
       fee DOUBLE NOT NULL,
-      created_at UNSIGNED BIGINT NOT NULL,
-      updated_at UNSIGNED BIGINT NOT NULL
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
     );", "CREATE TABLE IF NOT EXISTS #{@table_df}(
       id BIGINT PRIMARY KEY NOT NULL,
       hostname VARCHAR(50) UNIQUE NOT NULL,
@@ -28,7 +28,7 @@ defmodule ValidatorStore do
       avatar TEXT,
       fee_type TINYINT NOT NULL,
       fee DOUBLE NOT NULL,
-      created_at UNSIGNED BIGINT NOT NULL,
+      created_at BIGINT NOT NULL,
       hash BLOB NOT NULL
     );
     "],

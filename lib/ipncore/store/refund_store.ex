@@ -10,8 +10,8 @@ defmodule RefundStore do
       sender BLOB NOT NULL,
       `to` BLOB NOT NULL,
       token TEXT NOT NULL,
-      amount UNSIGNED BIGINT NOT NULL,
-      expiry_in UNSIGNED BIGINT NOT NULL
+      amount BIGINT NOT NULL,
+      expiry_in BIGINT NOT NULL
     ) WITHOUT ROWID;
     """,
     stmt: %{

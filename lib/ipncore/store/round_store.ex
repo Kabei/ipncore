@@ -7,9 +7,9 @@ defmodule RoundStore do
     mod: Ippan.Round,
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(
-      id UNSIGNED BIGINT PRIMARY KEY NOT NULL,
+      id BIGINT PRIMARY KEY NOT NULL,
       blocks UNSIGNED INTEGER NOT NULL,
-      timestamp UNSIGNED BIGINT NOT NULL
+      timestamp BIGINT NOT NULL
     ) WITHOUT ROWID;
     """,
     stmt: %{

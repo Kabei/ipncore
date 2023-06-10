@@ -70,7 +70,7 @@ defmodule Ippan.Func.Validator do
         |> Map.merge(MapUtil.to_atoms(map_filter))
         |> MapUtil.validate_url(:avatar)
         |> Validator.to_list()
-        |> ValidatorStore.insert_deferred()
+        |> ValidatorStore.insert()
     end
   end
 

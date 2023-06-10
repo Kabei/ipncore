@@ -5,7 +5,7 @@ defmodule Ippan.Func.Token do
   @token Application.compile_env(:ipncore, :token)
 
   def new(
-        %{id: account_id, timestamp: timestamp, hash: hash},
+        %{id: account_id, timestamp: timestamp},
         id,
         owner_id,
         name,
@@ -56,11 +56,9 @@ defmodule Ippan.Func.Token do
 
           result
         else
-          current_round = 0
-
           token
-          |> Token.to_list_def(hash, current_round)
-          |> TokenStore.insert_deferred()
+          |> Token.to_list()
+          |> TokenStore.insert()
         end
     end
   end

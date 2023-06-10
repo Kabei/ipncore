@@ -21,6 +21,7 @@ defmodule DnsStore do
       "delete_name" => "DELETE FROM #{@table} WHERE domain = ?1 AND name=?2",
       delete: "DELETE FROM #{@table} WHERE domain = ?1",
       insert: "INSERT INTO #{@table} VALUES(?1, ?2, ?3, ?4, ?5, ?6)",
+      replace: "REPLACE INTO #{@table} VALUES(?1, ?2, ?3, ?4, ?5, ?6)",
       lookup: "SELECT * FROM #{@table} WHERE domain=?1 AND hash=?2",
       exists: "SELECT 1 FROM #{@table} WHERE domain=?1 AND hash=?2"
     }

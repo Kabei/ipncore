@@ -51,24 +51,6 @@ defmodule Ippan.Token do
     ]
   end
 
-  def to_list_def(x, hash, round) do
-    [
-      x.id,
-      x.owner,
-      x.name,
-      x.avatar,
-      x.decimal,
-      x.symbol,
-      x.enabled,
-      x.supply,
-      x.burned,
-      @json.encode!(x.props),
-      x.created_at,
-      hash,
-      round
-    ]
-  end
-
   def to_tuple([
         id,
         owner,

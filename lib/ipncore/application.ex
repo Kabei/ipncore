@@ -41,6 +41,9 @@ defmodule Ipncore.Application do
     #   # init chain
     #   :ok = Chain.start()
 
+    block_dir = Path.join(data_dir, "blocks")
+    File.mkdir_p!(block_dir)
+
     # services
     children = [
       # # {AccountStore, Path.join(data_dir, "account/account.db")},

@@ -72,49 +72,57 @@ defmodule Ippan.RequestHandler do
 
     %{auth: false} = Events.lookup(type)
 
-    if MessageStore.insert_sync([hash, msg, nil, size]) != 1,
+    if MessageStore.insert_sync([hash, type, timestamp, nil, nil, nil, msg, nil, size]) != 1,
       do: raise(IppanError, "Invalid hash transaction")
   end
 
   @spec valid!(binary, binary, non_neg_integer(), binary, non_neg_integer()) :: any
   def valid!(hash, msg, size, sig_with_flag, node_validator) do
-    [type, timestamp, from | _args] = Jason.decode!(msg)
+    [type, timestamp, from | args] = Jason.decode!(msg)
 
     check_timestamp!(timestamp)
 
     %{auth: true, validator: valid_validator} = Events.lookup(type)
 
-    wallet_pubkey =
+    {wallet_pubkey, wallet_validator} =
       case valid_validator do
         true ->
           [_, wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
           if wallet_validator != node_validator, do: raise(IppanError, "Invalid validator")
-          wallet_pubkey
+          {wallet_pubkey, wallet_validator}
 
         false ->
           [_, wallet_pubkey, _wallet_validator] = WalletStore.lookup([from])
-          wallet_pubkey
+          {wallet_pubkey, nil}
       end
 
     <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
     chech_signature!(sig_flag, signature, hash, wallet_pubkey)
 
-    if MessageStore.insert_sync([hash, msg, nil, size]) != 1,
-      do: raise(IppanError, "Invalid hash transaction")
+    if MessageStore.insert_sync([
+         hash,
+         type,
+         timestamp,
+         from,
+         wallet_validator,
+         args,
+         :erlang.term_to_binary(msg),
+         sig_with_flag,
+         size
+       ]) != 1,
+       do: raise(IppanError, "Invalid hash transaction")
   end
 
   # ======================================================
 
   @spec handle!(binary(), list(), non_neg_integer()) ::
           any()
-  def handle!(hash, msg, size) do
-    [type, timestamp | args] = Jason.decode!(msg)
-
-    check_timestamp!(timestamp)
-
-    %{auth: false} = event = Events.lookup(type)
+  def handle!(hash, type, timestamp, account_id, validator_id, size, args) do
+    event = Events.lookup(type)
 
     source = %{
+      account: account_id,
+      validator: validator_id,
       hash: hash,
       # event: event,
       timestamp: timestamp,
@@ -122,53 +130,32 @@ defmodule Ippan.RequestHandler do
     }
 
     apply(event.mod, event.fun, [source | args])
-
-    if MessageStore.insert_sync([hash, msg, nil, size]) != 1,
-      do: raise(IppanError, "Invalid hash transaction")
   end
 
-  @spec handle!(binary(), String.t(), non_neg_integer(), binary()) ::
-          any()
+  # def handle_peer!(hash, msg, size, sig_with_flag) do
+  #   [type, timestamp, from | args] = Jason.decode!(msg)
 
-  def handle!(hash, msg, size, sig_with_flag) do
-    [type, timestamp, from | args] = Jason.decode!(msg)
+  #   check_timestamp!(timestamp)
 
-    # check_timestamp!(timestamp)
+  #   %{auth: true} = event = Events.lookup(type)
 
-    %{auth: true} = event = Events.lookup(type)
+  #   [_, wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
 
-    [_, wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
+  #   <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
+  #   chech_signature!(sig_flag, signature, hash, wallet_pubkey)
 
-    <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
-    chech_signature!(sig_flag, signature, hash, wallet_pubkey)
+  #   run!(event, hash, msg, signature, size, from, wallet_validator, timestamp, args)
+  # end
 
-    run!(event, hash, msg, signature, size, from, wallet_validator, timestamp, args)
-  end
+  # def handle_import!(hash, msg, size) do
+  #   [type, timestamp, from | args] = Jason.decode!(msg)
 
-  def handle_peer!(hash, msg, size, sig_with_flag) do
-    [type, timestamp, from | args] = Jason.decode!(msg)
+  #   %{auth: true} = event = Events.lookup(type)
 
-    check_timestamp!(timestamp)
+  #   [_, _wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
 
-    %{auth: true} = event = Events.lookup(type)
-
-    [_, wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
-
-    <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
-    chech_signature!(sig_flag, signature, hash, wallet_pubkey)
-
-    run!(event, hash, msg, signature, size, from, wallet_validator, timestamp, args)
-  end
-
-  def handle_import!(hash, msg, size) do
-    [type, timestamp, from | args] = Jason.decode!(msg)
-
-    %{auth: true} = event = Events.lookup(type)
-
-    [_, _wallet_pubkey, wallet_validator] = WalletStore.lookup([from])
-
-    run_import!(event, hash, size, from, wallet_validator, timestamp, args)
-  end
+  #   run_import!(event, hash, size, from, wallet_validator, timestamp, args)
+  # end
 
   # check signature by type
   # verify secp256k1 signature

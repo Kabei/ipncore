@@ -85,21 +85,6 @@ defmodule Ippan.Domain do
     ]
   end
 
-  def to_list_def(x, hash, round) do
-    [
-      x.name,
-      x.owner,
-      x.email,
-      x.avatar,
-      x.records,
-      x.enabled,
-      x.created_at,
-      x.renewed_at,
-      hash,
-      round
-    ]
-  end
-
   def to_map({name, owner, email, avatar, records, enabled, created_at, renewed_at, updated_at}) do
     %{
       name: name,

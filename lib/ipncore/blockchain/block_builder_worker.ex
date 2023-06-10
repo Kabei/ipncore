@@ -20,7 +20,6 @@ defmodule BlockBuilderWork do
     RefundStore.sync()
     BlockStore.sync()
     RoundStore.sync()
-    EnvStore.sync()
   end
 
   def run do

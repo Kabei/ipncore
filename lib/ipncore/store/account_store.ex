@@ -10,7 +10,7 @@ defmodule AccountStore do
     validator UNSIGNED INTEGER NOT NULL,
     pubkey BLOB NOT NULL,
     type_sig INTEGER NOT NULL,
-    created_at UNSIGNED BIGINT NOT NULL
+    created_at BIGINT NOT NULL
     ) WITHOUT ROWID;
     ",
     stmt: %{

@@ -33,7 +33,7 @@ defmodule EnvStore do
         default
 
       val ->
-        :erlang.term_to_binary(val)
+        :erlang.binary_to_term(val)
     end
   end
 end

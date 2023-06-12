@@ -115,8 +115,7 @@ defmodule Ippan.RequestHandler do
 
   # ======================================================
 
-  @spec handle!(binary(), list(), non_neg_integer()) ::
-          any()
+
   def handle!(hash, type, timestamp, account_id, validator_id, size, args) do
     event = Events.lookup(type)
 

@@ -44,6 +44,6 @@ defmodule BlockStore do
   end
 
   def blanks do
-    call({:execute_fetch, :blank, [validator_id]})
+    call({:execute_fetch, :blank, []})
   end
 end

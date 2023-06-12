@@ -1,6 +1,6 @@
 defmodule BlockTimer do
   use GenServer
-  alias Ippan.Request
+  alias Ippan.RequestHandler
 
   @otp_app :ipncore
   @block_interval Application.compile_env(:ipncore, :block_interval)
@@ -42,8 +42,9 @@ defmodule BlockTimer do
 
     case MessageStore.fetch_by_size(@block_max_size) do
       {:ok, []} ->
-        # empty block
-        nil
+        # empty block (send message)
+        tref = :timer.send_after(@block_interval, :mine)
+        {:noreply, %{state | tref: tref}}
 
       {:ok, requests} ->
         data_dir = Application.get_env(@otp_app, :data_dir, "data")
@@ -51,9 +52,22 @@ defmodule BlockTimer do
         block_path = Path.join([data_dir, "blocks", "#{height}.block.#{@file_extension}"])
 
         events =
-          Enum.reduce(requests, [], fn [hash, msg, _signature, size], acc ->
+          Enum.reduce(requests, [], fn [
+                                         hash,
+                                         type,
+                                         timestamp,
+                                         account_id,
+                                         validator_id,
+                                         args,
+                                         message,
+                                         signature,
+                                         size
+                                       ],
+                                       acc ->
             try do
-              Request.handle(hash, msg, size)
+              args = :erlang.binary_to_term(args)
+              RequestHandler.handle!(hash, type, timestamp, account_id, validator_id, size, args)
+              [acc | [[message, signature]]]
             rescue
               _e ->
                 acc
@@ -67,6 +81,7 @@ defmodule BlockTimer do
         block_size = File.stat!(block_path).size
         hashfile = hash_file(block_path)
         new_height = height + 1
+        new_round = old_round + 1
         timestamp = :os.system_time(:millisecond)
         ev_count = length(events)
 
@@ -74,7 +89,7 @@ defmodule BlockTimer do
           new_height,
           Default.validator_id(),
           hashfile,
-          old_round + 1,
+          new_round,
           timestamp,
           ev_count,
           block_size,
@@ -82,10 +97,10 @@ defmodule BlockTimer do
         ])
 
         BlockStore.sync()
-    end
 
-    tref = :timer.send_after(@block_interval, :mine)
-    {:noreply, %{state | tref: tref}}
+        tref = :timer.send_after(@block_interval, :mine)
+        {:noreply, %{state | height: new_height, round: new_round, tref: tref}}
+    end
   end
 
   defp sync_all do

@@ -25,7 +25,7 @@ defmodule BlockStore do
       insert:
         "INSERT INTO #{@table}(height, validator, hashfile, round, timestamp, ev_count, size, vsn) values(?1,?2,?3,?4,?5,?6,?7,?8)",
       # insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
-      replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+      replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
       lookup: "SELECT * FROM #{@table} WHERE height = ?",
       lookup_hash: "SELECT * FROM #{@table} WHERE hash = ? LIMIT 1",
       exists: "SELECT 1 FROM #{@table} WHERE height = ?",

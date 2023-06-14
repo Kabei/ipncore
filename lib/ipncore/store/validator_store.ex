@@ -28,6 +28,7 @@ defmodule ValidatorStore do
       avatar TEXT,
       fee_type TINYINT NOT NULL,
       fee DOUBLE NOT NULL,
+      round BIGINT NOT NULL,
       created_at BIGINT NOT NULL,
       hash BLOB NOT NULL
     );
@@ -35,10 +36,10 @@ defmodule ValidatorStore do
     stmt: %{
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
       insert_deferred:
-        "INSERT INTO #{@table_df} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10) ON CONFLICT (id)
-        DO UPDATE SET hostname=?2, name=?3, owner=?4, pubkey=?5, avatar=?6, fee_type=?7, fee=?8, created_at=?9, hash=?10
+        "INSERT INTO #{@table_df} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11) ON CONFLICT (id)
+        DO UPDATE SET hostname=?2, name=?3, owner=?4, pubkey=?5, avatar=?6, fee_type=?7, fee=?8, created_at=?9, hash=?10, round=?11
         WHERE created_at > EXCLUDED.created_at OR created_at = EXCLUDED.created_at AND hash > EXCLUDED.hash",
-      replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
+      replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
       # INSERT INTO #{@table} (id,hostname,name,owner,avatar,fee,created_at,updated_at)
       # values($1,$2,$3,$4,$5,$6,$7,$8,$9)
       # ON CONFLICT (id, hostname) DO UPDATE SET

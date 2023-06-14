@@ -1,6 +1,6 @@
 defmodule BlockTimer do
   use GenServer
-  alias Ippan.RequestHandler
+  alias Ippan.{Block, RequestHandler}
 
   @otp_app :ipncore
   @block_interval Application.compile_env(:ipncore, :block_interval)
@@ -14,15 +14,30 @@ defmodule BlockTimer do
 
   @impl true
   def init(_args) do
+    data_dir = Application.get_env(@otp_app, :data_dir, "data")
+    block_dir = Path.join(data_dir, "blocks")
+    File.mkdir_p!(block_dir)
+
     validator_id = Default.validator_id()
     # local_blocks = BlockStore.count(validator_id)
-    my_last_block = BlockStore.last(validator_id)
 
-    {:ok,
-     %{
-       height: my_last_block.height,
-       round: my_last_block.round
-     }, {:continue, :init}}
+    case BlockStore.last(validator_id) do
+      {:row, block_list} ->
+        block = Block.to_map(block_list)
+
+        {:ok,
+         %{
+           height: block.height,
+           round: block.round
+         }, {:continue, :init}}
+
+      _ ->
+        {:ok,
+         %{
+           height: 0,
+           round: 0
+         }, {:continue, :init}}
+    end
   end
 
   @impl true
@@ -112,9 +127,9 @@ defmodule BlockTimer do
     DomainStore.sync()
     DnsStore.sync()
     EnvStore.sync()
+    RefundStore.sync()
     # BlockStore.sync()
     # RoundStore.sync()
-    RefundStore.sync()
   end
 
   defp encode!(content) do

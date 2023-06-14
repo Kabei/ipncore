@@ -1,6 +1,5 @@
 defmodule EnvStore do
   @table "env"
-  @table_df "env_df"
 
   use Store.Sqlite,
     base: :env,
@@ -13,14 +12,7 @@ defmodule EnvStore do
     value BLOB,
     created_at BIGINT NOT NULL
     ) WITHOUT ROWID;
-    ", "
-    CREATE TABLE IF NOT EXISTS #{@table_df}(
-    name TEXT PRIMARY KEY NOT NULL,
-    value BLOB,
-    created_at BIGINT NOT NULL,
-    hash BLOB NOT NULL,
-    round BIGINT
-    ) WITHOUT ROWID;"],
+    "],
     stmt: %{
       insert: "REPLACE INTO #{@table} values(?1, ?2, ?3)",
       delete: "DELETE FROM #{@table} WHERE name=?1",

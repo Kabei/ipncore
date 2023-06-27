@@ -23,6 +23,7 @@ defmodule Ippan.Events do
       base: :wallet,
       mod: Wallet,
       fun: :new,
+      before: :pre_new,
       deferred: true,
       validator: false,
       auth: false
@@ -34,6 +35,7 @@ defmodule Ippan.Events do
       name: "wallet.subscribe",
       base: :wallet,
       mod: Wallet,
+      before: :pre_sub,
       fun: :subscribe,
       deferred: true,
       validator: false,
@@ -47,6 +49,7 @@ defmodule Ippan.Events do
       base: :env,
       mod: Env,
       fun: :set,
+      before: :pre_set,
       deferred: true,
       auth: true
     }
@@ -57,6 +60,7 @@ defmodule Ippan.Events do
       name: "env.delete",
       base: :env,
       mod: Env,
+      before: :pre_delete,
       fun: :delete,
       deferred: true,
       auth: true
@@ -69,6 +73,7 @@ defmodule Ippan.Events do
       base: :validator,
       mod: Validator,
       fun: :new,
+      before: :pre_new,
       deferred: true,
       auth: true
     }
@@ -100,6 +105,7 @@ defmodule Ippan.Events do
       base: :token,
       mod: Token,
       fun: :new,
+      before: :pre_new,
       deferred: true,
       auth: true
     }
@@ -191,6 +197,7 @@ defmodule Ippan.Events do
       mod: Domain,
       base: :domain,
       fun: :new,
+      before: :pre_new,
       deferred: true,
       auth: true
     }

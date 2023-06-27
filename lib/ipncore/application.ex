@@ -7,31 +7,34 @@ defmodule Ipncore.Application do
 
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
+  @default_node :nonode@nohost
 
-  # @compile :native
-  # @compile {:hipe, [:verbose, :o3]}
+  @compile :native
+  @compile {:hipe, [:verbose, :o3]}
 
   @impl true
   def start(_type, _args) do
     Logger.debug("Starting application")
-    node = System.get_env("NODE", "n1")
     p2p_opts = Application.get_env(@otp_app, :p2p)
     data_dir = Application.get_env(@otp_app, :data_dir, "data")
     http_opts = Application.get_env(@otp_app, :http)
-    redis_url = Application.get_env(@otp_app, :redis)
+    redis_url = System.get_env("REDIS") || Application.get_env(@otp_app, :redis)
 
     role = System.get_env("ROLE", "verifier")
+    Application.put_env(@otp_app, :role, role)
+
+    node_name = System.get_env("NODE") || Application.get_env(@otp_app, :node) || node()
 
     pubsubi_opts =
-      if redis_url do
+      if not is_nil(redis_url) and node_name != @default_node do
         [
           adapter: Phoenix.PubSub.Redis,
           url: redis_url,
-          node_name: node,
-          name: :pubsubi
+          node_name: node_name,
+          name: :verifiers
         ]
       else
-        [name: :pubsubi]
+        [name: :verifiers]
       end
 
     # create data folder
@@ -50,57 +53,40 @@ defmodule Ipncore.Application do
           [
             {MessageStore, Path.join(data_dir, "requests/messages.db")},
             {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
-            # WalletStore.child_spec(Path.join(data_dir, "wallet/wallet.db")),
             {EnvStore, Path.join(data_dir, "env/env.db")},
             {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
             {TokenStore, Path.join(data_dir, "token/token.db")},
             {BalanceStore, Path.join(data_dir, "txs/balance.db")},
-            # BalanceStore.child_spec(Path.join(data_dir, "txs/refund.db")),
             {RefundStore, Path.join(data_dir, "txs/refund.db")},
             {DomainStore, Path.join(data_dir, "domain/domain.db")},
             {DnsStore, Path.join(data_dir, "dns/dns.db")},
             {BlockStore, Path.join(data_dir, "chain/block.db")},
             {RoundStore, Path.join(data_dir, "chain/round.db")},
             {ThousandIsland, p2p_opts},
-            Supervisor.child_spec({Phoenix.PubSub, pubsubi_opts}, id: :pubsubi),
-            Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub),
+            Supervisor.child_spec({Phoenix.PubSub, pubsubi_opts}, id: :verifiers),
+            Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
+            # Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
             {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :falcon_dir)},
-            {BlockTimer, []}
+            {BlockTimer, []},
+            {EventChannel, %{server: :miner}}
           ]
 
         "verifier" ->
+          # miner_node =
+          #   case System.get_env("MINER") || Application.get_env(@otp_app, :miner) do
+          #     nil -> raise RuntimeError, "Set up a miner"
+          #     x -> String.to_atom(x)
+          #   end
+
           [
             {MessageStore, Path.join(data_dir, "requests/messages.db")},
-            Supervisor.child_spec({Phoenix.PubSub, pubsubi_opts}, id: :pubsubi),
-            Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub),
+            Supervisor.child_spec({Phoenix.PubSub, pubsubi_opts}, id: :verifiers),
+            Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
+            {EventChannel, %{server: :verifiers}},
+            # {NodeMonitor, [miner_node]},
             {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
           ]
       end
-
-    # children = [
-    #   # # {AccountStore, Path.join(data_dir, "account/account.db")},
-    #   {MessageStore, Path.join(data_dir, "requests/messages.db")},
-    #   {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
-    #   # WalletStore.child_spec(Path.join(data_dir, "wallet/wallet.db")),
-    #   {EnvStore, Path.join(data_dir, "env/env.db")},
-    #   {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
-    #   {TokenStore, Path.join(data_dir, "token/token.db")},
-    #   {BalanceStore, Path.join(data_dir, "txs/balance.db")},
-    #   # BalanceStore.child_spec(Path.join(data_dir, "txs/refund.db")),
-    #   {RefundStore, Path.join(data_dir, "txs/refund.db")},
-    #   {DomainStore, Path.join(data_dir, "domain/domain.db")},
-    #   {DnsStore, Path.join(data_dir, "dns/dns.db")},
-    #   {BlockStore, Path.join(data_dir, "chain/block.db")},
-    #   {RoundStore, Path.join(data_dir, "chain/round.db")},
-    #   # # pubsub
-    #   # Supervisor.child_spec({Phoenix.PubSub, pubsub2_opts}, id: :pubsubi),
-    #   # Supervisor.child_spec({Phoenix.PubSub, name: :pubsub}, id: :pubsub),
-    #   # p2p
-    #   # {ThousandIsland, p2p_opts},
-    #   # {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :falcon_dir)}
-    #   # http
-    #   {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
-    # ]
 
     case Supervisor.start_link(children, @opts) do
       {:ok, _pid} = result ->

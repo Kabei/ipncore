@@ -3,11 +3,8 @@ import Config
 # config :ipncore, :gps_device, "/dev/AMC0"
 
 # environment variables
-hostname = System.get_env("HOSTNAME", "ippan.uk")
-id = System.get_env("NODE_ID", "0") |> String.to_integer()
 port = System.get_env("PORT", "5815") |> String.to_integer()
 http_port = System.get_env("HTTP_PORT", "8080") |> String.to_integer()
-redis_url = System.get_env("REDIS")
 
 data_dir = System.get_env("DATA_DIR", "data")
 kem_dir = System.get_env("KEM_DIR", "priv/kem.key")
@@ -29,13 +26,6 @@ config :ipncore, :p2p,
   transport_module: ThousandIsland.Transports.TCP,
   port: port,
   num_acceptors: 10
-
-config :ipncore, :node,
-  id: id,
-  name: hostname,
-  port: port
-
-config :ipncore, :redis, redis_url
 
 # http server
 config :ipncore, :http,

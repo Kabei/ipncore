@@ -2,7 +2,7 @@ defmodule Ipncore.MixProject do
   use Mix.Project
 
   @app :ipncore
-  @version "0.3.0"
+  @version "0.4.0"
   @min_otp 25
 
   def project do
@@ -38,7 +38,7 @@ defmodule Ipncore.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     if System.otp_release() |> String.to_integer() < @min_otp,
-      do: raise(RuntimeError, "OTP invalid version. Required v#{@min_otp}")
+      do: raise(RuntimeError, "OTP invalid version. Required minimum v#{@min_otp}")
 
     [
       extra_applications: [:crypto, :syntax_tools, :logger],

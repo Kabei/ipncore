@@ -5,8 +5,39 @@ defmodule Ippan.Func.Validator do
 
   @type result :: Ippan.Request.result()
 
-  @spec new(
-          Source.t(),
+  def new(
+        %{timestamp: timestamp},
+        id,
+        owner_id,
+        hostname,
+        name,
+        pubkey,
+        fee_type,
+        fee,
+        opts \\ %{}
+      ) do
+    map_filter = Map.take(opts, Validator.optionals())
+    pubkey = Fast64.decode64(pubkey)
+
+    %Validator{
+      id: id,
+      hostname: hostname,
+      name: name,
+      pubkey: pubkey,
+      owner: owner_id,
+      fee: fee,
+      fee_type: fee_type,
+      created_at: timestamp,
+      updated_at: timestamp
+    }
+    |> Map.merge(MapUtil.to_atoms(map_filter))
+    |> MapUtil.validate_url(:avatar)
+    |> Validator.to_list()
+    |> ValidatorStore.insert()
+  end
+
+  @spec pre_new(
+          any(),
           number(),
           String.t(),
           String.t(),
@@ -16,7 +47,7 @@ defmodule Ippan.Func.Validator do
           non_neg_integer(),
           map()
         ) :: result()
-  def new(
+  def pre_new(
         %{id: account_id, timestamp: timestamp},
         id,
         owner_id,
@@ -69,8 +100,8 @@ defmodule Ippan.Func.Validator do
         }
         |> Map.merge(MapUtil.to_atoms(map_filter))
         |> MapUtil.validate_url(:avatar)
-        |> Validator.to_list()
-        |> ValidatorStore.insert()
+
+        :ok
     end
   end
 

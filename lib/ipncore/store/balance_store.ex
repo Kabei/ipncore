@@ -1,6 +1,5 @@
 defmodule BalanceStore do
   @table "balance"
-  @table_df "balance_df"
   alias Exqlite.Sqlite3NIF
 
   @token Default.token()
@@ -21,33 +20,16 @@ defmodule BalanceStore do
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL,
       PRIMARY KEY (id, token)
-    ) WITHOUT ROWID;", "
-    CREATE TABLE IF NOT EXISTS #{@table_df}(
-      id BLOB NOT NULL,
-      type TINYINT NOT NULL,
-      `from` BLOB NOT NULL,
-      token VARCHAR(20) NOT NULL,
-      `to` BLOB NOT NULL,
-      amount BIGINT DEFAULT 0,
-      created_at BIGINT NOT NULL,
-      hash BLOB NOT NULL,
-      round BIGINT NOT NULL,
-      PRIMARY KEY (id, type)
-    ) WITHOUT ROWID;
-    "],
+    ) WITHOUT ROWID;"],
     stmt: %{
       insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
       replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
-      balance: "SELECT amount FROM #{@table} WHERE id = ?1 AND token = ?2",
+      balance: "SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2 AND amount >= ?3",
       lookup: "SELECT * FROM #{@table} WHERE id = ?1 AND token = ?2",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2",
       delete: "DELETE FROM #{@table} WHERE id = ?1 AND token = ?2",
       send:
         "UPDATE #{@table} SET amount = amount - ?3, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
-      deferred:
-        "INSERT INTO #{@table_df} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT (id, type)
-        DO UPDATE SET amount = amount + ?6, created_at=?7, hash=?8, round=?9
-        WHERE created_at > ?7 OR created_at=?7 AND hash > ?8 RETURNING `from`, token, amount",
       income: "INSERT INTO #{@table} (id,token,amount,created_at,updated_at)
       VALUES(?1, ?2, ?3, ?4, ?4) ON CONFLICT (id, token)
       DO UPDATE SET amount = amount + ?3, updated_at = ?4
@@ -55,12 +37,7 @@ defmodule BalanceStore do
       lock:
         "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",
       unlock:
-        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3",
-      move:
-        "INSERT INTO #{@table} (id,token,amount,created_at,updated_at)
-        SELECT `to`, token, amount, created_at, created_at FROM #{@table_df} WHERE round=?1
-        ON CONFLICT (id,token) DO UPDATE SET amount = amount + EXCLUDED.amount, updated_at=EXCLUDED.updated_at",
-      delete_deferred: "DELETE FROM #{@table_df} WHERE round=?1"
+        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3"
     }
 
   @spec income(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
@@ -284,6 +261,32 @@ defmodule BalanceStore do
   @spec unlock(binary, String.t(), non_neg_integer()) :: boolean()
   def unlock(id, token, amount) do
     call({:execute_changes, :unlock, [id, token, amount]})
+  end
+
+  def balance(address, token, amount) do
+    case call({:execute_step, :balance, [address, token, amount]}) do
+      {:row, [1]} ->
+        :ok
+
+      _ ->
+        :error
+    end
+  end
+
+  def balance2(address, token, amount, token2, amount2) do
+    case call({:execute_step, :balance, [address, token, amount]}) do
+      {:row, [1]} ->
+        case call({:execute_step, :balance, [address, token2, amount2]}) do
+          {:row, [1]} ->
+            true
+
+          _ ->
+            false
+        end
+
+      _ ->
+        false
+    end
   end
 
   def receive(conn, recv_stmt, to_id, token, amount, timestamp)

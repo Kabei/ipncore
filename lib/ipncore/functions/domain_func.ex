@@ -4,7 +4,7 @@ defmodule Ippan.Func.Domain do
   @fullname_max_size 255
   @token Default.token()
 
-  def new(
+  def pre_new(
         %{id: account_id, size: size, timestamp: timestamp, validator: validator_id},
         domain_name,
         owner,
@@ -30,44 +30,85 @@ defmodule Ippan.Func.Domain do
 
       true ->
         amount = Domain.price(domain_name, days)
-        chain_owner = Global.get(:owner)
 
-        domain =
-          %Domain{
-            name: domain_name,
-            owner: owner,
-            created_at: timestamp,
-            renewed_at: timestamp + days * 86_400_000,
-            updated_at: timestamp
-          }
-          |> Map.merge(MapUtil.to_atoms(map_filter))
-          |> MapUtil.validate_url(:avatar)
-          |> MapUtil.validate_email(:email)
-          |> Domain.to_list()
+        %Domain{
+          name: domain_name,
+          owner: owner,
+          created_at: timestamp,
+          renewed_at: timestamp + days * 86_400_000,
+          updated_at: timestamp
+        }
+        |> Map.merge(MapUtil.to_atoms(map_filter))
+        |> MapUtil.validate_url(:avatar)
+        |> MapUtil.validate_email(:email)
 
-        %{fee: fee, fee_type: fee_type, owner: validator_owner} =
-          ValidatorStore.lookup([validator_id])
+        %{fee: fee, fee_type: fee_type} = ValidatorStore.lookup([validator_id])
 
         fee_amount = Utils.calc_fees!(fee_type, fee, amount, size)
 
-        case BalanceStore.transaction(
+        case BalanceStore.balance(
                account_id,
-               chain_owner,
                @token,
-               amount,
-               validator_owner,
-               fee_amount,
-               timestamp
+               amount + fee_amount
              ) do
           :ok ->
-            DomainStore.insert(domain)
+            :ok
 
-          0 ->
-            raise IppanError, "Resource already taken"
-
-          :error ->
+          _ ->
             raise IppanError, "Insufficient balance"
         end
+    end
+  end
+
+  def new(
+        %{id: account_id, size: size, timestamp: timestamp, validator: validator_id},
+        domain_name,
+        owner,
+        days,
+        opts \\ %{}
+      )
+      when byte_size(domain_name) <= @fullname_max_size and
+             days > 0 do
+    map_filter = Map.take(opts, Domain.optionals())
+
+    amount = Domain.price(domain_name, days)
+    chain_owner = Global.get(:owner)
+
+    domain =
+      %Domain{
+        name: domain_name,
+        owner: owner,
+        created_at: timestamp,
+        renewed_at: timestamp + days * 86_400_000,
+        updated_at: timestamp
+      }
+      |> Map.merge(MapUtil.to_atoms(map_filter))
+      |> MapUtil.validate_url(:avatar)
+      |> MapUtil.validate_email(:email)
+      |> Domain.to_list()
+
+    %{fee: fee, fee_type: fee_type, owner: validator_owner} =
+      ValidatorStore.lookup([validator_id])
+
+    fee_amount = Utils.calc_fees!(fee_type, fee, amount, size)
+
+    case BalanceStore.transaction(
+           account_id,
+           chain_owner,
+           @token,
+           amount,
+           validator_owner,
+           fee_amount,
+           timestamp
+         ) do
+      :ok ->
+        DomainStore.insert(domain)
+
+      0 ->
+        raise IppanError, "Resource already taken"
+
+      :error ->
+        raise IppanError, "Insufficient balance"
     end
   end
 

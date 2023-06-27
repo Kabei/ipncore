@@ -298,9 +298,9 @@ defmodule Store.Sqlite do
         call(:sync)
       end
 
-      def move_deferred(round) do
-        call({:move_deferred, round})
-      end
+      # def move_deferred(round) do
+      #   call({:move_deferred, round})
+      # end
 
       def drop do
         call(:drop)
@@ -560,16 +560,16 @@ defmodule Store.Sqlite do
       def handle_call(:sync, _from, %{conn: conn, stmt: stmt} = state) do
         # Logger.debug("Sync #{@table}")
         commit(conn)
-        Sqlite3NIF.execute(conn, 'PRAGMA wal_checkpoint(TRUNCATE)')
+        # Sqlite3NIF.execute(conn, 'PRAGMA wal_checkpoint(TRUNCATE)')
         begin(conn)
         {:reply, :ok, state}
       end
 
-      def handle_call({:move_deferred, round}, _from, %{conn: conn, stmt: stmt} = state) do
-        Sqlite3NIF.bind_and_step(conn, stmt.move, [round])
-        Sqlite3NIF.bind_and_step(conn, stmt.delete_deferred, [round])
-        {:reply, :ok, state}
-      end
+      # def handle_call({:move_deferred, round}, _from, %{conn: conn, stmt: stmt} = state) do
+      #   Sqlite3NIF.bind_and_step(conn, stmt.move, [round])
+      #   Sqlite3NIF.bind_and_step(conn, stmt.delete_deferred, [round])
+      #   {:reply, :ok, state}
+      # end
 
       def handle_call(
             {:execute_step, stmt_name, params},

@@ -3,7 +3,6 @@ defmodule Ippan.RequestHandler do
   alias Ippan.Events
   # alias Phoenix.PubSub
 
-  @pubsub_server :pubsub
   @timeout Application.compile_env(:ipncore, :message_timeout)
   @libsecp256k1 ExSecp256k1.Impl
 
@@ -15,74 +14,30 @@ defmodule Ippan.RequestHandler do
     end
   end
 
-  defmacrop run!(event, hash, msg, signature, size, from, wallet_validator, timestamp, args) do
-    quote do
-      case MessageStore.insert_sync([
-             unquote(hash),
-             unquote(msg),
-             unquote(signature),
-             unquote(size)
-           ]) do
-        1 ->
-          source = %{
-            hash: unquote(hash),
-            id: unquote(from),
-            validator: unquote(wallet_validator),
-            timestamp: unquote(timestamp),
-            size: unquote(size)
-          }
-
-          # call function
-          apply(unquote(event).mod, unquote(event).fun, [source | unquote(args)])
-
-        _ ->
-          raise IppanError, "Invalid hash transaction"
-      end
-    end
-  end
-
-  defmacrop run_import!(
-              event,
-              hash,
-              size,
-              from,
-              wallet_validator,
-              timestamp,
-              args
-            ) do
-    quote do
-      source = %{
-        hash: unquote(hash),
-        id: unquote(from),
-        validator: unquote(wallet_validator),
-        timestamp: unquote(timestamp),
-        size: unquote(size)
-      }
-
-      # call function
-      apply(unquote(event).mod, unquote(event).fun, [source | unquote(args)])
-    end
-  end
-
   @spec valid!(binary, binary, non_neg_integer()) :: any
   def valid!(hash, msg, size) do
-    [type, timestamp | _args] = Jason.decode!(msg)
+    [type, timestamp | args] = Jason.decode!(msg)
+    IO.inspect(args)
 
-    check_timestamp!(timestamp)
+    # check_timestamp!(timestamp)
 
     %{auth: false} = Events.lookup(type)
 
-    if MessageStore.insert_sync([hash, type, timestamp, nil, nil, nil, msg, nil, size]) != 1,
+    return = [hash, type, timestamp, nil, nil, :erlang.term_to_binary(args), msg, nil, size]
+
+    if MessageStore.insert_sync(return) != 1,
       do: raise(IppanError, "Invalid hash transaction")
+
+    return
   end
 
   @spec valid!(binary, binary, non_neg_integer(), binary, non_neg_integer()) :: any
   def valid!(hash, msg, size, sig_with_flag, node_validator) do
     [type, timestamp, from | args] = Jason.decode!(msg)
 
-    check_timestamp!(timestamp)
+    # check_timestamp!(timestamp)
 
-    %{auth: true, validator: valid_validator} = Events.lookup(type)
+    %{auth: true, validator: valid_validator, deferred: deferred} = Events.lookup(type)
 
     {wallet_pubkey, wallet_validator} =
       case valid_validator do
@@ -99,36 +54,100 @@ defmodule Ippan.RequestHandler do
     <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
     chech_signature!(sig_flag, signature, hash, wallet_pubkey)
 
-    if MessageStore.insert_sync([
-         hash,
-         type,
-         timestamp,
-         from,
-         wallet_validator,
-         args,
-         :erlang.term_to_binary(msg),
-         sig_with_flag,
-         size
-       ]) != 1,
-       do: raise(IppanError, "Invalid hash transaction")
+    case deferred do
+      true ->
+        key = hd(args) |> to_string()
+
+        return = [
+          key,
+          type,
+          timestamp,
+          hash,
+          from,
+          wallet_validator,
+          :erlang.term_to_binary(args),
+          msg,
+          sig_with_flag,
+          size
+        ]
+
+        if MessageStore.insert_df(return) != 1,
+          do: raise(IppanError, "Invalid deferred transaction")
+
+        return
+
+      false ->
+        return = [
+          timestamp,
+          hash,
+          type,
+          from,
+          wallet_validator,
+          :erlang.term_to_binary(args),
+          msg,
+          sig_with_flag,
+          size
+        ]
+
+        if MessageStore.insert_sync(return) != 1,
+          do: raise(IppanError, "Invalid hash transaction")
+
+        return
+    end
   end
 
   # ======================================================
 
-
-  def handle!(hash, type, timestamp, account_id, validator_id, size, args) do
+  def handle!(hash, type, timestamp, account_id, validator_id, size, nil) do
     event = Events.lookup(type)
 
     source = %{
+      type: type,
       account: account_id,
       validator: validator_id,
       hash: hash,
-      # event: event,
       timestamp: timestamp,
       size: size
     }
 
-    apply(event.mod, event.fun, [source | args])
+    case event do
+      %{deferred: false} ->
+        apply(event.mod, event.fun, [source])
+
+      %{deferred: true} ->
+        apply(event.mod, event.before, [source])
+    end
+  end
+
+  def handle!(hash, type, timestamp, account_id, validator_id, size, args) do
+    event = Events.lookup(type)
+
+    case event do
+      %{deferred: false} ->
+        source = %{
+          type: type,
+          account: account_id,
+          validator: validator_id,
+          hash: hash,
+          timestamp: timestamp,
+          size: size
+        }
+
+        apply(event.mod, event.fun, [source | args])
+
+      %{deferred: true} ->
+        source = %{
+          type: type,
+          account: account_id,
+          key: hd(args) |> to_string,
+          validator: validator_id,
+          hash: hash,
+          timestamp: timestamp,
+          size: size
+        }
+
+        apply(event.mod, event.before, [source | args])
+    end
   end
 
   # def handle_peer!(hash, msg, size, sig_with_flag) do
@@ -157,10 +176,13 @@ defmodule Ippan.RequestHandler do
   # end
 
   # check signature by type
-  # verify secp256k1 signature
+  # verify ed25519 signature
   defp chech_signature!("0", signature, hash, wallet_pubkey) do
-    if @libsecp256k1.verify(hash, signature, wallet_pubkey) !=
-         :ok,
+    if Ed25519Blake2b.Native.verify(
+         hash,
+         signature,
+         wallet_pubkey
+       ) != :ok,
        do: raise(IppanError, "Invalid signature verify")
   end
 
@@ -170,13 +192,10 @@ defmodule Ippan.RequestHandler do
       do: raise(IppanError, "Invalid signature verify")
   end
 
-  # verify ed25519 signature
+  # verify secp256k1 signature
   defp chech_signature!("2", signature, hash, wallet_pubkey) do
-    if Ed25519Blake2b.Native.verify(
-         hash,
-         signature,
-         wallet_pubkey
-       ) != :ok,
+    if @libsecp256k1.verify(hash, signature, wallet_pubkey) !=
+         :ok,
        do: raise(IppanError, "Invalid signature verify")
   end
 

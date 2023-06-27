@@ -4,7 +4,7 @@ defmodule Ippan.Func.Token do
   @type result :: Ippan.Request.result()
   @token Application.compile_env(:ipncore, :token)
 
-  def new(
+  def pre_new(
         %{id: account_id, timestamp: timestamp},
         id,
         owner_id,
@@ -33,33 +33,62 @@ defmodule Ippan.Func.Token do
         raise IppanError, "Invalid operation"
 
       true ->
-        token =
-          %Token{
-            id: id,
-            owner: owner_id,
-            name: name,
-            symbol: symbol,
-            created_at: timestamp
-          }
-          |> Map.merge(MapUtil.to_atoms(map_filter))
-          |> MapUtil.validate_url(:avatar)
-          |> MapUtil.validate_any(:opts, Token.props())
+        %Token{
+          id: id,
+          owner: owner_id,
+          name: name,
+          decimal: decimal,
+          symbol: symbol,
+          created_at: timestamp
+        }
+        |> Map.merge(MapUtil.to_atoms(map_filter))
+        |> MapUtil.validate_url(:avatar)
+        |> MapUtil.validate_any(:opts, Token.props())
 
-        if id == @token do
-          result =
-            token
-            |> Map.put(:updated_at, timestamp)
-            |> Token.to_list()
-            |> TokenStore.insert_sync()
+        :ok
+    end
+  end
 
-          Platform.start()
+  def new(
+        %{timestamp: timestamp},
+        id,
+        owner_id,
+        name,
+        decimal,
+        symbol,
+        opts \\ %{}
+      ) do
+    map_filter =
+      opts
+      |> Map.take(Token.optionals())
 
-          result
-        else
-          token
-          |> Token.to_list()
-          |> TokenStore.insert()
-        end
+    token =
+      %Token{
+        id: id,
+        owner: owner_id,
+        name: name,
+        decimal: decimal,
+        symbol: symbol,
+        created_at: timestamp
+      }
+      |> Map.merge(MapUtil.to_atoms(map_filter))
+      |> MapUtil.validate_url(:avatar)
+      |> MapUtil.validate_any(:opts, Token.props())
+
+    if id == @token do
+      result =
+        token
+        |> Map.put(:updated_at, timestamp)
+        |> Token.to_list()
+        |> TokenStore.insert_sync()
+
+      Platform.start()
+
+      result
+    else
+      token
+      |> Token.to_list()
+      |> TokenStore.insert()
     end
   end
 

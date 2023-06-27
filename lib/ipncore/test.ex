@@ -43,8 +43,8 @@ defmodule Test do
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
         100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
 
-    {pk, address} = Test.gen_secp256k1(sk)
-    {pk2, address2} = Test.gen_secp256k1(sk2)
+    {pk, sk, address} = Test.gen_ed25519(sk)
+    {pk2, sk2, address2} = Test.gen_ed25519(sk2)
     {pk, sk, pk2, sk2, address, address2}
   end
 
@@ -157,8 +157,12 @@ defmodule Test do
       hash = Blake3.hash(body)
       sig = Fast64.decode64(sig)
       size = byte_size(body) + byte_size(sig)
+
+      [type, timestamp, from | args] = Jason.decode!(body)
+      [_pubkey, validator_id] = WalletStore.lookup([from])
+
       # RequestHandler.handle_import!(hash, body, size)
-      RequestHandler.handle!(hash, body, size, sig)
+      RequestHandler.handle!(hash, type, timestamp, from, validator_id, size, args)
     rescue
       e ->
         Logger.debug(Exception.format(:error, e, __STACKTRACE__))
@@ -169,11 +173,26 @@ defmodule Test do
     try do
       hash = Blake3.hash(body)
       size = byte_size(body)
-      RequestHandler.handle!(hash, body, size)
+      [type, timestamp | args] = Jason.decode!(body)
+      RequestHandler.handle!(hash, type, timestamp, nil, nil, size, args)
     rescue
       e ->
         Logger.debug(Exception.format(:error, e, __STACKTRACE__))
     end
+  end
+
+  # {pk, sk, address} = Test.gen_ed25519(seed)
+  def gen_ed25519(seed) do
+    {:ok, {pk, sk}} = Cafezinho.Impl.keypair_from_seed(seed)
+
+    {pk, sk, Address.hash(0, pk)}
+  end
+
+  # {pkv, skv, addressv} = Test.gen_falcon(seed)
+  def gen_falcon(seed) do
+    {:ok, pk, sk} = Falcon.gen_keys_from_seed(seed)
+
+    {pk, sk, Address.hash(1, pk)}
   end
 
   # {pk, address} = Test.gen_secp256k1(sk)
@@ -187,14 +206,7 @@ defmodule Test do
     # |> ExSecp256k1.Impl.public_key_compress()
     # |> elem(1)
 
-    {pk, Address.hash(0, pk)}
-  end
-
-  # {pkv, skv, addressv} = Test.gen_falcon(seed)
-  def gen_falcon(seed) do
-    {:ok, pk, sk} = Falcon.gen_keys_from_seed(seed)
-
-    {pk, sk, Address.hash(1, pk)}
+    {pk, Address.hash(2, pk)}
   end
 
   # Test.wallet_new(pk, 0) |> Test.build_request
@@ -514,7 +526,7 @@ defmodule Test do
            |> elem(1)
 
          "2" ->
-          # set secret_with_pk
+           # set secret_with_pk
            Ed25519Blake2b.Native.sign(secret, msg)
            |> elem(1)
        end)

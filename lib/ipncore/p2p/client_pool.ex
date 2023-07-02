@@ -6,14 +6,14 @@ defmodule Ippan.P2P.ClientPool do
   alias Phoenix.PubSub
 
   @port Application.compile_env(:ipncore, :port, 5815)
-  @pubsub_server :pubsub
+  @pubsub_server :network
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, hibernate_after: 5_000)
   end
 
   @impl true
   def init(key_path) do
-    Process.flag(:trap_exit, true)
+    # Process.flag(:trap_exit, true)
     {:ok, validators} = ValidatorStore.all()
     myid = Default.validator_id()
 
@@ -37,38 +37,53 @@ defmodule Ippan.P2P.ClientPool do
     {:stop, reason, state}
   end
 
-  def handle_info(%{event: "validator.new", data: validator}, %{
-        clients: clients,
-        key_path: key_path
-      }) do
-    hostname = validator.hostname
-    {:ok, pid} = Client.start_link({hostname, @port, key_path})
-
-    new_state = Map.put(clients, validator.id, %{pid: pid, hostname: hostname})
-    {:noreply, new_state}
-  end
-
   def handle_info(
-        %{event: "validator.update", data: {id, map}},
-        %{clients: clients, key_path: key_path} = state
+        {"new", validator},
+        %{
+          clients: clients,
+          key_path: key_path
+        } = state
       ) do
-    case Map.get(map, :hostname) do
-      nil ->
-        {:noreply, state}
+    if Default.validator_id() != validator.id do
+      hostname = validator.hostname
+      {:ok, pid} = Client.start_link({hostname, @port, key_path})
 
-      hostname ->
-        %{pid: old_pid} = Map.get(clients, id)
-        GenServer.stop(old_pid, :normal)
-        {:ok, pid} = Client.start_link({hostname, @port, key_path})
-        new_state = Map.put(clients, id, %{pid: pid, hostname: hostname})
-        {:noreply, new_state}
+      new_state = Map.put(clients, validator.id, %{pid: pid, hostname: hostname})
+      {:noreply, new_state}
+    else
+      {:noreply, state}
     end
   end
 
-  def handle_info(%{event: "validator.delete", data: id}, %{clients: clients}) do
-    %{pid: pid} = Map.get(clients, id)
-    GenServer.stop(pid, :normal)
-    {:noreply, Map.delete(clients, id)}
+  def handle_info(
+        {"update", %{id: validator_id, hostname: new_hostname}},
+        %{clients: clients, key_path: key_path} = state
+      ) do
+    if Default.validator_id() != validator_id do
+      %{pid: old_pid} = Map.get(clients, validator_id)
+      GenServer.stop(old_pid, :normal)
+      {:ok, pid} = Client.start_link({new_hostname, @port, key_path})
+      {:noreply, Map.put(clients, validator_id, %{pid: pid, hostname: new_hostname})}
+    else
+      {:noreply, state}
+    end
+  end
+
+  def handle_info({"delete", validator_id}, %{clients: clients} = state) do
+    if Default.validator_id() != validator_id do
+      %{pid: pid} = Map.get(clients, validator_id)
+      GenServer.stop(pid, :normal)
+      {:noreply, Map.delete(clients, validator_id)}
+    else
+      # stop application
+      Logger.info("Validator's licence deleted")
+      System.stop(0)
+      {:noreply, state}
+    end
+  end
+
+  def handle_info(_, state) do
+    {:noreply, state}
   end
 
   @impl true
@@ -87,14 +102,10 @@ defmodule Ippan.P2P.ClientPool do
   defp unlink(_), do: :ok
 
   defp subscribe do
-    PubSub.subscribe(@pubsub_server, "validator.new")
-    PubSub.subscribe(@pubsub_server, "validator.update")
-    PubSub.subscribe(@pubsub_server, "validator.delete")
+    PubSub.subscribe(@pubsub_server, "validator")
   end
 
   defp unsubscribe do
-    PubSub.unsubscribe(@pubsub_server, "validator.new")
-    PubSub.unsubscribe(@pubsub_server, "validator.update")
-    PubSub.unsubscribe(@pubsub_server, "validator.delete")
+    PubSub.unsubscribe(@pubsub_server, "validator")
   end
 end

@@ -41,7 +41,7 @@ defmodule Ipncore.MixProject do
       do: raise(RuntimeError, "OTP invalid version. Required minimum v#{@min_otp}")
 
     [
-      extra_applications: [:crypto, :syntax_tools, :logger],
+      extra_applications: [:crypto, :syntax_tools, :logger, :download],
       mod: {Ipncore.Application, []}
     ]
   end
@@ -70,7 +70,7 @@ defmodule Ipncore.MixProject do
       {:bandit, ">= 0.7.7"},
       {:libdecaf, "~> 2.1.1"},
       {:phoenix_pubsub_redis, "~> 3.0.1"},
-      # {:download, "~> 0.0.0"},
+      {:download, "~> 0.0.4"},
       # {:dets_plus, path: "../dets_plus"},
       # {:thousand_island, "~> 0.6.4"},
       # {:phoenix_pubsub, "~> 2.0"},

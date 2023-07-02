@@ -16,7 +16,7 @@ defmodule Ipncore.Router do
 
       hash = Blake3.hash(body)
 
-      msg =
+      {event, msg} =
         case get_req_header(conn, "auth") do
           [sig] ->
             sig = Fast64.decode64(sig)
@@ -27,6 +27,14 @@ defmodule Ipncore.Router do
             size = byte_size(body)
             RequestHandler.valid!(hash, body, size)
         end
+
+      case event do
+        %{deferred: false} ->
+          EventChannel.push({"valid", msg})
+
+        %{deferred: true} ->
+          EventChannel.push({"valid_df", msg})
+      end
 
       EventChannel.push({"valid", msg})
       json(conn, %{"hash" => Base.encode16(hash)})

@@ -1,5 +1,6 @@
 defmodule Ippan.Func.Validator do
   import Guards
+  alias Phoenix.PubSub
   alias Ippan.Validator
   alias Ippan.Request.Source
 
@@ -19,21 +20,27 @@ defmodule Ippan.Func.Validator do
     map_filter = Map.take(opts, Validator.optionals())
     pubkey = Fast64.decode64(pubkey)
 
-    %Validator{
-      id: id,
-      hostname: hostname,
-      name: name,
-      pubkey: pubkey,
-      owner: owner_id,
-      fee: fee,
-      fee_type: fee_type,
-      created_at: timestamp,
-      updated_at: timestamp
-    }
-    |> Map.merge(MapUtil.to_atoms(map_filter))
-    |> MapUtil.validate_url(:avatar)
+    validator =
+      %Validator{
+        id: id,
+        hostname: hostname,
+        name: name,
+        pubkey: pubkey,
+        owner: owner_id,
+        fee: fee,
+        fee_type: fee_type,
+        stake: 0,
+        created_at: timestamp,
+        updated_at: timestamp
+      }
+      |> Map.merge(MapUtil.to_atoms(map_filter))
+      |> MapUtil.validate_url(:avatar)
+
+    validator
     |> Validator.to_list()
     |> ValidatorStore.insert()
+
+    PubSub.broadcast(:network, "validator", {"new", validator})
   end
 
   @spec pre_new(
@@ -48,7 +55,7 @@ defmodule Ippan.Func.Validator do
           map()
         ) :: result()
   def pre_new(
-        %{id: account_id, timestamp: timestamp},
+        %{id: account_id, hash: hash, round: round, timestamp: timestamp},
         id,
         owner_id,
         hostname,
@@ -95,11 +102,14 @@ defmodule Ippan.Func.Validator do
           owner: owner_id,
           fee: fee,
           fee_type: fee_type,
+          stake: 0,
           created_at: timestamp,
           updated_at: timestamp
         }
         |> Map.merge(MapUtil.to_atoms(map_filter))
         |> MapUtil.validate_url(:avatar)
+
+        MessageStore.approve_df(round, timestamp, hash)
 
         :ok
     end
@@ -141,7 +151,7 @@ defmodule Ippan.Func.Validator do
         |> Map.put(:updated_at, timestamp)
         |> ValidatorStore.update(id: id)
 
-        :ok
+        PubSub.broadcast(:network, "validator", {"update", Map.put(opts, :id, id)})
     end
   end
 
@@ -154,7 +164,7 @@ defmodule Ippan.Func.Validator do
       true ->
         ValidatorStore.delete(id)
 
-        {:notify, id}
+        PubSub.broadcast(:network, "validator", {"delete", id})
     end
   end
 end

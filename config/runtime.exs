@@ -1,6 +1,10 @@
 import Config
 
 # config :ipncore, :gps_device, "/dev/AMC0"
+# ssl certificates
+# cert_dir = System.get_env("CERT_DIR", "priv/cert/cert.pem")
+# key_dir = System.get_env("KEY_DIR", "priv/cert/key.pem")
+# cacert_dir = System.get_env("CACERT_DIR", "priv/cert/cacert.pem")
 
 # environment variables
 port = System.get_env("PORT", "5815") |> String.to_integer()
@@ -10,15 +14,18 @@ data_dir = System.get_env("DATA_DIR", "data")
 kem_dir = System.get_env("KEM_DIR", "priv/kem.key")
 falcon_dir = System.get_env("FALCON_DIR", "priv/falcon.key")
 
-# ssl certificates
-# cert_dir = System.get_env("CERT_DIR", "priv/cert/cert.pem")
-# key_dir = System.get_env("KEY_DIR", "priv/cert/key.pem")
-# cacert_dir = System.get_env("CACERT_DIR", "priv/cert/cacert.pem")
-
 # folder paths
 config :ipncore, :data_dir, data_dir
+
+# folder cert
 config :ipncore, :kem_dir, kem_dir
 config :ipncore, :falcon_dir, falcon_dir
+
+# node
+config :ipncore, :role, System.get_env("ROLE", "verifier")
+config :ipncore, :vid, System.get_env("VID", "0") |> String.to_integer()
+config :ipncore, :hostname, System.get_env("HOSTNAME", "localhost")
+config :ipncore, :redis, System.get_env("REDIS")
 
 # p2p server
 config :ipncore, :p2p,

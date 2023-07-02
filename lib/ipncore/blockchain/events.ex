@@ -3,15 +3,15 @@ defmodule Ippan.Events do
 
   alias Ippan.Func.{
     Env,
-    Account,
+    # Account,
     Balance,
     Tx,
-    Block,
+    # Block,
     Validator,
     Token,
     Domain,
     DNS,
-    Round,
+    # Round,
     Wallet
   }
 

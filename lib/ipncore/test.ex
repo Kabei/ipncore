@@ -12,7 +12,7 @@ defmodule Test do
         236, 6, 168, 77, 247, 60, 145, 142, 137, 32, 81, 188, 167, 95, 239, 138, 212, 128, 12,
         211, 239, 154, 118, 40, 154, 90, 156, 28>>
 
-    {pk, address} = Test.gen_secp256k1(sk)
+    {pk, sk, address} = Test.gen_ed25519(sk)
     # {pk2, address2} = Test.gen_secp256k1(sk2)
     # IO.inspect(byte_size(pk))
     # IO.inspect(address)
@@ -23,14 +23,24 @@ defmodule Test do
 
     Test.wallet_new(pkv, 1) |> run()
 
+    BlockTimer.mine()
+    BlockTimer.round_end()
+
     Test.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", %{
       "avatar" => "https://avatar.com",
       "props" => ["coinbase", "lock", "burn"]
     })
     |> run()
 
+
+    BlockTimer.mine()
+    BlockTimer.round_end()
+
     Test.validator_new(sk, address, 0, addressv, "ippan.uk", "main-core", pkv, 1, 0.01)
     |> run()
+
+    BlockTimer.mine()
+    BlockTimer.round_end()
   end
 
   # {pk, sk, pk2, sk2, address, address2} = Test.test()
@@ -158,11 +168,19 @@ defmodule Test do
       sig = Fast64.decode64(sig)
       size = byte_size(body) + byte_size(sig)
 
-      [type, timestamp, from | args] = Jason.decode!(body)
-      [_pubkey, validator_id] = WalletStore.lookup([from])
+      # [type, timestamp, from | args] = Jason.decode!(body)
+      # [_, _pubkey, validator_id] = WalletStore.lookup([from])
 
-      # RequestHandler.handle_import!(hash, body, size)
-      RequestHandler.handle!(hash, type, timestamp, from, validator_id, size, args)
+      # RequestHandler.handle!(hash, type, timestamp, from, validator_id, size, args)
+      {event, msg} = RequestHandler.valid!(hash, body, size, sig, Default.validator_id())
+
+      case event do
+        %{deferred: false} ->
+          MessageStore.insert_sync(msg)
+
+        %{deferred: true} ->
+          MessageStore.insert_df(msg)
+      end
     rescue
       e ->
         Logger.debug(Exception.format(:error, e, __STACKTRACE__))
@@ -173,8 +191,18 @@ defmodule Test do
     try do
       hash = Blake3.hash(body)
       size = byte_size(body)
-      [type, timestamp | args] = Jason.decode!(body)
-      RequestHandler.handle!(hash, type, timestamp, nil, nil, size, args)
+      # [type, timestamp | args] = Jason.decode!(body)
+      # RequestHandler.handle!(hash, type, timestamp, nil, nil, size, args)
+      {event, msg} = RequestHandler.valid!(hash, body, size)
+      IO.inspect(msg)
+
+      case event do
+        %{deferred: false} ->
+          MessageStore.insert_sync(msg)
+
+        %{deferred: true} ->
+          MessageStore.insert_df(msg)
+      end
     rescue
       e ->
         Logger.debug(Exception.format(:error, e, __STACKTRACE__))
@@ -212,7 +240,7 @@ defmodule Test do
   # Test.wallet_new(pk, 0) |> Test.build_request
   def wallet_new(pk, validator_id) do
     body =
-      [0, :os.system_time(:millisecond), validator_id, Fast64.encode64(pk)]
+      [0, :os.system_time(:millisecond), Fast64.encode64(pk), validator_id]
       |> Jason.encode!()
 
     body
@@ -517,9 +545,8 @@ defmodule Test do
     (first <>
        case first do
          "0" ->
-           ExSecp256k1.Impl.sign_compact(msg, secret)
+           Cafezinho.Impl.sign(msg, secret)
            |> elem(1)
-           |> elem(0)
 
          "1" ->
            Falcon.sign(secret, msg)
@@ -527,8 +554,9 @@ defmodule Test do
 
          "2" ->
            # set secret_with_pk
-           Ed25519Blake2b.Native.sign(secret, msg)
+           ExSecp256k1.Impl.sign_compact(msg, secret)
            |> elem(1)
+           |> elem(0)
        end)
     |> Fast64.encode64()
   end

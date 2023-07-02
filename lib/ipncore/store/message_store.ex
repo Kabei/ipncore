@@ -1,7 +1,6 @@
 defmodule MessageStore do
   @table "msg"
   @table_df "msg_df"
-  @table_pre "msg_pre"
 
   use Store.Sqlite,
     base: :msg,
@@ -35,22 +34,26 @@ defmodule MessageStore do
         signature BLOB,
         size INTEGER DEFAULT 0,
         round BIGINT,
-        PRIMARY KEY(key, type)
+        PRIMARY KEY(key, type),
+        UNIQUE(timestamp, hash)
       );
       """
     ],
     stmt: %{
       # by size
+      "df" => "SELECT * FROM #{@table_df}",
       "select" =>
         "SELECT timestamp, hash, type, account_id, validator_id, args, message, signature, size, ROWID
-        FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, *, ROWID FROM #{@table})
-        WHERE total <= ?1",
+        FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, ROWID, *  FROM #{@table})
+        WHERE total <= ?1 and validator_id = ?2",
       "select_df" =>
         "SELECT key, type, timestamp, hash, account_id, validator_id, args, message, signature, size, ROWID
-        FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, *, ROWID FROM #{@table_df} WHERE round IS NULL)
-        WHERE total <= ?1",
+        FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, ROWID, * FROM #{@table_df} WHERE round IS NULL)
+        WHERE total <= ?1 and validator_id = ?2",
       "delete_all" => "DELETE FROM #{@table} WHERE ROWID <= ?1",
-      "delete_all_df" => "DELETE FROM #{@table_df} WHERE round <= ?1",
+      "delete_all_df" => "DELETE FROM #{@table_df} WHERE ROWID <= ?1 AND round IS NULL",
+      "delete_all_df_approved" =>
+        "DELETE FROM #{@table_df} WHERE round = ?1 RETURNING key, type, timestamp, hash, account_id, validator_id, args, message, signature, size",
       "delete" => "DELETE FROM #{@table} WHERE hash = ?",
       "delete_df" => "DELETE FROM #{@table_df} WHERE hash = ?",
       "approve_df" => "UPDATE #{@table_df} SET round=?1 WHERE timestamp = ?2 AND hash = ?3",
@@ -67,33 +70,33 @@ defmodule MessageStore do
       # delete: "DELETE FROM #{@table} WHERE hash = ?1"
     }
 
-  def select(size) do
-    call({:execute_fetch, "select", [size]})
+  def df do
+    call({:execute_fetch, "df", []})
   end
 
-  def select_df(size) do
-    call({:execute_fetch, "select_df", [size]})
+  def select(size, validator_id) do
+    call({:execute_fetch, "select", [size, validator_id]})
   end
+
+  def select_df(size, validator_id) do
+    call({:execute_fetch, "select_df", [size, validator_id]})
+  end
+
+  def delete_all(-1), do: :ok
 
   def delete_all(rowid) do
     call({:execute_step, "delete_all", [rowid]})
   end
 
+  def delete_all_df(-1), do: :ok
+
   def delete_all_df(rowid) do
     call({:execute_step, "delete_all_df", [rowid]})
   end
 
-  # def set_nullable(hash) do
-  #   call({:execute_step, "nullable", [hash]})
-  # end
-
-  # def recover_all do
-  #   call({:execute_fetch, "recover", []})
-  # end
-
-  # def delete_null do
-  #   call({:execute_step, "delete_null", []})
-  # end
+  def delete_all_df_approved(round) do
+    call({:execute_fetch, "delete_all_df_approved", [round]})
+  end
 
   def insert_df(params) do
     call({:execute_changes, "insert_df", params})
@@ -104,10 +107,10 @@ defmodule MessageStore do
   end
 
   def delete_df(hash) do
-    call({:execute_step, "delete_def", [hash]})
+    call({:execute_step, "delete_df", [hash]})
   end
 
-  def approve_def(round, timestamp, hash) do
-    call({:execute_step, "approve_def", [round, timestamp, hash]})
+  def approve_df(round, timestamp, hash) do
+    call({:execute_step, "approve_df", [round, timestamp, hash]})
   end
 end

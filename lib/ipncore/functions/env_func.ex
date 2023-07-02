@@ -1,9 +1,10 @@
 defmodule Ippan.Func.Env do
-  def pre_set(%{id: account_id}, name, value)
+  def pre_set(%{id: account_id, hash: hash, round: round, timestamp: timestamp}, name, value)
       when byte_size(name) <= 256 do
     bin = :erlang.term_to_binary(value)
 
     if Platform.owner?(account_id) and byte_size(bin) <= 4096 do
+      MessageStore.approve_df(round, timestamp, hash)
       :ok
     else
       raise IppanError, "Invalid operation"
@@ -15,8 +16,11 @@ defmodule Ippan.Func.Env do
     EnvStore.insert([name, bin, timestamp])
   end
 
-  def pre_delete(%{id: account_id}, name) when byte_size(name) <= 256 do
+  def pre_delete(%{id: account_id, hash: hash, round: round, timestamp: timestamp}, name)
+      when byte_size(name) <= 256 do
     if Platform.owner?(account_id) do
+      MessageStore.approve_df(round, timestamp, hash)
+
       :ok
     else
       raise IppanError, "Invalid operation"

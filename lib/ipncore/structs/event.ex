@@ -8,13 +8,13 @@ defmodule Ippan.Event do
           name: String.t(),
           base: atom(),
           mod: module(),
-          fun: atom() | function(),
+          fun: atom() | function() | nil,
           deferred: boolean(),
           system: boolean(),
           auth: boolean(),
           validator: boolean(),
-          before: atom() | function(),
-          after: atom() | function()
+          before: atom() | function() | nil,
+          after: atom() | function() | nil
         }
 
   @enforce_keys [:id, :name, :base, :mod, :fun]

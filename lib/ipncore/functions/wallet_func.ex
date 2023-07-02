@@ -3,7 +3,7 @@ defmodule Ippan.Func.Wallet do
 
   @token Default.token()
 
-  def pre_new(%{timestamp: _timestamp}, validator_id, pubkey)
+  def pre_new(%{timestamp: timestamp, hash: hash, round: round}, pubkey, validator_id)
       when is_integer(validator_id) do
     pubkey = Fast64.decode64(pubkey)
 
@@ -20,10 +20,11 @@ defmodule Ippan.Func.Wallet do
       _ ->
         raise IppanError, "Invalid pubkey size"
     end
+
+    MessageStore.approve_df(round, timestamp, hash)
   end
 
-  def new(%{timestamp: timestamp}, validator_id, pubkey)
-      when is_integer(validator_id) do
+  def new(%{timestamp: timestamp}, pubkey, validator_id) do
     pubkey = Fast64.decode64(pubkey)
 
     case byte_size(pubkey) do

@@ -157,8 +157,6 @@ defmodule Store.Sqlite do
 
       def open_memory do
         result = {:ok, conn} = Sqlite3.open(":memory:")
-        Sqlite3NIF.execute(conn, 'PRAGMA cache_size = -1000000')
-        Sqlite3NIF.execute(conn, 'PRAGMA temp_store = memory')
         Sqlite3NIF.execute(conn, 'PRAGMA case_sensitive_like = ON')
         result
       end

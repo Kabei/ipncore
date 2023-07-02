@@ -16,7 +16,7 @@ defmodule ValidatorStore do
       avatar TEXT,
       fee_type TINYINT NOT NULL,
       fee DOUBLE NOT NULL,
-      stake BIGINT NOT NULL,
+      stake BIGINT NOT NULL DEFAULT 0,
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL
     );",

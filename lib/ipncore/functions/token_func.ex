@@ -5,7 +5,7 @@ defmodule Ippan.Func.Token do
   @token Application.compile_env(:ipncore, :token)
 
   def pre_new(
-        %{id: account_id, timestamp: timestamp},
+        %{id: account_id, hash: hash,  round: round, timestamp: timestamp},
         id,
         owner_id,
         name,
@@ -44,6 +44,8 @@ defmodule Ippan.Func.Token do
         |> Map.merge(MapUtil.to_atoms(map_filter))
         |> MapUtil.validate_url(:avatar)
         |> MapUtil.validate_any(:opts, Token.props())
+
+        MessageStore.approve_df(round, timestamp, hash)
 
         :ok
     end

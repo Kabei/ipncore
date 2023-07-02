@@ -13,7 +13,7 @@ defmodule Default do
   def block_interval, do: @block_interval
   def imposible_address, do: <<0::160>>
 
-  def node_name, do: Application.get_env(:ipncore, :node)[:name]
-  def validator_id, do: Application.get_env(:ipncore, :node)[:id]
-  def hostname, do: Application.get_env(:ipncore, :node)[:hostname]
+  def node_name, do: Application.get_env(:ipncore, :node)
+  def validator_id, do: Application.get_env(:ipncore, :vid)
+  def hostname, do: Application.get_env(:ipncore, :hostname)
 end

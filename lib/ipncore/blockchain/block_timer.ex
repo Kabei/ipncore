@@ -20,7 +20,9 @@ defmodule BlockTimer do
   def init(_args) do
     data_dir = Application.get_env(@otp_app, :data_dir, "data")
     block_dir = Path.join(data_dir, "blocks")
+    block_decode_dir = Path.join(data_dir, "blocks-decode")
     File.mkdir(block_dir)
+    File.mkdir(block_decode_dir)
 
     validator_id = Default.validator_id()
 
@@ -45,6 +47,15 @@ defmodule BlockTimer do
     end
   end
 
+  def mine do
+    pid = Process.whereis(BlockTimer)
+    send(pid, :mine)
+  end
+
+  def round_end do
+    GenServer.call(BlockTimer, :round_end, :infinity)
+  end
+
   def start do
     GenServer.cast(BlockTimer, :init)
   end
@@ -53,12 +64,43 @@ defmodule BlockTimer do
     GenServer.call(BlockTimer, :round, :infinity)
   end
 
+  def get_height do
+    GenServer.call(BlockTimer, :height, :infinity)
+  end
+
   @impl true
   def handle_call(:round, _from, %{round: round} = state) do
     {:reply, round, state}
   end
 
-  def handle_call(:next_round, _from, %{round: round} = state) do
+  def handle_call(:height, _from, %{height: height} = state) do
+    {:reply, height, state}
+  end
+
+  def handle_call(:round_end, _from, %{round: round} = state) do
+    {:ok, requests} = MessageStore.delete_all_df_approved(round)
+    time = :os.system_time()
+
+    for [_key, type, timestamp, hash, account_id, validator_id, args, _message, _signature, size] <-
+          requests do
+      RequestHandler.handle_post!(
+        hash,
+        type,
+        timestamp,
+        account_id,
+        validator_id,
+        size,
+        decode_term(args)
+      )
+    end
+
+    {:ok, [[blocks]]} = BlockStore.count_round(round)
+    RoundStore.insert([round, blocks, time])
+
+    sync_all()
+    MessageStore.sync()
+    RoundStore.sync()
+
     {:reply, round, %{state | round: round + 1}}
   end
 
@@ -70,22 +112,24 @@ defmodule BlockTimer do
 
   @impl true
   def handle_info(:mine, %{height: height, round: old_round, validator_id: validator_id} = state) do
-    {:ok, requests} = MessageStore.select(@block_max_size)
-    {:ok, requests_df} = MessageStore.select_df(@block_max_size)
+    {:ok, requests} = MessageStore.select(@block_max_size, validator_id)
+    {:ok, requests_df} = MessageStore.select_df(@block_max_size, validator_id)
 
-    last_row_id =
-      List.last(requests)
-      |> List.last()
+    last_row_id = catch_last_row_id(requests)
 
-    last_row_id_df =
-      List.last(requests_df)
-      |> List.last()
+    last_row_id_df = catch_last_row_id(requests_df)
 
-    spawn_link(fn ->
-      mine(requests ++ requests_df, height, old_round, validator_id, last_row_id, last_row_id_df)
-    end)
+    new_height =
+      mine(
+        requests ++ requests_df,
+        height,
+        old_round,
+        validator_id,
+        last_row_id,
+        last_row_id_df
+      )
 
-    {:noreply, state}
+    {:noreply, %{state | height: new_height}}
   end
 
   @impl true
@@ -93,13 +137,138 @@ defmodule BlockTimer do
     PubSub.unsubscribe(@pubsub_verifiers, "event")
   end
 
-  defp mine([], _height, _old_round, _validator_id) do
-    Logger.debug("block empty")
-    :ok = PubSub.broadcast(@pubsub_verifiers, "block", {"new", "empty"})
-    :ok = PubSub.broadcast(@pubsub_network, "block", {"new", "empty"})
+  defp catch_last_row_id([]), do: -1
+
+  defp catch_last_row_id(requests) do
+    List.last(requests)
+    |> List.last()
   end
 
-  defp mine(requests, height, old_round, validator_id, last_row_id, last_row_id_def) do
+  @doc """
+
+  """
+  def verify_block!(block, validator) do
+    data_dir = Application.get_env(@otp_app, :data_dir, "data")
+    filename = "#{validator.id}.#{block.height}.#{@file_extension}"
+    block_path = Path.join([data_dir, "blocks", filename])
+
+    url = "https://#{validator.hostname}/download/blocks/#{filename}"
+    {:ok, _} = Download.from(url, path: block_path)
+
+    {:ok, content} = File.read(block_path)
+
+    block_hash = hash_file(block_path)
+
+    if block.hash != block_hash, do: raise(IppanError, "Hash block file is invalid")
+
+    events = decode!(content)
+
+    decode_events =
+      for {body, signature} <- events do
+        hash = Blake3.hash(body)
+        size = byte_size(body) + byte_size(signature)
+
+        RequestHandler.valid!(hash, body, size, signature, validator.id)
+      end
+
+    decode_path = Path.join([data_dir, "blocks-decode", filename])
+
+    File.write(decode_path, encode!(decode_events))
+  end
+
+  @doc """
+
+  """
+  def handle_block!(block, validator) do
+    data_dir = Application.get_env(@otp_app, :data_dir, "data")
+    filename = "#{validator.id}.#{block.height}.#{@file_extension}"
+    block_path = Path.join(data_dir, "blocks-decode/#{filename}")
+
+    url = "https://#{validator.hostname}/download/blocks-decode/#{filename}"
+    Download.from(url, path: block_path)
+
+    events =
+      block_path
+      |> File.read!()
+      |> decode!()
+
+    fun_valid!(validator.id, events)
+  end
+
+  defp fun_valid!(_, []), do: :ok
+
+  defp fun_valid!(validator_id, [{body, signature} | rest]) do
+    hash = Blake3.hash(body)
+    size = byte_size(body) + byte_size(signature)
+
+    RequestHandler.valid!(hash, body, size, signature, validator_id)
+    fun_valid!(validator_id, rest)
+  end
+
+  defp fun_valid!(validator_id, [body | rest]) do
+    hash = Blake3.hash(body)
+    size = byte_size(body)
+
+    RequestHandler.valid!(hash, body, size)
+    fun_valid!(validator_id, rest)
+  end
+
+  # defp fun_reduce(
+  #        [
+  #          timestamp,
+  #          hash,
+  #          type,
+  #          account_id,
+  #          validator_id,
+  #          args,
+  #          message,
+  #          signature,
+  #          size,
+  #          _rowid
+  #        ],
+  #        acc
+  #      ) do
+  #   try do
+  #     args = decode_term(args)
+  #     RequestHandler.handle!(hash, type, timestamp, account_id, validator_id, size, args)
+  #     acc ++ [{message, signature}]
+  #   rescue
+  #     # block failed
+  #     e ->
+  #       Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+  #       acc
+  #   end
+  # end
+
+  # defp fun_reduce(
+  #        [
+  #          _key,
+  #          type,
+  #          timestamp,
+  #          hash,
+  #          account_id,
+  #          validator_id,
+  #          args,
+  #          message,
+  #          signature,
+  #          size,
+  #          _rowid
+  #        ],
+  #        acc
+  #      ) do
+  #   try do
+  #     args = decode_term(args)
+  #     RequestHandler.handle!(hash, type, timestamp, account_id, validator_id, size, args)
+  #     acc ++ [{message, signature}]
+  #   rescue
+  #     # block failed
+  #     e ->
+  #       Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+  #       acc
+  #   end
+  # end
+
+  defp mine(requests, height, round, validator_id, last_row_id, last_row_id_def) do
     data_dir = Application.get_env(@otp_app, :data_dir, "data")
 
     block_path = Path.join([data_dir, "blocks", "#{height}.#{@file_extension}"])
@@ -121,7 +290,18 @@ defmodule BlockTimer do
         acc ->
           try do
             args = decode_term(args)
-            RequestHandler.handle!(hash, type, timestamp, account_id, validator_id, size, args)
+
+            RequestHandler.handle!(
+              hash,
+              type,
+              timestamp,
+              account_id,
+              validator_id,
+              size,
+              args,
+              round
+            )
+
             acc ++ [{message, signature}]
           rescue
             # block failed
@@ -140,12 +320,24 @@ defmodule BlockTimer do
           args,
           message,
           signature,
-          size
+          size,
+          _rowid
         ],
         acc ->
           try do
             args = decode_term(args)
-            RequestHandler.handle!(hash, type, timestamp, account_id, validator_id, size, args)
+
+            RequestHandler.handle!(
+              hash,
+              type,
+              timestamp,
+              account_id,
+              validator_id,
+              size,
+              args,
+              round
+            )
+
             acc ++ [{message, signature}]
           rescue
             # block failed
@@ -157,7 +349,10 @@ defmodule BlockTimer do
 
     case result do
       [] ->
-        mine([], height, old_round, validator_id)
+        Logger.debug("block empty #{height}")
+        :ok = PubSub.broadcast(@pubsub_verifiers, "block", {"new", "empty"})
+        :ok = PubSub.broadcast(@pubsub_network, "block", {"new", "empty"})
+        height
 
       events ->
         Logger.debug(inspect(result))
@@ -170,7 +365,6 @@ defmodule BlockTimer do
         block_size = File.stat!(block_path).size
         hashfile = hash_file(block_path)
         new_height = height + 1
-        new_round = old_round + 1
         timestamp = :os.system_time(:millisecond)
         ev_count = length(events)
 
@@ -178,7 +372,7 @@ defmodule BlockTimer do
           new_height,
           validator_id,
           hashfile,
-          new_round,
+          round,
           timestamp,
           ev_count,
           block_size,
@@ -187,16 +381,27 @@ defmodule BlockTimer do
 
         BlockStore.insert(block_list_format)
 
-        block_map = Block.to_map(block_list_format)
+        block_map = %{
+          height: new_height,
+          creator: validator_id,
+          hashfile: hashfile,
+          round: round,
+          timestamp: timestamp,
+          ev_count: ev_count,
+          size: block_size,
+          vsn: @block_version
+        }
 
         MessageStore.delete_all(last_row_id)
         MessageStore.delete_all_df(last_row_id_def)
 
-        BlockStore.sync()
         MessageStore.sync()
+        BlockStore.sync()
 
         :ok = PubSub.broadcast(@pubsub_verifiers, "block", {"new", block_map})
         :ok = PubSub.broadcast(@pubsub_network, "block", {"new", block_map})
+
+        new_height
     end
   end
 

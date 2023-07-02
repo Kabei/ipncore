@@ -12,8 +12,8 @@ defmodule BlockStore do
       validator BIGINT NOT NULL,
       hash BLOB,
       prev BLOB,
-      signature BLOB,
       hashfile BLOB NOT NULL,
+      signature BLOB,
       round BIGINT,
       timestamp BIGINT NOT NULL,
       ev_count BIGINT DEFAULT 0,
@@ -23,6 +23,7 @@ defmodule BlockStore do
     );
     """,
     stmt: %{
+      "count_round" => "SELECT count(*) FROM #{@table} WHERE round = ?1",
       insert:
         "INSERT INTO #{@table}(height, validator, hashfile, round, timestamp, ev_count, size, vsn) values(?1,?2,?3,?4,?5,?6,?7,?8)",
       # insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
@@ -46,5 +47,9 @@ defmodule BlockStore do
 
   def blanks do
     call({:execute_fetch, :blank, []})
+  end
+
+  def count_round(round) do
+    call({:execute_fetch, "count_round", [round]})
   end
 end

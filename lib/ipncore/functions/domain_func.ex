@@ -5,7 +5,7 @@ defmodule Ippan.Func.Domain do
   @token Default.token()
 
   def pre_new(
-        %{id: account_id, size: size, timestamp: timestamp, validator: validator_id},
+        %{id: account_id, hash: hash, size: size, round: round, timestamp: timestamp, validator: validator_id},
         domain_name,
         owner,
         days,
@@ -52,6 +52,8 @@ defmodule Ippan.Func.Domain do
                amount + fee_amount
              ) do
           :ok ->
+            MessageStore.approve_df(round, timestamp, hash)
+
             :ok
 
           _ ->

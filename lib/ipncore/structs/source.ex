@@ -5,7 +5,7 @@ defmodule Ippan.Request.Source do
           hash: binary(),
           event: Event.t(),
           id: String.t() | nil,
-          validator: String.t() | nil,
+          validator: number() | nil,
           timestamp: non_neg_integer(),
           size: non_neg_integer()
         }

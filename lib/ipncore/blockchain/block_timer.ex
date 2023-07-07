@@ -1,15 +1,15 @@
 defmodule BlockTimer do
   use GenServer
   alias Phoenix.PubSub
-  alias Ippan.{Block, RequestHandler}
+  alias Ippan.{Block, Round, RequestHandler}
   require Logger
 
   @otp_app :ipncore
   @pubsub_verifiers :verifiers
   @pubsub_network :network
-  @block_interval Application.compile_env(:ipncore, :block_interval)
-  @block_max_size Application.compile_env(:ipncore, :block_max_size)
-  @block_version Application.compile_env(:ipncore, :block_version)
+  @block_interval Application.compile_env(@otp_app, :block_interval)
+  @block_max_size Application.compile_env(@otp_app, :block_max_size)
+  @block_version Application.compile_env(@otp_app, :block_version)
   @file_extension "erl"
 
   def start_link(opts) do
@@ -18,7 +18,8 @@ defmodule BlockTimer do
 
   @impl true
   def init(_args) do
-    data_dir = Application.get_env(@otp_app, :data_dir, "data")
+    # create folders
+    data_dir = Application.get_env(@otp_app, :data_dir)
     block_dir = Path.join(data_dir, "blocks")
     block_decode_dir = Path.join(data_dir, "blocks-decode")
     File.mkdir(block_dir)
@@ -26,6 +27,11 @@ defmodule BlockTimer do
 
     validator_id = Default.validator_id()
 
+    # set state last block
+    last_state(validator_id)
+  end
+
+  defp last_state(validator_id) do
     case BlockStore.last(validator_id) do
       {:row, block_list} ->
         block = Block.to_map(block_list)
@@ -34,7 +40,8 @@ defmodule BlockTimer do
          %{
            height: block.height,
            round: block.round,
-           validator_id: validator_id
+           validator_id: validator_id,
+           prev_hash: block.hash
          }}
 
       _ ->
@@ -42,7 +49,8 @@ defmodule BlockTimer do
          %{
            height: 0,
            round: 0,
-           validator_id: validator_id
+           validator_id: validator_id,
+           prev_hash: nil
          }}
     end
   end
@@ -79,10 +87,20 @@ defmodule BlockTimer do
 
   def handle_call(:round_end, _from, %{round: round} = state) do
     {:ok, requests} = MessageStore.delete_all_df_approved(round)
-    time = :os.system_time()
+    time = :os.system_time(:millisecond)
 
-    for [_key, type, timestamp, hash, account_id, validator_id, args, _message, _signature, size] <-
-          requests do
+    Enum.each(requests, fn [
+                             _key,
+                             type,
+                             timestamp,
+                             hash,
+                             account_id,
+                             validator_id,
+                             args,
+                             _message,
+                             _signature,
+                             size
+                           ] ->
       RequestHandler.handle_post!(
         hash,
         type,
@@ -92,14 +110,18 @@ defmodule BlockTimer do
         size,
         decode_term(args)
       )
-    end
+    end)
 
-    {:ok, [[blocks]]} = BlockStore.count_round(round)
-    RoundStore.insert([round, blocks, time])
+    {:ok, [hashes]} = BlockStore.fetch_round(round)
+
+    count = length(hashes)
+    hash = Round.compute_hash(round, hashes)
+    RoundStore.insert([round, hash, count, time])
 
     sync_all()
     MessageStore.sync()
     RoundStore.sync()
+    checkpoint_all()
 
     {:reply, round, %{state | round: round + 1}}
   end
@@ -111,7 +133,11 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_info(:mine, %{height: height, round: old_round, validator_id: validator_id} = state) do
+  def handle_info(
+        :mine,
+        %{height: height, round: old_round, validator_id: validator_id, prev_hash: prev_hash} =
+          state
+      ) do
     {:ok, requests} = MessageStore.select(@block_max_size, validator_id)
     {:ok, requests_df} = MessageStore.select_df(@block_max_size, validator_id)
 
@@ -125,11 +151,18 @@ defmodule BlockTimer do
         height,
         old_round,
         validator_id,
-        last_row_id,
-        last_row_id_df
+        prev_hash
       )
 
-    {:noreply, %{state | height: new_height}}
+    if new_height != height do
+      MessageStore.delete_all(last_row_id)
+      MessageStore.delete_all_df(last_row_id_df)
+      MessageStore.sync()
+
+      {:noreply, %{state | height: new_height}}
+    else
+      {:noreply, state}
+    end
   end
 
   @impl true
@@ -148,18 +181,30 @@ defmodule BlockTimer do
 
   """
   def verify_block!(block, validator) do
-    data_dir = Application.get_env(@otp_app, :data_dir, "data")
+    data_dir = Application.get_env(@otp_app, :data_dir)
     filename = "#{validator.id}.#{block.height}.#{@file_extension}"
     block_path = Path.join([data_dir, "blocks", filename])
 
-    url = "https://#{validator.hostname}/download/blocks/#{filename}"
+    url = "https://#{validator.hostname}/v1/download/blocks/#{filename}"
     {:ok, _} = Download.from(url, path: block_path)
+
+    {:ok, filestat} = File.stat(block_path)
+
+    if filestat.size > @block_max_size do
+      raise IppanError, "Invalid block max size"
+    end
 
     {:ok, content} = File.read(block_path)
 
     block_hash = hash_file(block_path)
 
-    if block.hash != block_hash, do: raise(IppanError, "Hash block file is invalid")
+    if block.hashfile != block_hash do
+      raise(IppanError, "Hash block file is invalid")
+    end
+
+    if Cafezinho.Impl.verify(block.signature, block.hash, validator.pubkey) != :ok do
+      raise(IppanError, "Invalid block signature")
+    end
 
     events = decode!(content)
 
@@ -173,31 +218,38 @@ defmodule BlockTimer do
 
     decode_path = Path.join([data_dir, "blocks-decode", filename])
 
-    File.write(decode_path, encode!(decode_events))
+    :ok = File.write(decode_path, encode!(decode_events))
+
+    decode_path
   end
 
-  @doc """
+  def mine_file(%{creator: creator_id, height: height, prev: prev_hash, round: round}) do
+    data_dir = Application.get_env(@otp_app, :data_dir)
+    block_path = Path.join([data_dir, "blocks-decode", "#{creator_id}.#{height}.#{@file_extension}"])
+    {:ok, requests} = File.read(block_path)
 
-  """
-  def handle_block!(block, validator) do
-    data_dir = Application.get_env(@otp_app, :data_dir, "data")
-    filename = "#{validator.id}.#{block.height}.#{@file_extension}"
-    block_path = Path.join(data_dir, "blocks-decode/#{filename}")
-
-    url = "https://#{validator.hostname}/download/blocks-decode/#{filename}"
-    Download.from(url, path: block_path)
-
-    events =
-      block_path
-      |> File.read!()
-      |> decode!()
-
-    fun_valid!(validator.id, events)
+    mine(requests, height, round, creator_id, prev_hash)
   end
 
-  defp fun_valid!(_, []), do: :ok
+  # def handle_block!(block, validator) do
+  #   data_dir = Application.get_env(@otp_app, :data_dir)
+  #   filename = "#{validator.id}.#{block.height}.#{@file_extension}"
+  #   block_path = Path.join(data_dir, "blocks-decode/#{filename}")
 
-  defp fun_valid!(validator_id, [{body, signature} | rest]) do
+  #   url = "https://#{validator.hostname}/v1/download/blocks-decode/#{filename}"
+  #   Download.from(url, path: block_path)
+
+  #   events =
+  #     block_path
+  #     |> File.read!()
+  #     |> decode!()
+
+  #   fun_valid!(validator.id, events)
+  # end
+
+  def fun_valid!(_, []), do: :ok
+
+  def fun_valid!(validator_id, [{body, signature} | rest]) do
     hash = Blake3.hash(body)
     size = byte_size(body) + byte_size(signature)
 
@@ -205,7 +257,7 @@ defmodule BlockTimer do
     fun_valid!(validator_id, rest)
   end
 
-  defp fun_valid!(validator_id, [body | rest]) do
+  def fun_valid!(validator_id, [body | rest]) do
     hash = Blake3.hash(body)
     size = byte_size(body)
 
@@ -268,8 +320,8 @@ defmodule BlockTimer do
   #   end
   # end
 
-  defp mine(requests, height, round, validator_id, last_row_id, last_row_id_def) do
-    data_dir = Application.get_env(@otp_app, :data_dir, "data")
+  def mine(requests, height, round, validator_id, prev_hash) do
+    data_dir = Application.get_env(@otp_app, :data_dir)
 
     block_path = Path.join([data_dir, "blocks", "#{height}.#{@file_extension}"])
 
@@ -358,7 +410,6 @@ defmodule BlockTimer do
         Logger.debug(inspect(result))
 
         content = encode!(events)
-
         sync_all()
 
         :ok = File.write(block_path, content)
@@ -368,21 +419,9 @@ defmodule BlockTimer do
         timestamp = :os.system_time(:millisecond)
         ev_count = length(events)
 
-        block_list_format = [
-          new_height,
-          validator_id,
-          hashfile,
-          round,
-          timestamp,
-          ev_count,
-          block_size,
-          @block_version
-        ]
-
-        BlockStore.insert(block_list_format)
-
         block_map = %{
           height: new_height,
+          prev: prev_hash,
           creator: validator_id,
           hashfile: hashfile,
           round: round,
@@ -392,10 +431,14 @@ defmodule BlockTimer do
           vsn: @block_version
         }
 
-        MessageStore.delete_all(last_row_id)
-        MessageStore.delete_all_df(last_row_id_def)
+        blockhash = Block.compute_hash(block_map)
+        privkey = Application.get_env(@otp_app, :privkey)
+        {:ok, signature} = Cafezinho.Impl.sign(blockhash, privkey)
+        block_map = Map.merge(block_map, %{hash: blockhash, signature: signature})
 
-        MessageStore.sync()
+        Block.to_list(block_map)
+        |> BlockStore.insert_sync()
+
         BlockStore.sync()
 
         :ok = PubSub.broadcast(@pubsub_verifiers, "block", {"new", block_map})
@@ -415,6 +458,21 @@ defmodule BlockTimer do
     DnsStore.sync()
     EnvStore.sync()
     RefundStore.sync()
+  end
+
+  defp checkpoint_all do
+    Logger.debug("checkpoint all")
+    WalletStore.checkpoint()
+    BalanceStore.checkpoint()
+    ValidatorStore.checkpoint()
+    TokenStore.checkpoint()
+    DomainStore.checkpoint()
+    DnsStore.checkpoint()
+    EnvStore.checkpoint()
+    RefundStore.checkpoint()
+    BlockStore.checkpoint()
+    RoundStore.checkpoint()
+    MessageStore.checkpoint()
   end
 
   defp encode!(content) do

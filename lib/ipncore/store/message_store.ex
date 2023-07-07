@@ -82,12 +82,14 @@ defmodule MessageStore do
     call({:execute_fetch, "select_df", [size, validator_id]})
   end
 
+  def delete_all(nil), do: :ok
   def delete_all(-1), do: :ok
 
   def delete_all(rowid) do
     call({:execute_step, "delete_all", [rowid]})
   end
 
+  def delete_all_df(nil), do: :ok
   def delete_all_df(-1), do: :ok
 
   def delete_all_df(rowid) do

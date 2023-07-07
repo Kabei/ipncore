@@ -48,6 +48,32 @@ defmodule Ipncore.Router do
     end
   end
 
+  get "/v1/download/block/:vid/:height" do
+    data_dir = Application.get_env(:ipncore, :data_dir)
+    block_path = Path.join([data_dir, "blocks", "#{vid}.#{height}.erl"])
+
+    if File.exists?(block_path) do
+      conn
+      |> put_resp_content_type("application/octet-stream")
+      |> send_file(200, block_path)
+    else
+      send_resp(conn, 404, "")
+    end
+  end
+
+  get "/v1/download/block-decode/:vid/:height" do
+    data_dir = Application.get_env(:ipncore, :data_dir)
+    block_path = Path.join([data_dir, "blocks-decode", "#{vid}.#{height}.erl"])
+
+    if File.exists?(block_path) do
+      conn
+      |> put_resp_content_type("application/octet-stream")
+      |> send_file(200, block_path)
+    else
+      send_resp(conn, 404, "")
+    end
+  end
+
   match _ do
     send_resp(conn, 404, "")
   end

@@ -7,7 +7,7 @@ defmodule AccountStore do
     create: "
     CREATE TABLE IF NOT EXISTS #{@table}(
     id BLOB PRIMARY KEY NOT NULL,
-    validator UNSIGNED INTEGER NOT NULL,
+    validator BIGINT NOT NULL,
     pubkey BLOB NOT NULL,
     type_sig INTEGER NOT NULL,
     created_at BIGINT NOT NULL

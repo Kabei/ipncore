@@ -13,6 +13,7 @@ http_port = System.get_env("HTTP_PORT", "8080") |> String.to_integer()
 data_dir = System.get_env("DATA_DIR", "data")
 kem_dir = System.get_env("KEM_DIR", "priv/kem.key")
 falcon_dir = System.get_env("FALCON_DIR", "priv/falcon.key")
+key_dir = System.get_env("KEY_DIR", "priv/secret.key")
 
 # folder paths
 config :ipncore, :data_dir, data_dir
@@ -20,6 +21,7 @@ config :ipncore, :data_dir, data_dir
 # folder cert
 config :ipncore, :kem_dir, kem_dir
 config :ipncore, :falcon_dir, falcon_dir
+config :ipncore, :key_dir, key_dir
 
 # node
 config :ipncore, :role, System.get_env("ROLE", "verifier")

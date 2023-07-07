@@ -5,7 +5,6 @@ defmodule Ippan.Func.Env do
 
     if Platform.owner?(account_id) and byte_size(bin) <= 4096 do
       MessageStore.approve_df(round, timestamp, hash)
-      :ok
     else
       raise IppanError, "Invalid operation"
     end
@@ -20,8 +19,6 @@ defmodule Ippan.Func.Env do
       when byte_size(name) <= 256 do
     if Platform.owner?(account_id) do
       MessageStore.approve_df(round, timestamp, hash)
-
-      :ok
     else
       raise IppanError, "Invalid operation"
     end

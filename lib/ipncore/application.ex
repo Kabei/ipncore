@@ -39,6 +39,7 @@ defmodule Ipncore.Application do
 
     # load falcon keys
     Ippan.P2P.Server.load_kem()
+    Ippan.P2P.Server.load_key()
 
     #   # init chain
     #   :ok = Chain.start()
@@ -63,7 +64,7 @@ defmodule Ipncore.Application do
             Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts}, id: :verifiers),
             Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
             Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
-            {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :falcon_dir)},
+            {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :key_dir)},
             {BlockTimer, []},
             {EventChannel, %{server: :miner}}
           ]
@@ -90,7 +91,6 @@ defmodule Ipncore.Application do
       {:ok, _pid} = result ->
         if role == "miner" do
           Platform.start()
-          # BlockBuilderWork.run()
           Logger.info("Running IPNcore P2P with port #{p2p_opts[:port]}")
         end
 

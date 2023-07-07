@@ -16,14 +16,25 @@ defmodule Ippan.P2P.Server do
 
   @spec load_kem :: :ok
   def load_kem do
-    value = Application.get_env(@otp_app, :kem_dir, "priv/cert/kem.key")
-    dir = System.get_env("KEM_DIR", value)
+    dir = Application.get_env(@otp_app, :kem_dir)
 
     seed =
       File.read!(dir)
-      |> Base.decode64!()
+      |> Fast64.decode64()
 
-    {:ok, pubkey, privkey} = NtruKem.gen_key_pair_from_seed(seed)
+    {:ok, net_pubkey, net_privkey} = NtruKem.gen_key_pair_from_seed(seed)
+    Application.put_env(@otp_app, :net_pubkey, net_pubkey)
+    Application.put_env(@otp_app, :net_privkey, net_privkey)
+  end
+
+  def load_key do
+    dir = Application.get_env(@otp_app, :key_dir)
+
+    seed =
+      File.read!(dir)
+      |> Fast64.decode64()
+
+    {:ok, {pubkey, privkey}} = Cafezinho.Impl.keypair_from_seed(seed)
     Application.put_env(@otp_app, :pubkey, pubkey)
     Application.put_env(@otp_app, :privkey, privkey)
   end
@@ -51,19 +62,12 @@ defmodule Ippan.P2P.Server do
     {:continue, state}
   end
 
-  def handle_data(data, socket, state) do
+  def handle_data(data, _socket, state) do
     Logger.debug("data: #{data}")
 
-    message = decode(data, state)
-    Logger.debug("event: #{inspect(message)}")
-
-    case message do
-      %{event: "block.fetch", id: block_id} ->
-        send_blockfile(socket, block_id)
-
-      %{event: event} ->
-        rest = Map.delete(message, :event)
-        PubSub.broadcast(@pubsub_server, event, rest)
+    case decode(data, state) do
+      {event, action, data} ->
+        PubSub.broadcast(@pubsub_server, event, {action, data})
 
       _ ->
         :ok
@@ -93,48 +97,43 @@ defmodule Ippan.P2P.Server do
   end
 
   defp handshake(socket, state) do
-    msg = "WEL" <> @version <> Application.get_env(@otp_app, :pubkey)
+    msg = "WEL" <> @version <> Application.get_env(@otp_app, :net_pubkey)
     @adapter.send(socket, msg)
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
-        case NtruKem.dec(Application.get_env(@otp_app, :privkey), ciphertext) do
+        IO.inspect("Thank")
+
+        case NtruKem.dec(Application.get_env(@otp_app, :net_privkey), ciphertext) do
           {:ok, sharedkey} ->
-            <<clientPubkey::1138, id::bytes-size(8), signature::binary>> =
+            <<clientPubkey::bytes-size(32), id::64, signature::binary>> =
               decode(encodeText, sharedkey)
 
-            case Falcon.verify(msg, signature, clientPubkey) do
+            case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
               :ok ->
+                IO.inspect("id #{id}")
+
                 case ValidatorStore.lookup([id]) do
                   nil ->
+                    Logger.debug("[Server connection] validator not exists")
                     {:close, state}
 
-                  validator_list ->
-                    validator = Validator.to_map(validator_list)
-                    hostname = validator.hostname
-                    ip_address = socket.transport_options[:peername]
+                  %{hostname: hostname, name: name, pubkey: _pubkey} ->
+                    # if pubkey != clientPubkey do
+                    #   Logger.debug("[Server connection] Invalid handshake pubkey")
+                    #   {:close, state}
+                    # else
+                    Logger.debug("[Server connection] OK #{name} connected")
 
-                    {:ok, {:hostent, ghostname, [], :inet, 4, ips}} =
-                      :inet_res.getbyname(hostname, :a)
+                    {:continue,
+                     %{
+                       id: id,
+                       hostname: hostname,
+                       pubkey: clientPubkey,
+                       sharedkey: sharedkey
+                     }, @timeout}
 
-                    cond do
-                      ip_address in ips ->
-                        Logger.debug("[Server connection] Invalid IP address")
-                        {:close, state}
-
-                      ghostname != validator.hostname ->
-                        Logger.debug("[Server connection] Invalid hostname")
-                        {:close, state}
-
-                      true ->
-                        {:continue,
-                         %{
-                           id: validator.id,
-                           hostname: hostname,
-                           pubkey: clientPubkey,
-                           sharedkey: sharedkey
-                         }, @timeout}
-                    end
+                    # end
                 end
 
               _ ->
@@ -147,7 +146,9 @@ defmodule Ippan.P2P.Server do
             {:close, state}
         end
 
-      _error ->
+      error ->
+        Logger.debug("Invalid handshake")
+        IO.inspect(error)
         {:close, state}
     end
   end
@@ -183,16 +184,5 @@ defmodule Ippan.P2P.Server do
       false
     )
     |> :erlang.binary_to_term([:safe])
-  end
-
-  def send_blockfile(%{socket: socket} = _client, block_id) do
-    filename = Path.join("/data/blocks", to_string(block_id))
-
-    if File.regular?(filename) do
-      :gen_tcp.send(socket, "blockfile:ok:#{block_id}")
-      :file.sendfile(filename, socket)
-    else
-      :gen_tcp.send(socket, "blockfile:error")
-    end
   end
 end

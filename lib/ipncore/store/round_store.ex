@@ -8,13 +8,13 @@ defmodule RoundStore do
     create: """
     CREATE TABLE IF NOT EXISTS #{@table}(
       id BIGINT PRIMARY KEY NOT NULL,
-      blocks UNSIGNED INTEGER NOT NULL,
+      hash BLOB,
+      blocks BIGINT NOT NULL,
       timestamp BIGINT NOT NULL
     ) WITHOUT ROWID;
     """,
     stmt: %{
-      insert: "INSERT INTO #{@table} values(?1,?2,?3)",
-      replace: "REPLACE INTO #{@table} values(?1,?2,?3)",
+      insert: "INSERT INTO #{@table} values(?1,?2,?3,?4)",
       lookup: "SELECT * FROM #{@table} WHERE id = ?",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?",
       delete: "DELETE FROM #{@table} WHERE id = ?"

@@ -60,7 +60,14 @@ defmodule Ippan.Func.Wallet do
   end
 
   def pre_sub(
-        %{id: account_id, validator: validator_id, timestamp: _timestamp, size: size},
+        %{
+          id: account_id,
+          hash: hash,
+          validator: validator_id,
+          round: round,
+          timestamp: timestamp,
+          size: size
+        },
         new_validator_id
       ) do
     cond do
@@ -76,9 +83,8 @@ defmodule Ippan.Func.Wallet do
             raise IppanError, "Validator not exists"
 
           _ ->
-            # fee amount is tx size
             :ok = BalanceStore.balance(account_id, @token, size)
-            WalletStore.update(%{validator: validator_id}, id: account_id)
+            MessageStore.approve_df(round, timestamp, hash)
         end
     end
   end
@@ -87,19 +93,9 @@ defmodule Ippan.Func.Wallet do
         %{id: account_id, validator: validator_id, timestamp: timestamp, size: size},
         new_validator_id
       ) do
-    cond do
-      validator_id == new_validator_id ->
-        raise IppanError, "Already subscribe"
-
-      not ValidatorStore.exists?(validator_id) ->
-        raise IppanError, "Validator not exists"
-
-      true ->
-        validator = ValidatorStore.lookup([new_validator_id])
-        # fee amount is tx size
-        :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
-
-        WalletStore.update(%{validator: validator_id}, id: account_id)
-    end
+    validator = ValidatorStore.lookup([new_validator_id])
+    # fee amount is tx size
+    :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
+    WalletStore.update(%{validator: validator_id}, id: account_id)
   end
 end

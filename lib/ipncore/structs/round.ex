@@ -22,4 +22,13 @@ defmodule Ippan.Round do
   def to_map([id, blocks, timestamp]) do
     %{id: id, blocks: blocks, timestamp: timestamp}
   end
+
+  def compute_hash(round, hashes) do
+    ([
+       to_string(round)
+     ] ++
+       hashes)
+    |> IO.iodata_to_binary()
+    |> Blake3.hash()
+  end
 end

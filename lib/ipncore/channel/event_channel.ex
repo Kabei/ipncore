@@ -16,14 +16,13 @@ defmodule EventChannel do
 
   @impl true
   def init(args) do
-    IO.inspect(args)
     PubSub.subscribe(args.server, @channel)
     {:ok, args}
   end
 
   @impl true
   def handle_info({"valid", body}, state) do
-    Logger.info("valid")
+    Logger.debug("valid")
     IO.inspect(body, limit: :infinity)
     r = MessageStore.insert_sync(body)
     IO.inspect(r)
@@ -33,7 +32,7 @@ defmodule EventChannel do
   end
 
   def handle_info({"valid_df", body}, state) do
-    Logger.info("valid_df")
+    Logger.debug("valid_df")
     IO.inspect(body, limit: :infinity)
     r = MessageStore.insert_df(body)
     IO.inspect(r)

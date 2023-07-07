@@ -33,6 +33,7 @@ mix.lock
 
 *.app
 *.keys
+*.key
 *.pem
 *.zip
 *.rar

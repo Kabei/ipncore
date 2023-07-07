@@ -54,8 +54,6 @@ defmodule Ippan.Func.Domain do
           :ok ->
             MessageStore.approve_df(round, timestamp, hash)
 
-            :ok
-
           _ ->
             raise IppanError, "Insufficient balance"
         end

@@ -13,6 +13,7 @@ defmodule ValidatorStore do
       name VARCHAR(30) NOT NULL,
       owner BLOB NOT NULL,
       pubkey BLOB NOT NULL,
+      net_pubkey BLOB NOT NULL,
       avatar TEXT,
       fee_type TINYINT NOT NULL,
       fee DOUBLE NOT NULL,
@@ -21,7 +22,7 @@ defmodule ValidatorStore do
       updated_at BIGINT NOT NULL
     );",
     stmt: %{
-      insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
+      insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
       # replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
       # INSERT INTO #{@table} (id,hostname,name,owner,avatar,fee,created_at,updated_at)
       # values($1,$2,$3,$4,$5,$6,$7,$8,$9)

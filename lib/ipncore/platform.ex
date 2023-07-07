@@ -7,6 +7,9 @@ defmodule Platform do
     # load native token data
     case TokenStore.lookup([@token]) do
       nil ->
+        # testing
+        # Test.init()
+
         GlobalConst.new(Global, %{
           validator: validator_id
         })

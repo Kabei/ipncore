@@ -13,12 +13,14 @@ defmodule Ippan.Func.Validator do
         hostname,
         name,
         pubkey,
+        net_pubkey,
         fee_type,
         fee,
         opts \\ %{}
       ) do
     map_filter = Map.take(opts, Validator.optionals())
     pubkey = Fast64.decode64(pubkey)
+    net_pubkey = Fast64.decode64(net_pubkey)
 
     validator =
       %Validator{
@@ -26,6 +28,7 @@ defmodule Ippan.Func.Validator do
         hostname: hostname,
         name: name,
         pubkey: pubkey,
+        net_pubkey: net_pubkey,
         owner: owner_id,
         fee: fee,
         fee_type: fee_type,
@@ -38,7 +41,7 @@ defmodule Ippan.Func.Validator do
 
     validator
     |> Validator.to_list()
-    |> ValidatorStore.insert()
+    |> ValidatorStore.insert_sync()
 
     PubSub.broadcast(:network, "validator", {"new", validator})
   end
@@ -49,6 +52,7 @@ defmodule Ippan.Func.Validator do
           String.t(),
           String.t(),
           String.t(),
+          binary(),
           binary(),
           non_neg_integer(),
           non_neg_integer(),
@@ -61,6 +65,7 @@ defmodule Ippan.Func.Validator do
         hostname,
         name,
         pubkey,
+        net_pubkey,
         fee_type,
         fee,
         opts \\ %{}
@@ -70,6 +75,7 @@ defmodule Ippan.Func.Validator do
              fee > 0 and is_float(fee) do
     map_filter = Map.take(opts, Validator.optionals())
     pubkey = Fast64.decode64(pubkey)
+    net_pubkey = Fast64.decode64(net_pubkey)
 
     cond do
       fee_type == 0 and fee < 1 ->
@@ -78,7 +84,10 @@ defmodule Ippan.Func.Validator do
       fee_type == 2 and fee < 1 ->
         raise IppanError, "Invalid fee config"
 
-      byte_size(pubkey) != 897 ->
+      byte_size(net_pubkey) > 897 ->
+        raise IppanError, "Invalid net_pubkey size #{byte_size(net_pubkey)}"
+
+      byte_size(pubkey) > 897 ->
         raise IppanError, "Invalid pubkey size"
 
       not Match.account?(owner_id) ->
@@ -87,7 +96,7 @@ defmodule Ippan.Func.Validator do
       map_filter != opts ->
         raise IppanError, "Invalid options parameter"
 
-      not Match.domain?(hostname) ->
+      not Match.hostname?(hostname) ->
         raise IppanError, "Invalid hostname"
 
       not Platform.owner?(account_id) ->
@@ -110,8 +119,6 @@ defmodule Ippan.Func.Validator do
         |> MapUtil.validate_url(:avatar)
 
         MessageStore.approve_df(round, timestamp, hash)
-
-        :ok
     end
   end
 
@@ -140,8 +147,20 @@ defmodule Ippan.Func.Validator do
           :pubkey,
           fn x ->
             case Fast64.decode64(x) do
-              j when byte_size(j) != 897 ->
+              j when byte_size(j) > 897 ->
                 raise IppanError, "Invalid pubkey"
+
+              j ->
+                j
+            end
+          end
+        )
+        |> MapUtil.transform(
+          :net_pubkey,
+          fn x ->
+            case Fast64.decode64(x) do
+              j when byte_size(j) > 897 ->
+                raise IppanError, "Invalid net_pubkey"
 
               j ->
                 j

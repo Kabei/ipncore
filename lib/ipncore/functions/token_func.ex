@@ -46,8 +46,6 @@ defmodule Ippan.Func.Token do
         |> MapUtil.validate_any(:opts, Token.props())
 
         MessageStore.approve_df(round, timestamp, hash)
-
-        :ok
     end
   end
 
@@ -90,7 +88,7 @@ defmodule Ippan.Func.Token do
     else
       token
       |> Token.to_list()
-      |> TokenStore.insert()
+      |> TokenStore.insert_sync()
     end
   end
 

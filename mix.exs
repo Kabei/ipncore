@@ -78,8 +78,8 @@ defmodule Ipncore.MixProject do
       # {:blake3, "~> 1.0"},
       # {:jsonrs, "~> 0.3.0"},
       # {:curvy, "~> 0.3"},
-      {:ex_secp256k1, "~> 0.7"},
-      {:ed25519_blake2b, path: "../ed25519_blake2b"},
+      # {:ex_secp256k1, "~> 0.7"},
+      # {:ed25519_blake2b, path: "../ed25519_blake2b"},
       {:cafezinho, "~> 0.4.0"},
       # local deps
       {:exqlite, path: "../exqlite"},

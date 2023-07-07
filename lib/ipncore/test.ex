@@ -32,11 +32,13 @@ defmodule Test do
     })
     |> run()
 
-
     BlockTimer.mine()
     BlockTimer.round_end()
 
-    Test.validator_new(sk, address, 0, addressv, "ippan.uk", "main-core", pkv, 1, 0.01)
+    Test.validator_new(sk, address, 0, addressv, "ippan.uk", "Speedy", pk, pkv, 1, 0.01)
+    |> run()
+
+    Test.validator_new(sk, address, 1, addressv, "ippan.co.uk", "Raptor", pk, pkv, 1, 0.01)
     |> run()
 
     BlockTimer.mine()
@@ -356,6 +358,7 @@ defmodule Test do
         hostname,
         name,
         pubkey,
+        net_pubkey,
         fee_type,
         fee
       )
@@ -370,6 +373,7 @@ defmodule Test do
         hostname,
         name,
         Fast64.encode64(pubkey),
+        Fast64.encode64(net_pubkey),
         fee_type,
         fee
       ]

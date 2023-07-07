@@ -13,17 +13,25 @@ defmodule Ippan.P2P.ClientPool do
 
   @impl true
   def init(key_path) do
-    # Process.flag(:trap_exit, true)
+    Process.flag(:trap_exit, true)
     {:ok, validators} = ValidatorStore.all()
     myid = Default.validator_id()
 
     clients =
-      for validator when validator != myid <- validators, into: %{} do
-        validator = Validator.to_map(validator)
-        hostname = validator.hostname
-        {:ok, pid} = Client.start_link({hostname, @port, key_path})
-        {validator.id, %{pid: pid, hostname: hostname}}
-      end
+      Enum.map(validators, fn x ->
+        validator = Validator.to_map(x)
+
+        if myid != validator.id do
+          hostname = validator.hostname
+          {:ok, pid} = Client.start_link({hostname, @port, key_path})
+          {validator.id, %{pid: pid, hostname: hostname}}
+        end
+      end)
+      |> Enum.filter(fn
+        nil -> false
+        _ -> true
+      end)
+      |> Enum.into(%{})
 
     subscribe()
 
@@ -31,12 +39,6 @@ defmodule Ippan.P2P.ClientPool do
   end
 
   @impl true
-  def handle_info({:EXIT, _pid, {:exit_trap, reason}}, %{clients: clients} = state) do
-    unsubscribe()
-    unlink(clients)
-    {:stop, reason, state}
-  end
-
   def handle_info(
         {"new", validator},
         %{
@@ -44,6 +46,9 @@ defmodule Ippan.P2P.ClientPool do
           key_path: key_path
         } = state
       ) do
+    IO.inspect("validator.new")
+    IO.inspect(validator)
+
     if Default.validator_id() != validator.id do
       hostname = validator.hostname
       {:ok, pid} = Client.start_link({hostname, @port, key_path})
@@ -73,13 +78,19 @@ defmodule Ippan.P2P.ClientPool do
     if Default.validator_id() != validator_id do
       %{pid: pid} = Map.get(clients, validator_id)
       GenServer.stop(pid, :normal)
+      Logger.info("Validator's licence deleted")
       {:noreply, Map.delete(clients, validator_id)}
     else
       # stop application
-      Logger.info("Validator's licence deleted")
-      System.stop(0)
+      # System.stop(0)
       {:noreply, state}
     end
+  end
+
+  def handle_info({:EXIT, _pid, {:exit_trap, reason}}, %{clients: clients} = state) do
+    unsubscribe()
+    unlink(clients)
+    {:stop, reason, state}
   end
 
   def handle_info(_, state) do

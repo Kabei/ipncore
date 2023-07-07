@@ -15,5 +15,4 @@ defmodule Default do
 
   def node_name, do: Application.get_env(:ipncore, :node)
   def validator_id, do: Application.get_env(:ipncore, :vid)
-  def hostname, do: Application.get_env(:ipncore, :hostname)
 end

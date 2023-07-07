@@ -49,44 +49,23 @@ defmodule Ipncore.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:elixir_make, "~> 0.4", runtime: false},
-      # {:xxhash, "~> 0.3.1"},
-      # {:dns, "~> 2.4.0"},
-      # {:cbor, "~> 1.0.0"},
-      # {:zigler, "~> 0.9.1", runtime: false},
       {:benchee, "~> 1.0", only: [:dev, :test]},
       {:bakeware, "~> 0.2.4", runtime: false},
       {:globalconst, "~> 0.3.2"},
       {:poolboy, "~> 1.5.2"},
       {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
-      # {:socket, "~> 0.3"},
       {:sntp, "~> 0.2.0"},
       {:jason, "~> 1.4"},
-      # {:uuidv4, "1.0.0"},
-      # {:jsonrs, "~> 0.3.0"},
-      # {:ecto_sql, "~> 3.8"},
-      # {:postgrex, ">= 0.0.0"},
-      # {:plug_cowboy, "~> 2.0"},
       {:bandit, ">= 0.7.7"},
-      {:libdecaf, "~> 2.1.1"},
       {:phoenix_pubsub_redis, "~> 3.0.1"},
       {:download, "~> 0.0.4"},
-      # {:dets_plus, path: "../dets_plus"},
-      # {:thousand_island, "~> 0.6.4"},
-      # {:phoenix_pubsub, "~> 2.0"},
-      {:blake3, path: "../blake3"},
-      # {:blake3, "~> 1.0"},
-      # {:jsonrs, "~> 0.3.0"},
-      # {:curvy, "~> 0.3"},
-      # {:ex_secp256k1, "~> 0.7"},
-      # {:ed25519_blake2b, path: "../ed25519_blake2b"},
       {:cafezinho, "~> 0.4.0"},
       # local deps
+      {:blake3, path: "../blake3"},
       {:exqlite, path: "../exqlite"},
       {:falcon, path: "../falcon"},
       {:ntrukem, path: "../ntrukem"},
       {:fast64, path: "../fast64_elixir"}
-      # {:ipnutils, path: "../ipnutils"}
     ]
   end
 

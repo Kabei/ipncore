@@ -1,4 +1,6 @@
-FROM elixir:1.14.3-slim
+FROM elixir:1.15.1-slim
+
+LABEL HASH_COMMIT=${HASH_COMMIT}
 
 ENV PATH="/root/.cargo/bin:${PATH}" \
     MIX_ENV=prod \
@@ -34,8 +36,6 @@ EXPOSE 5815 8080
 
 VOLUME ["/var/data"]
 
-# CMD ["elixir", "--sname", "${NODE}", "--cookie", "${COOKIE}", "-S", "mix", "run", "--no-halt"]
-# ENTRYPOINT ["iex", "--sname", "${NODE}", "--cookie", "${COOKIE}", "-S", "mix"]
 ENTRYPOINT ["./run"]
 
 # docker build -t ipncore:0.4 .

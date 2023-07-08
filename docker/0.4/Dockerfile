@@ -12,12 +12,7 @@ WORKDIR /usr/src
 RUN apt-get update && apt-get install -y git curl cmake
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-RUN git clone --branch v0.4 https://kabei@github.com/kabei/ipncore.git \
-    && git clone https://kabei@github.com/kabei/falcon.git \
-    && git clone https://kabei@github.com/kabei/ntrukem.git \
-    && git clone https://kabei@github.com/kabei/exqlite.git \
-    && git clone https://kabei@github.com/kabei/fast64_elixir.git \
-    && git clone https://github.com/Kabei/blake3.git
+RUN git clone --branch v0.4 https://kabei@github.com/kabei/ipncore.git
 
 WORKDIR /usr/src/ipncore
 
@@ -25,6 +20,7 @@ RUN mix local.hex --force && mix deps.get && mix local.rebar --force
 RUN mix compile
 
 RUN chmod +x run.sh \
+    chmod +x update.sh \
     && mkdir -p priv
 COPY kem.key priv/
 COPY falcon.key priv/

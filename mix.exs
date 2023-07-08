@@ -60,12 +60,11 @@ defmodule Ipncore.MixProject do
       {:phoenix_pubsub_redis, "~> 3.0.1"},
       {:download, "~> 0.0.4"},
       {:cafezinho, "~> 0.4.0"},
-      # local deps
-      {:blake3, path: "../blake3"},
-      {:exqlite, path: "../exqlite"},
-      {:falcon, path: "../falcon"},
-      {:ntrukem, path: "../ntrukem"},
-      {:fast64, path: "../fast64_elixir"}
+      {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
+      {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},
+      {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},
+      {:ntrukem, git: "https://kabei@github.com/kabei/ntrukem.git", branch: "master"},
+      {:fast64, git: "https://kabei@github.com/kabei/fast64_elixir.git", branch: "master"}
     ]
   end
 

@@ -24,7 +24,8 @@ WORKDIR /usr/src/ipncore
 RUN mix local.hex --force && mix deps.get && mix local.rebar --force
 RUN mix compile
 
-RUN mkdir -p priv
+RUN chmod +x run \ 
+    && mkdir -p priv
 COPY kem.key priv/
 COPY falcon.key priv/
 COPY secret.key priv/

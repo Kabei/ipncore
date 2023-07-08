@@ -1,5 +1,7 @@
 #!/bin/bash
 
+killall beam.smp
+
 if [ "$MODE" = "iex" ]
 then
     iex --sname ${NODE} --cookie ${COOKIE} -S mix

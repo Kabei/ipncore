@@ -14,7 +14,7 @@ else
 end
 
 # blockchain
-config :ipncore, :token, "IPN"
+config :ipncore, :token, System.get_env("NATIVE_TOKEN", "IPN")
 config :ipncore, :message_max_size, 8192
 config :ipncore, :block_version, 0
 config :ipncore, :block_max_size, 10_485_760

@@ -20,7 +20,7 @@ RUN mix local.hex --force && mix deps.get && mix local.rebar --force
 RUN mix compile
 
 RUN chmod +x run.sh \
-    chmod +x update.sh \
+    && chmod +x update.sh \
     && mkdir -p priv
 COPY kem.key priv/
 COPY falcon.key priv/

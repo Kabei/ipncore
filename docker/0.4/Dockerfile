@@ -24,7 +24,7 @@ WORKDIR /usr/src/ipncore
 RUN mix local.hex --force && mix deps.get && mix local.rebar --force
 RUN mix compile
 
-RUN chmod +x run \ 
+RUN chmod +x run.sh \
     && mkdir -p priv
 COPY kem.key priv/
 COPY falcon.key priv/
@@ -34,8 +34,4 @@ EXPOSE 5815 8080
 
 VOLUME ["/var/data"]
 
-ENTRYPOINT ["./run"]
-
-# docker build -t ipncore:0.4 .
-# docker run --rm -e ROLE=miner -e NODE=miner@localhost -e COOKIE=CfBa3fdR1AZuefnx -p 5815:5815 -p 8080:80 --volume data:/var/data -d --name miner ipncore:0.4
-# docker exec -it miner /bin/bash
+ENTRYPOINT ["./run.sh"]

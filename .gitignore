@@ -41,3 +41,4 @@ mix.lock
 *.gz
 *.db
 *.cub
+*.log

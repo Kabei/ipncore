@@ -1,4 +1,4 @@
-FROM elixir:1.15.1
+FROM elixir:1.14.3-slim
 
 ENV PATH="/root/.cargo/bin:${PATH}" \
     MIX_ENV=prod \
@@ -9,7 +9,7 @@ ENV PATH="/root/.cargo/bin:${PATH}" \
 
 WORKDIR /usr/src
 
-RUN apt-get update && apt-get install -y cmake
+RUN apt-get update && apt-get install -y git curl cmake
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 
 RUN git clone --branch v0.4 https://kabei@github.com/kabei/ipncore.git \
@@ -21,7 +21,7 @@ RUN git clone --branch v0.4 https://kabei@github.com/kabei/ipncore.git \
 
 WORKDIR /usr/src/ipncore
 
-RUN mix deps.get
+RUN mix local.hex --force && mix deps.get && mix local.rebar --force
 RUN mix compile
 
 RUN mkdir -p priv
@@ -33,9 +33,11 @@ EXPOSE 5815 8080
 
 VOLUME ["/var/data"]
 
-# CMD ["elixir --sname $NODE --cookie $COOKIE -S mix run --no-halt"]
-CMD ["iex --sname $NODE --cookie $COOKIE -S mix"]
+# CMD ["elixir", "--sname", "${NODE}", "--cookie", "${COOKIE}", "-S", "mix", "run", "--no-halt"]
+# ENTRYPOINT ["iex", "--sname", "${NODE}", "--cookie", "${COOKIE}", "-S", "mix"]
+ENTRYPOINT ["./run"]
 
 # docker build -t ipncore:0.4 .
-# docker run --rm -e ROLE=miner -e NODE=miner@localhost -e COOKIE=CfBa3fdR1AZuefnx --volume data:/var/data -d --name miner ipncore:0.4
+# docker run --rm -e ROLE=miner -e NODE=miner@localhost -e COOKIE=CfBa3fdR1AZuefnx -p 5815:5815 -p 8080:80 --volume data:/var/data -d --name miner ipncore:0.4
+# docker run --rm -e ROLE=miner -e NODE=miner@localhost -e COOKIE=CfBa3fdR1AZuefnx -p 5815:5815 -p 8080:80 --volume data:/var/data -it --name miner ipncore:0.4
 # docker exec -it miner /bin/bash

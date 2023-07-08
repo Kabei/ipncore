@@ -1,1 +1,2 @@
-MIX_ENV=prod elixir --erl "+P 2000000 +A 10" -S mix run --no-halt --no-compile > ippan.log 2>&1 &
+# MIX_ENV=prod elixir --erl "+P 2000000 +A 10" -S mix run --no-halt --no-compile > ippan.log 2>&1 &
+iex --sname ${NODE}--cookie ${COOKIE} -S mix

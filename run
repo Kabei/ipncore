@@ -1,4 +1,4 @@
 #!/bin/bash
 # elixir -S mix run --no-halt --no-compile > ippan.log 2>&1 &
-# iex --sname ${NODE} --cookie ${COOKIE} -S mix
-elixir --sname ${NODE} --cookie ${COOKIE} -S mix run --no-halt
+# elixir --sname ${NODE} --cookie ${COOKIE} -S mix run --no-halt
+iex --sname ${NODE} --cookie ${COOKIE} -S mix

@@ -13,7 +13,7 @@ docker run -e ROLE=miner -e NODE=miner@127.0.0.1 -e COOKIE=CfBa3fdR1AZuefnx \
 ### Run a verifier container
 ```bash
 docker run -e ROLE=verifier -e NODE=verifier@127.0.0.1 -e COOKIE=CfBa3fdR1AZuefnx -e MINER=miner@127.0.0.1 \
--p 5815:5815 -p 8080:8080 --volume data:/var/data --restart=on-failure:10 \
+-p 8080:8080 --volume data:/var/data --restart=on-failure:10 \
 -d --name verifier ipncore:0.4
 ```
 

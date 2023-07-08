@@ -36,7 +36,7 @@ EXPOSE 5815 8080
 
 VOLUME ["/var/data"]
 
-ENTRYPOINT ["./run"]
+ENTRYPOINT ["/usr/src/ipncore/run"]
 
 # docker build -t ipncore:0.4 .
 # docker run --rm -e ROLE=miner -e NODE=miner@localhost -e COOKIE=CfBa3fdR1AZuefnx -p 5815:5815 -p 8080:80 --volume data:/var/data -d --name miner ipncore:0.4

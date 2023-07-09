@@ -39,7 +39,7 @@ defmodule BlockTimer do
         {:ok,
          %{
            height: block.height,
-           round: block.round,
+           round: block.round + 1,
            validator_id: validator_id,
            prev_hash: block.hash
          }}
@@ -112,8 +112,8 @@ defmodule BlockTimer do
       )
     end)
 
-    {:ok, [hashes]} = BlockStore.fetch_round(round)
-
+    {:ok, result_hashes} = BlockStore.fetch_round(round)
+    hashes = Enum.concat(result_hashes)
     count = length(hashes)
     hash = Round.compute_hash(round, hashes)
     RoundStore.insert([round, hash, count, time])
@@ -145,7 +145,7 @@ defmodule BlockTimer do
 
     last_row_id_df = catch_last_row_id(requests_df)
 
-    new_height =
+    {new_height, new_hash} =
       mine(
         requests ++ requests_df,
         height,
@@ -159,7 +159,7 @@ defmodule BlockTimer do
       MessageStore.delete_all_df(last_row_id_df)
       MessageStore.sync()
 
-      {:noreply, %{state | height: new_height}}
+      {:noreply, %{state | height: new_height, prev_hash: new_hash}}
     else
       {:noreply, state}
     end
@@ -225,105 +225,19 @@ defmodule BlockTimer do
 
   def mine_file(%{creator: creator_id, height: height, prev: prev_hash, round: round}) do
     data_dir = Application.get_env(@otp_app, :data_dir)
-    block_path = Path.join([data_dir, "blocks-decode", "#{creator_id}.#{height}.#{@file_extension}"])
+
+    block_path =
+      Path.join([data_dir, "blocks-decode", "#{creator_id}.#{height}.#{@file_extension}"])
+
     {:ok, requests} = File.read(block_path)
 
     mine(requests, height, round, creator_id, prev_hash)
   end
 
-  # def handle_block!(block, validator) do
-  #   data_dir = Application.get_env(@otp_app, :data_dir)
-  #   filename = "#{validator.id}.#{block.height}.#{@file_extension}"
-  #   block_path = Path.join(data_dir, "blocks-decode/#{filename}")
-
-  #   url = "https://#{validator.hostname}/v1/download/blocks-decode/#{filename}"
-  #   Download.from(url, path: block_path)
-
-  #   events =
-  #     block_path
-  #     |> File.read!()
-  #     |> decode!()
-
-  #   fun_valid!(validator.id, events)
-  # end
-
-  def fun_valid!(_, []), do: :ok
-
-  def fun_valid!(validator_id, [{body, signature} | rest]) do
-    hash = Blake3.hash(body)
-    size = byte_size(body) + byte_size(signature)
-
-    RequestHandler.valid!(hash, body, size, signature, validator_id)
-    fun_valid!(validator_id, rest)
-  end
-
-  def fun_valid!(validator_id, [body | rest]) do
-    hash = Blake3.hash(body)
-    size = byte_size(body)
-
-    RequestHandler.valid!(hash, body, size)
-    fun_valid!(validator_id, rest)
-  end
-
-  # defp fun_reduce(
-  #        [
-  #          timestamp,
-  #          hash,
-  #          type,
-  #          account_id,
-  #          validator_id,
-  #          args,
-  #          message,
-  #          signature,
-  #          size,
-  #          _rowid
-  #        ],
-  #        acc
-  #      ) do
-  #   try do
-  #     args = decode_term(args)
-  #     RequestHandler.handle!(hash, type, timestamp, account_id, validator_id, size, args)
-  #     acc ++ [{message, signature}]
-  #   rescue
-  #     # block failed
-  #     e ->
-  #       Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-  #       acc
-  #   end
-  # end
-
-  # defp fun_reduce(
-  #        [
-  #          _key,
-  #          type,
-  #          timestamp,
-  #          hash,
-  #          account_id,
-  #          validator_id,
-  #          args,
-  #          message,
-  #          signature,
-  #          size,
-  #          _rowid
-  #        ],
-  #        acc
-  #      ) do
-  #   try do
-  #     args = decode_term(args)
-  #     RequestHandler.handle!(hash, type, timestamp, account_id, validator_id, size, args)
-  #     acc ++ [{message, signature}]
-  #   rescue
-  #     # block failed
-  #     e ->
-  #       Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-  #       acc
-  #   end
-  # end
-
   def mine(requests, height, round, validator_id, prev_hash) do
     data_dir = Application.get_env(@otp_app, :data_dir)
 
-    block_path = Path.join([data_dir, "blocks", "#{height}.#{@file_extension}"])
+    block_path = Path.join([data_dir, "blocks", "#{validator_id}.#{height}.#{@file_extension}"])
 
     result =
       Enum.reduce(requests, [], fn
@@ -404,7 +318,7 @@ defmodule BlockTimer do
         Logger.debug("block empty #{height}")
         :ok = PubSub.broadcast(@pubsub_verifiers, "block", {"new", "empty"})
         :ok = PubSub.broadcast(@pubsub_network, "block", {"new", "empty"})
-        height
+        {height, prev_hash}
 
       events ->
         Logger.debug(inspect(result))
@@ -415,12 +329,11 @@ defmodule BlockTimer do
         :ok = File.write(block_path, content)
         block_size = File.stat!(block_path).size
         hashfile = hash_file(block_path)
-        new_height = height + 1
         timestamp = :os.system_time(:millisecond)
         ev_count = length(events)
 
         block_map = %{
-          height: new_height,
+          height: height,
           prev: prev_hash,
           creator: validator_id,
           hashfile: hashfile,
@@ -444,7 +357,7 @@ defmodule BlockTimer do
         :ok = PubSub.broadcast(@pubsub_verifiers, "block", {"new", block_map})
         :ok = PubSub.broadcast(@pubsub_network, "block", {"new", block_map})
 
-        new_height
+        {height + 1, blockhash}
     end
   end
 

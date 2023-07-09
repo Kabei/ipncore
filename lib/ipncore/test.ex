@@ -13,15 +13,11 @@ defmodule Test do
         211, 239, 154, 118, 40, 154, 90, 156, 28>>
 
     {pk, sk, address} = Test.gen_ed25519(sk)
-    # {pk2, address2} = Test.gen_secp256k1(sk2)
-    # IO.inspect(byte_size(pk))
-    # IO.inspect(address)
     {pkv, _skv, addressv} = Test.gen_falcon(seed)
 
-    Test.wallet_new(pk, 0)
-    |> run()
+    Test.wallet_new(pk, 0) |> Test.run()
 
-    Test.wallet_new(pkv, 1) |> run()
+    Test.wallet_new(pkv, 1) |> Test.run()
 
     BlockTimer.mine()
     BlockTimer.round_end()
@@ -30,16 +26,16 @@ defmodule Test do
       "avatar" => "https://avatar.com",
       "props" => ["coinbase", "lock", "burn"]
     })
-    |> run()
+    |> Test.run()
 
     BlockTimer.mine()
     BlockTimer.round_end()
 
-    Test.validator_new(sk, address, 0, addressv, "ippan.uk", "Speedy", pk, pkv, 1, 0.01)
-    |> run()
+    Test.validator_new(sk, address, 0, addressv, "ippan.org", "Speedy", pk, pkv, 1, 0.01)
+    |> Test.run()
 
     Test.validator_new(sk, address, 1, addressv, "ippan.co.uk", "Raptor", pk, pkv, 1, 0.01)
-    |> run()
+    |> Test.run()
 
     BlockTimer.mine()
     BlockTimer.round_end()
@@ -169,11 +165,6 @@ defmodule Test do
       hash = Blake3.hash(body)
       sig = Fast64.decode64(sig)
       size = byte_size(body) + byte_size(sig)
-
-      # [type, timestamp, from | args] = Jason.decode!(body)
-      # [_, _pubkey, validator_id] = WalletStore.lookup([from])
-
-      # RequestHandler.handle!(hash, type, timestamp, from, validator_id, size, args)
       {event, msg} = RequestHandler.valid!(hash, body, size, sig, Default.validator_id())
 
       case event do
@@ -227,25 +218,19 @@ defmodule Test do
 
   # {pk, address} = Test.gen_secp256k1(sk)
   # {pk2, address2} = Test.gen_secp256k1(sk2)
-  def gen_secp256k1(sk) do
-    pk =
-      sk
-      |> ExSecp256k1.Impl.create_public_key()
-      |> elem(1)
+  # def gen_secp256k1(sk) do
+  #   pk =
+  #     sk
+  #     |> ExSecp256k1.Impl.create_public_key()
+  #     |> elem(1)
 
-    # |> ExSecp256k1.Impl.public_key_compress()
-    # |> elem(1)
-
-    {pk, Address.hash(2, pk)}
-  end
+  #   {pk, Address.hash(2, pk)}
+  # end
 
   # Test.wallet_new(pk, 0) |> Test.build_request
   def wallet_new(pk, validator_id) do
-    body =
-      [0, :os.system_time(:millisecond), Fast64.encode64(pk), validator_id]
-      |> Jason.encode!()
-
-    body
+    [0, :os.system_time(:millisecond), Fast64.encode64(pk), validator_id]
+    |> Jason.encode!()
   end
 
   # Test.wallet_subscribe(sk, address, 1) |> Test.build_request
@@ -556,11 +541,11 @@ defmodule Test do
            Falcon.sign(secret, msg)
            |> elem(1)
 
-         "2" ->
-           # set secret_with_pk
-           ExSecp256k1.Impl.sign_compact(msg, secret)
-           |> elem(1)
-           |> elem(0)
+           #  "2" ->
+           #    # set secret_with_pk
+           #    ExSecp256k1.Impl.sign_compact(msg, secret)
+           #    |> elem(1)
+           #    |> elem(0)
        end)
     |> Fast64.encode64()
   end

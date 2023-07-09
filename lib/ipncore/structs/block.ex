@@ -16,39 +16,39 @@ defmodule Ippan.Block do
   defstruct [
     :height,
     :creator,
-    :prev,
     :hash,
+    :prev,
     :hashfile,
     :signature,
     :round,
     :timestamp,
-    vsn: 0,
     ev_count: 0,
-    size: 0
+    size: 0,
+    vsn: 0
   ]
 
   def to_list(x) do
     [
       x.height,
       x.creator,
-      x.prev,
       x.hash,
+      x.prev,
       x.hashfile,
       x.signature,
       x.round,
       x.timestamp,
-      x.vsn,
       x.ev_count,
-      x.size
+      x.size,
+      x.vsn
     ]
   end
 
   def to_tuple(x) do
-    {x.height, x.prev, x.hash, x.hashfile, x.signature, x.timestamp, x.ev_count, x.vsn, x.size}
+    {x.height, x.hash, x.prev, x.hashfile, x.signature, x.timestamp, x.ev_count, x.size, x.vsn}
   end
 
   def to_map(
-        {height, creator, prev, hash, hashfile, signature, round, timestamp, ev_count, vsn, size}
+        {height, creator, hash, prev, hashfile, signature, round, timestamp, ev_count, size, vsn}
       ) do
     %{
       height: height,
@@ -68,8 +68,8 @@ defmodule Ippan.Block do
   def to_map([
         height,
         creator,
-        prev,
         hash,
+        prev,
         hashfile,
         signature,
         round,

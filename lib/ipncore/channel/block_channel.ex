@@ -58,11 +58,12 @@ defmodule BlockChannel do
 
   def handle_info(
         {"new-recv",
-         %{height: height, round: round, creator: creator_id, signature: signature} = block},
+         %{hash: hash, height: height, round: round, creator: creator_id, signature: signature} =
+           block},
         state
       ) do
     node_name = get_random_verifier()
-    BlockStore.insert_vote(height, round, creator_id, creator_id, signature, 1)
+    BlockStore.insert_vote(height, round, creator_id, creator_id, signature, hash, 0)
     PubSub.broadcast_from(:verifiers, self(), "block:#{node_name}", {"fetch", block})
     {:noreply, state}
   end
@@ -70,9 +71,9 @@ defmodule BlockChannel do
   def handle_info(
         {"recv",
          %{
+           hash: hash,
            height: height,
            round: round,
-           hash: hash,
            vote: vote,
            creator: creator_id,
            signature: signature,
@@ -85,7 +86,7 @@ defmodule BlockChannel do
       validator = ValidatorStore.lookup([validator_id])
 
       if Cafezinho.Impl.verify(signature, "#{hash}#{vote}", validator.pubkey) == :ok do
-        BlockStore.insert_vote(height, round, validator_id, creator_id, signature, vote)
+        BlockStore.insert_vote(height, round, validator_id, creator_id, signature, hash, vote)
 
         {:row, [sum_votes, total_votes]} = BlockStore.sum_votes(round)
 

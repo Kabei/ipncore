@@ -4,7 +4,7 @@ defmodule Ippan.RequestHandler do
   # alias Phoenix.PubSub
 
   # @timeout Application.compile_env(:ipncore, :message_timeout)
-  @libsecp256k1 ExSecp256k1.Impl
+  # @libsecp256k1 ExSecp256k1.Impl
 
   defmacrop check_timestamp!(timestamp) do
     quote do
@@ -208,11 +208,11 @@ defmodule Ippan.RequestHandler do
   end
 
   # verify secp256k1 signature
-  defp chech_signature!("2", signature, hash, wallet_pubkey) do
-    if @libsecp256k1.verify(hash, signature, wallet_pubkey) !=
-         :ok,
-       do: raise(IppanError, "Invalid signature verify")
-  end
+  # defp chech_signature!("2", signature, hash, wallet_pubkey) do
+  #   if @libsecp256k1.verify(hash, signature, wallet_pubkey) !=
+  #        :ok,
+  #      do: raise(IppanError, "Invalid signature verify")
+  # end
 
   defp chech_signature!(_, _signature, _hash, _wallet_pubkey) do
     raise(IppanError, "Signature type not supported")

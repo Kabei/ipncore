@@ -12,10 +12,8 @@ defmodule Ipncore.MixProject do
       config_path: "config/config.exs",
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
-      # compilers: [:elixir_make] ++ Mix.compilers(),
       deps: deps(),
       package: package(),
-      # Release
       releases: [
         {@app, release()},
         unix: [

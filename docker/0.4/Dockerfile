@@ -26,7 +26,7 @@ COPY kem.key priv/
 COPY falcon.key priv/
 COPY secret.key priv/
 
-EXPOSE 5815 8080
+EXPOSE 4369 5815 8080
 
 VOLUME ["/var/data"]
 

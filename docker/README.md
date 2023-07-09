@@ -6,14 +6,14 @@ docker build -t ipncore:0.4 .
 ### Run a miner container
 ```bash
 docker run -e ROLE=miner -e NODE=miner@127.0.0.1 -e COOKIE=CfBa3fdR1AZuefnx \
--p 5815:5815 -p 8080:8080 --volume data:/var/data --restart=on-failure:10 \
--d --name miner ipncore:0.4
+-p 4369:4369 -p 5815:5815 -p 8080:8080 --volume data:/var/data \
+--restart=on-failure:5 -d --name miner ipncore:0.4
 ```
 
 ### Run a verifier container
 ```bash
 docker run -e ROLE=verifier -e NODE=verifier@127.0.0.1 -e COOKIE=CfBa3fdR1AZuefnx -e MINER=miner@127.0.0.1 \
--p 8080:8080 --volume data:/var/data --restart=on-failure:10 \
+-p 4369:4369 -p 8080:8080 --volume data:/var/data --restart=on-failure:5 \
 -d --name verifier ipncore:0.4
 ```
 

@@ -4,10 +4,10 @@ killall beam.smp
 
 if [ "$MODE" = "iex" ]
 then
-    iex --sname ${NODE} --cookie ${COOKIE} -S mix
+    iex --name ${NODE} --cookie ${COOKIE} -S mix
 elif [ -n "$LOG" ]
 then
-    elixir --sname ${NODE} --cookie ${COOKIE} -S mix run --no-halt > $LOG
+    elixir --name ${NODE} --cookie ${COOKIE} -S mix run --no-halt > $LOG
 else
-    elixir --sname ${NODE} --cookie ${COOKIE} -S mix run --no-halt
+    elixir --name ${NODE} --cookie ${COOKIE} -S mix run --no-halt
 fi

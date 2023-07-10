@@ -13,7 +13,7 @@ defmodule Test do
         211, 239, 154, 118, 40, 154, 90, 156, 28>>
 
     {pk, sk, address} = Test.gen_ed25519(sk)
-    {pkv, _skv, addressv} = Test.gen_falcon(seed)
+    {pkv, _skv, _addressv} = Test.gen_falcon(seed)
 
     Test.wallet_new(pk, 0) |> Test.run()
 
@@ -31,10 +31,10 @@ defmodule Test do
     BlockTimer.mine()
     BlockTimer.round_end()
 
-    Test.validator_new(sk, address, 0, addressv, "ippan.org", "Speedy", pk, pkv, 1, 0.01)
+    Test.validator_new(sk, address, 0, address, "ippan.org", "Speedy", pk, pkv, 1, 0.01)
     |> Test.run()
 
-    Test.validator_new(sk, address, 1, addressv, "ippan.co.uk", "Raptor", pk, pkv, 1, 0.01)
+    Test.validator_new(sk, address, 1, address, "ippan.co.uk", "Raptor", pk, pkv, 1, 0.01)
     |> Test.run()
 
     BlockTimer.mine()

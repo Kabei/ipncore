@@ -1,5 +1,4 @@
 defmodule Ippan.P2P.Server do
-  alias Ippan.Validator
   use ThousandIsland.Handler
   alias Phoenix.PubSub
   require Logger
@@ -7,7 +6,7 @@ defmodule Ippan.P2P.Server do
   @otp_app :ipncore
 
   @adapter ThousandIsland.Socket
-  @timeout 30_000
+  @timeout 45_000
   @handshake_timeout 5_000
   @seconds <<0>>
   @tag_bytes 16
@@ -62,12 +61,12 @@ defmodule Ippan.P2P.Server do
     {:continue, state}
   end
 
-  def handle_data(data, _socket, state) do
+  def handle_data(data, _socket, %{id: id} = state) do
     Logger.debug("data: #{data}")
 
     case decode(data, state) do
       {event, action, data} ->
-        PubSub.broadcast(@pubsub_server, event, {action, data})
+        PubSub.broadcast(@pubsub_server, event, {action, Map.put(data, :vid, id)})
 
       _ ->
         :ok
@@ -118,22 +117,22 @@ defmodule Ippan.P2P.Server do
                     Logger.debug("[Server connection] validator not exists")
                     {:close, state}
 
-                  %{hostname: hostname, name: name, pubkey: _pubkey} ->
-                    # if pubkey != clientPubkey do
-                    #   Logger.debug("[Server connection] Invalid handshake pubkey")
-                    #   {:close, state}
-                    # else
-                    Logger.debug("[Server connection] OK #{name} connected")
+                  %{hostname: hostname, name: name, pubkey: pubkey} ->
+                    if pubkey != clientPubkey do
+                      Logger.debug("[Server connection] Invalid handshake pubkey")
+                      {:close, state}
+                    else
+                      Logger.debug("[Server connection] OK #{name} connected")
 
-                    {:continue,
-                     %{
-                       id: id,
-                       hostname: hostname,
-                       pubkey: clientPubkey,
-                       sharedkey: sharedkey
-                     }, @timeout}
-
-                    # end
+                      {:continue,
+                       %{
+                         id: id,
+                         hostname: hostname,
+                         net_pubkey: clientPubkey,
+                         pubkey: pubkey,
+                         sharedkey: sharedkey
+                       }, @timeout}
+                    end
                 end
 
               _ ->

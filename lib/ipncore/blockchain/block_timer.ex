@@ -9,6 +9,7 @@ defmodule BlockTimer do
   @pubsub_network :network
   @block_interval Application.compile_env(@otp_app, :block_interval)
   @block_max_size Application.compile_env(@otp_app, :block_max_size)
+  @block_data_max_size Application.compile_env(@otp_app, :block_data_max_size)
   @block_version Application.compile_env(@otp_app, :block_version)
   @file_extension "erl"
 
@@ -138,8 +139,8 @@ defmodule BlockTimer do
         %{height: height, round: old_round, validator_id: validator_id, prev_hash: prev_hash} =
           state
       ) do
-    {:ok, requests} = MessageStore.select(@block_max_size, validator_id)
-    {:ok, requests_df} = MessageStore.select_df(@block_max_size, validator_id)
+    {:ok, requests} = MessageStore.select(@block_data_max_size, validator_id)
+    {:ok, requests_df} = MessageStore.select_df(@block_data_max_size, validator_id)
 
     last_row_id = catch_last_row_id(requests)
 

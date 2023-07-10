@@ -1,27 +1,27 @@
 #!/usr/bin/bash
-# debian 11
 
-apt-get update
-wget https://packages.erlang-solutions.com/erlang-solutions_2.0_all.deb
-dpkg -i erlang-solutions_2.0_all.deb
-wget https://packages.erlang-solutions.com/debian/erlang_solutions.asc
-apt-key add erlang_solutions.asc
-apt-get install erlang elixir git build-essential -y
+export PATH="/root/.cargo/bin:${PATH}"
+export MIX_ENV=prod
+apt update -y
+apt install erlang elixir curl git cmake -y
+curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-add-apt-repository ppa:certbot/certbot -y
-apt-get update
-apt install certbot -y
-
-git clone --branch beta https://kabei@github.com/kabei/ipncore.git
-git clone https://kabei@github.com/kabei/ipnutils.git
-git clone https://kabei@github.com/kabei/falcon.git
-
-certbot certonly --standalone -d ippan.uk --non-interactive --agree-tos --email contact@ippan.com
+git clone --branch v0.4 https://kabei@github.com/kabei/ipncore.git
 
 cd ipncore
+
 mix local.hex --force
 mix deps.get
 mix local.rebar --force
+mix compile
+
+mkdir -p priv
+cp ../kem.key priv/
+cp ../falcon.key priv/
+cp ../secret.key priv/
+
+chmod +x run.sh
+chmod +x update.sh
 
 echo "
 [Unit]
@@ -34,10 +34,17 @@ User=root
 Group=root
 Type=simple
 TimeoutStopSec=0
+
+# Environment
 Environment=MIX_ENV=prod
-WorkingDirectory=$PWD
-ExecStart=elixir --erl \"+P 2000000 +A 10\" -S mix run --no-halt --no-compile
-ExecStop=/bin/kill -s TERM \$MAINPID
+Environment=ROLE=${ROLE}
+Environment=NODE=${NODE}
+Environment=DATA_DIR=${DATA_DIR}
+Environment=VID=${VID}
+
+WorkingDirectory=/usr/src/ipncore
+ExecStart=./run.sh
+ExecStop=/bin/kill -s TERM $MAINPID
 Restart=always
 RestartSec=1
 PIDFile=/run/ipncore/ipncore.pid
@@ -55,11 +62,4 @@ Alias=ipncore.service
 " > /etc/systemd/system/ipncore.service
 
 systemctl daemon-reload
-./script/install-db.sh
-./script/ufw.sh
-
-mkdir -p priv/cert
-cp /etc/letsencrypt/live/ippan.uk/privkey.pem priv/cert/key.pem
-cp /etc/letsencrypt/live/ippan.uk/fullchain.pem priv/cert/cacert.pem
-cp /etc/letsencrypt/live/ippan.uk/cert.pem priv/cert/cert.pem
-# systemctl start ipncore.service
+systemctl start ipncore.service

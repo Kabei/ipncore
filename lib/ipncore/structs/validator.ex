@@ -19,9 +19,9 @@ defmodule Ippan.Validator do
     :hostname,
     :name,
     :owner,
-    :avatar,
     :pubkey,
     :net_pubkey,
+    :avatar,
     :fee_type,
     :fee,
     :stake,
@@ -30,7 +30,7 @@ defmodule Ippan.Validator do
   ]
 
   use Ippan.Struct
-  def editable, do: ~w(hostname name avatar net_pubkey pubkey fee fee_type)
+  def editable, do: ~w(hostname name avatar pubkey net_pubkey fee fee_type)
 
   def optionals, do: ~w(avatar)
 
@@ -65,17 +65,17 @@ defmodule Ippan.Validator do
         created_at,
         updated_at
       ]) do
-    {id, hostname, name, owner, net_pubkey, pubkey, avatar, fee_type, fee, stake, created_at,
+    {id, hostname, name, owner, pubkey, net_pubkey, avatar, fee_type, fee, stake, created_at,
      updated_at}
   end
 
   def to_tuple(x) do
-    {x.id, x.hostname, x.name, x.owner, x.net_pubkey, x.pubkey, x.avatar, x.fee_type, x.fee,
+    {x.id, x.hostname, x.name, x.owner, x.pubkey, x.net_pubkey, x.avatar, x.fee_type, x.fee,
      x.stake, x.created_at, x.updated_at}
   end
 
   def to_map(
-        {id, hostname, name, owner, avatar, net_pubkey, pubkey, fee_type, fee, stake, created_at,
+        {id, hostname, name, owner, pubkey, net_pubkey, avatar, fee_type, fee, stake, created_at,
          updated_at}
       ) do
     %{
@@ -99,9 +99,9 @@ defmodule Ippan.Validator do
         hostname,
         name,
         owner,
-        avatar,
         pubkey,
         net_pubkey,
+        avatar,
         fee_type,
         fee,
         stake,

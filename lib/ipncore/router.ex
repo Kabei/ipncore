@@ -69,7 +69,6 @@ defmodule Ipncore.Router do
                block_path
              ) do
           {:ok, _output} ->
-            # File.write(block_path, content)
             conn
             |> put_resp_content_type("application/octet-stream")
             |> send_file(200, block_path)
@@ -85,8 +84,8 @@ defmodule Ipncore.Router do
   end
 
   get "/v1/download/block-decode/:vid/:height" do
-    data_dir = Application.get_env(:ipncore, :data_dir)
-    block_path = Path.join([data_dir, "blocks-decode", "#{vid}.#{height}.erl"])
+    decode_dir = Application.get_env(:ipncore, :decode_dir)
+    block_path = Path.join([decode_dir, "#{vid}.#{height}.erl"])
 
     if File.exists?(block_path) do
       conn

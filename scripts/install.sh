@@ -1,7 +1,8 @@
 #!/usr/bin/bash
 
-export PATH="/root/.cargo/bin:${PATH}"
 export MIX_ENV=prod
+export PATH="/root/.cargo/bin:${PATH}"
+
 apt update -y
 apt install erlang elixir curl git cmake -y
 curl https://sh.rustup.rs -sSf | sh -s -- -y
@@ -22,46 +23,3 @@ cp ../secret.key priv/
 
 chmod +x run.sh
 chmod +x update.sh
-
-echo "
-[Unit]
-Description=IPPAN Core Service
-After=network.target
-StartLimitIntervalSec=0
-
-[Service]
-User=root
-Group=root
-Type=simple
-TimeoutStopSec=0
-
-# Environment
-Environment=MIX_ENV=prod
-Environment=ROLE=${ROLE}
-Environment=NODE=${NODE}
-Environment=COOKIE=${COOKIE}
-Environment=DATA_DIR=${DATA_DIR}
-Environment=VID=${VID}
-Environment=MINER=${MINER}
-
-WorkingDirectory=${PWD}
-ExecStart=./run.sh
-ExecStop=/bin/kill -s TERM $MAINPID
-Restart=always
-RestartSec=1
-PIDFile=/run/ipncore/ipncore.pid
-LimitNOFILE=65535
-MemoryDenyWriteExecute=true
-ProtectKernelModules=true
-ProtectKernelTunables=true
-ProtectControlGroups=true
-RestrictRealtime=true
-RestrictNamespaces=true
-
-[Install]
-WantedBy=multi-user.target
-Alias=ipncore.service
-" > /etc/systemd/system/ipncore.service
-
-systemctl daemon-reload
-systemctl start ipncore.service

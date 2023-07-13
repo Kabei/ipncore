@@ -256,8 +256,13 @@ defmodule BlockTimer do
     export_path
   end
 
-  def mine_file(%{creator: creator_id, height: height, prev: prev_hash, round: round}, block_path) do
-    {:ok, requests} = File.read(block_path)
+  def mine_file(
+        %{creator: creator_id, height: height, prev: prev_hash, round: round},
+        decode_path
+      ) do
+    {:ok, content} = File.read(decode_path)
+
+    requests = decode!(content)
 
     mine(requests, height, round, creator_id, prev_hash)
   end

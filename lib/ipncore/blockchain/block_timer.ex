@@ -218,7 +218,7 @@ defmodule BlockTimer do
     filename = Path.basename(block_path)
     url = Block.url(validator.hostname, validator.id, block.height)
 
-    {:ok, _} = Download.from(url, path: block_path)
+    {:ok, _} = Curl.download_block(url, block_path)
     {:ok, filestat} = File.stat(block_path)
 
     if filestat.size > @block_max_size do

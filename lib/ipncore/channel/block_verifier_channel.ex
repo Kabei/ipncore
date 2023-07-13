@@ -8,7 +8,7 @@ defmodule BlockVerifierChannel do
   @file_extension "erl"
 
   def init(args) do
-    # PubSub.subscribe(@pubsub_server, @channel)
+    PubSub.subscribe(@pubsub_server, @channel)
     PubSub.subscribe(@pubsub_server, "#{@channel}:#{node()}")
     Logger.debug("sub: #{@channel}:#{node()}")
     {:ok, args}
@@ -31,7 +31,7 @@ defmodule BlockVerifierChannel do
 
     unless File.exists?(block_path) do
       url = "https://#{hostname}/v1/download/block/#{vid}/#{height}"
-      {:ok, _path} = Download.from(url, path: block_path)
+      {:ok, _path} = Curl.download_block(url, block_path)
 
       try do
         validator = ValidatorStore.lookup([vid])

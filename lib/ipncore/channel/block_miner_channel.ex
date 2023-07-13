@@ -1,4 +1,6 @@
 defmodule BlockMinerChannel do
+  alias ElixirSense.Log
+
   use Channel,
     server: :miner,
     channel: "block"
@@ -23,11 +25,15 @@ defmodule BlockMinerChannel do
            block},
         %{cache: cache} = state
       ) do
+    Logger.debug("block.new_recv #{Base.encode16(hash)}")
+
     if hash not in cache do
+      Logger.debug("not cache")
       BlockStore.insert_vote(height, round, from_id, creator_id, signature, hash, 0)
       send_fetch(self(), block)
       {:noreply, %{state | cache: cache ++ [hash]}}
     else
+      Logger.debug("hit cache")
       {:noreply, state}
     end
   end

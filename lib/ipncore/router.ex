@@ -59,14 +59,12 @@ defmodule Ipncore.Router do
       |> put_resp_content_type("application/octet-stream")
       |> send_file(200, block_path)
     else
-      role = System.get_env("ROLE")
+      miner = System.get_env("MINER")
 
-      if role == "verifier" do
-        miner = System.get_env("MINER")
+      unless is_nil(miner) do
+        ip_local = String.split(miner, "@") |> List.last()
 
-        ip_address = String.split(miner, "@") |> List.last()
-
-        case HTTPoison.get!("http://#{ip_address}:8080/v1/download/#{vid}/#{height}") do
+        case HTTPoison.get("http://#{ip_local}:8080/v1/download/block/#{vid}/#{height}") do
           %{status_code: 200, body: content} ->
             File.write(block_path, content)
 

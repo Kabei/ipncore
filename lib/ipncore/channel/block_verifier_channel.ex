@@ -29,20 +29,24 @@ defmodule BlockVerifierChannel do
     filename = "#{vid}.#{height}.#{@file_extension}"
     block_path = Path.join(decode_dir, filename)
 
-    url = "https://#{hostname}/v1/download/block/#{filename}"
-    {:ok, _path} = Download.from(url, path: block_path)
+    unless File.exists?(block_path) do
+      url = "https://#{hostname}/v1/download/block/#{vid}/#{height}"
+      {:ok, _path} = Download.from(url, path: block_path)
 
-    try do
-      validator = ValidatorStore.lookup([vid])
-      BlockTimer.verify_block!(block, validator)
+      try do
+        validator = ValidatorStore.lookup([vid])
+        BlockTimer.verify_block!(block, validator)
 
-      PubSub.broadcast(
-        @send_to,
-        "block",
-        {"valid:#{hash}", :ok, block, origin}
-      )
-    rescue
-      _ -> PubSub.broadcast(@send_to, "block:#{hash}", {"valid", :error, block, origin})
+        PubSub.broadcast(
+          @send_to,
+          "block",
+          {"valid:#{hash}", :ok, block, origin}
+        )
+      rescue
+        _ -> PubSub.broadcast(@send_to, "block:#{hash}", {"valid", :error, block, origin})
+      end
+    else
+      PubSub.broadcast(@send_to, "block:#{hash}", {"valid", :error, block, origin})
     end
 
     {:noreply, state}

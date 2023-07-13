@@ -129,8 +129,8 @@ defmodule Ippan.Block do
     Path.join([decode_dir, "#{validator_id}.#{height}.#{@file_extension}"])
   end
 
-  def url(hostname, filename) do
-    "https://#{hostname}/v1/download/block/#{filename}"
+  def url(hostname, creator_id, height) do
+    "https://#{hostname}/v1/download/block/#{creator_id}/#{height}"
   end
 
   def encode!(content) do

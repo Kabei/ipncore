@@ -119,9 +119,8 @@ defmodule BlockMinerChannel do
        ) do
     decode_path = Block.block_path(creator_id, height)
     block_path = Block.block_path(creator_id, height)
-    filename = Path.basename(decode_path)
 
-    url = "http://#{hostname}:8080/v1/download/block-decode/#{filename}"
+    url = "http://#{hostname}:8080/v1/download/block-decode/#{creator_id}/#{height}"
 
     {:ok, _abs_url} = Download.from(url, path: decode_path)
 

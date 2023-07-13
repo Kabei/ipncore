@@ -216,7 +216,7 @@ defmodule BlockTimer do
   def verify_block!(block, validator) do
     block_path = Block.block_path(validator.id, block.height)
     filename = Path.basename(block_path)
-    url = Block.url(validator.hostname, filename)
+    url = Block.url(validator.hostname, validator.id, block.height)
 
     {:ok, _} = Download.from(url, path: block_path)
     {:ok, filestat} = File.stat(block_path)
@@ -248,7 +248,7 @@ defmodule BlockTimer do
       end
 
     export_path =
-      Application.get_env(@otp_app, block_path)
+      Application.get_env(@otp_app, :decode_dir)
       |> Path.join(filename)
 
     :ok = File.write(export_path, encode!(decode_events))

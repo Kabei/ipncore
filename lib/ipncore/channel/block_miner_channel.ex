@@ -168,7 +168,7 @@ defmodule BlockMinerChannel do
           case Node.ping(node_atom) do
             :pong ->
               Logger.debug(inspect("pong block:#{node_atom}"))
-              PubSub.subscribe(:miner, "block:#{block.hash} #{inspect(block)}")
+              PubSub.subscribe(:miner, "block:#{block.hash}")
               validator = ValidatorStore.lookup([block.creator])
 
               PubSub.broadcast(

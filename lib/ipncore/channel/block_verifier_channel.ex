@@ -39,7 +39,7 @@ defmodule BlockVerifierChannel do
 
       PubSub.broadcast(
         @send_to,
-        "block",
+        "block:#{hash}",
         {"valid:#{hash}", :ok, block, origin}
       )
     rescue

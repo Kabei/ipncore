@@ -136,30 +136,38 @@ defmodule BlockMinerChannel do
 
   defp send_fetch(pid, block) do
     spawn(fn ->
-      node_atom = Node.list() |> Enum.random()
-      local_hostname = node_atom |> to_string() |> String.split("@") |> List.last()
+      case Node.list() do
+        [] ->
+          :timer.sleep(1500)
+          send_fetch(pid, block)
 
-      case Node.ping(node_atom) do
-        :pong ->
-          PubSub.subscribe(:miner, "block:#{block.hash}")
-          PubSub.broadcast(:verifiers, "block#{node_atom}", {"fetch", block})
+        node_list ->
+          node_atom = node_list |> Enum.random()
 
-          receive do
-            {"valid", _result, _block, host} = msg when local_hostname == host ->
-              PubSub.unsubscribe(:miner, "block:#{block.hash}")
-              send(pid, msg)
+          local_hostname = node_atom |> to_string() |> String.split("@") |> List.last()
 
-            _ ->
-              :ok
-          after
-            10_000 ->
-              PubSub.unsubscribe(:miner, "block:#{block.hash}")
+          case Node.ping(node_atom) do
+            :pong ->
+              PubSub.subscribe(:miner, "block:#{block.hash}")
+              PubSub.broadcast(:verifiers, "block#{node_atom}", {"fetch", block})
+
+              receive do
+                {"valid", _result, _block, host} = msg when local_hostname == host ->
+                  PubSub.unsubscribe(:miner, "block:#{block.hash}")
+                  send(pid, msg)
+
+                _ ->
+                  :ok
+              after
+                10_000 ->
+                  PubSub.unsubscribe(:miner, "block:#{block.hash}")
+                  send_fetch(pid, block)
+              end
+
+            :pang ->
+              :timer.sleep(1500)
               send_fetch(pid, block)
           end
-
-        :pang ->
-          :timer.sleep(1000)
-          send_fetch(pid, block)
       end
     end)
   end

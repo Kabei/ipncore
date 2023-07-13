@@ -7,7 +7,7 @@ defmodule Ippan.P2P.Server do
   @adapter ThousandIsland.Socket
   @version <<0, 0>>
   @seconds <<0>>
-  @tag_bytes 16
+  # @tag_bytes 16
   @handshake_timeout 5_000
   @timeout 45_000
 

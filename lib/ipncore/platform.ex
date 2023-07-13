@@ -121,7 +121,7 @@ defmodule Platform do
 
     ValidatorStore.insert_sync([
       0,
-      "ny.ippan.co.uk",
+      "ippan.org",
       "Speedy",
       address,
       pk,

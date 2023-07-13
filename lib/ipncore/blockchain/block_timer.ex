@@ -21,46 +21,34 @@ defmodule BlockTimer do
   def init(_args) do
     validator_id = Default.validator_id()
 
+    {round_id, round_hash} =
+      case RoundStore.last() do
+        {:row, [round_id, hash | _]} -> {round_id, hash}
+        _ -> {0, nil}
+      end
+
     # set state last block
-    case BlockStore.last(validator_id) do
-      {:row, block_list} ->
-        block = Block.to_map(block_list)
+    {block_id, block_hash} =
+      case BlockStore.last(validator_id) do
+        {:row, [id, hash | _rest]} -> {id, hash}
+        _ -> {0, nil}
+      end
 
-        {:ok,
-         %{
-           height: block.height,
-           round: block.round,
-           validator_id: validator_id,
-           prev_hash: block.hash,
-           tRef: nil,
-           sync_round: false
-         }, {:continue, :start}}
-
-      _ ->
-        {:ok, tRef} = :timer.send_after(@block_interval, :mine)
-
-        {:ok,
-         %{
-           height: 0,
-           round: 0,
-           validator_id: validator_id,
-           prev_hash: nil,
-           tRef: tRef,
-           sync_round: false
-         }}
-    end
+    {:ok,
+     %{
+       height: block_id,
+       prev_hash: block_hash,
+       round: round_id,
+       prev_hash_round: round_hash,
+       tRef: nil,
+       sync_round: false
+     }, {:continue, :start}}
   end
 
   @impl true
-  def handle_continue(:start, %{round: round} = state) do
-    round_id = RoundStore.last_id()
-
-    if round_id == round do
-      {:ok, tRef} = :timer.send_after(@block_interval, :mine)
-      {:noreply, Map.put(state, :tRef, tRef)}
-    else
-      {:noreply, state}
-    end
+  def handle_continue(:start, state) do
+    {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+    {:noreply, Map.put(state, :tRef, tRef)}
   end
 
   def mine do
@@ -168,7 +156,7 @@ defmodule BlockTimer do
     PubSub.unsubscribe(@pubsub_verifiers, "event")
   end
 
-  def round_build(%{round: round}) do
+  def round_build(%{round: round, prev_hash_round: prev_hash_round}) do
     {:ok, requests} = MessageStore.delete_all_df_approved(round)
 
     Enum.each(requests, fn [
@@ -199,10 +187,10 @@ defmodule BlockTimer do
     {:ok, result_hashes} = BlockStore.fetch_round(new_round)
     hashes = Enum.concat(result_hashes)
     count = length(hashes)
-    hash = Round.compute_hash(new_round, hashes)
+    hash = Round.compute_hash(new_round, prev_hash_round, hashes)
     {:row, [time]} = BlockStore.avg_round_time(new_round)
 
-    RoundStore.insert([new_round, hash, count, trunc(time)])
+    RoundStore.insert([new_round, hash, prev_hash_round, count, trunc(time)])
 
     MessageStore.sync()
 
@@ -220,7 +208,10 @@ defmodule BlockTimer do
     # Start new timer to mine
     {:ok, tRef} = :timer.send_after(@block_interval, BlockTimer, :mine)
 
-    send(BlockTimer, {:end, %{round: new_round, tRef: tRef, sync_round: false}})
+    send(
+      BlockTimer,
+      {:end, %{round: new_round, prev_hash_round: hash, tRef: tRef, sync_round: false}}
+    )
   end
 
   @doc """
@@ -396,6 +387,7 @@ defmodule BlockTimer do
     BlockStore.sync()
 
     Logger.debug("Block #{height} | events: #{ev_count} | hash: #{Base.encode16(blockhash)}")
+
     PubSub.broadcast(@pubsub_verifiers, "block", {"new", block_map})
     PubSub.broadcast(@pubsub_network, "msg", {"block", "new_recv", block_map})
 

@@ -44,7 +44,7 @@ defmodule BlockMinerChannel do
   def handle_info({"valid", :ok, %{hash: hash, round: round} = data, origin}, state) do
     {:ok, signature} = Block.sign("#{hash}1")
 
-    vote = register_vote(data, signature, 1)
+    vote = register_vote(data, Default.validator_id(), signature, 1)
     download_and_process(origin, data)
     PubSub.broadcast(:network, "msg", {"block", "vote", vote})
 
@@ -59,8 +59,8 @@ defmodule BlockMinerChannel do
   end
 
   def handle_info({"valid", :error, data, _origin}, state) do
-    {:ok, signature} = Block.sign_vote(data.hash, 1)
-    vote = register_vote(data, signature, 1)
+    {:ok, signature} = Block.sign_vote(data.hash, -1)
+    vote = register_vote(data, Default.validator_id(), signature, -1)
 
     PubSub.broadcast(:network, "msg", {"block", "vote", vote})
     {:noreply, state}
@@ -75,7 +75,6 @@ defmodule BlockMinerChannel do
            vote: vote,
            creator: creator_id,
            signature: signature,
-           prev: _prev,
            validator: validator_id
          } = block},
         state
@@ -84,7 +83,7 @@ defmodule BlockMinerChannel do
       validator = ValidatorStore.lookup([validator_id])
 
       if Cafezinho.Impl.verify(signature, "#{hash}#{vote}", validator.pubkey) == :ok do
-        register_vote(block, signature, vote)
+        register_vote(block, validator_id, signature, vote)
 
         # {:row, [sum_votes, total_votes]} = BlockStore.sum_votes(round, hash, creator_id)
 
@@ -133,9 +132,9 @@ defmodule BlockMinerChannel do
            height: height,
            round: round,
            creator: creator_id,
-           hash: hash,
-           validator: validator_id
+           hash: hash
          } = block,
+         validator_id,
          signature,
          vote
        ) do
@@ -149,7 +148,9 @@ defmodule BlockMinerChannel do
       vote
     )
 
-    Map.put(block, :signature, signature)
+    block
+    |> Map.put(:validator, validator_id)
+    |> Map.put(:signature, signature)
   end
 
   defp send_fetch(block) do

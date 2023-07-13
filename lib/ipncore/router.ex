@@ -72,7 +72,8 @@ defmodule Ipncore.Router do
             |> put_resp_content_type("application/octet-stream")
             |> send_file(200, block_path)
 
-          _ ->
+          res ->
+            Logger.debug(inspect(res))
             send_resp(conn, 404, "")
         end
       else

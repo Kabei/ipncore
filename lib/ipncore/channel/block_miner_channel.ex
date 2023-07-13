@@ -58,7 +58,7 @@ defmodule BlockMinerChannel do
     {:noreply, state}
   end
 
-  def handle_info({"valid", :error, data}, state) do
+  def handle_info({"valid", :error, data, _origin}, state) do
     {:ok, signature} = Block.sign_vote(data.hash, 1)
     vote = register_vote(data, signature, 1)
 
@@ -178,7 +178,7 @@ defmodule BlockMinerChannel do
               )
 
               receive do
-                {"valid", _result, _block, host} = msg when local == host ->
+                {"valid", _result, _block, _host} = msg ->
                   PubSub.unsubscribe(:miner, "block:#{block.hash}")
                   send(pid, msg)
 

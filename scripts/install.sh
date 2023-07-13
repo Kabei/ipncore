@@ -39,10 +39,12 @@ TimeoutStopSec=0
 Environment=MIX_ENV=prod
 Environment=ROLE=${ROLE}
 Environment=NODE=${NODE}
+Environment=COOKIE=${COOKIE}
 Environment=DATA_DIR=${DATA_DIR}
 Environment=VID=${VID}
+Environment=MINER=${MINER}
 
-WorkingDirectory=/usr/src/ipncore
+WorkingDirectory=${PWD}
 ExecStart=./run.sh
 ExecStop=/bin/kill -s TERM $MAINPID
 Restart=always

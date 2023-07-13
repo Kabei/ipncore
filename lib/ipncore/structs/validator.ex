@@ -4,9 +4,9 @@ defmodule Ippan.Validator do
           hostname: String.t(),
           name: String.t(),
           owner: binary(),
-          avatar: String.t(),
           pubkey: binary(),
           net_pubkey: binary(),
+          avatar: String.t(),
           fee_type: integer(),
           fee: 0 | 1 | 2,
           stake: non_neg_integer(),
@@ -30,7 +30,7 @@ defmodule Ippan.Validator do
   ]
 
   use Ippan.Struct
-  def editable, do: ~w(hostname name avatar pubkey net_pubkey fee fee_type)
+  def editable, do: ~w(hostname name avatar pubkey net_pubkey fee fee_type owner)
 
   def optionals, do: ~w(avatar)
 
@@ -56,9 +56,9 @@ defmodule Ippan.Validator do
         hostname,
         name,
         owner,
-        avatar,
         pubkey,
         net_pubkey,
+        avatar,
         fee_type,
         fee,
         stake,

@@ -81,6 +81,7 @@ defmodule Ipncore.Application do
           [
             {MessageStore, Path.join(data_dir, "requests/messages.db")},
             {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
+            {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
             Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts},
               id: :verifiers
             ),
@@ -90,6 +91,7 @@ defmodule Ipncore.Application do
             {BlockVerifierChannel, []},
             {EventVerifierChannel, []},
             {WalletVerifierChannel, []},
+            {ValidatorVerifierChannel, []},
             {RoundChannel, []},
             {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
           ]

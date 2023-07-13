@@ -1,4 +1,6 @@
 defmodule WalletVerifierChannel do
+  alias Ippan.Wallet
+
   use Channel,
     server: :verifiers,
     channel: "wallet"
@@ -10,7 +12,7 @@ defmodule WalletVerifierChannel do
 
   @impl true
   def handle_info({"new", account}, state) do
-    AccountStore.insert(account)
+    WalletStore.insert(Wallet.to_list(account))
     {:noreply, state}
   end
 

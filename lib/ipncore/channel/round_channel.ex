@@ -17,13 +17,14 @@ defmodule RoundChannel do
 
   @impl true
   def handle_info({"start", _id}, state) do
-    BlockTimer.start()
+    # BlockTimer.start()
     {:noreply, state}
   end
 
   def handle_info({"end", round}, state) do
     MessageStore.sync()
     WalletStore.sync()
+    ValidatorStore.sync()
     {:noreply, Map.put(state, :round, round)}
   end
 

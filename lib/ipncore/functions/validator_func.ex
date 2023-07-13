@@ -171,7 +171,7 @@ defmodule Ippan.Func.Validator do
         |> Map.put(:updated_at, timestamp)
         |> ValidatorStore.update(id: id)
 
-        PubSub.broadcast(@pubsub_server, "validator", {"update", Map.put(opts, :id, id)})
+        PubSub.broadcast(@pubsub_server, "validator", {"update", id, opts})
     end
   end
 

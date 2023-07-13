@@ -64,7 +64,7 @@ defmodule Ippan.P2P.ClientPool do
   end
 
   def handle_info(
-        {"update", %{id: validator_id, hostname: new_hostname}},
+        {"update", validator_id, %{hostname: new_hostname}},
         %{clients: clients, key_path: key_path} = state
       ) do
     if Default.validator_id() != validator_id do

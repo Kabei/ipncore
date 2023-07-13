@@ -137,7 +137,7 @@ defmodule BlockTimer do
       mine(
         requests ++ requests_df,
         height,
-        old_round,
+        old_round + 1,
         validator_id,
         prev_hash,
         :os.system_time(:millisecond)

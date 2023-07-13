@@ -129,7 +129,6 @@ defmodule Ipncore.Application do
   end
 
   def put_hostname do
-    hostname = System.cmd("hostname", ["-I"]) |> elem(0) |> String.split() |> List.last()
-    Application.put_env(@otp_app, :hostname, hostname)
+    Application.put_env(@otp_app, :hostname, Ippan.Utils.my_ip())
   end
 end

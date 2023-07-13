@@ -29,7 +29,7 @@ defmodule BlockTimer do
         {:ok,
          %{
            height: block.height,
-           round: block.round + 1,
+           round: block.round,
            validator_id: validator_id,
            prev_hash: block.hash,
            tRef: nil,
@@ -194,13 +194,15 @@ defmodule BlockTimer do
       )
     end)
 
-    {:ok, result_hashes} = BlockStore.fetch_round(round)
+    new_round = round + 1
+
+    {:ok, result_hashes} = BlockStore.fetch_round(new_round)
     hashes = Enum.concat(result_hashes)
     count = length(hashes)
-    hash = Round.compute_hash(round, hashes)
-    {:row, [time]} = BlockStore.avg_round_time(round)
+    hash = Round.compute_hash(new_round, hashes)
+    {:row, [time]} = BlockStore.avg_round_time(new_round)
 
-    RoundStore.insert([round, hash, count, trunc(time)])
+    RoundStore.insert([new_round, hash, count, trunc(time)])
 
     MessageStore.sync()
 
@@ -212,12 +214,11 @@ defmodule BlockTimer do
     checkpoint_all()
 
     # Clear cache
-    new_round = round + 1
     BlockMinerChannel.new_round(new_round)
-    PubSub.broadcast(:verifiers, "round", {"end", round})
+    PubSub.broadcast(:verifiers, "round", {"end", new_round})
 
     # Start new timer to mine
-    {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+    {:ok, tRef} = :timer.send_after(@block_interval, BlockTimer, :mine)
 
     send(BlockTimer, {:end, %{round: new_round, tRef: tRef, sync_round: false}})
   end

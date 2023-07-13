@@ -63,12 +63,16 @@ defmodule Ippan.P2P.Server do
   def handle_data(data, _socket, %{id: id, sharedkey: sharedkey} = state) do
     Logger.debug("data: #{inspect(data)}")
 
-    case decode(data, sharedkey) do
-      {"block", action, data} ->
-        PubSub.broadcast(:miner, "block", {action, id, data})
+    try do
+      case decode!(data, sharedkey) do
+        {"block", action, data} ->
+          PubSub.broadcast(:miner, "block", {action, id, data})
 
-      _ ->
-        :ok
+        _ ->
+          :ok
+      end
+    rescue
+      e -> Logger.error(inspect(e))
     end
 
     {:continue, state}
@@ -105,7 +109,7 @@ defmodule Ippan.P2P.Server do
         case NtruKem.dec(Application.get_env(@otp_app, :net_privkey), ciphertext) do
           {:ok, sharedkey} ->
             <<clientPubkey::bytes-size(32), id::64, signature::binary>> =
-              decode(encodeText, sharedkey)
+              decode!(encodeText, sharedkey)
 
             case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
               :ok ->
@@ -169,7 +173,7 @@ defmodule Ippan.P2P.Server do
   #   iv <> tag <> ciphertext
   # end
 
-  defp decode(packet, sharedkey) do
+  defp decode!(packet, sharedkey) do
     <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
 
     :crypto.crypto_one_time_aead(

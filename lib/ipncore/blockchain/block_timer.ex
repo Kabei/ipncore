@@ -218,7 +218,7 @@ defmodule BlockTimer do
     # Start new timer to mine
     {:ok, tRef} = :timer.send_after(@block_interval, :mine)
 
-    send(BlockTimer, {:end, round: new_round, tRef: tRef, sync_round: false})
+    send(BlockTimer, {:end, %{round: new_round, tRef: tRef, sync_round: false}})
   end
 
   defp catch_last_row_id([]), do: -1

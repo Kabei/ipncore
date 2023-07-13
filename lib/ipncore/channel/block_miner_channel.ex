@@ -169,7 +169,7 @@ defmodule BlockMinerChannel do
             :pong ->
               Logger.debug("pong")
               PubSub.subscribe(:miner, "block:#{block.hash}")
-              PubSub.broadcast(:verifiers, "block#{node_atom}", {"fetch", block})
+              PubSub.broadcast(:verifiers, "block:#{node_atom}", {"fetch", block})
 
               receive do
                 {"valid", _result, _block, host} = msg when local_hostname == host ->

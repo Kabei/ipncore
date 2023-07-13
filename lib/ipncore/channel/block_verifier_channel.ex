@@ -16,11 +16,10 @@ defmodule BlockVerifierChannel do
 
   @impl true
   def handle_info(
-        {"fetch",
+        {"fetch", %{hostname: hostname, origin: origin},
          %{
            hash: hash,
            creator: vid,
-           hostname: hostname,
            height: height
          } = block},
         state
@@ -32,7 +31,6 @@ defmodule BlockVerifierChannel do
 
     url = "https://#{hostname}/v1/download/block/#{filename}"
     {:ok, _path} = Download.from(url, path: block_path)
-    local_hostname = Application.get_env(:ipncore, :hostname)
 
     try do
       validator = ValidatorStore.lookup([vid])
@@ -41,10 +39,10 @@ defmodule BlockVerifierChannel do
       PubSub.broadcast(
         @send_to,
         "block",
-        {"valid:#{hash}", :ok, block, local_hostname}
+        {"valid:#{hash}", :ok, block, origin}
       )
     rescue
-      _ -> PubSub.broadcast(@send_to, "block:#{hash}", {"valid", :error, block, local_hostname})
+      _ -> PubSub.broadcast(@send_to, "block:#{hash}", {"valid", :error, block, origin})
     end
 
     {:noreply, state}

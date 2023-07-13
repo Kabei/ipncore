@@ -162,17 +162,23 @@ defmodule BlockMinerChannel do
         node_list ->
           node_atom = node_list |> Enum.random()
 
-          local_hostname = node_atom |> to_string() |> String.split("@") |> List.last()
-          Logger.debug(inspect(local_hostname))
+          local = node() |> to_string() |> String.split("@") |> List.last()
+          Logger.debug(inspect(local))
 
           case Node.ping(node_atom) do
             :pong ->
               Logger.debug(inspect("pong block:#{node_atom}"))
-              PubSub.subscribe(:miner, "block:#{block.hash}")
-              PubSub.broadcast(:verifiers, "block:#{node_atom}", {"fetch", block})
+              PubSub.subscribe(:miner, "block:#{block.hash} #{inspect(block)}")
+              validator = ValidatorStore.lookup([block.creator])
+
+              PubSub.broadcast(
+                :verifiers,
+                "block:#{node_atom}",
+                {"fetch", %{hostname: validator.hostname, origin: local}, block}
+              )
 
               receive do
-                {"valid", _result, _block, host} = msg when local_hostname == host ->
+                {"valid", _result, _block, host} = msg when local == host ->
                   PubSub.unsubscribe(:miner, "block:#{block.hash}")
                   send(pid, msg)
 

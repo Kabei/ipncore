@@ -10,6 +10,7 @@ defmodule BlockVerifierChannel do
   def init(args) do
     PubSub.subscribe(@pubsub_server, @channel)
     PubSub.subscribe(@pubsub_server, "#{@channel}:#{node()}")
+    Logger.debug("sub: #{@channel}:#{node()}")
     {:ok, args}
   end
 

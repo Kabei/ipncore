@@ -167,7 +167,7 @@ defmodule BlockMinerChannel do
 
           case Node.ping(node_atom) do
             :pong ->
-              Logger.debug("pong")
+              Logger.debug(inspect("pong block:#{node_atom}"))
               PubSub.subscribe(:miner, "block:#{block.hash}")
               PubSub.broadcast(:verifiers, "block:#{node_atom}", {"fetch", block})
 

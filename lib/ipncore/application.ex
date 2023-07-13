@@ -3,12 +3,9 @@ defmodule Ipncore.Application do
   use Application
   require Logger
 
-  # alias Ippan.Address
-
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
   @default_node :nonode@nohost
-
   @compile :native
   @compile {:hipe, [:verbose, :o3]}
 
@@ -34,15 +31,14 @@ defmodule Ipncore.Application do
         [name: :verifiers]
       end
 
-    # create data folder
-    File.mkdir(data_dir)
+    # create folders
+    make_folders(role)
+
+    put_hostname()
 
     # load falcon keys
     Ippan.P2P.Server.load_kem()
     Ippan.P2P.Server.load_key()
-
-    #   # init chain
-    #   :ok = Chain.start()
 
     # services
     children =
@@ -61,12 +57,15 @@ defmodule Ipncore.Application do
             {BlockStore, Path.join(data_dir, "chain/block.db")},
             {RoundStore, Path.join(data_dir, "chain/round.db")},
             {ThousandIsland, p2p_opts},
-            Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts}, id: :verifiers),
+            Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts},
+              id: :verifiers
+            ),
             Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
             Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
             {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :key_dir)},
-            {BlockTimer, []},
-            {EventChannel, %{server: :miner}}
+            {BlockMinerChannel, []},
+            {EventMinerChannel, []},
+            {BlockTimer, []}
           ]
 
         "verifier" ->
@@ -78,11 +77,17 @@ defmodule Ipncore.Application do
 
           [
             {MessageStore, Path.join(data_dir, "requests/messages.db")},
-            Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts}, id: :verifiers),
-            Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
+            {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
+            Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts},
+              id: :verifiers
+            ),
+            # Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
             Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
-            {EventChannel, %{server: :verifiers}},
             {NodeMonitor, [miner_node]},
+            {BlockVerifierChannel, []},
+            {EventVerifierChannel, []},
+            {WalletVerifierChannel, []},
+            {RoundChannel, []},
             {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
           ]
       end
@@ -104,5 +109,25 @@ defmodule Ipncore.Application do
   @impl true
   def stop(_state) do
     Logger.info("Stopping application")
+  end
+
+  # create all folders by role
+  defp make_folders(_role) do
+    # catch routes
+    data_dir = Application.get_env(@otp_app, :data_dir)
+    block_dir = Path.join(data_dir, "blocks")
+    block_decode_dir = Path.join(data_dir, "blocks-decode")
+    # set variable
+    Application.put_env(@otp_app, :block_dir, block_dir)
+    Application.put_env(@otp_app, :decode_dir, block_decode_dir)
+    # make folders
+    File.mkdir(data_dir)
+    File.mkdir(block_dir)
+    File.mkdir(block_decode_dir)
+  end
+
+  def put_hostname do
+    hostname = System.cmd("hostname", ["-I"]) |> elem(0) |> String.split() |> List.last()
+    Application.put_env(@otp_app, :hostname, hostname)
   end
 end

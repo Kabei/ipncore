@@ -1,4 +1,5 @@
 defmodule Ippan.Func.Wallet do
+  alias Phoenix.PubSub
   alias Ippan.{Address, Wallet}
 
   @token Default.token()
@@ -27,36 +28,41 @@ defmodule Ippan.Func.Wallet do
   def new(%{timestamp: timestamp}, pubkey, validator_id) do
     pubkey = Fast64.decode64(pubkey)
 
-    case byte_size(pubkey) do
-      32 ->
-        %Wallet{
-          id: Address.hash(0, pubkey),
-          pubkey: pubkey,
-          validator: validator_id,
-          created_at: timestamp
-        }
+    wallet =
+      case byte_size(pubkey) do
+        32 ->
+          %Wallet{
+            id: Address.hash(0, pubkey),
+            pubkey: pubkey,
+            validator: validator_id,
+            created_at: timestamp
+          }
 
-      65 ->
-        %Wallet{
-          id: Address.hash(2, pubkey),
-          pubkey: pubkey,
-          validator: validator_id,
-          created_at: timestamp
-        }
+        65 ->
+          %Wallet{
+            id: Address.hash(2, pubkey),
+            pubkey: pubkey,
+            validator: validator_id,
+            created_at: timestamp
+          }
 
-      897 ->
-        %Wallet{
-          id: Address.hash(1, pubkey),
-          pubkey: pubkey,
-          validator: validator_id,
-          created_at: timestamp
-        }
+        897 ->
+          %Wallet{
+            id: Address.hash(1, pubkey),
+            pubkey: pubkey,
+            validator: validator_id,
+            created_at: timestamp
+          }
 
-      _ ->
-        raise IppanError, "Invalid pubkey size"
-    end
+        _ ->
+          raise IppanError, "Invalid pubkey size"
+      end
+
+    wallet
     |> Wallet.to_list()
     |> WalletStore.insert()
+
+    PubSub.broadcast(:verifiers, "wallet", {"new", wallet})
   end
 
   def pre_sub(
@@ -97,5 +103,6 @@ defmodule Ippan.Func.Wallet do
     # fee amount is tx size
     :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
     WalletStore.update(%{validator: validator_id}, id: account_id)
+    PubSub.broadcast(:verifiers, "wallet", {"sub", %{id: account_id, validator: validator_id}})
   end
 end

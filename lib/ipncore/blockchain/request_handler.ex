@@ -17,7 +17,6 @@ defmodule Ippan.RequestHandler do
   @spec valid!(binary, binary, non_neg_integer()) :: any
   def valid!(hash, msg, size) do
     [type, timestamp | args] = Jason.decode!(msg)
-    IO.inspect(args)
 
     # check_timestamp!(timestamp)
 
@@ -26,7 +25,6 @@ defmodule Ippan.RequestHandler do
     result =
       case deferred do
         true ->
-          IO.inspect(args)
           key = hd(args) |> to_string()
 
           [

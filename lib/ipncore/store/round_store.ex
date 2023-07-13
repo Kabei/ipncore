@@ -16,7 +16,12 @@ defmodule RoundStore do
     stmt: %{
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4)",
       lookup: "SELECT * FROM #{@table} WHERE id = ?",
-      exists: "SELECT 1 FROM #{@table} WHERE id = ?",
+      # exists: "SELECT 1 FROM #{@table} WHERE id = ?",
+      last: "SELECT * FROM #{@table} ORDER BY id DESC LIMIT 1",
       delete: "DELETE FROM #{@table} WHERE id = ?"
     }
+
+  def last do
+    call({:execute_step, :last, []})
+  end
 end

@@ -20,7 +20,6 @@ config :ipncore, :key_dir, key_dir
 config :ipncore, :role, System.get_env("ROLE", "verifier")
 config :ipncore, :vid, System.get_env("VID", "0") |> String.to_integer()
 config :ipncore, :redis, System.get_env("REDIS")
-# config :ipncore, :hostname, System.get_env("HOSTNAME", "localhost")
 
 # p2p server
 config :ipncore, :p2p,

@@ -3,6 +3,7 @@ defmodule Ipncore.Router do
   use Plug.Router
   # use Plug.ErrorHandler
   require Logger
+  alias Phoenix.PubSub
 
   @json Application.compile_env(:ipncore, :json)
   @max_size Application.compile_env(:ipncore, :message_max_size)
@@ -30,13 +31,14 @@ defmodule Ipncore.Router do
 
       case event do
         %{deferred: false} ->
-          EventChannel.push({"valid", msg})
+          MessageStore.insert(msg)
+          PubSub.broadcast(:miner, "event", {"valid", node(), msg})
 
         %{deferred: true} ->
-          EventChannel.push({"valid_df", msg})
+          MessageStore.insert_df(msg)
+          PubSub.broadcast(:miner, "event", {"valid_df", node(), msg})
       end
 
-      EventChannel.push({"valid", msg})
       json(conn, %{"hash" => Base.encode16(hash)})
     rescue
       e in [IppanError] ->

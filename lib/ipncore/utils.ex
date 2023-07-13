@@ -71,4 +71,12 @@ defmodule Ippan.Utils do
   def calc_fees!(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
 
   def calc_fees!(_, _, _, _), do: raise(IppanError, "Fee calculation error")
+
+  def get_name_from_node(node_name) do
+    node_name |> to_string() |> String.split("@") |> hd
+  end
+
+  def get_random_node_verifier do
+    Node.list() |> Enum.random() |> to_string() |> String.split("@") |> hd
+  end
 end

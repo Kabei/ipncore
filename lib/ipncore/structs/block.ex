@@ -106,4 +106,47 @@ defmodule Ippan.Block do
     |> IO.iodata_to_binary()
     |> Blake3.hash()
   end
+
+  @spec sign(binary()) :: {:ok, binary()} | {:error, term()}
+  def sign(hash) do
+    privkey = Application.get_env(:ipncore, :privkey)
+    Cafezinho.Impl.sign(hash, privkey)
+  end
+
+  def sign_vote(hash, vote) do
+    privkey = Application.get_env(:ipncore, :privkey)
+    Cafezinho.Impl.sign("#{hash}#{vote}", privkey)
+  end
+
+  @file_extension "erl"
+  def block_path(validator_id, height) do
+    block_dir = Application.get_env(:ipncore, :block_dir)
+    Path.join([block_dir, "#{validator_id}.#{height}.#{@file_extension}"])
+  end
+
+  def decode_path(validator_id, height) do
+    decode_dir = Application.get_env(:ipncore, :decode_dir)
+    Path.join([decode_dir, "#{validator_id}.#{height}.#{@file_extension}"])
+  end
+
+  def url(hostname, filename) do
+    "https://#{hostname}/v1/download/block/#{filename}"
+  end
+
+  def encode!(content) do
+    :erlang.term_to_binary(content)
+  end
+
+  def decode!(content) do
+    :erlang.binary_to_term(content, [:safe])
+  end
+
+  @hash_module Blake3.Native
+  def hash_file(path) do
+    state = @hash_module.new()
+
+    File.stream!(path, [], 2048)
+    |> Enum.reduce(state, &@hash_module.update(&2, &1))
+    |> @hash_module.finalize()
+  end
 end

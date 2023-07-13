@@ -23,17 +23,14 @@ defmodule ValidatorStore do
     );",
     stmt: %{
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
-      # replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
-      # INSERT INTO #{@table} (id,hostname,name,owner,avatar,fee,created_at,updated_at)
-      # values($1,$2,$3,$4,$5,$6,$7,$8,$9)
-      # ON CONFLICT (id, hostname) DO UPDATE SET
-      # name = EXCLUDED.name, owner = EXCLUDED.owner,
-      # avatar = EXCLUDED.avatar, fee = EXCLUDED.fee,
-      # created_at = EXCLUDED.created_at,
-      # updated_at = EXCLUDED.updated_at WHERE created_at < EXCLUDED.created_at;
       lookup: "SELECT * FROM #{@table} WHERE id = ?1",
       owner: "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?1",
-      delete: "DELETE FROM #{@table} WHERE id = ?1"
+      delete: "DELETE FROM #{@table} WHERE id = ?1",
+      total: "SELECT COUNT(id) FROM #{@table}"
     }
+
+    def total do
+      call({:execute_step, :total, []})
+    end
 end

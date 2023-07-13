@@ -41,7 +41,7 @@ defmodule MessageStore do
     ],
     stmt: %{
       # by size
-      "df" => "SELECT * FROM #{@table_df}",
+      "all_df" => "SELECT * FROM #{@table_df}",
       "select" =>
         "SELECT timestamp, hash, type, account_id, validator_id, args, message, signature, size, ROWID
         FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, ROWID, *  FROM #{@table})
@@ -62,16 +62,10 @@ defmodule MessageStore do
       ON CONFLICT (key,type) DO UPDATE SET timestamp=?3, hash=?4, account_id=?5, validator_id=?6, args=?7, message=?8, signature=?9, size=?10
       WHERE timestamp > EXCLUDED.timestamp OR timestamp = EXCLUDED.timestamp AND hash > EXCLUDED.hash",
       insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)"
-      # "nullable" => "REPLACE INTO #{@table}(hash,type) VALUES(?1,-1)",
-      # "recover" => "SELECT * FROM #{@table} WHERE type != -1",
-      # "delete_null" => "DELETE FROM #{@table} WHERE type = -1",
-      # lookup: "SELECT * FROM #{@table} WHERE hash = ?1",
-      # exists: "SELECT 1 FROM #{@table} WHERE hash = ?1",
-      # delete: "DELETE FROM #{@table} WHERE hash = ?1"
     }
 
-  def df do
-    call({:execute_fetch, "df", []})
+  def all_df do
+    call({:execute_fetch, "all_df", []})
   end
 
   def select(size, validator_id) do

@@ -23,7 +23,6 @@ Environment=DATA_DIR=data
 Environment=KEM_DIR=priv/kem.key
 Environment=FALCON_DIR=priv/falcon.key
 Environment=NODE_ID=0
-Environment=HOSTNAME=localhost
 
 WorkingDirectory=/usr/src/ipncore
 ExecStart=elixir --erl "+P 2000000 +A 10" -S mix run --no-halt --no-compile

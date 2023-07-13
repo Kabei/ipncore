@@ -37,10 +37,6 @@ defmodule DomainStore do
     ],
     stmt: %{
       insert: "INSERT INTO #{@table} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      insert_deferred:
-        "INSERT INTO #{@table_df} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10) ON CONFLICT (name)
-        DO UPDATE SET owner=?2, email=?3, avatar=?4, records=?5, enabled=?6, created_at=?7, renewed_at=?8, hash=?9, round=?10
-        WHERE created_at > EXCLUDED.created_at OR created_at = EXCLUDED.created_at AND hash > EXCLUDED.hash",
       replace: "REPLACE INTO #{@table} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
       lookup: "SELECT * FROM #{@table} WHERE name = ?",
       exists: "SELECT 1 FROM #{@table} WHERE name = ?",

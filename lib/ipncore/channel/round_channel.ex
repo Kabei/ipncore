@@ -21,9 +21,10 @@ defmodule RoundChannel do
     {:noreply, state}
   end
 
-  def handle_info({"end", opts}, state) do
-    send(self(), {"start", opts.id + 1})
-    {:noreply, state}
+  def handle_info({"end", round}, state) do
+    MessageStore.sync()
+    WalletStore.sync()
+    {:noreply, Map.put(state, :round, round)}
   end
 
   def handle_info(_msg, state) do

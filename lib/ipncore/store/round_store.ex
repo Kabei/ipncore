@@ -24,4 +24,11 @@ defmodule RoundStore do
   def last do
     call({:execute_step, :last, []})
   end
+
+  def last_id do
+    case RoundStore.last() do
+      {:row, [round_id | _]} -> round_id
+      _ -> 0
+    end
+  end
 end

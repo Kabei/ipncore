@@ -11,12 +11,12 @@ defmodule Ippan.P2P.Client do
   @tag_bytes 16
   @time_to_reconnect 3_000
   @handshake_timeout 5_000
-  @ping_interval 30_000
+  @ping_interval 40_000
   @pubsub_server :network
 
   # {:ok, pid} = Ippan.P2P.Client.start_link('localhost', 5815, "priv/secret.key")
   # Ippan.P2P.Client.send(pid, "block.new", %{hash: "123456"})
-  def start_link({hostname, port, key_path}) do
+  def start_link({hostname, port, vid, key_path}) do
     seed =
       if File.regular?(key_path) do
         File.read!(key_path)
@@ -28,54 +28,33 @@ defmodule Ippan.P2P.Client do
     {:ok, {pubkey, privkey}} = Cafezinho.Impl.keypair_from_seed(seed)
 
     {:ok, pid} =
-      GenServer.start_link(@module, {hostname, port, pubkey, privkey}, hibernate_after: 10_000)
+      GenServer.start_link(@module, {hostname, port, pubkey, vid, privkey},
+        hibernate_after: 10_000
+      )
 
     {:ok, pid}
   end
 
   @impl true
-  def init({hostname, port, pubkey, privkey}) do
+  def init({hostname, port, pubkey, vid, privkey}) do
     Process.flag(:trap_exit, true)
 
     address = Address.hash(0, pubkey)
 
+    subscribe(vid)
+
     {:ok,
      %{
+       id: vid,
        pid: self(),
        hostname: hostname,
        port: port,
        address: address,
        pubkey: pubkey,
-       privkey: privkey
+       privkey: privkey,
+       mailbox: []
      }, {:continue, :reconnect}}
   end
-
-  # @spec connect(pid()) :: {:ok, port()} | :error
-  # def connect(pid) do
-  #   IO.inspect("reconnect")
-  #   GenServer.call(pid, :connect, :infinity)
-  # end
-
-  # @spec reconnect(pid()) :: {:ok, port()}
-  # def reconnect(pid) do
-  #   try do
-  #     case connect(pid) do
-  #       {:ok, socket} ->
-  #         {:ok, socket}
-
-  #       error ->
-  #         IO.inspect("reconnect error")
-  #         IO.inspect(error)
-  #         :timer.sleep(@time_to_reconnect)
-  #         reconnect(pid)
-  #     end
-  #   catch
-  #     :exit, m ->
-  #       IO.inspect(m)
-  #       :timer.sleep(@time_to_reconnect)
-  #       reconnect(pid)
-  #   end
-  # end
 
   @spec push(pid(), String.t(), term()) :: :ok
   def push(pid, event, msg) do
@@ -158,18 +137,28 @@ defmodule Ippan.P2P.Client do
     {:stop, reason, state}
   end
 
-  # def handle_info({event, action, message}, state) do
+  def handle_info({_event, _action, _data} = msg, state) do
+    case state do
+      %{socket: socket, sharedkey: sharedkey} ->
+        @adapter.send(socket, encode(msg, sharedkey))
 
-  #   {:noreply, state}
-  # end
+      %{mailbox: mailbox} ->
+        {:noreply, %{state | mailbox: mailbox ++ [msg]}}
+    end
+  end
+
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
 
   @impl true
-  def terminate(_reason, %{scoket: socket}) do
+  def terminate(_reason, %{id: vid, scoket: socket}) do
+    unsubscribe(vid)
     @adapter.close(socket)
   end
 
-  def terminate(_reason, _) do
-    :ok
+  def terminate(_reason, %{id: vid}) do
+    unsubscribe(vid)
   end
 
   @impl true
@@ -206,7 +195,7 @@ defmodule Ippan.P2P.Client do
       new_state = Map.merge(state, %{socket: socket, sharedkey: sharedkey, tRef: tRef})
       Logger.debug("#{hostname}:#{port} | connected")
       # {:reply, {:ok, socket}, new_state}
-      {:ok, new_state}
+      {:ok, check_mail_box(new_state)}
     rescue
       MatchError ->
         # {:reply, :error, state}
@@ -231,6 +220,16 @@ defmodule Ippan.P2P.Client do
         IO.inspect(error)
         error
     end
+  end
+
+  defp check_mail_box(%{mailbox: []} = state), do: state
+
+  defp check_mail_box(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
+    Enum.each(mailbox, fn msg ->
+      @adapter.send(socket, encode(msg, sharedkey))
+    end)
+
+    %{state | mailbox: []}
   end
 
   defp encode(msg, sharedkey) do
@@ -269,5 +268,15 @@ defmodule Ippan.P2P.Client do
       _error ->
         :error
     end
+  end
+
+  defp subscribe(vid) do
+    PubSub.subscribe(@pubsub_server, "msg")
+    PubSub.subscribe(@pubsub_server, "msg:#{vid}")
+  end
+
+  defp unsubscribe(vid) do
+    PubSub.unsubscribe(@pubsub_server, "msg")
+    PubSub.unsubscribe(@pubsub_server, "msg:#{vid}")
   end
 end

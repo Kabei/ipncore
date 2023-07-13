@@ -49,17 +49,13 @@ defmodule BlockTimer do
 
   @impl true
   def handle_continue(:start, %{round: round} = state) do
-    case RoundStore.last() do
-      {:row, [round_id | _]} ->
-        if round_id == round do
-          {:ok, tRef} = :timer.send_after(@block_interval, :mine)
-          {:noreply, Map.put(state, :tRef, tRef)}
-        else
-          {:noreply, state}
-        end
+    round_id = RoundStore.last_id()
 
-      _ ->
-        {:noreply, state}
+    if round_id == round do
+      {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+      {:noreply, Map.put(state, :tRef, tRef)}
+    else
+      {:noreply, state}
     end
   end
 
@@ -141,10 +137,16 @@ defmodule BlockTimer do
 
     RoundStore.sync()
     checkpoint_all()
-    {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+
+    # Clear cache
+    new_round = round + 1
+    BlockMinerChannel.new_round(new_round)
     PubSub.broadcast(:verifiers, "round", {"end", round})
 
-    {:reply, round, %{state | round: round + 1, tRef: tRef}}
+    # Start new timer to mine
+    {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+
+    {:reply, round, %{state | round: new_round, tRef: tRef}}
   end
 
   @doc """

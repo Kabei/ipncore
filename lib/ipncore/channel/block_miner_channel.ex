@@ -5,16 +5,31 @@ defmodule BlockMinerChannel do
 
   alias Ippan.{Block}
 
+  def init(_args) do
+    PubSub.subscribe(@pubsub_server, @channel)
+
+    round_id = RoundStore.last_id()
+    {:ok, %{cache: [], round: round_id}}
+  end
+
+  def new_round(round) do
+    GenServer.cast(@module, {:new_round, round})
+  end
+
   @impl true
   def handle_info(
-        {"new_recv",
+        {"new_recv", from_id,
          %{hash: hash, height: height, round: round, creator: creator_id, signature: signature} =
            block},
-        state
+        %{cache: cache} = state
       ) do
-    BlockStore.insert_vote(height, round, creator_id, creator_id, signature, hash, 0)
-    send_fetch(self(), block)
-    {:noreply, state}
+    if hash not in cache do
+      BlockStore.insert_vote(height, round, from_id, creator_id, signature, hash, 0)
+      send_fetch(self(), block)
+      {:noreply, %{state | cache: cache ++ [hash]}}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_info({"valid", :ok, %{hash: hash, round: round} = data, origin}, state) do
@@ -81,6 +96,11 @@ defmodule BlockMinerChannel do
 
   def handle_info(_msg, state) do
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:new_round, round}, state) do
+    {:noreply, %{state | cache: [], round: round}}
   end
 
   defp download_and_process(

@@ -45,12 +45,18 @@ defmodule Store.Sqlite do
       end
 
       if @pool do
-        def start_link(opts) do
-          GenServer.start_link(__MODULE__, opts, hibernate_after: 5_000)
+        def start_link(path) do
+          {:ok, state} = start(path)
+          GenServer.start_link(__MODULE__, state, hibernate_after: 5_000)
         end
       else
-        def start_link(opts) do
-          GenServer.start_link(__MODULE__, opts, hibernate_after: 5_000, name: @base)
+        def start_link(path) when is_binary(path) do
+          {:ok, state} = start(path)
+          GenServer.start_link(__MODULE__, state, hibernate_after: 5_000, name: @base)
+        end
+
+        def start_link(state) do
+          GenServer.start_link(__MODULE__, state, hibernate_after: 5_000, name: @base)
         end
       end
 

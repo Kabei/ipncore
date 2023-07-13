@@ -6,7 +6,8 @@ defmodule Ippan.P2P.ClientPool do
   alias Phoenix.PubSub
 
   @port Application.compile_env(:ipncore, :port, 5815)
-  @pubsub_server :network
+  @pubsub_server :verifiers
+
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, hibernate_after: 5_000)
   end
@@ -20,11 +21,12 @@ defmodule Ippan.P2P.ClientPool do
     clients =
       Enum.map(validators, fn x ->
         validator = Validator.to_map(x)
+        validator_id = validator.id
+        hostname = validator.hostname
 
-        if myid != validator.id do
-          hostname = validator.hostname
-          {:ok, pid} = Client.start_link({hostname, @port, key_path})
-          {validator.id, %{pid: pid, hostname: hostname}}
+        if myid != validator_id do
+          {:ok, pid} = Client.start_link({hostname, @port, validator_id, key_path})
+          {validator_id, %{pid: pid, hostname: hostname}}
         end
       end)
       |> Enum.filter(fn
@@ -48,12 +50,13 @@ defmodule Ippan.P2P.ClientPool do
       ) do
     IO.inspect("validator.new")
     IO.inspect(validator)
+    validator_id = validator.id
 
-    if Default.validator_id() != validator.id do
+    if Default.validator_id() != validator_id and not Map.has_key?(clients, validator_id) do
       hostname = validator.hostname
-      {:ok, pid} = Client.start_link({hostname, @port, key_path})
+      {:ok, pid} = Client.start_link({hostname, @port, validator_id, key_path})
 
-      new_state = Map.put(clients, validator.id, %{pid: pid, hostname: hostname})
+      new_state = Map.put(clients, validator_id, %{pid: pid, hostname: hostname})
       {:noreply, new_state}
     else
       {:noreply, state}
@@ -67,7 +70,7 @@ defmodule Ippan.P2P.ClientPool do
     if Default.validator_id() != validator_id do
       %{pid: old_pid} = Map.get(clients, validator_id)
       GenServer.stop(old_pid, :normal)
-      {:ok, pid} = Client.start_link({new_hostname, @port, key_path})
+      {:ok, pid} = Client.start_link({new_hostname, @port, validator_id, key_path})
       {:noreply, Map.put(clients, validator_id, %{pid: pid, hostname: new_hostname})}
     else
       {:noreply, state}

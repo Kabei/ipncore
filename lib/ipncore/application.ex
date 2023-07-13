@@ -44,6 +44,8 @@ defmodule Ipncore.Application do
     children =
       case role do
         "miner" ->
+          Platform.start()
+
           [
             {MessageStore, Path.join(data_dir, "requests/messages.db")},
             {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
@@ -95,7 +97,6 @@ defmodule Ipncore.Application do
     case Supervisor.start_link(children, @opts) do
       {:ok, _pid} = result ->
         if role == "miner" do
-          Platform.start()
           Logger.info("Running IPNcore P2P with port #{p2p_opts[:port]}")
         end
 

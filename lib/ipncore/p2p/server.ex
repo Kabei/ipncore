@@ -4,14 +4,12 @@ defmodule Ippan.P2P.Server do
   require Logger
 
   @otp_app :ipncore
-
   @adapter ThousandIsland.Socket
-  @timeout 45_000
-  @handshake_timeout 5_000
+  @version <<0, 0>>
   @seconds <<0>>
   @tag_bytes 16
-  @pubsub_server :pubsub
-  @version <<0, 0>>
+  @handshake_timeout 5_000
+  @timeout 45_000
 
   @spec load_kem :: :ok
   def load_kem do
@@ -57,7 +55,6 @@ defmodule Ippan.P2P.Server do
 
   @impl ThousandIsland.Handler
   def handle_data("PING", _socket, state) do
-    # Logger.debug("ping")
     {:continue, state}
   end
 
@@ -65,8 +62,8 @@ defmodule Ippan.P2P.Server do
     Logger.debug("data: #{data}")
 
     case decode(data, state) do
-      {event, action, data} ->
-        PubSub.broadcast(@pubsub_server, event, {action, Map.put(data, :vid, id)})
+      {"block", action, data} ->
+        PubSub.broadcast(:miner, "block", {action, id, data})
 
       _ ->
         :ok

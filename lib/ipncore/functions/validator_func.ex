@@ -5,6 +5,7 @@ defmodule Ippan.Func.Validator do
   alias Ippan.Request.Source
 
   @type result :: Ippan.Request.result()
+  @pubsub_server :verifiers
 
   def new(
         %{timestamp: timestamp},
@@ -43,7 +44,7 @@ defmodule Ippan.Func.Validator do
     |> Validator.to_list()
     |> ValidatorStore.insert_sync()
 
-    PubSub.broadcast(:network, "validator", {"new", validator})
+    PubSub.broadcast(@pubsub_server, "validator", {"new", validator})
   end
 
   @spec pre_new(
@@ -170,7 +171,7 @@ defmodule Ippan.Func.Validator do
         |> Map.put(:updated_at, timestamp)
         |> ValidatorStore.update(id: id)
 
-        PubSub.broadcast(:network, "validator", {"update", Map.put(opts, :id, id)})
+        PubSub.broadcast(@pubsub_server, "validator", {"update", Map.put(opts, :id, id)})
     end
   end
 
@@ -183,7 +184,7 @@ defmodule Ippan.Func.Validator do
       true ->
         ValidatorStore.delete(id)
 
-        PubSub.broadcast(:network, "validator", {"delete", id})
+        PubSub.broadcast(@pubsub_server, "validator", {"delete", id})
     end
   end
 end

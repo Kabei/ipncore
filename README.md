@@ -2,15 +2,14 @@
 
 #### Version 0.4
 #
-#### IPNcore es un nodo de verificacion de transacciones de IPPAN blockchain.
-#### IPPAN blockchain realiza mineria paralela, permitiendo
+#### IPNcore is an IPPAN blockchain transaction verification node.
 
 ## Requirements
 
-* CPU: +4 cores
-* Memory: +4 GB
-* Storage: +20 GB
-* Bandwitch: +50 Mbps
+* Processor: 4 CPUs
+* Memory: 4 GB
+* HDD Space: +20 GB
+* Bandwitch: 50 Mbps
 
 ## Dependencies
 
@@ -20,7 +19,6 @@
 * cmake 3.26+
 
 ## 
-
 ## Installation
 ### Generate keys
 #### Each validator has 2 keys, one for signing blocks and another for signing connections. In addition, a third key (ntru-kem) is used for the handshake together with the falcon-512 key.
@@ -32,7 +30,7 @@
 * kem.key (+48 bytes)
 
 ```bash
-curl https://github.com/kabei/release/0.4/ipncore-install.sh \
+curl https://github.com/kabei/releases/download/0.4/ipncore-install.sh \
 && chmod +x ipncore-install.sh \
 && ./ipncore-install.sh
 ```
@@ -54,13 +52,16 @@ MINER=miner@172.17.0.1 VID=1 DATA_DIR=/usr/src/data ./run.sh
 ```
 
 #
-## Blockchain Default settings
+## Default settings
 
 | | |
 |-|-|
 |Block Time|5 seconds|
-|Time out of refund transactions|72 hours|
-|Event Max Size|8.192 bytes|
-|Tx note Max Size|255 bytes|
 |Native Token|IPN|
-|Block Max size|10 MB|
+|Block file Max size|10 MB|
+|Request Max size|8192 bytes|
+|Max tranfer amount|One Trillions units|
+|P2P port|5815|
+|HTTP port|8080|
+|Refund transaction timeout|72 hours|
+<!-- |Tx note Max size|255 bytes| -->

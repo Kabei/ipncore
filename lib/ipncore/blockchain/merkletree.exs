@@ -21,6 +21,6 @@ defmodule MerkleTree do
   defp concatenate_and_hash([h]), do: concatenate_and_hash([h, ""])
 
   defp concatenate_and_hash(io_list) do
-    Crypto.hash(io_list)
+    Blake3.hash(io_list)
   end
 end

@@ -1,10 +1,11 @@
 defmodule Ippan.Func.Tx do
-  @max_tx_amount 1_000_000_000_000_000
   alias Exqlite.Sqlite3NIF
   alias Ippan.Utils
   require Logger
 
+  @max_tx_amount Application.compile_env(:ipncore, :max_tx_amount)
   @refund_timeout :timer.hours(72)
+  # @note_max_size Application.compile_env(:ipncore, :note_max_size)
 
   def send(_, token, outputs)
       when byte_size(token) <= 10 and is_list(outputs) do
@@ -132,7 +133,6 @@ defmodule Ippan.Func.Tx do
       when byte_size(hash) == 64 do
     hash = Base.decode16!(hash)
 
-    # Logger.debug(inspect({hash, account_id, timestamp}))
     [sender_id, token, refund_amount] = RefundStore.lookup([hash, account_id, timestamp])
 
     case BalanceStore.send(account_id, sender_id, token, refund_amount, timestamp) do

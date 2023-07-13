@@ -3,6 +3,8 @@ defmodule BlockVerifierChannel do
     server: :verifiers,
     channel: "block"
 
+  alias Ippan.Utils
+
   @otp_app :ipncore
   @send_to :miner
   @file_extension "erl"
@@ -29,6 +31,7 @@ defmodule BlockVerifierChannel do
     decode_dir = Application.get_env(@otp_app, :decode_dir)
     filename = "#{vid}.#{height}.#{@file_extension}"
     block_path = Path.join(decode_dir, filename)
+    myip = Utils.my_ip()
 
     try do
       unless File.exists?(block_path) do
@@ -41,10 +44,10 @@ defmodule BlockVerifierChannel do
       PubSub.broadcast(
         @send_to,
         "block:#{hash16}",
-        {"valid", :ok, block, origin}
+        {"valid", :ok, block, myip}
       )
     rescue
-      _ -> PubSub.broadcast(@send_to, "block:#{hash16}", {"valid", :error, block, origin})
+      _ -> PubSub.broadcast(@send_to, "block:#{hash16}", {"valid", :error, block, myip})
     end
 
     {:noreply, state}

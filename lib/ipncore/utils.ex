@@ -76,6 +76,10 @@ defmodule Ippan.Utils do
     node_name |> to_string() |> String.split("@") |> hd
   end
 
+  def my_ip do
+    node() |> to_string() |> String.split("@") |> List.last()
+  end
+
   def get_random_node_verifier do
     Node.list() |> Enum.random() |> to_string() |> String.split("@") |> hd
   end

@@ -72,7 +72,7 @@ defmodule BlockStore do
     call({:execute_step, "avg_round_time", [round]})
   end
 
-  def insert_vote(height, round, validator_id, creator_id, signature, hash, vote) do
+  def insert_vote(height, round, validator_id, creator_id, hash, signature, vote) do
     call(
       {:execute_step, "insert_vote",
        [height, round, validator_id, creator_id, signature, hash, vote]}

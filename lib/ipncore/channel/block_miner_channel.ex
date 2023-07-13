@@ -1,6 +1,4 @@
 defmodule BlockMinerChannel do
-  alias ElixirSense.Log
-
   use Channel,
     server: :miner,
     channel: "block"
@@ -21,15 +19,20 @@ defmodule BlockMinerChannel do
   @impl true
   def handle_info(
         {"new_recv", from_id,
-         %{hash: hash, height: height, round: round, creator: creator_id, signature: signature} =
-           block},
+         %{
+           hash: hash,
+           height: height,
+           round: round,
+           creator: creator_id,
+           signature: signature
+         } = block},
         %{cache: cache} = state
       ) do
     Logger.debug("block.new_recv #{Base.encode16(hash)}")
 
     if hash not in cache do
       Logger.debug("not cache")
-      BlockStore.insert_vote(height, round, from_id, creator_id, signature, hash, 0)
+      BlockStore.insert_vote(height, round, from_id, creator_id, hash, signature, 0)
       send_fetch(self(), block)
       {:noreply, %{state | cache: cache ++ [hash]}}
     else
@@ -82,6 +85,7 @@ defmodule BlockMinerChannel do
 
       if Cafezinho.Impl.verify(signature, "#{hash}#{vote}", validator.pubkey) == :ok do
         register_vote(block, signature, vote)
+
         # {:row, [sum_votes, total_votes]} = BlockStore.sum_votes(round, hash, creator_id)
 
         # if sum_votes == 3 and total_votes == min_votes do
@@ -135,13 +139,21 @@ defmodule BlockMinerChannel do
          signature,
          vote
        ) do
-    BlockStore.insert_vote(height, round, validator_id, creator_id, signature, hash, vote)
+    BlockStore.insert_vote(
+      height,
+      round,
+      validator_id,
+      creator_id,
+      hash,
+      signature,
+      vote
+    )
 
     Map.put(block, :signature, signature)
   end
 
   defp send_fetch(pid, block) do
-    spawn(fn ->
+    spawn_link(fn ->
       case Node.list() do
         [] ->
           :timer.sleep(1500)
@@ -151,9 +163,11 @@ defmodule BlockMinerChannel do
           node_atom = node_list |> Enum.random()
 
           local_hostname = node_atom |> to_string() |> String.split("@") |> List.last()
+          Logger.debug(inspect(local_hostname))
 
           case Node.ping(node_atom) do
             :pong ->
+              Logger.debug("pong")
               PubSub.subscribe(:miner, "block:#{block.hash}")
               PubSub.broadcast(:verifiers, "block#{node_atom}", {"fetch", block})
 
@@ -171,6 +185,7 @@ defmodule BlockMinerChannel do
               end
 
             :pang ->
+              Logger.debug("pang")
               :timer.sleep(1500)
               send_fetch(pid, block)
           end

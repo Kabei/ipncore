@@ -67,6 +67,7 @@ defmodule Ipncore.Application do
             {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :key_dir)},
             {BlockMinerChannel, []},
             {EventMinerChannel, []},
+            {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts},
             {BlockTimer, []}
           ]
 

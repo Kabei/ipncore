@@ -59,7 +59,27 @@ defmodule Ipncore.Router do
       |> put_resp_content_type("application/octet-stream")
       |> send_file(200, block_path)
     else
-      send_resp(conn, 404, "")
+      role = System.get_env("ROLE")
+
+      if role == "verifier" do
+        miner = System.get_env("MINER")
+
+        ip_address = String.split(miner, "@") |> List.last()
+
+        case HTTPoison.get!("http://#{ip_address}:8080/v1/download/#{vid}/#{height}") do
+          %{status_code: 200, body: content} ->
+            File.write(block_path, content)
+
+            conn
+            |> put_resp_content_type("application/octet-stream")
+            |> send_file(200, block_path)
+
+          _ ->
+            send_resp(conn, 404, "")
+        end
+      else
+        send_resp(conn, 404, "")
+      end
     end
   end
 

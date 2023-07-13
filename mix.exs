@@ -39,7 +39,7 @@ defmodule Ipncore.MixProject do
       do: raise(RuntimeError, "OTP invalid version. Required minimum v#{@min_otp}")
 
     [
-      extra_applications: [:crypto, :syntax_tools, :logger, :download],
+      extra_applications: [:crypto, :syntax_tools, :logger, :download, :httpoison],
       mod: {Ipncore.Application, []}
     ]
   end
@@ -58,6 +58,7 @@ defmodule Ipncore.MixProject do
       {:phoenix_pubsub_redis, "~> 3.0.1"},
       {:download, "~> 0.0.4"},
       {:cafezinho, "~> 0.4.0"},
+      {:httpoison, "~> 2.0"},
       {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
       {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},
       {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},

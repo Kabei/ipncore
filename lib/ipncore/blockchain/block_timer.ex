@@ -41,6 +41,7 @@ defmodule BlockTimer do
        round: round_id,
        prev_hash_round: round_hash,
        tRef: nil,
+       validator_id: validator_id,
        sync_round: false
      }, {:continue, :start}}
   end

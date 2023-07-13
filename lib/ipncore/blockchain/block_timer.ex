@@ -36,13 +36,15 @@ defmodule BlockTimer do
          }, {:continue, :start}}
 
       _ ->
+        {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+
         {:ok,
          %{
            height: 0,
            round: 0,
            validator_id: validator_id,
            prev_hash: nil,
-           tRef: nil
+           tRef: tRef
          }}
     end
   end

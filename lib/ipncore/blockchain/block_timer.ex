@@ -351,8 +351,6 @@ defmodule BlockTimer do
       sync_all()
     end
 
-    Logger.debug("Block #{height} | events: #{ev_count} | hash: #{Base.encode16(hashfile)}")
-
     block_map = %{
       height: height,
       prev: prev_hash,
@@ -374,6 +372,7 @@ defmodule BlockTimer do
 
     BlockStore.sync()
 
+    Logger.debug("Block #{height} | events: #{ev_count} | hash: #{Base.encode16(blockhash)}")
     PubSub.broadcast(@pubsub_verifiers, "block", {"new", block_map})
     PubSub.broadcast(@pubsub_network, "msg", {"block", "new_recv", block_map})
 

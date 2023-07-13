@@ -98,11 +98,10 @@ defmodule Ippan.Block do
     [
       to_string(block.height),
       to_string(block.creator),
-      block.prev,
+      normalize(block.prev),
       block.hashfile,
       to_string(block.timestamp)
     ]
-    |> Enum.filter(fn x -> not is_nil(x) end)
     |> IO.iodata_to_binary()
     |> Blake3.hash()
   end
@@ -149,4 +148,7 @@ defmodule Ippan.Block do
     |> Enum.reduce(state, &@hash_module.update(&2, &1))
     |> @hash_module.finalize()
   end
+
+  defp normalize(nil), do: ""
+  defp normalize(x), do: x
 end

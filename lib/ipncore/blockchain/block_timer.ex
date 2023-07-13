@@ -32,7 +32,8 @@ defmodule BlockTimer do
            round: block.round + 1,
            validator_id: validator_id,
            prev_hash: block.hash,
-           tRef: nil
+           tRef: nil,
+           sync_round: false
          }, {:continue, :start}}
 
       _ ->
@@ -44,7 +45,8 @@ defmodule BlockTimer do
            round: 0,
            validator_id: validator_id,
            prev_hash: nil,
-           tRef: tRef
+           tRef: tRef,
+           sync_round: false
          }}
     end
   end
@@ -66,8 +68,8 @@ defmodule BlockTimer do
     send(pid, :mine)
   end
 
-  def round_end do
-    GenServer.call(BlockTimer, :round_end, :infinity)
+  def next_round do
+    GenServer.cast(BlockTimer, :next_round)
   end
 
   def start do
@@ -88,6 +90,18 @@ defmodule BlockTimer do
     {:noreply, Map.put(state, :tRef, tRef)}
   end
 
+  def handle_cast(:next_round, %{sync_round: false} = state) do
+    spawn_link(fn ->
+      round_build(state)
+    end)
+
+    {:noreply, %{state | sync_round: true}}
+  end
+
+  def handle_cast(_, state) do
+    {:noreply, state}
+  end
+
   @impl true
   def handle_call(:round, _from, %{round: round} = state) do
     {:reply, round, state}
@@ -97,7 +111,63 @@ defmodule BlockTimer do
     {:reply, height, state}
   end
 
-  def handle_call(:round_end, _from, %{round: round} = state) do
+  @doc """
+  Fetch requests and send to mine
+  Keeps height and prev_hash up to date
+  """
+  @impl true
+  def handle_info(
+        :mine,
+        %{
+          height: height,
+          round: old_round,
+          validator_id: validator_id,
+          prev_hash: prev_hash
+        } = state
+      ) do
+    :timer.cancel(state.tRef)
+    {:ok, requests} = MessageStore.select(@block_data_max_size, validator_id)
+    {:ok, requests_df} = MessageStore.select_df(@block_data_max_size, validator_id)
+
+    last_row_id = catch_last_row_id(requests)
+
+    last_row_id_df = catch_last_row_id(requests_df)
+
+    {new_height, new_hash} =
+      mine(
+        requests ++ requests_df,
+        height,
+        old_round,
+        validator_id,
+        prev_hash
+      )
+
+    if new_height != height do
+      MessageStore.delete_all(last_row_id)
+      MessageStore.delete_all_df(last_row_id_df)
+      MessageStore.sync()
+
+      {:noreply, %{state | height: new_height, prev_hash: new_hash}}
+    else
+      {:noreply, state}
+    end
+  end
+
+  def handle_info({:end, new_state}, state) do
+    {:noreply, Map.merge(state, new_state)}
+  end
+
+  @impl true
+  def terminate(_reason, %{tRef: tRef}) do
+    :timer.cancel(tRef)
+    PubSub.unsubscribe(@pubsub_verifiers, "event")
+  end
+
+  def terminate(_reason, _state) do
+    PubSub.unsubscribe(@pubsub_verifiers, "event")
+  end
+
+  def round_build(%{round: round}) do
     {:ok, requests} = MessageStore.delete_all_df_approved(round)
 
     Enum.each(requests, fn [
@@ -148,59 +218,7 @@ defmodule BlockTimer do
     # Start new timer to mine
     {:ok, tRef} = :timer.send_after(@block_interval, :mine)
 
-    {:reply, round, %{state | round: new_round, tRef: tRef}}
-  end
-
-  @doc """
-  Fetch requests and send to mine
-  Keeps height and prev_hash up to date
-  """
-  @impl true
-  def handle_info(
-        :mine,
-        %{
-          height: height,
-          round: old_round,
-          validator_id: validator_id,
-          prev_hash: prev_hash
-        } = state
-      ) do
-    :timer.cancel(state.tRef)
-    {:ok, requests} = MessageStore.select(@block_data_max_size, validator_id)
-    {:ok, requests_df} = MessageStore.select_df(@block_data_max_size, validator_id)
-
-    last_row_id = catch_last_row_id(requests)
-
-    last_row_id_df = catch_last_row_id(requests_df)
-
-    {new_height, new_hash} =
-      mine(
-        requests ++ requests_df,
-        height,
-        old_round,
-        validator_id,
-        prev_hash
-      )
-
-    if new_height != height do
-      MessageStore.delete_all(last_row_id)
-      MessageStore.delete_all_df(last_row_id_df)
-      MessageStore.sync()
-
-      {:noreply, %{state | height: new_height, prev_hash: new_hash}}
-    else
-      {:noreply, state}
-    end
-  end
-
-  @impl true
-  def terminate(_reason, %{tRef: tRef}) do
-    :timer.cancel(tRef)
-    PubSub.unsubscribe(@pubsub_verifiers, "event")
-  end
-
-  def terminate(_reason, _state) do
-    PubSub.unsubscribe(@pubsub_verifiers, "event")
+    send(BlockTimer, {:end, round: new_round, tRef: tRef, sync_round: false})
   end
 
   defp catch_last_row_id([]), do: -1

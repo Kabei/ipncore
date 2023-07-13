@@ -51,8 +51,8 @@ defmodule BlockMinerChannel do
     {_, [total]} = ValidatorStore.total()
     {_, [count]} = BlockStore.count_by_round(round)
 
-    if count == total do
-      BlockTimer.round_end()
+    if count == total and not RoundStore.exists?(round) do
+      BlockTimer.next_round()
     end
 
     {:noreply, state}

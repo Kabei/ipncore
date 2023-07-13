@@ -16,12 +16,12 @@ defmodule BlockVerifierChannel do
 
   @impl true
   def handle_info(
-        {"fetch", %{hostname: hostname, origin: origin},
+        {"fetch",
          %{
            hash: hash,
            creator: vid,
            height: height
-         } = block},
+         } = block, %{hostname: hostname} = validator, origin},
         state
       ) do
     Logger.debug("block.fetch #{Base.encode16(hash)}")
@@ -35,7 +35,6 @@ defmodule BlockVerifierChannel do
         {:ok, _path} = Curl.download_block(url, block_path)
       end
 
-      validator = ValidatorStore.lookup([vid])
       BlockTimer.verify_block!(block, validator)
 
       PubSub.broadcast(

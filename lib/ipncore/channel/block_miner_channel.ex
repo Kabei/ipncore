@@ -174,7 +174,7 @@ defmodule BlockMinerChannel do
               PubSub.broadcast(
                 :verifiers,
                 "block:#{node_atom}",
-                {"fetch", %{hostname: validator.hostname, origin: local}, block}
+                {"fetch", block, validator, local}
               )
 
               receive do

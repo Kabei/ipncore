@@ -7,7 +7,8 @@ defmodule Ippan.P2P.Server do
   @adapter ThousandIsland.Socket
   @version <<0, 0>>
   @seconds <<0>>
-  # @tag_bytes 16
+  @iv_bytes 12
+  @tag_bytes 16
   @handshake_timeout 5_000
   @timeout 45_000
 
@@ -152,7 +153,7 @@ defmodule Ippan.P2P.Server do
 
   # defp encode(msg, sharedkey) do
   #   bin = :erlang.term_to_binary(msg)
-  #   iv = :crypto.strong_rand_bytes(12)
+  #   iv = :crypto.strong_rand_bytes(@iv_bytes)
 
   #   {ciphertext, tag} =
   #     :crypto.crypto_one_time_aead(
@@ -169,7 +170,7 @@ defmodule Ippan.P2P.Server do
   # end
 
   defp decode(packet, sharedkey) do
-    <<iv::bytes-size(12), tag::bytes-size(16), ciphertext::binary>> = packet
+    <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
 
     :crypto.crypto_one_time_aead(
       :chacha20_poly1305,

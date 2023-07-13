@@ -65,7 +65,7 @@ defmodule Ipncore.Router do
         ip_local = String.split(miner, "@") |> List.last()
 
         case HTTPoison.get("http://#{ip_local}:8080/v1/download/block/#{vid}/#{height}") do
-          %{:ok, status_code: 200, body: content} ->
+          {:ok, %{status_code: 200, body: content}} ->
             File.write(block_path, content)
 
             conn

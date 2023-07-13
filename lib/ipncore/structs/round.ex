@@ -28,10 +28,13 @@ defmodule Ippan.Round do
   def compute_hash(round, prev, hashes) do
     ([
        to_string(round),
-       prev
+       normalize(prev)
      ] ++
        hashes)
     |> IO.iodata_to_binary()
     |> Blake3.hash()
   end
+
+  defp normalize(nil), do: ""
+  defp normalize(x), do: x
 end

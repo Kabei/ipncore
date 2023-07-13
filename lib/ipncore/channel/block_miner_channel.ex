@@ -33,7 +33,7 @@ defmodule BlockMinerChannel do
     if hash not in cache do
       Logger.debug("not cache")
       BlockStore.insert_vote(height, round, from_id, creator_id, hash, signature, 0)
-      send_fetch(self(), block)
+      send_fetch(block)
       {:noreply, %{state | cache: cache ++ [hash]}}
     else
       Logger.debug("hit cache")
@@ -152,23 +152,24 @@ defmodule BlockMinerChannel do
     Map.put(block, :signature, signature)
   end
 
-  defp send_fetch(pid, block) do
+  defp send_fetch(block) do
     spawn_link(fn ->
       case Node.list() do
         [] ->
           :timer.sleep(1500)
-          send_fetch(pid, block)
+          send_fetch(block)
 
         node_list ->
           node_atom = node_list |> Enum.random()
 
           local = node() |> to_string() |> String.split("@") |> List.last()
+          hash16 = Base.encode16(block.hash)
           Logger.debug(inspect(local))
 
           case Node.ping(node_atom) do
             :pong ->
               Logger.debug(inspect("pong block:#{node_atom}"))
-              PubSub.subscribe(:miner, "block:#{block.hash}")
+              PubSub.subscribe(:miner, "block:#{hash16}")
               validator = ValidatorStore.lookup([block.creator])
 
               PubSub.broadcast(
@@ -179,21 +180,23 @@ defmodule BlockMinerChannel do
 
               receive do
                 {"valid", _result, _block, _host} = msg ->
-                  PubSub.unsubscribe(:miner, "block:#{block.hash}")
-                  send(pid, msg)
+                  Logger.debug(inspect(msg))
+                  PubSub.unsubscribe(:miner, "block:#{hash16}")
+                  PubSub.broadcast(:miner, "block", msg)
 
-                _ ->
+                msg ->
+                  Logger.debug(inspect(msg))
                   :ok
               after
                 10_000 ->
-                  PubSub.unsubscribe(:miner, "block:#{block.hash}")
-                  send_fetch(pid, block)
+                  PubSub.unsubscribe(:miner, "block:#{hash16}")
+                  send_fetch(block)
               end
 
             :pang ->
               Logger.debug("pang")
               :timer.sleep(1500)
-              send_fetch(pid, block)
+              send_fetch(block)
           end
       end
     end)

@@ -24,7 +24,8 @@ defmodule BlockVerifierChannel do
          } = block, %{hostname: hostname} = validator, origin},
         state
       ) do
-    Logger.debug("block.fetch #{Base.encode16(hash)}")
+    hash16 = Base.encode16(hash)
+    Logger.debug("block.fetch #{hash16}")
     decode_dir = Application.get_env(@otp_app, :decode_dir)
     filename = "#{vid}.#{height}.#{@file_extension}"
     block_path = Path.join(decode_dir, filename)
@@ -39,11 +40,11 @@ defmodule BlockVerifierChannel do
 
       PubSub.broadcast(
         @send_to,
-        "block:#{hash}",
+        "block:#{hash16}",
         {"valid:#{hash}", :ok, block, origin}
       )
     rescue
-      _ -> PubSub.broadcast(@send_to, "block:#{hash}", {"valid", :error, block, origin})
+      _ -> PubSub.broadcast(@send_to, "block:#{hash16}", {"valid", :error, block, origin})
     end
 
     {:noreply, state}

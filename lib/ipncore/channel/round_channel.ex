@@ -24,7 +24,7 @@ defmodule RoundChannel do
   def handle_info({"end", round}, state) do
     MessageStore.sync()
     WalletStore.sync()
-    ValidatorStore.sync()
+    # ValidatorStore.sync()
     {:noreply, Map.put(state, :round, round)}
   end
 

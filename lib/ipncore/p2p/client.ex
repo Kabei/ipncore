@@ -56,10 +56,10 @@ defmodule Ippan.P2P.Client do
      }, {:continue, :reconnect}}
   end
 
-  @spec push(pid(), String.t(), term()) :: :ok
-  def push(pid, event, msg) do
-    GenServer.cast(pid, {:push, {event, msg}})
-  end
+  # @spec push(pid(), String.t(), term()) :: :ok
+  # def push(pid, event, msg) do
+  #   GenServer.cast(pid, {:push, {event, msg}})
+  # end
 
   def stop(pid) do
     GenServer.stop(pid, :normal)
@@ -95,8 +95,8 @@ defmodule Ippan.P2P.Client do
     end
   end
 
-  def handle_info({:tcp, _socket, data}, state) do
-    message = decode(data, state)
+  def handle_info({:tcp, _socket, data}, %{sharedkey: sharedkey} = state) do
+    message = decode(data, sharedkey)
 
     case message do
       {event, data} ->
@@ -170,13 +170,13 @@ defmodule Ippan.P2P.Client do
     {:stop, :normal, state}
   end
 
-  @impl true
-  def handle_cast({:push, data}, %{socket: socket} = state) do
-    message = encode(data, state)
-    @adapter.send(socket, message)
+  # @impl true
+  # def handle_cast({:push, data}, %{socket: socket, sharedkey: sharedkey} = state) do
+  #   message = encode(data, sharedkey)
+  #   @adapter.send(socket, message)
 
-    {:noreply, state}
-  end
+  #   {:noreply, state}
+  # end
 
   defp connect(%{hostname: hostname, port: port} = state) do
     IO.inspect("connecting")

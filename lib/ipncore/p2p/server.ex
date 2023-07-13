@@ -36,17 +36,18 @@ defmodule Ippan.P2P.Server do
     Application.put_env(@otp_app, :privkey, privkey)
   end
 
-  def send(pid, event, msg) do
-    message = Map.put(msg, :event, event)
-    GenServer.cast(pid, {:send, message})
-  end
+  # def send(pid, event, msg) do
+  #   message = Map.put(msg, :event, event)
+  #   GenServer.cast(pid, {:send, message})
+  # end
 
-  def handle_cast({:send, data}, %{socket: socket} = state) do
-    message = encode(data, state)
-    @adapter.send(socket, message)
+  # @impl true
+  # def handle_cast({:send, data}, %{socket: socket, sharedkey: sharedkey} = state) do
+  #   message = encode(data, sharedkey)
+  #   @adapter.send(socket, message)
 
-    {:noreply, state}
-  end
+  #   {:noreply, state}
+  # end
 
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
@@ -58,10 +59,10 @@ defmodule Ippan.P2P.Server do
     {:continue, state}
   end
 
-  def handle_data(data, _socket, %{id: id} = state) do
+  def handle_data(data, _socket, %{id: id, sharedkey: sharedkey} = state) do
     Logger.debug("data: #{data}")
 
-    case decode(data, state) do
+    case decode(data, sharedkey) do
       {"block", action, data} ->
         PubSub.broadcast(:miner, "block", {action, id, data})
 
@@ -149,23 +150,23 @@ defmodule Ippan.P2P.Server do
     end
   end
 
-  defp encode(msg, sharedkey) do
-    bin = :erlang.term_to_binary(msg)
-    iv = :crypto.strong_rand_bytes(12)
+  # defp encode(msg, sharedkey) do
+  #   bin = :erlang.term_to_binary(msg)
+  #   iv = :crypto.strong_rand_bytes(12)
 
-    {ciphertext, tag} =
-      :crypto.crypto_one_time_aead(
-        :chacha20_poly1305,
-        sharedkey,
-        iv,
-        bin,
-        @seconds,
-        @tag_bytes,
-        true
-      )
+  #   {ciphertext, tag} =
+  #     :crypto.crypto_one_time_aead(
+  #       :chacha20_poly1305,
+  #       sharedkey,
+  #       iv,
+  #       bin,
+  #       @seconds,
+  #       @tag_bytes,
+  #       true
+  #     )
 
-    iv <> tag <> ciphertext
-  end
+  #   iv <> tag <> ciphertext
+  # end
 
   defp decode(packet, sharedkey) do
     <<iv::bytes-size(12), tag::bytes-size(16), ciphertext::binary>> = packet

@@ -32,6 +32,43 @@ defmodule Test do
     {pk1, sk1, address1, pk2, sk2, address2}
   end
 
+  # def init do
+  #   sk =
+  #     <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
+  #       100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 83>>
+
+  #   seed =
+  #     <<114, 126, 255, 205, 14, 72, 7, 127, 21, 47, 45, 57, 188, 66, 144, 114, 118, 204, 255, 86,
+  #       236, 6, 168, 77, 247, 60, 145, 142, 137, 32, 81, 188, 167, 95, 239, 138, 212, 128, 12,
+  #       211, 239, 154, 118, 40, 154, 90, 156, 28>>
+
+  #   {pk, sk, address} = Test.gen_ed25519(sk)
+  #   {pkv, _skv, _addressv} = Test.gen_falcon(seed)
+
+  #   Test.wallet_new(pk, 0) |> Test.run()
+
+  #   BlockTimer.mine()
+  #   BlockTimer.round_end()
+
+  #   Test.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", %{
+  #     "avatar" => "https://avatar.com",
+  #     "props" => ["coinbase", "lock", "burn"]
+  #   })
+  #   |> Test.run()
+
+  #   BlockTimer.mine()
+  #   BlockTimer.round_end()
+
+  #   Test.validator_new(sk, address, 0, address, "ippan.org", "Speedy", pk, pkv, 1, 0.01)
+  #   |> Test.run()
+
+  #   Test.validator_new(sk, address, 1, address, "ippan.co.uk", "Raptor", pk, pkv, 1, 0.01)
+  #   |> Test.run()
+
+  #   BlockTimer.mine()
+  #   BlockTimer.round_end()
+  # end
+
   # Test.bench_send(10_000)
   @doc """
   Test.init()

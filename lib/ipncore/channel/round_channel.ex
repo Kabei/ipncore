@@ -10,9 +10,9 @@ defmodule RoundChannel do
   end
 
   @impl true
-  def init(args) do
+  def init(_args) do
     PubSub.subscribe(@pubsub_server, @channel)
-    {:ok, args}
+    {:ok, %{}}
   end
 
   @impl true

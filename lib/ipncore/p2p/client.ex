@@ -141,6 +141,7 @@ defmodule Ippan.P2P.Client do
     case state do
       %{socket: socket, sharedkey: sharedkey} ->
         @adapter.send(socket, encode(msg, sharedkey))
+        {:noreply, state}
 
       %{mailbox: mailbox} ->
         {:noreply, %{state | mailbox: mailbox ++ [msg]}}

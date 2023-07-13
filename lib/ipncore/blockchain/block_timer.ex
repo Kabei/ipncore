@@ -139,7 +139,8 @@ defmodule BlockTimer do
         height,
         old_round,
         validator_id,
-        prev_hash
+        prev_hash,
+        :os.system_time(:millisecond)
       )
 
     if new_height != height do
@@ -221,13 +222,6 @@ defmodule BlockTimer do
     send(BlockTimer, {:end, %{round: new_round, tRef: tRef, sync_round: false}})
   end
 
-  defp catch_last_row_id([]), do: -1
-
-  defp catch_last_row_id(requests) do
-    List.last(requests)
-    |> List.last()
-  end
-
   @doc """
   used by verifiers to download and verify blockfiles
   """
@@ -275,17 +269,23 @@ defmodule BlockTimer do
   end
 
   def mine_file(
-        %{creator: creator_id, height: height, prev: prev_hash, round: round},
+        %{
+          creator: creator_id,
+          height: height,
+          prev: prev_hash,
+          round: round,
+          timestamp: timestamp
+        },
         decode_path
       ) do
     {:ok, content} = File.read(decode_path)
 
     requests = decode!(content)
 
-    mine(requests, height, round, creator_id, prev_hash)
+    mine(requests, height, round, creator_id, prev_hash, timestamp)
   end
 
-  def mine(requests, height, round, validator_id, prev_hash) do
+  def mine(requests, height, round, validator_id, prev_hash, block_timestamp) do
     block_path = Block.block_path(validator_id, height)
 
     events =
@@ -367,7 +367,6 @@ defmodule BlockTimer do
     :ok = File.write(block_path, content)
     block_size = File.stat!(block_path).size
     hashfile = hash_file(block_path)
-    timestamp = :os.system_time(:millisecond)
     ev_count = length(events)
 
     if ev_count > 0 do
@@ -380,7 +379,7 @@ defmodule BlockTimer do
       creator: validator_id,
       hashfile: hashfile,
       round: round,
-      timestamp: timestamp,
+      timestamp: block_timestamp,
       ev_count: ev_count,
       size: block_size,
       vsn: @block_version
@@ -427,6 +426,13 @@ defmodule BlockTimer do
     BlockStore.checkpoint()
     RoundStore.checkpoint()
     MessageStore.checkpoint()
+  end
+
+  defp catch_last_row_id([]), do: -1
+
+  defp catch_last_row_id(requests) do
+    List.last(requests)
+    |> List.last()
   end
 
   defp decode_term(nil), do: nil

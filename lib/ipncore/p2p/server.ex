@@ -61,7 +61,7 @@ defmodule Ippan.P2P.Server do
   end
 
   def handle_data(data, _socket, %{id: id, sharedkey: sharedkey} = state) do
-    Logger.debug("data: #{data}")
+    Logger.debug("data: #{inspect(data)}")
 
     case decode(data, sharedkey) do
       {"block", action, data} ->

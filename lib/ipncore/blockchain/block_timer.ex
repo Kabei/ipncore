@@ -58,7 +58,10 @@ defmodule BlockTimer do
   end
 
   def next_round do
-    GenServer.cast(BlockTimer, :next_round)
+    case :sys.get_state(BlockTimer) do
+      %{sync_round: false} -> GenServer.cast(BlockTimer, :next_round)
+      _ -> :none
+    end
   end
 
   def start do

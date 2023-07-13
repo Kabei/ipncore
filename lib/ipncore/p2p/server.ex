@@ -65,8 +65,12 @@ defmodule Ippan.P2P.Server do
 
     try do
       case decode!(data, sharedkey) do
+        {"block", "recv", block_id} ->
+          PubSub.broadcast(:network, "msg:#{id}", {"clear", block_id})
+
         {"block", action, data} ->
           PubSub.broadcast(:miner, "block", {action, id, data})
+          PubSub.broadcast(:network, "msg", {"block", "recv", Map.get(data, :height)})
 
         _ ->
           :ok

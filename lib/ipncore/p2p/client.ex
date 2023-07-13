@@ -53,7 +53,7 @@ defmodule Ippan.P2P.Client do
        address: address,
        pubkey: pubkey,
        privkey: privkey,
-       mailbox: []
+       mailbox: %{}
      }, {:continue, :reconnect}}
   end
 
@@ -138,14 +138,18 @@ defmodule Ippan.P2P.Client do
     {:stop, reason, state}
   end
 
-  def handle_info({_event, _action, _data} = msg, state) do
+  def handle_info({"clear", id}, %{mailbox: mailbox} = state) do
+    {:noreply, %{state | mailbox: Map.delete(mailbox, id)}}
+  end
+
+  def handle_info({_event, _action, data} = msg, state) do
     case state do
       %{socket: socket, sharedkey: sharedkey} ->
         @adapter.send(socket, encode(msg, sharedkey))
         {:noreply, state}
 
       %{mailbox: mailbox} ->
-        {:noreply, %{state | mailbox: mailbox ++ [msg]}}
+        {:noreply, %{state | mailbox: Map.put(mailbox, data.height, data)}}
     end
   end
 
@@ -231,7 +235,7 @@ defmodule Ippan.P2P.Client do
       @adapter.send(socket, encode(msg, sharedkey))
     end)
 
-    Map.put(state, :mailbox, [])
+    state
   end
 
   defp encode(msg, sharedkey) do
@@ -254,7 +258,8 @@ defmodule Ippan.P2P.Client do
 
   defp decode(packet, sharedkey) do
     try do
-      <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
+      <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> =
+        packet
 
       :crypto.crypto_one_time_aead(
         :chacha20_poly1305,

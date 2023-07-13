@@ -26,12 +26,12 @@ defmodule BlockMinerChannel do
            creator: creator_id,
            signature: signature
          } = block},
-        %{cache: cache} = state
+        %{cache: cache, round: round_number} = state
       ) do
     Logger.debug("block.new_recv #{Base.encode16(hash)}")
 
-    if hash not in cache do
-      Logger.debug("not cache")
+    if hash not in cache or round > round_number do
+      Logger.debug("not in cache")
       BlockStore.insert_vote(height, round, from_id, creator_id, hash, signature, 0)
       send_fetch(block)
       {:noreply, %{state | cache: cache ++ [hash]}}
@@ -41,7 +41,10 @@ defmodule BlockMinerChannel do
     end
   end
 
-  def handle_info({"valid", :ok, %{hash: hash, round: round} = data, origin}, state) do
+  def handle_info(
+        {"valid", :ok, %{hash: hash, round: round} = data, origin},
+        %{round: round_number} = state
+      ) do
     {:ok, signature} = Block.sign("#{hash}1")
 
     vote = register_vote(data, Default.validator_id(), signature, 1)
@@ -55,7 +58,7 @@ defmodule BlockMinerChannel do
       BlockTimer.next_round()
     end
 
-    {:noreply, state}
+    {:noreply, %{state | round: round_number + 1}}
   end
 
   def handle_info({"valid", :error, data, _origin}, state) do

@@ -123,7 +123,7 @@ defmodule Ippan.P2P.Client do
   end
 
   def handle_info(:ping, %{socket: socket} = state) do
-    @adapter.send(socket, "PING")
+    tcp_send(socket, <<0, 4>> <> "PING")
     {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
     {:noreply, Map.put(state, :tRef, tRef)}
   end
@@ -139,7 +139,7 @@ defmodule Ippan.P2P.Client do
   def handle_info({_event, _action, data} = msg, %{mailbox: mailbox} = state) do
     case state do
       %{socket: socket, sharedkey: sharedkey} ->
-        @adapter.send(socket, encode_flag(msg, sharedkey))
+        tcp_send(socket, encode(msg, sharedkey))
 
       _ ->
         :ok
@@ -209,7 +209,7 @@ defmodule Ippan.P2P.Client do
         id = Default.validator_id()
         {:ok, signature} = Cafezinho.Impl.sign(sharedkey, state.privkey)
         authtext = encode(state.pubkey <> <<id::64>> <> signature, sharedkey)
-        @adapter.send(socket, "THX" <> ciphertext <> authtext)
+        tcp_send(socket, "THX" <> ciphertext <> authtext)
         {:ok, sharedkey}
 
       error ->
@@ -223,7 +223,7 @@ defmodule Ippan.P2P.Client do
 
   defp check_mail_box(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
     Enum.each(mailbox, fn {_key, msg} ->
-      @adapter.send(socket, encode_flag(msg, sharedkey))
+      tcp_send(socket, encode(msg, sharedkey))
     end)
 
     state
@@ -250,50 +250,11 @@ defmodule Ippan.P2P.Client do
     iv <> tag <> ciphertext
   end
 
-  defp encode_flag(msg, sharedkey) do
-    IO.inspect("encode")
-    IO.inspect(Base.encode16(sharedkey), limit: :infinity)
-    bin = :erlang.term_to_binary(msg)
-    iv = :crypto.strong_rand_bytes(@iv_bytes)
-
-    {ciphertext, tag} =
-      :crypto.crypto_one_time_aead(
-        :chacha20_poly1305,
-        sharedkey,
-        iv,
-        bin,
-        @seconds,
-        @tag_bytes,
-        true
-      )
-
-    r = apply_size(iv <> tag <> ciphertext)
-    IO.inspect(r, limit: :infinity)
-    r
+  defp tcp_send(socket, packet) do
+    @adapter.send(socket, apply_size(packet))
   end
 
-  # defp decode(packet, sharedkey) do
-  #   try do
-  #     <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
-
-  #     :crypto.crypto_one_time_aead(
-  #       :chacha20_poly1305,
-  #       sharedkey,
-  #       iv,
-  #       ciphertext,
-  #       @seconds,
-  #       tag,
-  #       false
-  #     )
-  #     |> :erlang.binary_to_term([:safe])
-  #   rescue
-  #     _error ->
-  #       :error
-  #   end
-  # end
-
   defp apply_size(packet) do
-    IO.inspect("#{byte_size(packet)} bytes")
     <<byte_size(packet)::16>> <> packet
   end
 

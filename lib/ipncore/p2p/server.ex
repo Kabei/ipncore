@@ -96,7 +96,7 @@ defmodule Ippan.P2P.Server do
 
   defp handshake(socket, state) do
     msg = "WEL" <> @version <> Application.get_env(@otp_app, :net_pubkey)
-    @adapter.send(socket, msg)
+    tcp_send(socket, msg)
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
@@ -185,4 +185,12 @@ defmodule Ippan.P2P.Server do
   end
 
   defp normalize_packet(_, acc), do: acc
+
+  defp tcp_send(socket, packet) do
+    @adapter.send(socket, apply_size(packet))
+  end
+
+  defp apply_size(packet) do
+    <<byte_size(packet)::16>> <> packet
+  end
 end

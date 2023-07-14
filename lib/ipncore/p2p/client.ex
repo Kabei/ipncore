@@ -55,11 +55,6 @@ defmodule Ippan.P2P.Client do
      }, {:continue, :reconnect}}
   end
 
-  # @spec push(pid(), String.t(), term()) :: :ok
-  # def push(pid, event, msg) do
-  #   GenServer.cast(pid, {:push, {event, msg}})
-  # end
-
   def stop(pid) do
     GenServer.stop(pid, :normal)
   end
@@ -110,10 +105,11 @@ defmodule Ippan.P2P.Client do
 
   def handle_info(
         {:tcp_closed, _socket},
-        %{hostname: hostname, port: port, tRef: tRef} = state
+        %{hostname: hostname, socket: socket, port: port, tRef: tRef} = state
       ) do
     Logger.debug("tcp_closed | #{hostname}:#{port}")
     :timer.cancel(tRef)
+    @adapter.close(socket)
     :timer.send_after(@time_to_reconnect, :reconnect)
     {:noreply, state}
   end
@@ -180,17 +176,7 @@ defmodule Ippan.P2P.Client do
     {:stop, :normal, state}
   end
 
-  # @impl true
-  # def handle_cast({:push, data}, %{socket: socket, sharedkey: sharedkey} = state) do
-  #   message = encode(data, sharedkey)
-  #   @adapter.send(socket, message)
-
-  #   {:noreply, state}
-  # end
-
   defp connect(%{hostname: hostname, port: port} = state) do
-    IO.inspect("connecting")
-
     try do
       Logger.info("#{hostname}:#{port} | connecting...")
 
@@ -203,8 +189,9 @@ defmodule Ippan.P2P.Client do
       :ok = :inet.setopts(socket, active: true)
 
       new_state = Map.merge(state, %{socket: socket, sharedkey: sharedkey, tRef: tRef})
-      Logger.debug("#{hostname}:#{port} | connected")
-      # {:reply, {:ok, socket}, new_state}
+      Logger.debug("#{hostname}:#{port} | connected #{sharedkey}")
+      IO.inspect(sharedkey, limit: :infinity)
+
       {:ok, check_mail_box(new_state)}
     rescue
       MatchError ->

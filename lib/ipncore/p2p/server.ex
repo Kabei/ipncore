@@ -107,8 +107,6 @@ defmodule Ippan.P2P.Server do
 
             case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
               :ok ->
-                # IO.inspect("id #{id}")
-
                 case ValidatorStore.lookup([id]) do
                   nil ->
                     Logger.debug("[Server connection] validator not exists")
@@ -119,7 +117,7 @@ defmodule Ippan.P2P.Server do
                       Logger.debug("[Server connection] Invalid handshake pubkey")
                       {:close, state}
                     else
-                      Logger.debug("[Server connection] OK #{name} connected")
+                      Logger.debug("[Server connection] OK #{name} connected #{sharedkey}")
 
                       {:continue,
                        %{

@@ -139,7 +139,7 @@ defmodule Ippan.P2P.Client do
   def handle_info({_event, _action, data} = msg, %{mailbox: mailbox} = state) do
     case state do
       %{socket: socket, sharedkey: sharedkey} ->
-        @adapter.send(socket, encode(msg, sharedkey))
+        @adapter.send(socket, encode_flag(msg, sharedkey))
 
       _ ->
         :ok
@@ -223,13 +223,34 @@ defmodule Ippan.P2P.Client do
 
   defp check_mail_box(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
     Enum.each(mailbox, fn {_key, msg} ->
-      @adapter.send(socket, encode(msg, sharedkey))
+      @adapter.send(socket, encode_flag(msg, sharedkey))
     end)
 
     state
   end
 
   defp encode(msg, sharedkey) do
+    IO.inspect("encode")
+    IO.inspect(Base.encode16(sharedkey), limit: :infinity)
+    IO.inspect(msg, limit: :infinity)
+    bin = :erlang.term_to_binary(msg)
+    iv = :crypto.strong_rand_bytes(@iv_bytes)
+
+    {ciphertext, tag} =
+      :crypto.crypto_one_time_aead(
+        :chacha20_poly1305,
+        sharedkey,
+        iv,
+        bin,
+        @seconds,
+        @tag_bytes,
+        true
+      )
+
+    iv <> tag <> ciphertext
+  end
+
+  defp encode_flag(msg, sharedkey) do
     IO.inspect("encode")
     IO.inspect(Base.encode16(sharedkey), limit: :infinity)
     IO.inspect(msg, limit: :infinity)

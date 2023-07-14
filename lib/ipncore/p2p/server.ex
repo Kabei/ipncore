@@ -157,8 +157,6 @@ defmodule Ippan.P2P.Server do
     IO.inspect(Base.encode16(sharedkey), limit: :infinity)
     IO.inspect(packet, limit: :infinity)
 
-    # <<riv::bytes-size(12), rtag::bytes-size(16), rciphertext::binary>> = r
-
     :crypto.crypto_one_time_aead(
       :chacha20_poly1305,
       sharedkey,

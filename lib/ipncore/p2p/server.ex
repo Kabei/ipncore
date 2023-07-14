@@ -157,16 +157,21 @@ defmodule Ippan.P2P.Server do
     IO.inspect(Base.encode16(sharedkey), limit: :infinity)
     IO.inspect(packet, limit: :infinity)
 
-    :crypto.crypto_one_time_aead(
-      :chacha20_poly1305,
-      sharedkey,
-      iv,
-      ciphertext,
-      @seconds,
-      tag,
-      false
-    )
-    |> :erlang.binary_to_term([:safe])
+    r =
+      :crypto.crypto_one_time_aead(
+        :chacha20_poly1305,
+        sharedkey,
+        iv,
+        ciphertext,
+        @seconds,
+        tag,
+        false
+      )
+      |> :erlang.binary_to_term([:safe])
+
+    IO.inspect(r, limit: :infinity)
+
+    r
   end
 
   defp normalize_packet(<<size::16, rest::binary>>, acc) do

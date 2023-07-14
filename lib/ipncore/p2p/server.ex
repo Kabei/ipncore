@@ -169,6 +169,7 @@ defmodule Ippan.P2P.Server do
 
   defp decode!(packet, sharedkey) do
     <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
+    IO.inspect("decode")
     IO.inspect(Base.encode16(sharedkey), limit: :infinity)
     IO.inspect(packet, limit: :infinity)
 

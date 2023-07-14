@@ -123,7 +123,7 @@ defmodule Ippan.P2P.Client do
   end
 
   def handle_info(:ping, %{socket: socket} = state) do
-    tcp_send(socket, <<0, 4>> <> "PING")
+    tcp_send(socket, "PING")
     {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
     {:noreply, Map.put(state, :tRef, tRef)}
   end
@@ -202,7 +202,7 @@ defmodule Ippan.P2P.Client do
 
   defp handshake(socket, state) do
     case @adapter.recv(socket, 0, @handshake_timeout) do
-      {:ok, "WEL" <> @version <> pubkey} ->
+      {:ok, <<_size::16>> <> "WEL" <> @version <> pubkey} ->
         IO.inspect("Welcome #{byte_size(pubkey)}")
         {:ok, ciphertext, sharedkey} = NtruKem.enc(pubkey)
 

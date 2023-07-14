@@ -35,9 +35,9 @@ config :ipncore, :http,
     compress: false
   ],
   thousand_island_options: [
-    num_acceptors: 500,
+    num_acceptors: 100,
     read_timeout: 60_000,
-    num_connections: 16_384,
+    num_connections: 4096,
     max_connections_retry_count: 5,
     max_connections_retry_wait: 1000,
     shutdown_timeout: 60_000,
@@ -45,7 +45,7 @@ config :ipncore, :http,
       backlog: 1024,
       nodelay: true,
       linger: {true, 30},
-      send_timeout: 15_000,
+      send_timeout: 10_000,
       send_timeout_close: true,
       reuseaddr: true
     ]

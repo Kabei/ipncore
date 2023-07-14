@@ -169,9 +169,9 @@ defmodule Ippan.P2P.Server do
 
   defp decode!(packet, sharedkey) do
     <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
-    IO.inspect(iv)
-    IO.inspect(tag)
-    IO.inspect(ciphertext)
+    IO.inspect(packet, limit: :infinity)
+
+    # <<riv::bytes-size(12), rtag::bytes-size(16), rciphertext::binary>> = r
 
     :crypto.crypto_one_time_aead(
       :chacha20_poly1305,

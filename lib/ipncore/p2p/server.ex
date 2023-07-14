@@ -49,7 +49,7 @@ defmodule Ippan.P2P.Server do
   end
 
   def handle_data(data, _socket, %{id: id, sharedkey: sharedkey} = state) do
-    Logger.debug("data: #{inspect(data, limit: :infinity)}")
+    # Logger.debug("data: #{inspect(data, limit: :infinity)}")
 
     try do
       case decode!(data, sharedkey) do

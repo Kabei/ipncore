@@ -75,7 +75,7 @@ defmodule Ippan.P2P.Client do
         {:ok, new_state} ->
           {:noreply, new_state}
 
-        error ->
+        _error ->
           # IO.inspect("reconnect error")
           # IO.inspect(error)
           :timer.send_after(@time_to_reconnect, :reconnect)

@@ -26,7 +26,15 @@ config :ipncore, :p2p,
   handler_module: Ippan.P2P.Server,
   transport_module: ThousandIsland.Transports.TCP,
   port: port,
-  num_acceptors: 10
+  num_acceptors: 10,
+  transport_options: [
+    backlog: 1024,
+    nodelay: true,
+    linger: {true, 30},
+    send_timeout: 30_000,
+    send_timeout_close: true,
+    reuseaddr: true
+  ]
 
 # http server
 config :ipncore, :http,

@@ -175,8 +175,8 @@ defmodule Ippan.P2P.Server do
   end
 
   defp normalize_packet(<<size::16, rest::binary>>, acc) do
-    <<msg::bytes-size(size), rest::binary>> = rest
-    normalize_packet(rest, acc ++ [msg])
+    <<msg::bytes-size(size), new_rest::binary>> = rest
+    normalize_packet(new_rest, acc ++ [msg])
   end
 
   defp normalize_packet(_, acc), do: acc

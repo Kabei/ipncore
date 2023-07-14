@@ -49,22 +49,20 @@ defmodule Ippan.P2P.Server do
     {:continue, state}
   end
 
-  def handle_data(packet, _socket, %{id: id, sharedkey: sharedkey} = state) do
-    Logger.debug("data: #{inspect(packet, limit: :infinity)}")
+  def handle_data(data, _socket, %{id: id, sharedkey: sharedkey} = state) do
+    Logger.debug("data: #{inspect(data, limit: :infinity)}")
 
     try do
-      for data <- normalize_packet(packet, []) do
-        case decode!(data, sharedkey) do
-          {"block", "recv", block_id} ->
-            PubSub.broadcast(:network, "msg:#{id}", {"clear", block_id})
+      case decode!(data, sharedkey) do
+        {"block", "recv", block_id} ->
+          PubSub.broadcast(:network, "msg:#{id}", {"clear", block_id})
 
-          {"block", action, data} ->
-            PubSub.broadcast(:miner, "block", {action, id, data})
-            PubSub.broadcast(:network, "msg", {"block", "recv", Map.get(data, :height)})
+        {"block", action, data} ->
+          PubSub.broadcast(:miner, "block", {action, id, data})
+          PubSub.broadcast(:network, "msg", {"block", "recv", Map.get(data, :height)})
 
-          _ ->
-            :ok
-        end
+        _ ->
+          :ok
       end
     rescue
       e ->
@@ -97,7 +95,7 @@ defmodule Ippan.P2P.Server do
 
   defp handshake(socket, state) do
     msg = "WEL" <> @version <> Application.get_env(@otp_app, :net_pubkey)
-    tcp_send(socket, msg)
+    @adapter.send(socket, msg)
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
@@ -173,25 +171,5 @@ defmodule Ippan.P2P.Server do
     IO.inspect(r, limit: :infinity)
 
     r
-  end
-
-  defp normalize_packet(<<size::16, rest::binary>>, acc) do
-    try do
-      <<msg::bytes-size(size), new_rest::binary>> = rest
-      normalize_packet(new_rest, acc ++ [msg])
-    rescue
-      _ ->
-        acc
-    end
-  end
-
-  defp normalize_packet(_, acc), do: acc
-
-  defp tcp_send(socket, packet) do
-    @adapter.send(socket, packet)
-  end
-
-  defp apply_size(packet) do
-    <<byte_size(packet)::16>> <> packet
   end
 end

@@ -123,7 +123,7 @@ defmodule Ippan.P2P.Client do
   end
 
   def handle_info(:ping, %{socket: socket} = state) do
-    tcp_send(socket, "PING")
+    @adapter.send(socket, "PING")
     {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
     {:noreply, Map.put(state, :tRef, tRef)}
   end
@@ -139,7 +139,7 @@ defmodule Ippan.P2P.Client do
   def handle_info({_event, _action, data} = msg, %{mailbox: mailbox} = state) do
     case state do
       %{socket: socket, sharedkey: sharedkey} ->
-        tcp_send(socket, encode(msg, sharedkey))
+        @adapter.send(socket, encode(msg, sharedkey))
 
       _ ->
         :ok
@@ -209,7 +209,7 @@ defmodule Ippan.P2P.Client do
         id = Default.validator_id()
         {:ok, signature} = Cafezinho.Impl.sign(sharedkey, state.privkey)
         authtext = encode(state.pubkey <> <<id::64>> <> signature, sharedkey)
-        tcp_send(socket, "THX" <> ciphertext <> authtext)
+        @adapter.send(socket, "THX" <> ciphertext <> authtext)
         {:ok, sharedkey}
 
       error ->
@@ -223,7 +223,7 @@ defmodule Ippan.P2P.Client do
 
   defp check_mail_box(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
     Enum.each(mailbox, fn {_key, msg} ->
-      tcp_send(socket, encode(msg, sharedkey))
+      @adapter.send(socket, encode(msg, sharedkey))
     end)
 
     state
@@ -248,14 +248,6 @@ defmodule Ippan.P2P.Client do
       )
 
     iv <> tag <> ciphertext
-  end
-
-  defp tcp_send(socket, packet) do
-    @adapter.send(socket, packet)
-  end
-
-  defp apply_size(packet) do
-    <<byte_size(packet)::16>> <> packet
   end
 
   defp subscribe(vid) do

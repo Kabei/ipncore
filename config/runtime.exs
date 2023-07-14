@@ -34,7 +34,7 @@ config :ipncore, :p2p,
     send_timeout: 30_000,
     send_timeout_close: true,
     reuseaddr: true,
-    packet: :raw
+    packet: 2
   ]
 
 # http server

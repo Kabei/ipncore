@@ -15,8 +15,6 @@ defmodule Ippan.P2P.Client do
   @ping_interval 40_000
   @pubsub_server :network
 
-  # {:ok, pid} = Ippan.P2P.Client.start_link('localhost', 5815, "priv/secret.key")
-  # Ippan.P2P.Client.send(pid, "block.new", %{hash: "123456"})
   def start_link({hostname, port, vid, key_path}) do
     seed =
       if File.regular?(key_path) do

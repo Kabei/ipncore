@@ -64,7 +64,9 @@ defmodule Ippan.P2P.Server do
           :ok
       end
     rescue
-      e -> Logger.error(inspect(e))
+      e ->
+        # Logger.error(inspect(e))
+        Logger.debug(Exception.format(:error, e, __STACKTRACE__))
     end
 
     {:continue, state}

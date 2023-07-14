@@ -230,6 +230,8 @@ defmodule Ippan.P2P.Client do
   end
 
   defp encode(msg, sharedkey) do
+    IO.inspect("encode")
+    IO.inspect(msg, limit: :infinity)
     bin = :erlang.term_to_binary(msg)
     iv = :crypto.strong_rand_bytes(@iv_bytes)
 

@@ -142,14 +142,19 @@ defmodule Ippan.P2P.Client do
     {:noreply, %{state | mailbox: Map.delete(mailbox, id)}}
   end
 
-  def handle_info({_event, _action, data} = msg, state) do
+  def handle_info({_event, _action, data} = msg, %{mailbox: mailbox} = state) do
     case state do
       %{socket: socket, sharedkey: sharedkey} ->
         @adapter.send(socket, encode(msg, sharedkey))
-        {:noreply, state}
 
-      %{mailbox: mailbox} ->
-        {:noreply, %{state | mailbox: Map.put(mailbox, data.height, data)}}
+      _ ->
+        :ok
+    end
+
+    if is_binary(data) do
+      {:noreply, %{state | mailbox: Map.put(mailbox, data, msg)}}
+    else
+      {:noreply, %{state | mailbox: Map.put(mailbox, data.height, msg)}}
     end
   end
 
@@ -231,7 +236,7 @@ defmodule Ippan.P2P.Client do
   defp check_mail_box(%{mailbox: []} = state), do: state
 
   defp check_mail_box(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
-    Enum.each(mailbox, fn msg ->
+    Enum.each(mailbox, fn {_key, msg} ->
       @adapter.send(socket, encode(msg, sharedkey))
     end)
 
@@ -258,8 +263,7 @@ defmodule Ippan.P2P.Client do
 
   defp decode(packet, sharedkey) do
     try do
-      <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> =
-        packet
+      <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
 
       :crypto.crypto_one_time_aead(
         :chacha20_poly1305,

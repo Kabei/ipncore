@@ -182,7 +182,7 @@ defmodule Ippan.P2P.Client do
 
       {:ok, ip_addr} = :inet_udp.getaddr(String.to_charlist(hostname))
 
-      {:ok, socket} = @adapter.connect(ip_addr, port, [:binary, packet: :raw, reuseaddr: true])
+      {:ok, socket} = @adapter.connect(ip_addr, port, [:binary, packet: 2, reuseaddr: true])
       :inet.setopts(socket, active: false)
       {:ok, sharedkey} = handshake(socket, state)
       {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
@@ -202,7 +202,7 @@ defmodule Ippan.P2P.Client do
 
   defp handshake(socket, state) do
     case @adapter.recv(socket, 0, @handshake_timeout) do
-      {:ok, <<_size::16>> <> "WEL" <> @version <> pubkey} ->
+      {:ok, "WEL" <> @version <> pubkey} ->
         IO.inspect("Welcome #{byte_size(pubkey)}")
         {:ok, ciphertext, sharedkey} = NtruKem.enc(pubkey)
 
@@ -251,7 +251,7 @@ defmodule Ippan.P2P.Client do
   end
 
   defp tcp_send(socket, packet) do
-    @adapter.send(socket, apply_size(packet))
+    @adapter.send(socket, packet)
   end
 
   defp apply_size(packet) do

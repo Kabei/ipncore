@@ -44,7 +44,8 @@ defmodule Ippan.P2P.Server do
   end
 
   @impl ThousandIsland.Handler
-  def handle_data(<<_, _>> <> "PING", _socket, state) do
+  def handle_data("PING", _socket, state) do
+    Logger.debug("PING")
     {:continue, state}
   end
 
@@ -99,7 +100,7 @@ defmodule Ippan.P2P.Server do
     tcp_send(socket, msg)
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
-      {:ok, <<_size::16>> <> "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
+      {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
         # IO.inspect("Thank")
 
         case NtruKem.dec(Application.get_env(@otp_app, :net_privkey), ciphertext) do
@@ -187,7 +188,7 @@ defmodule Ippan.P2P.Server do
   defp normalize_packet(_, acc), do: acc
 
   defp tcp_send(socket, packet) do
-    @adapter.send(socket, apply_size(packet))
+    @adapter.send(socket, packet)
   end
 
   defp apply_size(packet) do

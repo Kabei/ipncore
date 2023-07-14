@@ -293,6 +293,7 @@ defmodule Ippan.P2P.Client do
   # end
 
   defp apply_size(packet) do
+    IO.inspect("#{byte_size(packet)} bytes")
     <<byte_size(packet)::16>> <> packet
   end
 

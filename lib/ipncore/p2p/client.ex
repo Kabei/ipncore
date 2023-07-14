@@ -182,7 +182,7 @@ defmodule Ippan.P2P.Client do
 
       {:ok, ip_addr} = :inet_udp.getaddr(String.to_charlist(hostname))
 
-      {:ok, socket} = @adapter.connect(ip_addr, port, [:binary])
+      {:ok, socket} = @adapter.connect(ip_addr, port, [:binary, packet: :raw])
       :inet.setopts(socket, active: false)
       {:ok, sharedkey} = handshake(socket, state)
       {:ok, tRef} = :timer.send_after(@ping_interval, :ping)

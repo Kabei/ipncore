@@ -33,7 +33,8 @@ config :ipncore, :p2p,
     linger: {true, 30},
     send_timeout: 30_000,
     send_timeout_close: true,
-    reuseaddr: true
+    reuseaddr: true,
+    packet: :raw
   ]
 
 # http server

@@ -3,6 +3,7 @@ defmodule Ippan.Func.Wallet do
   alias Ippan.{Address, Wallet}
 
   @token Default.token()
+  @pubsub_server :verifiers
 
   def pre_new(%{timestamp: timestamp, hash: hash, round: round}, pubkey, validator_id)
       when is_integer(validator_id) do
@@ -62,7 +63,7 @@ defmodule Ippan.Func.Wallet do
     |> Wallet.to_list()
     |> WalletStore.insert()
 
-    PubSub.broadcast(:verifiers, "wallet", {"new", wallet})
+    PubSub.broadcast(@pubsub_server, "wallet", {"new", wallet})
   end
 
   def pre_sub(
@@ -103,6 +104,11 @@ defmodule Ippan.Func.Wallet do
     # fee amount is tx size
     :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
     WalletStore.update(%{validator: validator_id}, id: account_id)
-    PubSub.broadcast(:verifiers, "wallet", {"sub", %{id: account_id, validator: validator_id}})
+
+    PubSub.broadcast(
+      @pubsub_server,
+      "wallet",
+      {"sub", %{id: account_id, validator: validator_id}}
+    )
   end
 end

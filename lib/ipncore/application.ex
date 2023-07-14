@@ -40,12 +40,12 @@ defmodule Ipncore.Application do
     Ippan.P2P.Server.load_kem()
     Ippan.P2P.Server.load_key()
 
+    Platform.start(role)
+
     # services
     children =
       case role do
         "miner" ->
-          Platform.start()
-
           [
             {MessageStore, Path.join(data_dir, "requests/messages.db")},
             {WalletStore, Path.join(data_dir, "wallet/wallet.db")},

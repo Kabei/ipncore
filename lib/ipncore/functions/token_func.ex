@@ -2,10 +2,10 @@ defmodule Ippan.Func.Token do
   alias Ippan.Token
 
   @type result :: Ippan.Request.result()
-  @token Application.compile_env(:ipncore, :token)
+  # @token Application.compile_env(:ipncore, :token)
 
   def pre_new(
-        %{id: account_id, hash: hash,  round: round, timestamp: timestamp},
+        %{id: account_id, hash: hash, round: round, timestamp: timestamp},
         id,
         owner_id,
         name,
@@ -69,27 +69,16 @@ defmodule Ippan.Func.Token do
         name: name,
         decimal: decimal,
         symbol: symbol,
-        created_at: timestamp
+        created_at: timestamp,
+        updated_at: timestamp
       }
       |> Map.merge(MapUtil.to_atoms(map_filter))
       |> MapUtil.validate_url(:avatar)
       |> MapUtil.validate_any(:opts, Token.props())
 
-    if id == @token do
-      result =
-        token
-        |> Map.put(:updated_at, timestamp)
-        |> Token.to_list()
-        |> TokenStore.insert_sync()
-
-      Platform.start()
-
-      result
-    else
-      token
-      |> Token.to_list()
-      |> TokenStore.insert_sync()
-    end
+    token
+    |> Token.to_list()
+    |> TokenStore.insert_sync()
   end
 
   def update(%{id: account_id, timestamp: timestamp}, id, opts \\ %{})

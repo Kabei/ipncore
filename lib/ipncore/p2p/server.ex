@@ -37,21 +37,9 @@ defmodule Ippan.P2P.Server do
     Application.put_env(@otp_app, :privkey, privkey)
   end
 
-  # def send(pid, event, msg) do
-  #   message = Map.put(msg, :event, event)
-  #   GenServer.cast(pid, {:send, message})
-  # end
-
-  # @impl true
-  # def handle_cast({:send, data}, %{socket: socket, sharedkey: sharedkey} = state) do
-  #   message = encode(data, sharedkey)
-  #   @adapter.send(socket, message)
-
-  #   {:noreply, state}
-  # end
-
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
+    Logger.debug("handle_connection #{inspect(state)}")
     handshake(socket, state)
   end
 
@@ -108,7 +96,7 @@ defmodule Ippan.P2P.Server do
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
-        IO.inspect("Thank")
+        # IO.inspect("Thank")
 
         case NtruKem.dec(Application.get_env(@otp_app, :net_privkey), ciphertext) do
           {:ok, sharedkey} ->
@@ -117,7 +105,7 @@ defmodule Ippan.P2P.Server do
 
             case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
               :ok ->
-                IO.inspect("id #{id}")
+                # IO.inspect("id #{id}")
 
                 case ValidatorStore.lookup([id]) do
                   nil ->
@@ -152,9 +140,9 @@ defmodule Ippan.P2P.Server do
             {:close, state}
         end
 
-      error ->
+      _error ->
         Logger.debug("Invalid handshake")
-        IO.inspect(error)
+        # IO.inspect(error)
         {:close, state}
     end
   end

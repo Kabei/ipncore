@@ -49,7 +49,7 @@ defmodule Ippan.P2P.Server do
   end
 
   def handle_data(packet, _socket, %{id: id, sharedkey: sharedkey} = state) do
-    Logger.debug("data: #{inspect(packet)}")
+    Logger.debug("data: #{inspect(packet, limit: :infinity)}")
 
     try do
       for data <- normalize_packet(packet, []) do
@@ -181,8 +181,3 @@ defmodule Ippan.P2P.Server do
 
   defp normalize_packet(_, acc), do: acc
 end
-
-# <<riv::bytes-size(12), rtag::bytes-size(16), rciphertext::binary>> = data
-
-# :crypto.crypto_one_time_aead(:chacha20_poly1305, s1, riv, rciphertext, seconds, rtag, false)
-# |> :erlang.binary_to_term([:safe])

@@ -21,9 +21,9 @@
 ## 
 ## Installation
 ### Generate keys
-#### Each validator has 2 keys, one for signing blocks and another for signing connections. In addition, a third key (ntru-kem) is used for the handshake together with the falcon-512 key.
+Each validator has 2 keys, one for signing blocks and another for signing connections. In addition, a third key (ntru-kem) is used for the handshake together with the falcon-512 key.
 
-#### It is necessary to create the key files of the validator certificate that has the seeds in base64 format.
+It is necessary to create the key files of the validator certificate that has the seeds in base64 format.
 #### (!) The following sizes are binary and must be written in base64 text in the file
 * secret.key (32 bytes fixed)
 * falcon.key (+48 bytes)
@@ -39,7 +39,7 @@ curl https://github.com/kabei/releases/download/0.4/ipncore-install.sh \
 #
 ## Run
 
-#### There are two roles: the verifier performs preliminary verification and the miner writes transactions to the blockchain.
+There are two roles: the verifier performs preliminary verification and the miner writes transactions to the blockchain.
 ### Miner role
 ```bash
 MIX_ENV=prod ROLE=miner NODE=miner@172.17.0.1 COOKIE=supersecret \

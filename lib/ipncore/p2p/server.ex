@@ -5,12 +5,12 @@ defmodule Ippan.P2P.Server do
 
   @otp_app :ipncore
   @adapter ThousandIsland.Socket
-  @version <<0, 0>>
+  @version <<0::16>>
   @seconds <<0>>
   @iv_bytes 12
   @tag_bytes 16
   @handshake_timeout 5_000
-  @timeout 45_000
+  @timeout 60_000
 
   @spec load_kem :: :ok
   def load_kem do

@@ -2,7 +2,7 @@ defmodule Ippan.Func.Domain do
   alias Ippan.Domain
   alias Ippan.Utils
   @fullname_max_size 255
-  @token Default.token()
+  @token Application.compile_env(:ipncore, :token)
 
   def pre_new(
         %{id: account_id, hash: hash, size: size, round: round, timestamp: timestamp, validator: validator_id},

@@ -93,14 +93,37 @@ defmodule Ippan.Block do
     }
   end
 
-  @spec compute_hash(term) :: binary
-  def compute_hash(block) do
+  def zero_hash_file,
+    do:
+      <<215, 178, 135, 49, 141, 108, 154, 141, 105, 41, 234, 36, 222, 56, 0, 124, 63, 25, 150,
+        225, 37, 216, 254, 73, 65, 240, 8, 33, 179, 137, 99, 137>>
+
+  @spec put_hash(term()) :: term()
+  def put_hash(
+        block = %{
+          creator: creator,
+          height: height,
+          prev: prev,
+          hashfile: hashfile,
+          timestamp: timestamp
+        }
+      ) do
+    Map.put(block, :hash, compute_hash(height, creator, prev, hashfile, timestamp))
+  end
+
+  @spec put_signature(term()) :: term()
+  def put_signature(block) do
+    Map.put(block, :signature, sign(block.hash))
+  end
+
+  @spec compute_hash(integer(), integer(), binary(), binary(), integer()) :: binary
+  def compute_hash(height, creator, prev, hashfile, timestamp) do
     [
-      to_string(block.height),
-      to_string(block.creator),
-      normalize(block.prev),
-      block.hashfile,
-      to_string(block.timestamp)
+      to_string(height),
+      to_string(creator),
+      normalize(prev),
+      hashfile,
+      to_string(timestamp)
     ]
     |> IO.iodata_to_binary()
     |> Blake3.hash()

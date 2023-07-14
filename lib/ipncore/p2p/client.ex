@@ -6,14 +6,15 @@ defmodule Ippan.P2P.Client do
 
   @module __MODULE__
   @adapter :gen_tcp
-  @version <<0, 0>>
+  @version <<0::16>>
   @seconds <<0>>
   @iv_bytes 12
   @tag_bytes 16
   @time_to_reconnect 3_000
   @handshake_timeout 5_000
-  @ping_interval 40_000
+  @ping_interval 45_000
   @pubsub_server :network
+  @tcp_opts [:binary, packet: 2, reuseaddr: true]
 
   def start_link({hostname, port, vid, key_path}) do
     seed =
@@ -27,9 +28,7 @@ defmodule Ippan.P2P.Client do
     {:ok, {pubkey, privkey}} = Cafezinho.Impl.keypair_from_seed(seed)
 
     {:ok, pid} =
-      GenServer.start_link(@module, {hostname, port, pubkey, vid, privkey},
-        hibernate_after: 10_000
-      )
+      GenServer.start_link(@module, {hostname, port, pubkey, vid, privkey}, hibernate_after: 5_000)
 
     {:ok, pid}
   end
@@ -168,7 +167,7 @@ defmodule Ippan.P2P.Client do
 
       {:ok, ip_addr} = :inet_udp.getaddr(String.to_charlist(hostname))
 
-      {:ok, socket} = @adapter.connect(ip_addr, port, [:binary, packet: 2, reuseaddr: true])
+      {:ok, socket} = @adapter.connect(ip_addr, port, @tcp_opts)
       :inet.setopts(socket, active: false)
       {:ok, sharedkey} = handshake(socket, state)
       {:ok, tRef} = :timer.send_after(@ping_interval, :ping)

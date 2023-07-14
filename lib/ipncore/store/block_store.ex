@@ -43,7 +43,7 @@ defmodule BlockStore do
         "SELECT * FROM #{@table_bft} WHERE round = ?1 ORDER BY creator_id ASC, validator_id ASC",
       "sum_votes" =>
         "SELECT SUM(votes), count(*) FROM #{@table_bft} WHERE round = ?1 and creator_id = ?2 and hash = ?3",
-      "avg_round_time" => "SELECT AVG(timestamp) FROM #{@table} WHERE round = ?",
+      "avg_round_time" => "SELECT TRUNC(AVG(timestamp)) FROM #{@table} WHERE round = ?",
       "count_by_round" => "SELECT count(*) FROM #{@table} WHERE round = ?",
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
       lookup: "SELECT * FROM #{@table} WHERE height = ?",

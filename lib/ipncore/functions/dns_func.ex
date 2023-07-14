@@ -4,7 +4,7 @@ defmodule Ippan.Func.Dns do
   @type_range [1, 2, 6, 15, 16, 28]
   @data_range 1..255
   @ttl_range 0..2_147_483_648
-  @token Default.token()
+  @token Application.compile_env(:ipncore, :token)
 
   # @dns_types ~w(A NS CNAME SOA PTR MX TXT AAAA SPF SRV DS SSHFP RRSIG NSEC DNSKEY CAA URI HINFO WKS)
 

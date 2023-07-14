@@ -2,7 +2,7 @@ defmodule Ippan.Func.Wallet do
   alias Phoenix.PubSub
   alias Ippan.{Address, Wallet}
 
-  @token Default.token()
+  @token Application.compile_env(:ipncore, :token)
   @pubsub :verifiers
   @topic "wallet"
 

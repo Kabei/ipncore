@@ -2,19 +2,25 @@ defmodule BlockTimer do
   use GenServer
   alias Phoenix.PubSub
   alias Ippan.{Block, Round, RequestHandler}
-  import Ippan.Block, only: [decode!: 1, encode!: 1, hash_file: 1]
+  import Ippan.Block, only: [decode!: 1, encode!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
   require Logger
 
   @otp_app :ipncore
+  @module __MODULE__
+  @token Application.compile_env(:ipncore, :token)
+  @time_activity Application.compile_env(:ipncore, :last_activity)
   @pubsub_verifiers :verifiers
   @pubsub_network :network
+  @topic_block "block"
+  @topic_round "round"
+  @topic_network "msg"
   @block_interval Application.compile_env(@otp_app, :block_interval)
   @block_max_size Application.compile_env(@otp_app, :block_max_size)
   @block_data_max_size Application.compile_env(@otp_app, :block_data_max_size)
   @block_version Application.compile_env(@otp_app, :block_version)
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    GenServer.start_link(@module, opts, name: @module, hibernate_after: 5_000)
   end
 
   @impl true
@@ -23,84 +29,90 @@ defmodule BlockTimer do
 
     {round_id, round_hash} =
       case RoundStore.last() do
-        {:row, [round_id, hash | _]} -> {round_id, hash}
+        {:row, [round_id, hash | _]} -> {round_id + 1, hash}
         _ -> {0, nil}
       end
 
     # set state last block
-    {block_id, block_hash} =
+    {block_id, block_hash, block_round} =
       case BlockStore.last(validator_id) do
-        {:row, [id, hash | _rest]} -> {id, hash}
-        _ -> {0, nil}
+        {:row, [id, _creator, hash, _prev, _hashfile, _sig, block_round | _rest]} ->
+          {id + 1, hash, block_round}
+
+        _ ->
+          {0, nil}
       end
 
     {:ok,
      %{
-       height: block_id,
-       prev_hash: block_hash,
-       round: round_id,
-       prev_hash_round: round_hash,
-       tRef: nil,
+       block_sync: false,
+       next_block: block_id + 1,
+       next_round: round_id + 1,
+       prev_block: block_hash,
+       prev_round: round_hash,
+       round_sync: false,
+       wait_to_mine: false,
+       wait_to_sync: false,
        validator_id: validator_id,
-       sync_round: false
-     }, {:continue, :start}}
+       tRef: nil
+     }, {:continue, {:continue, block_round}}}
   end
 
   @impl true
-  def handle_continue(:start, state) do
-    {:ok, tRef} = :timer.send_after(@block_interval, :mine)
-    {:noreply, Map.put(state, :tRef, tRef)}
-  end
+  def handle_continue(
+        {:continue, block_round},
+        %{next_round: next_round} = state
+      ) do
+    if block_round == next_round do
+      blocks = BlockStore.count_by_round(block_round)
+      total = ValidatorStore.total()
 
-  def mine do
-    pid = Process.whereis(BlockTimer)
-    send(pid, :mine)
-  end
-
-  def next_round do
-    case :sys.get_state(BlockTimer) do
-      %{sync_round: false} -> GenServer.cast(BlockTimer, :next_round)
-      _ -> :none
+      if total == blocks do
+        send(self(), :sync)
+        {:noreply, state}
+      else
+        {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+        {:noreply, Map.put(state, :tRef, tRef)}
+      end
     end
   end
 
-  def start do
-    GenServer.cast(BlockTimer, :start)
-  end
-
-  def get_round do
-    GenServer.call(BlockTimer, :round, :infinity)
-  end
-
-  def get_height do
-    GenServer.call(BlockTimer, :height, :infinity)
+  # build a round
+  def sync do
+    GenServer.cast(@module, :sync)
   end
 
   @impl true
-  def handle_cast(:start, state) do
-    {:ok, tRef} = :timer.send_after(@block_interval, :mine)
-    {:noreply, Map.put(state, :tRef, tRef)}
+  def handle_cast({:complete, :block, new_height, new_hash}, state) do
+    if state.wait_to_sync do
+      GenServer.cast(self(), :sync)
+    end
+
+    {:noreply, %{state | next_block: new_height, prev_block: new_hash, block_sync: false}}
   end
 
-  def handle_cast(:next_round, %{sync_round: false} = state) do
-    spawn_link(fn ->
-      round_build(state)
-    end)
+  def handle_cast({:complete, :round, new_id, new_hash}, state) do
+    BlockMinerChannel.new_round(new_id)
+    PubSub.broadcast(@pubsub_verifiers, @topic_round, {"start", new_id})
 
-    {:noreply, %{state | sync_round: true}}
-  end
+    tRef =
+      if state.wait_to_mine do
+        GenServer.cast(self(), :mine)
+      else
+        {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+        tRef
+      end
 
-  def handle_cast(_, state) do
-    {:noreply, state}
+    {:noreply, %{state | next_round: new_id, prev_round: new_hash, round_sync: false, tRef: tRef}}
   end
 
   @impl true
-  def handle_call(:round, _from, %{round: round} = state) do
-    {:reply, round, state}
+  def handle_call(:round, _from, %{next_round: id} = state) do
+    {:reply, id, state}
   end
 
-  def handle_call(:height, _from, %{height: height} = state) do
-    {:reply, height, state}
+  def handle_call(:height, _from, %{next_block: id} = state) do
+    {:reply, id, state}
   end
 
   @doc """
@@ -111,43 +123,35 @@ defmodule BlockTimer do
   def handle_info(
         :mine,
         %{
-          height: height,
-          round: old_round,
-          validator_id: validator_id,
-          prev_hash: prev_hash
+          block_sync: false,
+          round_sync: false,
+          tRef: tRef
         } = state
       ) do
-    :timer.cancel(state.tRef)
-    {:ok, requests} = MessageStore.select(@block_data_max_size, validator_id)
-    {:ok, requests_df} = MessageStore.select_df(@block_data_max_size, validator_id)
-
-    last_row_id = catch_last_row_id(requests)
-
-    last_row_id_df = catch_last_row_id(requests_df)
-
-    {new_height, new_hash} =
-      mine(
-        requests ++ requests_df,
-        height,
-        old_round + 1,
-        validator_id,
-        prev_hash,
-        :os.system_time(:millisecond)
-      )
-
-    if new_height != height do
-      MessageStore.delete_all(last_row_id)
-      MessageStore.delete_all_df(last_row_id_df)
-      MessageStore.sync()
-
-      {:noreply, %{state | height: new_height, prev_hash: new_hash}}
-    else
-      {:noreply, state}
-    end
+    :timer.cancel(tRef)
+    spawn_block_worker(self(), state)
+    {:noreply, %{state | block_sync: true}}
   end
 
-  def handle_info({:end, new_state}, state) do
-    {:noreply, Map.merge(state, new_state)}
+  def handle_info(:mine, state) do
+    {:noreply, %{state | wait_to_mine: true}}
+  end
+
+  def handle_info(
+        :sync,
+        %{
+          block_sync: false,
+          round_sync: false,
+          tRef: tRef
+        } = state
+      ) do
+    :timer.cancel(tRef)
+    spawn_round_worker(self(), state)
+    {:noreply, %{state | round_sync: true}}
+  end
+
+  def handle_info(:sync, state) do
+    {:noreply, %{state | wait_to_sync: true}}
   end
 
   @impl true
@@ -160,110 +164,96 @@ defmodule BlockTimer do
     PubSub.unsubscribe(@pubsub_verifiers, "event")
   end
 
-  def round_build(%{round: round, prev_hash_round: prev_hash_round}) do
-    {:ok, requests} = MessageStore.delete_all_df_approved(round)
+  defp spawn_block_worker(
+         pid,
+         %{
+           next_block: next_block,
+           next_round: next_round,
+           prev_block: prev_block,
+           validator_id: validator_id
+         }
+       ) do
+    spawn_link(fn ->
+      {:ok, requests} = MessageStore.select(@block_data_max_size, validator_id)
+      {:ok, requests_df} = MessageStore.select_df(@block_data_max_size, validator_id)
 
-    Enum.each(requests, fn [
-                             _key,
-                             type,
-                             timestamp,
-                             hash,
-                             account_id,
-                             validator_id,
-                             args,
-                             _message,
-                             _signature,
-                             size
-                           ] ->
-      RequestHandler.handle_post!(
-        hash,
-        type,
-        timestamp,
-        account_id,
-        validator_id,
-        size,
-        decode_term(args)
-      )
+      last_row_id = catch_last_row_id(requests)
+
+      last_row_id_df = catch_last_row_id(requests_df)
+
+      new_hash =
+        mine_fun(
+          requests ++ requests_df,
+          next_block,
+          next_round,
+          validator_id,
+          prev_block,
+          :os.system_time(:millisecond)
+        )
+
+      MessageStore.delete_all(last_row_id)
+      MessageStore.delete_all_df(last_row_id_df)
+      MessageStore.sync()
+
+      GenServer.cast(pid, {:complete, :block, next_block + 1, new_hash})
     end)
-
-    new_round = round + 1
-
-    {:ok, result_hashes} = BlockStore.fetch_round(new_round)
-    hashes = Enum.concat(result_hashes)
-    count = length(hashes)
-    hash = Round.compute_hash(new_round, prev_hash_round, hashes)
-    {:row, [time]} = BlockStore.avg_round_time(new_round)
-
-    RoundStore.insert([new_round, hash, prev_hash_round, count, trunc(time)])
-
-    MessageStore.sync()
-
-    if requests != [] do
-      sync_all()
-    end
-
-    RoundStore.sync()
-    checkpoint_all()
-
-    # Clear cache
-    BlockMinerChannel.new_round(new_round)
-    PubSub.broadcast(:verifiers, "round", {"end", new_round})
-
-    # Start new timer to mine
-    {:ok, tRef} = :timer.send_after(@block_interval, BlockTimer, :mine)
-
-    send(
-      BlockTimer,
-      {:end, %{round: new_round, prev_hash_round: hash, tRef: tRef, sync_round: false}}
-    )
   end
 
-  @doc """
-  used by verifiers to download and verify blockfiles
-  """
-  def verify_block!(block, validator) do
-    block_path = Block.block_path(validator.id, block.height)
-    filename = Path.basename(block_path)
-    url = Block.url(validator.hostname, validator.id, block.height)
+  defp spawn_round_worker(pid, %{next_round: next_round, prev_round: prev_round}) do
+    spawn_link(fn ->
+      {:ok, requests} = MessageStore.delete_all_df_approved(next_round)
 
-    {:ok, _} = Curl.download_block(url, block_path)
-    {:ok, filestat} = File.stat(block_path)
+      Enum.each(requests, fn [
+                               _key,
+                               type,
+                               timestamp,
+                               hash,
+                               account_id,
+                               validator_id,
+                               args,
+                               _message,
+                               _signature,
+                               size
+                             ] ->
+        RequestHandler.handle_post!(
+          hash,
+          type,
+          timestamp,
+          account_id,
+          validator_id,
+          size,
+          decode_term(args)
+        )
+      end)
 
-    if filestat.size > @block_max_size do
-      raise IppanError, "Invalid block max size"
-    end
+      {:ok, result_hashes} = BlockStore.fetch_round(next_round)
+      hashes = Enum.concat(result_hashes)
+      count = length(hashes)
+      hash = Round.compute_hash(next_round, prev_round, hashes)
+      {:row, [timestamp]} = BlockStore.avg_round_time(next_round)
 
-    {:ok, content} = File.read(block_path)
+      RoundStore.insert([next_round, hash, prev_round, count, timestamp])
 
-    block_hash = hash_file(block_path)
+      MessageStore.sync()
 
-    if block.hashfile != block_hash do
-      raise(IppanError, "Hash block file is invalid")
-    end
-
-    if Cafezinho.Impl.verify(block.signature, block.hash, validator.pubkey) != :ok do
-      raise(IppanError, "Invalid block signature")
-    end
-
-    events = decode!(content)
-
-    decode_events =
-      for {body, signature} <- events do
-        hash = Blake3.hash(body)
-        size = byte_size(body) + byte_size(signature)
-
-        RequestHandler.valid!(hash, body, size, signature, validator.id)
+      if requests != [] do
+        commit()
       end
 
-    export_path =
-      Application.get_env(@otp_app, :decode_dir)
-      |> Path.join(filename)
+      run_jackpot(next_round, hash, timestamp)
 
-    :ok = File.write(export_path, encode!(decode_events))
+      RoundStore.sync()
+      checkpoint_commit()
 
-    export_path
+      # send pubsub event
+      PubSub.broadcast(@pubsub_verifiers, @topic_round, {"end", next_round})
+
+      GenServer.cast(pid, {:complete, :round, next_round + 1, hash})
+    end)
   end
 
+  # Create a block file from decode block file
+  @spec mine_file(Block.t(), Path.t()) :: binary()
   def mine_file(
         %{
           creator: creator_id,
@@ -278,10 +268,11 @@ defmodule BlockTimer do
 
     requests = decode!(content)
 
-    mine(requests, height, round, creator_id, prev_hash, timestamp)
+    mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
   end
 
-  def mine(requests, height, round, validator_id, prev_hash, block_timestamp) do
+  # Create a block file and register transactions
+  defp mine_fun(requests, height, round, validator_id, prev_hash, block_timestamp) do
     block_path = Block.block_path(validator_id, height)
 
     events =
@@ -358,48 +349,120 @@ defmodule BlockTimer do
           end
       end)
 
-    content = encode!(events)
-
-    :ok = File.write(block_path, content)
-    block_size = File.stat!(block_path).size
-    hashfile = hash_file(block_path)
     ev_count = length(events)
+    empty = ev_count == 0
 
-    if ev_count > 0 do
-      sync_all()
-    end
+    {hashfile, block_size} =
+      if empty do
+        {Block.zero_hash_file(), 0}
+      else
+        content = encode!(events)
+        hashfile = hash_file(block_path)
+        :ok = File.write(block_path, content)
+        block_size = File.stat!(block_path).size
+        commit()
+        {hashfile, block_size}
+      end
 
-    block_map = %{
-      height: height,
-      prev: prev_hash,
-      creator: validator_id,
-      hashfile: hashfile,
-      round: round,
-      timestamp: block_timestamp,
-      ev_count: ev_count,
-      size: block_size,
-      vsn: @block_version
-    }
+    block =
+      %{
+        height: height,
+        prev: prev_hash,
+        creator: validator_id,
+        hashfile: hashfile,
+        round: round,
+        timestamp: block_timestamp,
+        ev_count: ev_count,
+        size: block_size,
+        vsn: @block_version
+      }
+      |> put_hash()
+      |> put_signature()
 
-    blockhash = Block.compute_hash(block_map)
-    {:ok, signature} = Block.sign(blockhash)
-    block_map = Map.merge(block_map, %{hash: blockhash, signature: signature})
-
-    Block.to_list(block_map)
+    Block.to_list(block)
     |> BlockStore.insert_sync()
 
     BlockStore.sync()
 
-    Logger.debug("Block #{height} | events: #{ev_count} | hash: #{Base.encode16(blockhash)}")
+    Logger.debug("Block #{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}")
 
-    PubSub.broadcast(@pubsub_verifiers, "block", {"new", block_map})
-    PubSub.broadcast(@pubsub_network, "msg", {"block", "new_recv", block_map})
+    PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})
+    PubSub.broadcast(@pubsub_network, @topic_network, {"block", "new_recv", block})
 
-    {height + 1, blockhash}
+    block.hash
   end
 
-  defp sync_all do
-    Logger.debug("sync all")
+  @doc """
+  used by verifiers to download and verify blockfiles
+  """
+  def verify_block!(block, validator) do
+    block_path = Block.block_path(validator.id, block.height)
+    filename = Path.basename(block_path)
+    url = Block.url(validator.hostname, validator.id, block.height)
+
+    {:ok, _} = Curl.download_block(url, block_path)
+    {:ok, filestat} = File.stat(block_path)
+
+    if filestat.size > @block_max_size do
+      raise IppanError, "Invalid block max size"
+    end
+
+    {:ok, content} = File.read(block_path)
+
+    block_hash = hash_file(block_path)
+
+    if block.hashfile != block_hash do
+      raise(IppanError, "Hash block file is invalid")
+    end
+
+    if Cafezinho.Impl.verify(block.signature, block.hash, validator.pubkey) != :ok do
+      raise(IppanError, "Invalid block signature")
+    end
+
+    events = decode!(content)
+
+    decode_events =
+      for {body, signature} <- events do
+        hash = Blake3.hash(body)
+        size = byte_size(body) + byte_size(signature)
+
+        RequestHandler.valid!(hash, body, size, signature, validator.id)
+      end
+
+    export_path =
+      Application.get_env(@otp_app, :decode_dir)
+      |> Path.join(filename)
+
+    :ok = File.write(export_path, encode!(decode_events))
+
+    export_path
+  end
+
+  # Pay a player according to the calculation of the remaining
+  # hash of the round ordered by activity in the last 24 hours
+  defp run_jackpot(round_id, hash, round_timestamp) do
+    time_activity = round_timestamp - @time_activity
+
+    num =
+      :binary.part(hash, 24, 32)
+      |> :binary.decode_unsigned()
+
+    count = BalanceStore.count_last_activity(time_activity)
+
+    if count > 0 do
+      position = rem(num, count)
+      {:ok, players} = BalanceStore.last_activity(time_activity)
+      [winner_id] = Enum.at(players, position)
+      amount = EnvStore.get("WINNER_AMOUNT", 10) * count
+      RoundStore.insert_winner(round_id, winner_id)
+      BalanceStore.income(winner_id, @token, amount, round_timestamp)
+    else
+      RoundStore.insert_winner(round_id, nil)
+    end
+  end
+
+  defp commit do
+    Logger.debug("commit")
     WalletStore.sync()
     BalanceStore.sync()
     ValidatorStore.sync()
@@ -410,8 +473,8 @@ defmodule BlockTimer do
     RefundStore.sync()
   end
 
-  defp checkpoint_all do
-    Logger.debug("checkpoint all")
+  defp checkpoint_commit do
+    Logger.debug("checkpoint_commit")
     WalletStore.checkpoint()
     BalanceStore.checkpoint()
     ValidatorStore.checkpoint()

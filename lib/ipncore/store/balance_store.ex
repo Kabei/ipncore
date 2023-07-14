@@ -2,16 +2,13 @@ defmodule BalanceStore do
   @table "balance"
   alias Exqlite.Sqlite3NIF
 
-  @token Default.token()
+  @token Application.compile_env(:ipncore, :token)
 
   use Store.Sqlite,
     base: :balance,
-    # pool: :bal_pool,
     table: @table,
     mod: Ippan.Balance,
-    # deferred BIGINT DEFAULT 0,
-    # tx_count BIGINT DEFAULT 0,
-    create: ["
+    create: "
     CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
@@ -20,7 +17,7 @@ defmodule BalanceStore do
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL,
       PRIMARY KEY (id, token)
-    ) WITHOUT ROWID;"],
+    ) WITHOUT ROWID;",
     stmt: %{
       insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
       replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
@@ -37,8 +34,19 @@ defmodule BalanceStore do
       lock:
         "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",
       unlock:
-        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3"
+        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3",
+      count_last_activity: "SELECT count(*) #{@table} WHERE token = ?1 AND updated_at > ?2",
+      last_activity:
+        "SELECT id FROM #{@table} WHERE token = ?1 AND updated_at > ?2 ORDER BY updated_at"
     }
+
+  def count_last_activity(timestamp) do
+    call({:execute_fetch, :count_last_activity, [@token, timestamp]})
+  end
+
+  def last_activity(timestamp) do
+    call({:execute_fetch, :last_activity, [@token, timestamp]})
+  end
 
   @spec income(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
           :ok | :error

@@ -180,7 +180,7 @@ defmodule Ippan.P2P.Server do
       normalize_packet(new_rest, acc ++ [msg])
     rescue
       _ ->
-        acc ++ [rest]
+        acc
     end
   end
 

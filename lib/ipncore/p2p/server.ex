@@ -39,13 +39,12 @@ defmodule Ippan.P2P.Server do
 
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
-    Logger.debug("handle_connection #{inspect(state)}")
+    # Logger.debug("handle_connection #{inspect(state)}")
     handshake(socket, state)
   end
 
   @impl ThousandIsland.Handler
   def handle_data("PING", _socket, state) do
-    Logger.debug("PING")
     {:continue, state}
   end
 
@@ -119,7 +118,7 @@ defmodule Ippan.P2P.Server do
                       {:close, state}
                     else
                       Logger.debug(
-                        "[Server connection] OK #{name} connected #{Base.encode16(sharedkey)}"
+                        "[Server connection] #{name} connected"
                       )
 
                       {:continue,
@@ -152,24 +151,21 @@ defmodule Ippan.P2P.Server do
 
   defp decode!(packet, sharedkey) do
     <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
-    IO.inspect("decode")
-    IO.inspect(Base.encode16(sharedkey), limit: :infinity)
-    IO.inspect(packet, limit: :infinity)
+    # IO.inspect("decode")
+    # IO.inspect(Base.encode16(sharedkey), limit: :infinity)
+    # IO.inspect(packet, limit: :infinity)
 
-    r =
-      :crypto.crypto_one_time_aead(
-        :chacha20_poly1305,
-        sharedkey,
-        iv,
-        ciphertext,
-        @seconds,
-        tag,
-        false
-      )
-      |> :erlang.binary_to_term([:safe])
+    :crypto.crypto_one_time_aead(
+      :chacha20_poly1305,
+      sharedkey,
+      iv,
+      ciphertext,
+      @seconds,
+      tag,
+      false
+    )
+    |> :erlang.binary_to_term([:safe])
 
-    IO.inspect(r, limit: :infinity)
-
-    r
+    # IO.inspect(r, limit: :infinity)
   end
 end

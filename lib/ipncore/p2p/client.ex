@@ -61,14 +61,14 @@ defmodule Ippan.P2P.Client do
 
   @impl true
   def handle_continue(:reconnect, initial_state) do
-    IO.inspect("continue")
+    # IO.inspect("continue")
     :timer.send_after(@time_to_reconnect, :reconnect)
     {:noreply, initial_state}
   end
 
   @impl true
   def handle_info(:reconnect, state) do
-    IO.inspect("reconnect")
+    # IO.inspect("reconnect")
 
     try do
       case connect(state) do
@@ -76,8 +76,8 @@ defmodule Ippan.P2P.Client do
           {:noreply, new_state}
 
         error ->
-          IO.inspect("reconnect error")
-          IO.inspect(error)
+          # IO.inspect("reconnect error")
+          # IO.inspect(error)
           :timer.send_after(@time_to_reconnect, :reconnect)
           {:noreply, state}
       end
@@ -88,20 +88,6 @@ defmodule Ippan.P2P.Client do
         {:noreply, state}
     end
   end
-
-  # def handle_info({:tcp, _socket, data}, %{sharedkey: sharedkey} = state) do
-  #   message = decode(data, sharedkey)
-
-  #   case message do
-  #     {event, data} ->
-  #       PubSub.broadcast(@pubsub_server, event, data)
-
-  #     _ ->
-  #       Logger.debug("Not found")
-  #   end
-
-  #   {:noreply, state}
-  # end
 
   def handle_info(
         {:tcp_closed, _socket},
@@ -146,7 +132,7 @@ defmodule Ippan.P2P.Client do
     end
 
     if is_map(data) do
-      Logger.debug(inspect(data))
+      # Logger.debug(inspect(data))
       {:noreply, %{state | mailbox: Map.put(mailbox, data.height, msg)}}
     else
       {:noreply, %{state | mailbox: Map.put(mailbox, data, msg)}}
@@ -178,7 +164,7 @@ defmodule Ippan.P2P.Client do
 
   defp connect(%{hostname: hostname, port: port} = state) do
     try do
-      Logger.info("#{hostname}:#{port} | connecting...")
+      # Logger.debug("#{hostname}:#{port} | connecting...")
 
       {:ok, ip_addr} = :inet_udp.getaddr(String.to_charlist(hostname))
 
@@ -189,8 +175,8 @@ defmodule Ippan.P2P.Client do
       :ok = :inet.setopts(socket, active: true)
 
       new_state = Map.merge(state, %{socket: socket, sharedkey: sharedkey, tRef: tRef})
-      Logger.debug("#{hostname}:#{port} | connected #{Base.encode16(sharedkey)}")
-      IO.inspect(sharedkey, limit: :infinity)
+      Logger.debug("#{hostname}:#{port} | connected")
+      # IO.inspect(sharedkey, limit: :infinity)
 
       {:ok, check_mail_box(new_state)}
     rescue
@@ -203,7 +189,7 @@ defmodule Ippan.P2P.Client do
   defp handshake(socket, state) do
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "WEL" <> @version <> pubkey} ->
-        IO.inspect("Welcome #{byte_size(pubkey)}")
+        # IO.inspect("Welcome #{byte_size(pubkey)}")
         {:ok, ciphertext, sharedkey} = NtruKem.enc(pubkey)
 
         id = Default.validator_id()
@@ -213,8 +199,8 @@ defmodule Ippan.P2P.Client do
         {:ok, sharedkey}
 
       error ->
-        IO.inspect("error")
-        IO.inspect(error)
+        # IO.inspect("error")
+        # IO.inspect(error)
         error
     end
   end
@@ -230,9 +216,9 @@ defmodule Ippan.P2P.Client do
   end
 
   defp encode(msg, sharedkey) do
-    IO.inspect("encode")
-    IO.inspect(Base.encode16(sharedkey), limit: :infinity)
-    IO.inspect(msg, limit: :infinity)
+    # IO.inspect("encode")
+    # IO.inspect(Base.encode16(sharedkey), limit: :infinity)
+    # IO.inspect(msg, limit: :infinity)
     bin = :erlang.term_to_binary(msg)
     iv = :crypto.strong_rand_bytes(@iv_bytes)
 

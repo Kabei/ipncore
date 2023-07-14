@@ -151,11 +151,11 @@ defmodule Ippan.P2P.Client do
         :ok
     end
 
-    if is_binary(data) do
-      {:noreply, %{state | mailbox: Map.put(mailbox, data, msg)}}
-    else
+    if is_map(data) do
       Logger.debug(inspect(data))
       {:noreply, %{state | mailbox: Map.put(mailbox, data.height, msg)}}
+    else
+      {:noreply, %{state | mailbox: Map.put(mailbox, data, msg)}}
     end
   end
 

@@ -32,11 +32,11 @@ defmodule Ipncore.Router do
       case event do
         %{deferred: false} ->
           MessageStore.insert(msg)
-          PubSub.broadcast(:miner, "event", {"valid", node(), msg})
+          PubSub.broadcast(:miner, "event", {"valid", node(), hash, msg})
 
         %{deferred: true} ->
           MessageStore.insert_df(msg)
-          PubSub.broadcast(:miner, "event", {"valid_df", node(), msg})
+          PubSub.broadcast(:miner, "event", {"valid_df", node(), hash, msg})
       end
 
       json(conn, %{"hash" => Base.encode16(hash)})

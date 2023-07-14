@@ -144,7 +144,7 @@ defmodule Test do
 
   def build_request({body, sig}) do
     IO.puts(body)
-    IO.puts(Fast64.encode64(sig))
+    IO.puts(sig)
   end
 
   def build_request(body) do

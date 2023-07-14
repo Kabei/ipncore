@@ -11,16 +11,18 @@ defmodule EventVerifierChannel do
 
   @impl true
   def handle_info({"recv", hash, status}, state) do
-    Logger.debug("recv #{Base.encode16(hash)}")
+    hash16 = Base.encode16(hash)
+    Logger.debug("recv #{hash16}")
     MessageStore.delete_only(hash)
-    PubSub.broadcast(:verifiers, "event:#{hash}", status)
+    PubSub.broadcast(:verifiers, "event:#{hash16}", status)
     {:noreply, state}
   end
 
   def handle_info({"recv_df", hash, status}, state) do
-    Logger.debug("recv_df #{Base.encode16(hash)}")
+    hash16 = Base.encode16(hash)
+    Logger.debug("recv_df #{hash16}")
     MessageStore.delete_df(hash)
-    PubSub.broadcast(:verifiers, "event:#{hash}", status)
+    PubSub.broadcast(:verifiers, "event:#{hash16}", status)
     {:noreply, state}
   end
 

@@ -189,7 +189,7 @@ defmodule Ippan.P2P.Client do
       :ok = :inet.setopts(socket, active: true)
 
       new_state = Map.merge(state, %{socket: socket, sharedkey: sharedkey, tRef: tRef})
-      Logger.debug("#{hostname}:#{port} | connected #{sharedkey}")
+      Logger.debug("#{hostname}:#{port} | connected #{Base.encode16(sharedkey)}")
       IO.inspect(sharedkey, limit: :infinity)
 
       {:ok, check_mail_box(new_state)}

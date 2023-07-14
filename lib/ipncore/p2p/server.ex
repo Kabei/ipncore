@@ -117,7 +117,7 @@ defmodule Ippan.P2P.Server do
                       Logger.debug("[Server connection] Invalid handshake pubkey")
                       {:close, state}
                     else
-                      Logger.debug("[Server connection] OK #{name} connected #{sharedkey}")
+                      Logger.debug("[Server connection] OK #{name} connected #{Base.encode16(sharedkey)}")
 
                       {:continue,
                        %{

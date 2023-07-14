@@ -117,7 +117,9 @@ defmodule Ippan.P2P.Server do
                       Logger.debug("[Server connection] Invalid handshake pubkey")
                       {:close, state}
                     else
-                      Logger.debug("[Server connection] OK #{name} connected #{Base.encode16(sharedkey)}")
+                      Logger.debug(
+                        "[Server connection] OK #{name} connected #{Base.encode16(sharedkey)}"
+                      )
 
                       {:continue,
                        %{
@@ -167,6 +169,7 @@ defmodule Ippan.P2P.Server do
 
   defp decode!(packet, sharedkey) do
     <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
+    IO.inspect(Base.encode16(sharedkey), limit: :infinity)
     IO.inspect(packet, limit: :infinity)
 
     # <<riv::bytes-size(12), rtag::bytes-size(16), rciphertext::binary>> = r
@@ -183,3 +186,8 @@ defmodule Ippan.P2P.Server do
     |> :erlang.binary_to_term([:safe])
   end
 end
+
+# <<riv::bytes-size(12), rtag::bytes-size(16), rciphertext::binary>> = data
+
+# :crypto.crypto_one_time_aead(:chacha20_poly1305, s1, riv, rciphertext, seconds, rtag, false)
+# |> :erlang.binary_to_term([:safe])

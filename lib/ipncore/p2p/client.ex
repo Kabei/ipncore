@@ -253,7 +253,6 @@ defmodule Ippan.P2P.Client do
   defp encode_flag(msg, sharedkey) do
     IO.inspect("encode")
     IO.inspect(Base.encode16(sharedkey), limit: :infinity)
-    IO.inspect(msg, limit: :infinity)
     bin = :erlang.term_to_binary(msg)
     iv = :crypto.strong_rand_bytes(@iv_bytes)
 
@@ -268,7 +267,9 @@ defmodule Ippan.P2P.Client do
         true
       )
 
-    apply_size(iv <> tag <> ciphertext)
+    r = apply_size(iv <> tag <> ciphertext)
+    IO.inspect(r, limit: :infinity)
+    r
   end
 
   # defp decode(packet, sharedkey) do

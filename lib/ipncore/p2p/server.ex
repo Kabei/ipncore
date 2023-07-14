@@ -151,24 +151,6 @@ defmodule Ippan.P2P.Server do
     end
   end
 
-  # defp encode(msg, sharedkey) do
-  #   bin = :erlang.term_to_binary(msg)
-  #   iv = :crypto.strong_rand_bytes(@iv_bytes)
-
-  #   {ciphertext, tag} =
-  #     :crypto.crypto_one_time_aead(
-  #       :chacha20_poly1305,
-  #       sharedkey,
-  #       iv,
-  #       bin,
-  #       @seconds,
-  #       @tag_bytes,
-  #       true
-  #     )
-
-  #   iv <> tag <> ciphertext
-  # end
-
   defp decode!(packet, sharedkey) do
     <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
     IO.inspect("decode")
@@ -188,10 +170,6 @@ defmodule Ippan.P2P.Server do
     )
     |> :erlang.binary_to_term([:safe])
   end
-
-  # defp apply_size(packet) do
-  #   <<byte_size(packet)::16>> <> packet
-  # end
 
   defp normalize_packet(<<size::16, rest::binary>>, acc) do
     <<msg::bytes-size(size), rest::binary>> = rest

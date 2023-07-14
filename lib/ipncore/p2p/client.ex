@@ -247,9 +247,6 @@ defmodule Ippan.P2P.Client do
         true
       )
 
-    # cipher = iv <> tag <> ciphertext
-
-    # IO.inspect(r, limit: :infinity)
     apply_size(iv <> tag <> ciphertext)
   end
 

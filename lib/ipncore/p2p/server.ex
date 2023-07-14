@@ -48,20 +48,22 @@ defmodule Ippan.P2P.Server do
     {:continue, state}
   end
 
-  def handle_data(data, _socket, %{id: id, sharedkey: sharedkey} = state) do
-    Logger.debug("data: #{inspect(data)}")
+  def handle_data(packet, _socket, %{id: id, sharedkey: sharedkey} = state) do
+    Logger.debug("data: #{inspect(packet)}")
 
     try do
-      case decode!(data, sharedkey) do
-        {"block", "recv", block_id} ->
-          PubSub.broadcast(:network, "msg:#{id}", {"clear", block_id})
+      for data <- normalize_packet(packet, []) do
+        case decode!(data, sharedkey) do
+          {"block", "recv", block_id} ->
+            PubSub.broadcast(:network, "msg:#{id}", {"clear", block_id})
 
-        {"block", action, data} ->
-          PubSub.broadcast(:miner, "block", {action, id, data})
-          PubSub.broadcast(:network, "msg", {"block", "recv", Map.get(data, :height)})
+          {"block", action, data} ->
+            PubSub.broadcast(:miner, "block", {action, id, data})
+            PubSub.broadcast(:network, "msg", {"block", "recv", Map.get(data, :height)})
 
-        _ ->
-          :ok
+          _ ->
+            :ok
+        end
       end
     rescue
       e ->
@@ -186,6 +188,17 @@ defmodule Ippan.P2P.Server do
     )
     |> :erlang.binary_to_term([:safe])
   end
+
+  # defp apply_size(packet) do
+  #   <<byte_size(packet)::16>> <> packet
+  # end
+
+  defp normalize_packet(<<size::16, rest::binary>>, acc) do
+    <<msg::bytes-size(size), rest::binary>> = rest
+    normalize_packet(rest, acc ++ [msg])
+  end
+
+  defp normalize_packet(_, acc), do: acc
 end
 
 # <<riv::bytes-size(12), rtag::bytes-size(16), rciphertext::binary>> = data

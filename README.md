@@ -60,7 +60,7 @@ MINER=miner@172.17.0.1 VID=1 DATA_DIR=/usr/src/data ./run.sh
 |Native Token|IPN|
 |Block file Max size|10 MB|
 |Request Max size|8192 bytes|
-|Max tranfer amount|One Trillions units|
+|Max tranfer amount|Thousand billion units|
 |P2P port|5815|
 |HTTP port|8080|
 |Refund transaction timeout|72 hours|

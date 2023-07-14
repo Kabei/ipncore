@@ -89,19 +89,19 @@ defmodule Ippan.P2P.Client do
     end
   end
 
-  def handle_info({:tcp, _socket, data}, %{sharedkey: sharedkey} = state) do
-    message = decode(data, sharedkey)
+  # def handle_info({:tcp, _socket, data}, %{sharedkey: sharedkey} = state) do
+  #   message = decode(data, sharedkey)
 
-    case message do
-      {event, data} ->
-        PubSub.broadcast(@pubsub_server, event, data)
+  #   case message do
+  #     {event, data} ->
+  #       PubSub.broadcast(@pubsub_server, event, data)
 
-      _ ->
-        Logger.debug("Not found")
-    end
+  #     _ ->
+  #       Logger.debug("Not found")
+  #   end
 
-    {:noreply, state}
-  end
+  #   {:noreply, state}
+  # end
 
   def handle_info(
         {:tcp_closed, _socket},
@@ -247,30 +247,34 @@ defmodule Ippan.P2P.Client do
         true
       )
 
-    r = iv <> tag <> ciphertext
+    # cipher = iv <> tag <> ciphertext
 
-    IO.inspect(r, limit: :infinity)
-    r
+    # IO.inspect(r, limit: :infinity)
+    apply_size(iv <> tag <> ciphertext)
   end
 
-  defp decode(packet, sharedkey) do
-    try do
-      <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
+  # defp decode(packet, sharedkey) do
+  #   try do
+  #     <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
 
-      :crypto.crypto_one_time_aead(
-        :chacha20_poly1305,
-        sharedkey,
-        iv,
-        ciphertext,
-        @seconds,
-        tag,
-        false
-      )
-      |> :erlang.binary_to_term([:safe])
-    rescue
-      _error ->
-        :error
-    end
+  #     :crypto.crypto_one_time_aead(
+  #       :chacha20_poly1305,
+  #       sharedkey,
+  #       iv,
+  #       ciphertext,
+  #       @seconds,
+  #       tag,
+  #       false
+  #     )
+  #     |> :erlang.binary_to_term([:safe])
+  #   rescue
+  #     _error ->
+  #       :error
+  #   end
+  # end
+
+  defp apply_size(packet) do
+    <<byte_size(packet)::16>> <> packet
   end
 
   defp subscribe(vid) do

@@ -28,7 +28,7 @@ config :ipncore, :p2p,
   port: port,
   num_acceptors: 10,
   transport_options: [
-    backlog: 1024,
+    backlog: 0,
     nodelay: true,
     linger: {true, 30},
     send_timeout: 30_000,

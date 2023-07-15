@@ -12,7 +12,7 @@ defmodule RoundStore do
       hash BLOB NOT NULL,
       prev BLOB,
       blocks BIGINT NOT NULL,
-      timestamp BIGINT NOT NULL,
+      timestamp BIGINT NOT NULL
     ) WITHOUT ROWID;
     ", "
     CREATE TABLE IF NOT EXISTS #{@table_jackpot}(

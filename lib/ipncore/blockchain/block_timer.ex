@@ -40,7 +40,7 @@ defmodule BlockTimer do
           {id + 1, hash, block_round}
 
         _ ->
-          {0, nil}
+          {0, nil, nil}
       end
 
     {:ok,

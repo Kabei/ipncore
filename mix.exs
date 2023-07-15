@@ -38,10 +38,29 @@ defmodule Ipncore.MixProject do
     if System.otp_release() |> String.to_integer() < @min_otp,
       do: raise(RuntimeError, "OTP invalid version. Required minimum v#{@min_otp}")
 
+    load_env_file()
+
     [
-      extra_applications: [:crypto, :syntax_tools, :logger, :download, :httpoison],
+      extra_applications: [:crypto, :syntax_tools, :logger],
       mod: {Ipncore.Application, []}
     ]
+  end
+
+  defp load_env_file do
+    path = System.get_env("ENV_FILE", "env_file")
+
+    if File.exists?(path) do
+      File.stream!(path, [], :line)
+      |> Enum.each(fn text ->
+        text
+        |> String.replace(~r/\n|\r/, "")
+        |> String.split("=", parts: 2, trim: true)
+        |> case do
+          [key, value] -> System.put_env(key, value)
+          _ -> :ignored
+        end
+      end)
+    end
   end
 
   # Run "mix help deps" to learn about dependencies.
@@ -56,7 +75,7 @@ defmodule Ipncore.MixProject do
       {:jason, "~> 1.4"},
       {:bandit, ">= 0.7.7"},
       {:phoenix_pubsub_redis, "~> 3.0.1"},
-      {:download, "~> 0.0.4"},
+      # {:download, "~> 0.0.4"},
       {:cafezinho, "~> 0.4.0"},
       {:httpoison, "~> 2.0"},
       {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},

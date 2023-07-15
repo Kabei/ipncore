@@ -46,7 +46,7 @@ config :ipncore, :http,
   thousand_island_options: [
     num_acceptors: 100,
     read_timeout: 60_000,
-    num_connections: 4096,
+    num_connections: 16_384,
     max_connections_retry_count: 5,
     max_connections_retry_wait: 1000,
     shutdown_timeout: 60_000,

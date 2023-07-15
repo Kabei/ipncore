@@ -12,7 +12,6 @@ defmodule Ipncore.Application do
   @impl true
   def start(_type, _args) do
     Logger.debug("Starting application")
-    load_env_file()
 
     p2p_opts = Application.get_env(@otp_app, :p2p)
     data_dir = Application.get_env(@otp_app, :data_dir)
@@ -141,20 +140,6 @@ defmodule Ipncore.Application do
     Node.start(name)
     Node.set_cookie(name, String.to_atom(cookie))
     name
-  end
-
-  defp load_env_file do
-    path = System.get_env("ENV_FILE", "env_file")
-
-    if File.exists?(path) do
-      File.stream!(path, [], :line)
-      |> Enum.each(fn text ->
-        case String.split(text, "=") do
-          [key, value] -> System.put_env(key, value)
-          _ -> :ignored
-        end
-      end)
-    end
   end
 
   def put_hostname do

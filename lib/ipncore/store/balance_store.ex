@@ -35,7 +35,7 @@ defmodule BalanceStore do
         "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",
       unlock:
         "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3",
-      count_last_activity: "SELECT count(*) #{@table} WHERE token = ?1 AND updated_at > ?2",
+      count_last_activity: "SELECT count(*) FROM #{@table} WHERE token = ?1 AND updated_at > ?2",
       last_activity:
         "SELECT id FROM #{@table} WHERE token = ?1 AND updated_at > ?2 ORDER BY updated_at"
     }

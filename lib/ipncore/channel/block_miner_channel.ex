@@ -51,8 +51,8 @@ defmodule BlockMinerChannel do
     download_and_process(origin, data)
     PubSub.broadcast(:network, "msg", {"block", "vote", vote})
 
-    {_, [total]} = ValidatorStore.total()
-    {_, [count]} = BlockStore.count_by_round(round)
+    total = ValidatorStore.total()
+    count = BlockStore.count_by_round(round)
 
     if count == total do
       BlockTimer.sync()

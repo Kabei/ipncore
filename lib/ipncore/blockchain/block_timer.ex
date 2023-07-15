@@ -27,13 +27,14 @@ defmodule BlockTimer do
   def init(_args) do
     validator_id = Default.validator_id()
 
+    # fetch last round
     {round_id, round_hash} =
       case RoundStore.last() do
         {:row, [round_id, hash | _]} -> {round_id + 1, hash}
         _ -> {0, nil}
       end
 
-    # set state last block
+    # fetch last block
     {block_id, block_hash, block_round} =
       case BlockStore.last(validator_id) do
         {:row, [id, _creator, hash, _prev, _hashfile, _sig, block_round | _rest]} ->
@@ -46,34 +47,36 @@ defmodule BlockTimer do
     {:ok,
      %{
        block_sync: false,
-       next_block: block_id + 1,
-       next_round: round_id + 1,
+       mined: BlockStore.count_by_round(block_round),
+       next_block: block_id,
+       next_round: round_id,
        prev_block: block_hash,
        prev_round: round_hash,
        round_sync: false,
-       wait_to_mine: false,
-       wait_to_sync: false,
+       tRef: nil,
+       validators: ValidatorStore.total(),
        validator_id: validator_id,
-       tRef: nil
+       wait_to_mine: false,
+       wait_to_sync: false
      }, {:continue, {:continue, block_round}}}
   end
 
   @impl true
   def handle_continue(
         {:continue, block_round},
-        %{next_round: next_round} = state
+        %{mined: mined, next_round: next_round, validators: validators} = state
       ) do
     if block_round > next_round do
-      blocks = BlockStore.count_by_round(block_round)
-      total = ValidatorStore.total()
-
-      if total == blocks do
+      if validators == mined do
         send(self(), :sync)
         {:noreply, state}
       else
         {:ok, tRef} = :timer.send_after(@block_interval, :mine)
-        {:noreply, Map.put(state, :tRef, tRef)}
+        {:noreply, %{state | tRef: tRef}}
       end
+    else
+      {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+      {:noreply, %{state | tRef: tRef}}
     end
   end
 
@@ -82,13 +85,40 @@ defmodule BlockTimer do
     GenServer.cast(@module, :sync)
   end
 
+  def put_validators(n) do
+    GenServer.cast(@module, {:validators, n})
+  end
+
   @impl true
-  def handle_cast({:complete, :block, new_height, new_hash}, state) do
-    if state.wait_to_sync do
-      GenServer.cast(self(), :sync)
+  def handle_cast(
+        {:complete, :block, new_height, creator_id, new_hash},
+        %{
+          mined: mined,
+          validator_id: validator_id,
+          validators: validators,
+          wait_to_sync: wait_to_sync
+        } = state
+      ) do
+    return =
+      if validator_id == creator_id do
+        {:noreply,
+         %{
+           state
+           | next_block: new_height,
+             prev_block: new_hash,
+             mined: mined + 1,
+             wait_to_mine: false,
+             wait_to_sync: false
+         }}
+      else
+        {:noreply, %{state | mined: mined + 1, wait_to_mine: false, wait_to_sync: false}}
+      end
+
+    if wait_to_sync or mined == validators do
+      send(self(), :sync)
     end
 
-    {:noreply, %{state | next_block: new_height, prev_block: new_hash, block_sync: false}}
+    return
   end
 
   def handle_cast({:complete, :round, new_id, new_hash}, state) do
@@ -103,7 +133,19 @@ defmodule BlockTimer do
         tRef
       end
 
-    {:noreply, %{state | next_round: new_id, prev_round: new_hash, round_sync: false, tRef: tRef}}
+    {:noreply,
+     %{
+       state
+       | next_round: new_id,
+         prev_round: new_hash,
+         round_sync: false,
+         tRef: tRef,
+         block_sync: false
+     }}
+  end
+
+  def handle_cast({:validators, validators}, state) do
+    {:noreply, %{state | validators: validators}}
   end
 
   @impl true
@@ -142,9 +184,12 @@ defmodule BlockTimer do
         %{
           block_sync: false,
           round_sync: false,
+          validators: validators,
+          mined: mined,
           tRef: tRef
         } = state
-      ) do
+      )
+      when mined == validators do
     :timer.cancel(tRef)
     spawn_round_worker(self(), state)
     {:noreply, %{state | round_sync: true}}
@@ -195,7 +240,7 @@ defmodule BlockTimer do
       MessageStore.delete_all_df(last_row_id_df)
       MessageStore.sync()
 
-      GenServer.cast(pid, {:complete, :block, next_block + 1, new_hash})
+      GenServer.cast(pid, {:complete, :block, next_block + 1, validator_id, new_hash})
     end)
   end
 

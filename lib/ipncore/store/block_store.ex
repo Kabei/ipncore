@@ -61,7 +61,8 @@ defmodule BlockStore do
   end
 
   def count_by_round(round) do
-    call({:execute_step, "count_by_round", [round]})
+    {_, [total]} = call({:execute_step, "count_by_round", [round]})
+    total
   end
 
   def fetch_round(round) do

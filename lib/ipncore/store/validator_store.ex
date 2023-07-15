@@ -31,6 +31,7 @@ defmodule ValidatorStore do
     }
 
     def total do
-      call({:execute_step, :total, []})
+      {_, [total]} = call({:execute_step, :total, []})
+      total
     end
 end

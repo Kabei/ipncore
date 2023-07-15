@@ -16,7 +16,7 @@ defmodule RoundStore do
     ) WITHOUT ROWID;
     ", "
     CREATE TABLE IF NOT EXISTS #{@table_jackpot}(
-      id BIGINT PRIMARY KEY NOT NULL,
+      id BIGINT NOT NULL,
       winner_id BLOB,
       PRIMARY KEY(id, winner_id)
     ) WITHOUT ROWID;

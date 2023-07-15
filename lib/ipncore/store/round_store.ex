@@ -28,7 +28,7 @@ defmodule RoundStore do
       last: "SELECT * FROM #{@table} ORDER BY id DESC LIMIT 1",
       delete: "DELETE FROM #{@table} WHERE id = ?",
       insert_winner: "INSERT INTO #{@table_jackpot} values(?, ?)",
-      has_winner: "SELECT 1 FROM #{@table_jackpot} WHERE round = ?"
+      has_winner: "SELECT 1 FROM #{@table_jackpot} WHERE id = ?"
     }
 
   def last do

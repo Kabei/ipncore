@@ -53,8 +53,9 @@ defmodule Ipncore.MixProject do
       File.stream!(path, [], :line)
       |> Enum.each(fn text ->
         text
+        |> String.trim()
         |> String.replace(~r/\n|\r/, "")
-        |> String.split("=", parts: 2, trim: true)
+        |> String.split("=", parts: 2)
         |> case do
           [key, value] -> System.put_env(key, value)
           _ -> :ignored

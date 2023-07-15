@@ -40,7 +40,7 @@ defmodule BlockTimer do
           {id + 1, hash, block_round}
 
         _ ->
-          {0, nil, nil}
+          {0, nil, 0}
       end
 
     {:ok,
@@ -63,7 +63,7 @@ defmodule BlockTimer do
         {:continue, block_round},
         %{next_round: next_round} = state
       ) do
-    if block_round == next_round do
+    if block_round > next_round do
       blocks = BlockStore.count_by_round(block_round)
       total = ValidatorStore.total()
 

@@ -19,7 +19,9 @@ defmodule Ipncore.Application do
     http_opts = Application.get_env(@otp_app, :http)
     role = Application.get_env(@otp_app, :role)
     redis_url = Application.get_env(@otp_app, :redis)
-    node_name = node()
+    node_str = System.get_env("NODE")
+    cookie = System.get_env("COOKIE")
+    node_name = start_node(node_str, cookie)
 
     pubsub_verifiers_opts =
       if not is_nil(redis_url) and node_name != @default_node do
@@ -128,6 +130,17 @@ defmodule Ipncore.Application do
     File.mkdir(data_dir)
     File.mkdir(block_dir)
     File.mkdir(block_decode_dir)
+  end
+
+  defp start_node(name, cookie) when is_nil(name) or is_nil(cookie) do
+    raise IppanError, "Set NODE and COOKIE variables"
+  end
+
+  defp start_node(name, cookie) do
+    name = String.to_atom(name)
+    Node.start(name)
+    Node.set_cookie(name, String.to_atom(cookie))
+    name
   end
 
   defp load_env_file do

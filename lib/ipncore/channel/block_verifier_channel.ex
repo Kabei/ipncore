@@ -1,44 +1,26 @@
 defmodule BlockVerifierChannel do
   use Channel,
     server: :verifiers,
-    channel: "block"
+    topic: "block"
 
   alias Ippan.Block
   import Global, only: [miner: 0]
 
-  @otp_app :ipncore
-  @file_extension "erl"
-
   def init(args) do
-    PubSub.subscribe(@pubsub_server, @channel)
-    Logger.debug("sub: #{@channel}:#{node()}")
+    PubSub.subscribe(@pubsub_server, @topic)
     {:ok, args}
   end
 
   @impl true
   def handle_info(
-        {"fetch",
-         %{
-           hash: hash,
-           creator: vid,
-           height: height
-         } = block, %{hostname: hostname} = validator},
+        {"fetch", %{hash: hash} = block, validator},
         state
       ) do
     Task.async(fn ->
-      hash16 = Base.encode16(hash)
-      Logger.debug("block.fetch #{hash16}")
-      decode_dir = Application.get_env(@otp_app, :decode_dir)
-      filename = "#{vid}.#{height}.#{@file_extension}"
-      block_path = Path.join(decode_dir, filename)
+      Logger.debug("block.fetch #{Base.encode16(hash)}")
 
       try do
-        unless File.exists?(block_path) do
-          url = "https://#{hostname}/v1/download/block/#{vid}/#{height}"
-          {:ok, _path} = Curl.download_block(url, block_path)
-        end
-
-        BlockTimer.verify!(block, validator)
+        :ok = BlockTimer.verify_file!(block, validator)
 
         value = 1
         signature = Block.sign_vote(hash, value)
@@ -53,8 +35,6 @@ defmodule BlockVerifierChannel do
 
           PubSub.direct_broadcast(miner(), @pubsub_server, "block", {"valid", vote, node()})
       end
-
-      # File.rm(block_path)
     end)
     |> Task.await(:infinity)
 

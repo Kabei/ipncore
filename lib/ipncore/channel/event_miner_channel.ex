@@ -1,7 +1,7 @@
 defmodule EventMinerChannel do
   use Channel,
     server: :verifiers,
-    channel: "event"
+    topic: "event"
 
   @impl true
   def handle_info({"valid", from, hash, body}, state) do

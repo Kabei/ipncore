@@ -3,10 +3,10 @@ defmodule WalletVerifierChannel do
 
   use Channel,
     server: :verifiers,
-    channel: "wallet"
+    topic: "wallet"
 
   def init(args) do
-    PubSub.subscribe(@pubsub_server, @channel)
+    PubSub.subscribe(@pubsub_server, @topic)
     {:ok, args}
   end
 

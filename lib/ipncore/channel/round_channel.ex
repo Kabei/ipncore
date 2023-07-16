@@ -3,7 +3,7 @@ defmodule RoundChannel do
   alias Phoenix.PubSub
 
   @pubsub_server :verifiers
-  @channel "round"
+  @topic "round"
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, hibernate_after: 1_000, name: __MODULE__)
@@ -11,7 +11,7 @@ defmodule RoundChannel do
 
   @impl true
   def init(_args) do
-    PubSub.subscribe(@pubsub_server, @channel)
+    PubSub.subscribe(@pubsub_server, @topic)
     {:ok, %{}}
   end
 
@@ -34,6 +34,6 @@ defmodule RoundChannel do
 
   @impl true
   def terminate(_reason, _state) do
-    PubSub.unsubscribe(@pubsub_server, @channel)
+    PubSub.unsubscribe(@pubsub_server, @topic)
   end
 end

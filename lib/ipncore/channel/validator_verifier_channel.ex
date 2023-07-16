@@ -3,10 +3,10 @@ defmodule ValidatorVerifierChannel do
 
   use Channel,
     server: :verifiers,
-    channel: "validator"
+    topic: "validator"
 
   def init(args) do
-    PubSub.subscribe(@pubsub_server, @channel)
+    PubSub.subscribe(@pubsub_server, @topic)
     {:ok, args}
   end
 

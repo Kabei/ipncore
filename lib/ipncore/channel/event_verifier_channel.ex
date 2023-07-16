@@ -1,11 +1,11 @@
 defmodule EventVerifierChannel do
   use Channel,
     server: :verifiers,
-    channel: "event"
+    topic: "event"
 
   def init(args) do
-    PubSub.subscribe(@pubsub_server, @channel)
-    PubSub.subscribe(@pubsub_server, "#{@channel}:#{node()}")
+    PubSub.subscribe(@pubsub_server, @topic)
+    PubSub.subscribe(@pubsub_server, "#{@topic}:#{node()}")
     {:ok, args}
   end
 

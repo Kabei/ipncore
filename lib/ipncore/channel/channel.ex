@@ -5,7 +5,7 @@ defmodule Channel do
       alias Phoenix.PubSub
       require Logger
       @pubsub_server opts[:server]
-      @channel opts[:channel]
+      @topic opts[:topic]
       @otp_app :ipncore
       @module __MODULE__
 
@@ -15,7 +15,7 @@ defmodule Channel do
 
       @impl true
       def init(args) do
-        PubSub.subscribe(@pubsub_server, @channel)
+        PubSub.subscribe(@pubsub_server, @topic)
         {:ok, args}
       end
 
@@ -25,13 +25,13 @@ defmodule Channel do
 
       @impl true
       def handle_cast({:push, server, message}, state) do
-        PubSub.broadcast_from(server, self(), @channel, message)
+        PubSub.broadcast_from(server, self(), @topic, message)
         {:noreply, state}
       end
 
       @impl true
       def terminate(_reason, _state) do
-        PubSub.unsubscribe(@pubsub_server, @channel)
+        PubSub.unsubscribe(@pubsub_server, @topic)
       end
 
       defoverridable init: 1, terminate: 2

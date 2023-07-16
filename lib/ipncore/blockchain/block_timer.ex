@@ -481,10 +481,10 @@ defmodule BlockTimer do
   end
 
   @doc """
-  used by verifiers to download and verify block file and metadata
+  Verify block metadata only
   """
-  @spec verify!(term, term) :: :ok
-  def verify!(%{hash: hash, ev_count: 0, signature: signature, size: size} = block, %{
+  @spec verify_empty!(term, term) :: :ok
+  def verify_empty!(%{hash: hash, ev_count: 0, signature: signature, size: size} = block, %{
         pubkey: pubkey
       }) do
     if block.hashfile != Block.zero_hash_file() do
@@ -502,7 +502,9 @@ defmodule BlockTimer do
     :ok
   end
 
-  def verify!(
+  # Verify a block file
+  @spec verify_file!(term, term) :: :ok
+  def verify_file!(
         %{
           height: height,
           hash: hash,
@@ -516,15 +518,22 @@ defmodule BlockTimer do
         } = block,
         %{hostname: hostname, pubkey: pubkey}
       ) do
-    block_path = Block.block_path(creator_id, block.height)
-    filename = Path.basename(block_path)
-    url = Block.url(hostname, creator_id, block.height)
+    remote_url = Block.url(hostname, creator_id, block.height)
+    output_path = Block.block_path(creator_id, block.height)
+    file_exists = File.exists?(output_path)
+    filename = Path.basename(output_path)
 
-    unless File.exists?(block_path) do
-      {:ok, _} = Curl.download_block(url, block_path)
+    unless file_exists do
+      {:ok, _} = Curl.download_block(remote_url, output_path)
+    else
+      {:ok, filestat} = File.stat(output_path)
+
+      if filestat.size != size do
+        {:ok, _} = Curl.download_block(remote_url, output_path)
+      end
     end
 
-    {:ok, filestat} = File.stat(block_path)
+    {:ok, filestat} = File.stat(output_path)
 
     if filestat.size > @block_max_size or filestat.size != size do
       raise IppanError, "Invalid block size"
@@ -534,7 +543,7 @@ defmodule BlockTimer do
       raise(IppanError, "Invalid block hash")
     end
 
-    if hashfile != hash_file(block_path) do
+    if hashfile != hash_file(output_path) do
       raise(IppanError, "Hash block file is invalid")
     end
 
@@ -542,7 +551,7 @@ defmodule BlockTimer do
       raise(IppanError, "Invalid block signature")
     end
 
-    {:ok, content} = File.read(block_path)
+    {:ok, content} = File.read(output_path)
     events = decode!(content)
 
     decode_events =

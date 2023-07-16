@@ -13,10 +13,10 @@ key_dir = System.get_env("KEY_DIR", "priv/secret.key")
 role = System.get_env("ROLE", "verifier")
 is_miner = role == "miner"
 
-# folders setup
+# Folders setup
 config :ipncore, :data_dir, data_dir
 
-# folder cert
+# Folder cert
 config :ipncore, :kem_dir, kem_dir
 config :ipncore, :falcon_dir, falcon_dir
 config :ipncore, :key_dir, key_dir
@@ -30,7 +30,7 @@ config :ipncore, :vid, System.get_env("VID", "0") |> String.to_integer()
   if is_miner do
     {max(cpus, 10), 4096}
   else
-    {100, 1_000_000}
+    {100, 1_048_576}
   end
 
 # P2P server

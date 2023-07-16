@@ -13,6 +13,7 @@ defmodule Ippan.Block do
           size: non_neg_integer()
         }
 
+  @file_extension "erl"
   defstruct [
     :height,
     :creator,
@@ -143,7 +144,6 @@ defmodule Ippan.Block do
     Cafezinho.Impl.sign("#{hash}#{vote}", privkey)
   end
 
-  @file_extension "erl"
   def block_path(validator_id, height) do
     block_dir = Application.get_env(:ipncore, :block_dir)
     Path.join([block_dir, "#{validator_id}.#{height}.#{@file_extension}"])

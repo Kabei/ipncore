@@ -1,12 +1,12 @@
 defmodule BlockMinerChannel do
   use Channel,
     server: :verifiers,
-    channel: "block"
+    topic: "block"
 
   alias Ippan.{Block, P2P}
 
   def init(_args) do
-    PubSub.subscribe(@pubsub_server, @channel)
+    PubSub.subscribe(@pubsub_server, @topic)
 
     round_id = RoundStore.last_id()
     {:ok, %{blocks: %{}, round: round_id}}
@@ -28,14 +28,14 @@ defmodule BlockMinerChannel do
 
     block_unique_id = {creator_id, height}
 
-    if not Map.has_key?(block_unique_id, blocks) or round > round_number do
+    if not Map.has_key?(blocks, block_unique_id) or round > round_number do
       Logger.debug("not in cache")
 
       if ev_count > 0 do
         push_fetch(block)
       else
         try do
-          BlockTimer.verify!(block, from)
+          BlockTimer.verify_empty!(block, from)
         rescue
           _ ->
             send(self(), {"valid", :error, block})

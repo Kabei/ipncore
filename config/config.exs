@@ -13,7 +13,7 @@ else
   config :logger, level: :debug
 end
 
-# blockchain setup
+# Blockchain setup
 config :ipncore, :token, System.get_env("NATIVE_TOKEN", "IPN")
 config :ipncore, :message_max_size, 8192
 config :ipncore, :block_version, 0

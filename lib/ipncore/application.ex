@@ -76,11 +76,10 @@ defmodule Ipncore.Application do
           ]
 
         "verifier" ->
-          miner_node =
-            case miner do
-              nil -> raise RuntimeError, "Set up a miner"
-              x -> String.to_atom(x)
-            end
+          case miner do
+            nil -> raise RuntimeError, "Set up a miner"
+            _ -> :ok
+          end
 
           [
             {MessageStore, Path.join(data_dir, "requests/messages.db")},
@@ -90,7 +89,7 @@ defmodule Ipncore.Application do
             ),
             # Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
             # Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
-            {NodeMonitor, [miner_node]},
+            {NodeMonitor, [miner]},
             {BlockVerifierChannel, []},
             {EventVerifierChannel, []},
             {WalletVerifierChannel, []},

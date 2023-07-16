@@ -28,7 +28,8 @@ defmodule RoundStore do
       last: "SELECT * FROM #{@table} ORDER BY id DESC LIMIT 1",
       delete: "DELETE FROM #{@table} WHERE id = ?",
       insert_winner: "INSERT INTO #{@table_jackpot} values(?, ?)",
-      has_winner: "SELECT 1 FROM #{@table_jackpot} WHERE id = ?"
+      has_winner: "SELECT 1 FROM #{@table_jackpot} WHERE id = ?",
+      total: "SELECT COUNT(1) FROM #{@table}"
     }
 
   def last do
@@ -48,5 +49,10 @@ defmodule RoundStore do
 
   def has_winner?(round_id) do
     {:row, [1]} == call({:execute_step, :insert_winner, [round_id]})
+  end
+
+  def total do
+    {_, [total]} = call({:execute_step, :total, []})
+    total
   end
 end

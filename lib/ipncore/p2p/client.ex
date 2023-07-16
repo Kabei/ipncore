@@ -1,20 +1,18 @@
 defmodule Ippan.P2P.Client do
-  alias Phoenix.PubSub
-  alias Ippan.Address
   use GenServer
+  import Ippan.P2P, only: [decode!: 2, encode: 2]
+  alias Phoenix.PubSub
+  alias Ippan.{Address, P2P}
   require Logger
 
   @module __MODULE__
   @adapter :gen_tcp
-  @version <<0::16>>
-  @seconds <<0>>
-  @iv_bytes 12
-  @tag_bytes 16
+  @version P2P.version()
+  @handshake_timeout P2P.handshake_timeout()
   @time_to_reconnect 3_000
-  @handshake_timeout 5_000
   @ping_interval 45_000
   @pubsub_server :network
-  @tcp_opts [:binary, packet: 2, reuseaddr: true]
+  @tcp_opts Application.compile_env(:ipncore, :p2p_client)
 
   def start_link({hostname, port, vid, key_path}) do
     seed =
@@ -44,14 +42,14 @@ defmodule Ippan.P2P.Client do
     {:ok,
      %{
        id: vid,
-       pid: self(),
        hostname: hostname,
        port: port,
        address: address,
        pubkey: pubkey,
        privkey: privkey,
+       conn: false,
        mailbox: %{}
-     }, {:continue, :reconnect}}
+     }, {:continue, :connect}}
   end
 
   def stop(pid) do
@@ -59,24 +57,19 @@ defmodule Ippan.P2P.Client do
   end
 
   @impl true
-  def handle_continue(:reconnect, initial_state) do
-    # IO.inspect("continue")
+  def handle_continue(:connect, initial_state) do
     :timer.send_after(@time_to_reconnect, :reconnect)
     {:noreply, initial_state}
   end
 
   @impl true
   def handle_info(:reconnect, state) do
-    # IO.inspect("reconnect")
-
     try do
       case connect(state) do
         {:ok, new_state} ->
           {:noreply, new_state}
 
         _error ->
-          # IO.inspect("reconnect error")
-          # IO.inspect(error)
           :timer.send_after(@time_to_reconnect, :reconnect)
           {:noreply, state}
       end
@@ -89,22 +82,36 @@ defmodule Ippan.P2P.Client do
   end
 
   def handle_info(
-        {:tcp_closed, _socket},
-        %{hostname: hostname, socket: socket, port: port, tRef: tRef} = state
+        {:tcp, _socket, packet},
+        %{sharedkey: sharedkey} = state
       ) do
-    Logger.debug("tcp_closed | #{hostname}:#{port}")
-    :timer.cancel(tRef)
-    @adapter.close(socket)
-    :timer.send_after(@time_to_reconnect, :reconnect)
+    case decode!(packet, sharedkey) do
+      %{id: id} = msg -> PubSub.local_broadcast(@pubsub_server, "res:#{id}", msg)
+      _ -> :ok
+    end
+
     {:noreply, state}
   end
 
   def handle_info(
-        {:tcp_error, _socket, reason},
-        %{hostname: hostname, port: port} = state
+        {:tcp_closed, _socket},
+        %{hostname: hostname, socket: socket, port: port, tRef: tRef} = state
       ) do
-    Logger.debug("tcp_error #{reason} | #{hostname}:#{port}")
-    {:noreply, state}
+    Logger.debug("tcp_closed | #{hostname}:#{port}")
+    @adapter.close(socket)
+    :timer.cancel(tRef)
+    :timer.send_after(@time_to_reconnect, :reconnect)
+    {:noreply, %{state | conn: false}}
+  end
+
+  if Mix.env() == :dev do
+    def handle_info(
+          {:tcp_error, _socket, reason},
+          %{hostname: hostname, port: port} = state
+        ) do
+      Logger.debug("tcp_error #{reason} | #{hostname}:#{port}")
+      {:noreply, state}
+    end
   end
 
   def handle_info(:ping, %{socket: socket} = state) do
@@ -117,24 +124,22 @@ defmodule Ippan.P2P.Client do
     {:stop, reason, state}
   end
 
-  def handle_info({"clear", id}, %{mailbox: mailbox} = state) do
-    {:noreply, %{state | mailbox: Map.delete(mailbox, id)}}
+  def handle_info({:mailbox, %{id: id} = msg}, %{mailbox: mailbox} = state) do
+    {:noreply, %{state | mailbox: Map.put(mailbox, id, msg)}}
   end
 
-  def handle_info({_event, _action, data} = msg, %{mailbox: mailbox} = state) do
-    case state do
-      %{socket: socket, sharedkey: sharedkey} ->
+  # receved a message from pubsub
+  def handle_info(
+        %{id: id} = msg,
+        %{socket: socket, conn: conn, mailbox: mailbox, sharedkey: sharedkey} = state
+      ) do
+    case conn do
+      true ->
         @adapter.send(socket, encode(msg, sharedkey))
+        {:noreply, state}
 
       _ ->
-        :ok
-    end
-
-    if is_map(data) do
-      # Logger.debug(inspect(data))
-      {:noreply, %{state | mailbox: Map.put(mailbox, data.height, msg)}}
-    else
-      {:noreply, %{state | mailbox: Map.put(mailbox, data, msg)}}
+        {:noreply, %{state | mailbox: Map.put(mailbox, id, msg)}}
     end
   end
 
@@ -173,11 +178,13 @@ defmodule Ippan.P2P.Client do
       {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
       :ok = :inet.setopts(socket, active: true)
 
-      new_state = Map.merge(state, %{socket: socket, sharedkey: sharedkey, tRef: tRef})
+      new_state =
+        Map.merge(state, %{socket: socket, sharedkey: sharedkey, tRef: tRef, conn: true})
+
       Logger.debug("#{hostname}:#{port} | connected")
       # IO.inspect(sharedkey, limit: :infinity)
 
-      {:ok, check_mail_box(new_state)}
+      {:ok, check_mailbox(new_state)}
     rescue
       MatchError ->
         # {:reply, :error, state}
@@ -204,44 +211,23 @@ defmodule Ippan.P2P.Client do
     end
   end
 
-  defp check_mail_box(%{mailbox: []} = state), do: state
+  defp check_mailbox(%{mailbox: %{}} = state), do: state
 
-  defp check_mail_box(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
-    Enum.each(mailbox, fn {_key, msg} ->
+  defp check_mailbox(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
+    for {_, msg} <- mailbox do
       @adapter.send(socket, encode(msg, sharedkey))
-    end)
+    end
 
-    state
-  end
-
-  defp encode(msg, sharedkey) do
-    # IO.inspect("encode")
-    # IO.inspect(Base.encode16(sharedkey), limit: :infinity)
-    # IO.inspect(msg, limit: :infinity)
-    bin = :erlang.term_to_binary(msg)
-    iv = :crypto.strong_rand_bytes(@iv_bytes)
-
-    {ciphertext, tag} =
-      :crypto.crypto_one_time_aead(
-        :chacha20_poly1305,
-        sharedkey,
-        iv,
-        bin,
-        @seconds,
-        @tag_bytes,
-        true
-      )
-
-    iv <> tag <> ciphertext
+    %{state | mailbox: %{}}
   end
 
   defp subscribe(vid) do
-    PubSub.subscribe(@pubsub_server, "msg")
-    PubSub.subscribe(@pubsub_server, "msg:#{vid}")
+    PubSub.subscribe(@pubsub_server, "echo")
+    PubSub.subscribe(@pubsub_server, "echo:#{vid}")
   end
 
   defp unsubscribe(vid) do
-    PubSub.unsubscribe(@pubsub_server, "msg")
-    PubSub.unsubscribe(@pubsub_server, "msg:#{vid}")
+    PubSub.unsubscribe(@pubsub_server, "echo")
+    PubSub.unsubscribe(@pubsub_server, "echo:#{vid}")
   end
 end

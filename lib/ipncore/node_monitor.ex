@@ -3,6 +3,8 @@ defmodule NodeMonitor do
   use GenServer
   require Logger
 
+  @pubsub_server :verifiers
+  @topic "event"
   @backoff 1_500
 
   def start_link(opts) do
@@ -43,7 +45,7 @@ defmodule NodeMonitor do
         :timer.send_after(@backoff, {:connect, node_name})
 
       true ->
-        on_connect(node_name)
+        on_connect_spawn(node_name)
     end
 
     {:noreply, state}
@@ -54,20 +56,20 @@ defmodule NodeMonitor do
     :net_kernel.monitor_nodes(false)
   end
 
-  defp on_connect(_node_name) do
-    Logger.debug("on connect")
-    {:ok, data} = MessageStore.all()
-    from = node()
+  defp on_connect_spawn(node_name) do
+    spawn_link(fn ->
+      {:ok, data} = MessageStore.all()
+      from = node()
 
-    Enum.each(data, fn msg ->
-      PubSub.broadcast(:miner, "event", {"valid", from, msg})
-    end)
+      for msg <- data do
+        PubSub.direct_broadcast(node_name, @pubsub_server, @topic, {"valid", from, msg})
+      end
 
-    {:ok, data} = MessageStore.all_df()
+      {:ok, data} = MessageStore.all_df()
 
-    Enum.each(data, fn msg ->
-      IO.inspect("send valid_df")
-      PubSub.broadcast(:miner, "event", {"valid_df", from, msg})
+      for msg <- data do
+        PubSub.direct_broadcast(node_name, @pubsub_server, @topic, {"valid_df", from, msg})
+      end
     end)
   end
 end

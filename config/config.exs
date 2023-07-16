@@ -13,7 +13,7 @@ else
   config :logger, level: :debug
 end
 
-# blockchain
+# blockchain setup
 config :ipncore, :token, System.get_env("NATIVE_TOKEN", "IPN")
 config :ipncore, :message_max_size, 8192
 config :ipncore, :block_version, 0
@@ -25,6 +25,14 @@ config :ipncore, :note_max_size, 1_000_000_000_000_000
 config :ipncore, :last_activity, :timer.hours(24)
 config :ipncore, :timeout_refund, :timer.hours(72)
 config :ipncore, :message_timeout, :timer.seconds(15)
+
+# P2P client
+config :ipncore, :p2p_client, [
+  :binary,
+  reuseaddr: true,
+  packet: 2,
+  packet_size: 9_000
+]
 
 config :ipncore, json: Jason
 config :blake3, rayon: true

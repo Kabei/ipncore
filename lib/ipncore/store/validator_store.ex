@@ -27,7 +27,7 @@ defmodule ValidatorStore do
       owner: "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?1",
       delete: "DELETE FROM #{@table} WHERE id = ?1",
-      total: "SELECT COUNT(id) FROM #{@table}"
+      total: "SELECT COUNT(1) FROM #{@table}"
     }
 
     def total do

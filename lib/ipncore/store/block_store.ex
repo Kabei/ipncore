@@ -32,23 +32,23 @@ defmodule BlockStore do
         hash BLOB NOT NULL,
         signature BLOB NOT NULL,
         votes INTEGER NOT NULL,
-        PRIMARY KEY(round, creator_id, validator_id, height, hash)
+        PRIMARY KEY(creator_id, height, validator_id)
       );
       """
     ],
     stmt: %{
       "fetch_round" => "SELECT hash FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
-      "insert_vote" => "INSERT OR IGNORE INTO #{@table_bft} values(?1,?2,?3,?4,?5,?6,?7)",
+      "insert_vote" => "INSERT INTO #{@table_bft} values(?1,?2,?3,?4,?5,?6,?7)",
       "fetch_votes" =>
         "SELECT * FROM #{@table_bft} WHERE round = ?1 ORDER BY creator_id ASC, validator_id ASC",
       "sum_votes" =>
-        "SELECT SUM(votes), count(*) FROM #{@table_bft} WHERE round = ?1 and creator_id = ?2 and hash = ?3",
+        "SELECT SUM(votes), count(1) FROM #{@table_bft} WHERE round = ?1 and creator_id = ?2 and hash = ?3",
       "avg_round_time" => "SELECT TRUNC(AVG(timestamp)) FROM #{@table} WHERE round = ?",
-      "count_by_round" => "SELECT count(*) FROM #{@table} WHERE round = ?",
+      "count_by_round" => "SELECT count(1) FROM #{@table} WHERE round = ?",
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)",
       lookup: "SELECT * FROM #{@table} WHERE height = ?",
       delete: "DELETE FROM #{@table} WHERE height = ?",
-      count: "SELECT count(*) FROM #{@table} WHERE creator=?",
+      count: "SELECT count(1) FROM #{@table} WHERE creator=?",
       last: "SELECT * FROM #{@table} WHERE creator=? ORDER BY height DESC"
     }
 

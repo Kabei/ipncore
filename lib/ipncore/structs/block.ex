@@ -103,24 +103,27 @@ defmodule Ippan.Block do
         block = %{
           creator: creator,
           height: height,
+          round: round,
           prev: prev,
           hashfile: hashfile,
           timestamp: timestamp
         }
       ) do
-    Map.put(block, :hash, compute_hash(height, creator, prev, hashfile, timestamp))
+    Map.put(block, :hash, compute_hash(height, creator, round, prev, hashfile, timestamp))
   end
 
   @spec put_signature(term()) :: term()
   def put_signature(block) do
-    Map.put(block, :signature, sign(block.hash))
+    {:ok, sig} = sign(block.hash)
+    Map.put(block, :signature, sig)
   end
 
-  @spec compute_hash(integer(), integer(), binary(), binary(), integer()) :: binary
-  def compute_hash(height, creator, prev, hashfile, timestamp) do
+  @spec compute_hash(integer(), integer(), integer(), binary(), binary(), integer()) :: binary
+  def compute_hash(height, creator, round, prev, hashfile, timestamp) do
     [
-      to_string(height),
       to_string(creator),
+      to_string(height),
+      to_string(round),
       normalize(prev),
       hashfile,
       to_string(timestamp)

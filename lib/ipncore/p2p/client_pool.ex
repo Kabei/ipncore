@@ -9,7 +9,7 @@ defmodule Ippan.P2P.ClientPool do
   @pubsub_server :verifiers
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, hibernate_after: 5_000)
+    GenServer.start_link(__MODULE__, args, hibernate_after: 10_000)
   end
 
   @impl true

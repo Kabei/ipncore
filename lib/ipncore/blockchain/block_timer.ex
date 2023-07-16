@@ -1,7 +1,7 @@
 defmodule BlockTimer do
   use GenServer
   alias Phoenix.PubSub
-  alias Ippan.{Block, Round, RequestHandler}
+  alias Ippan.{Block, Round, RequestHandler, P2P}
   import Ippan.Block, only: [decode!: 1, encode!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
   require Logger
 
@@ -10,10 +10,8 @@ defmodule BlockTimer do
   @token Application.compile_env(:ipncore, :token)
   @time_activity Application.compile_env(:ipncore, :last_activity)
   @pubsub_verifiers :verifiers
-  @pubsub_network :network
   @topic_block "block"
   @topic_round "round"
-  @topic_network "msg"
   @block_interval Application.compile_env(@otp_app, :block_interval)
   @block_max_size Application.compile_env(@otp_app, :block_max_size)
   @block_data_max_size Application.compile_env(@otp_app, :block_data_max_size)
@@ -63,20 +61,23 @@ defmodule BlockTimer do
 
   @impl true
   def handle_continue(
-        {:continue, block_round},
-        %{mined: mined, next_round: next_round, validators: validators} = state
+        {:continue, _block_round},
+        %{mined: mined, next_round: next_round, next_block: next_block, validators: validators} =
+          state
       ) do
-    if block_round > next_round do
-      if validators == mined do
-        send(self(), :sync)
-        {:noreply, state}
-      else
+    cond do
+      next_block > next_round ->
+        if validators == mined do
+          send(self(), :sync)
+          {:noreply, %{state | block_sync: true}}
+        else
+          # {:ok, tRef} = :timer.send_after(@block_interval, :mine)
+          {:noreply, %{state | block_sync: true}}
+        end
+
+      true ->
         {:ok, tRef} = :timer.send_after(@block_interval, :mine)
         {:noreply, %{state | tRef: tRef}}
-      end
-    else
-      {:ok, tRef} = :timer.send_after(@block_interval, :mine)
-      {:noreply, %{state | tRef: tRef}}
     end
   end
 
@@ -111,7 +112,7 @@ defmodule BlockTimer do
              wait_to_sync: false
          }}
       else
-        {:noreply, %{state | mined: mined + 1, wait_to_mine: false, wait_to_sync: false}}
+        {:noreply, %{state | mined: mined + 1, block_sync: false, wait_to_sync: false}}
       end
 
     if wait_to_sync or mined == validators do
@@ -122,7 +123,7 @@ defmodule BlockTimer do
   end
 
   def handle_cast({:complete, :round, new_id, new_hash}, state) do
-    BlockMinerChannel.new_round(new_id)
+    BlockMinerChannel.reset(new_id)
     PubSub.broadcast(@pubsub_verifiers, @topic_round, {"start", new_id})
 
     tRef =
@@ -139,13 +140,30 @@ defmodule BlockTimer do
        | next_round: new_id,
          prev_round: new_hash,
          round_sync: false,
-         tRef: tRef,
-         block_sync: false
+         mined: 0,
+         tRef: tRef
+         #  block_sync: false
      }}
   end
 
-  def handle_cast({:validators, validators}, state) do
-    {:noreply, %{state | validators: validators}}
+  # complete mine foreign block
+  def handle_cast(
+        {:complete, :import, _block},
+        %{
+          mined: mined,
+          validators: validators,
+          round_sync: round_sync
+        } = state
+      ) do
+    if not round_sync and mined == validators do
+      send(BlockTimer, :sync)
+    end
+
+    {:noreply, %{state | mined: mined + 1}}
+  end
+
+  def handle_cast({:validators, n}, %{validators: validators} = state) do
+    {:noreply, %{state | validators: validators + n}}
   end
 
   @impl true
@@ -177,6 +195,22 @@ defmodule BlockTimer do
 
   def handle_info(:mine, state) do
     {:noreply, %{state | wait_to_mine: true}}
+  end
+
+  # mine foreign block
+  def handle_info(
+        {:import, %{creator: creator_id, height: height, round: round} = block},
+        %{
+          next_round: next_round
+        } = state
+      ) do
+    if round == next_round do
+      decode_path = Block.decode_path(creator_id, height)
+
+      spawn_remote_block_worker(self(), block, decode_path)
+    end
+
+    {:noreply, state}
   end
 
   def handle_info(
@@ -279,16 +313,21 @@ defmodule BlockTimer do
 
       RoundStore.insert([next_round, hash, prev_round, count, timestamp])
 
+      task_jackpot =
+        Task.async(fn ->
+          run_jackpot(next_round, hash, timestamp)
+        end)
+
       MessageStore.sync()
 
       if requests != [] do
         commit()
       end
 
-      run_jackpot(next_round, hash, timestamp)
-
       RoundStore.sync()
       checkpoint_commit()
+
+      Task.await(task_jackpot, :infinity)
 
       # send pubsub event
       PubSub.broadcast(@pubsub_verifiers, @topic_round, {"end", next_round})
@@ -298,22 +337,26 @@ defmodule BlockTimer do
   end
 
   # Create a block file from decode block file
-  @spec mine_file(Block.t(), Path.t()) :: binary()
-  def mine_file(
-        %{
-          creator: creator_id,
-          height: height,
-          prev: prev_hash,
-          round: round,
-          timestamp: timestamp
-        },
-        decode_path
-      ) do
-    {:ok, content} = File.read(decode_path)
+  defp spawn_remote_block_worker(
+         pid,
+         %{
+           creator: creator_id,
+           height: height,
+           prev: prev_hash,
+           round: round,
+           timestamp: timestamp
+         } = block,
+         decode_path
+       ) do
+    start_link(fn ->
+      {:ok, content} = File.read(decode_path)
 
-    requests = decode!(content)
+      requests = decode!(content)
 
-    mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
+      mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
+
+      GenServer.cast(pid, {:complete, :import, block})
+    end)
   end
 
   # Create a block file and register transactions
@@ -432,38 +475,74 @@ defmodule BlockTimer do
     Logger.debug("Block #{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}")
 
     PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})
-    PubSub.broadcast(@pubsub_network, @topic_network, {"block", "new_recv", block})
+    P2P.push({"new_recv", block})
 
     block.hash
   end
 
   @doc """
-  used by verifiers to download and verify blockfiles
+  used by verifiers to download and verify block file and metadata
   """
-  def verify_block!(block, validator) do
-    block_path = Block.block_path(validator.id, block.height)
-    filename = Path.basename(block_path)
-    url = Block.url(validator.hostname, validator.id, block.height)
-
-    {:ok, _} = Curl.download_block(url, block_path)
-    {:ok, filestat} = File.stat(block_path)
-
-    if filestat.size > @block_max_size do
-      raise IppanError, "Invalid block max size"
-    end
-
-    {:ok, content} = File.read(block_path)
-
-    block_hash = hash_file(block_path)
-
-    if block.hashfile != block_hash do
+  @spec verify!(term, term) :: :ok
+  def verify!(%{hash: hash, ev_count: 0, signature: signature, size: size} = block, %{
+        pubkey: pubkey
+      }) do
+    if block.hashfile != Block.zero_hash_file() do
       raise(IppanError, "Hash block file is invalid")
     end
 
-    if Cafezinho.Impl.verify(block.signature, block.hash, validator.pubkey) != :ok do
+    if 0 != size do
+      raise IppanError, "Invalid block size"
+    end
+
+    if Cafezinho.Impl.verify(signature, hash, pubkey) != :ok do
       raise(IppanError, "Invalid block signature")
     end
 
+    :ok
+  end
+
+  def verify!(
+        %{
+          height: height,
+          hash: hash,
+          round: round,
+          hashfile: hashfile,
+          creator: creator_id,
+          prev: prev,
+          signature: signature,
+          timestamp: timestamp,
+          size: size
+        } = block,
+        %{hostname: hostname, pubkey: pubkey}
+      ) do
+    block_path = Block.block_path(creator_id, block.height)
+    filename = Path.basename(block_path)
+    url = Block.url(hostname, creator_id, block.height)
+
+    unless File.exists?(block_path) do
+      {:ok, _} = Curl.download_block(url, block_path)
+    end
+
+    {:ok, filestat} = File.stat(block_path)
+
+    if filestat.size > @block_max_size or filestat.size != size do
+      raise IppanError, "Invalid block size"
+    end
+
+    if hash != Block.compute_hash(height, creator_id, round, prev, hashfile, timestamp) do
+      raise(IppanError, "Invalid block hash")
+    end
+
+    if hashfile != hash_file(block_path) do
+      raise(IppanError, "Hash block file is invalid")
+    end
+
+    if Cafezinho.Impl.verify(signature, hash, pubkey) != :ok do
+      raise(IppanError, "Invalid block signature")
+    end
+
+    {:ok, content} = File.read(block_path)
     events = decode!(content)
 
     decode_events =
@@ -471,7 +550,7 @@ defmodule BlockTimer do
         hash = Blake3.hash(body)
         size = byte_size(body) + byte_size(signature)
 
-        RequestHandler.valid!(hash, body, size, signature, validator.id)
+        RequestHandler.valid!(hash, body, size, signature, creator_id)
       end
 
     export_path =
@@ -479,8 +558,6 @@ defmodule BlockTimer do
       |> Path.join(filename)
 
     :ok = File.write(export_path, encode!(decode_events))
-
-    export_path
   end
 
   # Pay a player according to the calculation of the remaining
@@ -501,8 +578,10 @@ defmodule BlockTimer do
       amount = EnvStore.get("WINNER_AMOUNT", 10) * count
       RoundStore.insert_winner(round_id, winner_id)
       BalanceStore.income(winner_id, @token, amount, round_timestamp)
+      :ok
     else
       RoundStore.insert_winner(round_id, nil)
+      :none
     end
   end
 

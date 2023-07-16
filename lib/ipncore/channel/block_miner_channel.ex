@@ -1,107 +1,72 @@
 defmodule BlockMinerChannel do
   use Channel,
-    server: :miner,
+    server: :verifiers,
     channel: "block"
 
-  alias Ippan.{Block}
+  alias Ippan.{Block, P2P}
 
   def init(_args) do
     PubSub.subscribe(@pubsub_server, @channel)
 
     round_id = RoundStore.last_id()
-    {:ok, %{cache: [], round: round_id}}
-  end
-
-  def new_round(round) do
-    GenServer.cast(@module, {:new_round, round})
+    {:ok, %{blocks: %{}, round: round_id}}
   end
 
   @impl true
   def handle_info(
-        {"new_recv", from_id,
+        {"new_recv", from,
          %{
            hash: hash,
            height: height,
            round: round,
            creator: creator_id,
-           signature: signature
+           ev_count: ev_count
          } = block},
-        %{cache: cache, round: round_number} = state
+        %{blocks: blocks, round: round_number} = state
       ) do
     Logger.debug("block.new_recv #{Base.encode16(hash)}")
 
-    if hash not in cache or round > round_number do
+    block_unique_id = {creator_id, height}
+
+    if not Map.has_key?(block_unique_id, blocks) or round > round_number do
       Logger.debug("not in cache")
-      BlockStore.insert_vote(height, round, from_id, creator_id, hash, signature, 0)
-      send_fetch(block)
-      {:noreply, %{state | cache: cache ++ [hash]}}
+
+      if ev_count > 0 do
+        push_fetch(block)
+      else
+        try do
+          BlockTimer.verify!(block, from)
+        rescue
+          _ ->
+            send(self(), {"valid", :error, block})
+        end
+      end
+
+      {:noreply, %{state | blocks: Map.put(blocks, block_unique_id, block)}}
     else
-      Logger.debug("hit cache")
+      Logger.debug("hit cache #{block.creator}.#{block.height}")
       {:noreply, state}
     end
   end
 
   def handle_info(
-        {"valid", :ok, %{hash: hash, round: round} = data, origin},
-        %{round: round_number} = state
+        {"valid", %{creator: creator, height: height, vote: value} = vote, node_origin},
+        state
       ) do
-    {:ok, signature} = Block.sign("#{hash}1")
+    send(VoteCounter, {:vote, vote, nil})
+    P2P.push({"vote", vote})
 
-    vote = register_vote(data, Default.validator_id(), signature, 1)
-    download_and_process(origin, data)
-    PubSub.broadcast(:network, "msg", {"block", "vote", vote})
-
-    total = ValidatorStore.total()
-    count = BlockStore.count_by_round(round)
-
-    if count == total do
-      BlockTimer.sync()
+    if value == 1 do
+      spawn(fn ->
+        download_block_from_cluster!(node_origin, creator, height)
+      end)
     end
 
-    {:noreply, %{state | round: round_number + 1}}
-  end
-
-  def handle_info({"valid", :error, data, _origin}, state) do
-    {:ok, signature} = Block.sign_vote(data.hash, -1)
-    vote = register_vote(data, Default.validator_id(), signature, -1)
-
-    PubSub.broadcast(:network, "msg", {"block", "vote", vote})
     {:noreply, state}
   end
 
-  def handle_info(
-        {"vote",
-         %{
-           hash: hash,
-           height: _height,
-           round: _round,
-           vote: vote,
-           creator: creator_id,
-           signature: signature,
-           validator: validator_id
-         } = block},
-        state
-      ) do
-    if validator_id != creator_id and vote in [1, -1] do
-      validator = ValidatorStore.lookup([validator_id])
-
-      if Cafezinho.Impl.verify(signature, "#{hash}#{vote}", validator.pubkey) == :ok do
-        register_vote(block, validator_id, signature, vote)
-
-        # {:row, [sum_votes, total_votes]} = BlockStore.sum_votes(round, hash, creator_id)
-
-        # if sum_votes == 3 and total_votes == min_votes do
-        #   {:row, [prev_hash]} = BlockStore.last(creator_id)
-
-        #   if prev_hash == prev do
-        #     filename = "#{creator_id}.#{height}.#{@file_extension}"
-        #     decode_dir = Application.get_env(@otp_app, :decode_dir)
-        #     block_path = Path.join([decode_dir, filename])
-        #     BlockTimer.mine_file(block, block_path)
-        #   end
-        # end
-      end
-    end
+  def handle_info({"vote", from, block}, state) do
+    send(VoteCounter, {:vote, block, from.pubkey})
 
     {:noreply, state}
   end
@@ -111,95 +76,68 @@ defmodule BlockMinerChannel do
   end
 
   @impl true
-  def handle_cast({:new_round, round}, state) do
-    {:noreply, %{state | cache: [], round: round}}
+  def handle_call({:block, creator_id, height}, _from, %{blocks: blocks} = state) do
+    {:reply, Map.get(blocks, {blocks, creator_id, height}), state}
   end
 
-  defp download_and_process(
-         hostname,
-         %{creator: creator_id, height: height} = block
-       ) do
-    decode_path = Block.decode_path(creator_id, height)
+  @impl true
+  def handle_cast({:reset, new_round}, %{blocks: blocks, round: old_round} = state) do
+    result =
+      Enum.reduce(blocks, %{}, fn {key, %{round: round} = block}, acc ->
+        if round != old_round do
+          Map.put(acc, key, block)
+        else
+          acc
+        end
+      end)
 
+    {:noreply, %{state | blocks: result, round: new_round}}
+  end
+
+  # set new round and clear old blocks received
+  @spec reset(number()) :: :ok
+  def reset(round) do
+    GenServer.cast(@module, {:reset, round})
+  end
+
+  def get_block_received(creator_id, height) do
+    GenServer.call(@module, {:block, creator_id, height})
+  end
+
+  defp download_block_from_cluster!(node_verifier, creator_id, height) do
+    hostname = node_verifier |> to_string() |> String.split("@") |> List.last()
     url = "http://#{hostname}:8080/v1/download/block-decode/#{creator_id}/#{height}"
-    Logger.debug(hostname)
+    decode_path = Block.decode_path(creator_id, height)
     {:ok, _abs_url} = Curl.download(url, decode_path)
-    # Download.from(url, path: decode_path)
-
-    BlockTimer.mine_file(block, decode_path)
   end
 
-  defp register_vote(
-         %{
-           height: height,
-           round: round,
-           creator: creator_id,
-           hash: hash
-         } = block,
-         validator_id,
-         signature,
-         vote
-       ) do
-    BlockStore.insert_vote(
-      height,
-      round,
-      validator_id,
-      creator_id,
-      hash,
-      signature,
-      vote
-    )
-
-    block
-    |> Map.put(:validator, validator_id)
-    |> Map.put(:signature, signature)
-  end
-
-  defp send_fetch(block) do
+  defp push_fetch(block) do
     spawn_link(fn ->
       case Node.list() do
         [] ->
           :timer.sleep(1500)
-          send_fetch(block)
+          push_fetch(block)
 
         node_list ->
-          node_atom = node_list |> Enum.random()
-
-          local = node() |> to_string() |> String.split("@") |> List.last()
-          hash16 = Base.encode16(block.hash)
-          Logger.debug(inspect(local))
+          # take random node
+          node_atom = Enum.random(node_list)
 
           case Node.ping(node_atom) do
             :pong ->
               Logger.debug(inspect("pong block:#{node_atom}"))
-              PubSub.subscribe(:miner, "block:#{hash16}")
               validator = ValidatorStore.lookup([block.creator])
 
-              PubSub.broadcast(
+              PubSub.direct_broadcast(
+                node_atom,
                 :verifiers,
-                "block:#{node_atom}",
-                {"fetch", block, validator, local}
+                "block",
+                {"fetch", block, validator}
               )
-
-              receive do
-                {"valid", _result, _block, _host} = msg ->
-                  Logger.debug(inspect(msg))
-                  PubSub.unsubscribe(:miner, "block:#{hash16}")
-                  PubSub.broadcast(:miner, "block", msg)
-
-                msg ->
-                  Logger.debug(inspect(msg))
-                  :ok
-              after
-                10_000 ->
-                  PubSub.unsubscribe(:miner, "block:#{hash16}")
-                  send_fetch(block)
-              end
 
             :pang ->
               Logger.debug("pang")
               :timer.sleep(1500)
-              send_fetch(block)
+              push_fetch(block)
           end
       end
     end)

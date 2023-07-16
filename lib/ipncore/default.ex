@@ -1,5 +1,17 @@
 defmodule Global do
   use GlobalConst.DummyModule
+
+  defmacro miner do
+    quote do
+      Global.get(:miner)
+    end
+  end
+
+  defmacro owner do
+    quote do
+      Global.get(:owner)
+    end
+  end
 end
 
 defmodule Default do

@@ -7,6 +7,9 @@ defmodule Ippan.Utils do
   #   def empty?(false), do: true
   def empty?(_), do: false
 
+  def to_atom(nil), do: nil
+  def to_atom(text), do: String.to_atom(text)
+
   # def to_decimal(number, 0), do: number
 
   # def to_decimal(number, decimals) do

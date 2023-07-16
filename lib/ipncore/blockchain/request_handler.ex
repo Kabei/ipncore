@@ -5,6 +5,7 @@ defmodule Ippan.RequestHandler do
 
   # @timeout Application.compile_env(:ipncore, :message_timeout)
   # @libsecp256k1 ExSecp256k1.Impl
+  @json Application.compile_env(:ipncore, :json)
 
   defmacrop check_timestamp!(timestamp) do
     quote do
@@ -16,7 +17,7 @@ defmodule Ippan.RequestHandler do
 
   @spec valid!(binary, binary, non_neg_integer()) :: any
   def valid!(hash, msg, size) do
-    [type, timestamp | args] = Jason.decode!(msg)
+    [type, timestamp | args] = @json.decode!(msg)
 
     # check_timestamp!(timestamp)
 
@@ -59,7 +60,7 @@ defmodule Ippan.RequestHandler do
 
   @spec valid!(binary, binary, non_neg_integer(), binary, non_neg_integer()) :: any
   def valid!(hash, msg, size, sig_with_flag, node_validator) do
-    [type, timestamp, from | args] = Jason.decode!(msg)
+    [type, timestamp, from | args] = @json.decode!(msg)
 
     # check_timestamp!(timestamp)
 

@@ -1,16 +1,16 @@
 defmodule Ippan.P2P.Server do
   use ThousandIsland.Handler
+  import Ippan.P2P, only: [decode!: 2, encode: 2]
+  alias Ippan.P2P
   alias Phoenix.PubSub
   require Logger
 
   @otp_app :ipncore
   @adapter ThousandIsland.Socket
-  @version <<0::16>>
-  @seconds <<0>>
-  @iv_bytes 12
-  @tag_bytes 16
-  @handshake_timeout 5_000
+  @version P2P.version()
+  @handshake_timeout P2P.handshake_timeout()
   @timeout 60_000
+  @pubsub_server :network
 
   @spec load_kem :: :ok
   def load_kem do
@@ -48,17 +48,23 @@ defmodule Ippan.P2P.Server do
     {:continue, state}
   end
 
-  def handle_data(data, _socket, %{id: id, sharedkey: sharedkey} = state) do
-    # Logger.debug("data: #{inspect(data, limit: :infinity)}")
-
+  def handle_data(
+        data,
+        socket,
+        %{id: vid, pubkey: pubkey, sharedkey: sharedkey} = state
+      ) do
     try do
       case decode!(data, sharedkey) do
-        {"block", "recv", block_id} ->
-          PubSub.broadcast(:network, "msg:#{id}", {"clear", block_id})
+        %{id: id} = payload ->
+          from = %{id: vid, pubkey: pubkey}
 
-        {"block", action, data} ->
-          PubSub.broadcast(:miner, "block", {action, id, data})
-          PubSub.broadcast(:network, "msg", {"block", "recv", Map.get(data, :height)})
+          PubSub.local_broadcast(
+            @pubsub_server,
+            "echo:#{id}",
+            put_elem(payload, 1, from)
+          )
+
+          @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
 
         _ ->
           :ok
@@ -117,9 +123,7 @@ defmodule Ippan.P2P.Server do
                       Logger.debug("[Server connection] Invalid handshake pubkey")
                       {:close, state}
                     else
-                      Logger.debug(
-                        "[Server connection] #{name} connected"
-                      )
+                      Logger.debug("[Server connection] #{name} connected")
 
                       {:continue,
                        %{
@@ -147,25 +151,5 @@ defmodule Ippan.P2P.Server do
         # IO.inspect(error)
         {:close, state}
     end
-  end
-
-  defp decode!(packet, sharedkey) do
-    <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>> = packet
-    # IO.inspect("decode")
-    # IO.inspect(Base.encode16(sharedkey), limit: :infinity)
-    # IO.inspect(packet, limit: :infinity)
-
-    :crypto.crypto_one_time_aead(
-      :chacha20_poly1305,
-      sharedkey,
-      iv,
-      ciphertext,
-      @seconds,
-      tag,
-      false
-    )
-    |> :erlang.binary_to_term([:safe])
-
-    # IO.inspect(r, limit: :infinity)
   end
 end

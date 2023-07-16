@@ -2,6 +2,7 @@ defmodule Ipncore.Application do
   @moduledoc false
   use Application
   require Logger
+  import Ippan.Utils, only: [to_atom: 1, my_ip: 0]
 
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
@@ -13,17 +14,18 @@ defmodule Ipncore.Application do
   def start(_type, _args) do
     Logger.debug("Starting application")
 
-    p2p_opts = Application.get_env(@otp_app, :p2p)
+    p2p_opts = Application.get_env(@otp_app, :P2P)
     data_dir = Application.get_env(@otp_app, :data_dir)
     http_opts = Application.get_env(@otp_app, :http)
     role = Application.get_env(@otp_app, :role)
-    redis_url = Application.get_env(@otp_app, :redis)
+    redis_url = System.get_env("REDIS")
     node_str = System.get_env("NODE")
     cookie = System.get_env("COOKIE")
     node_name = start_node(node_str, cookie)
+    miner = System.get_env("MINER") |> to_atom()
 
     pubsub_verifiers_opts =
-      if not is_nil(redis_url) and node_name != @default_node do
+      unless is_nil(redis_url) and node_name != @default_node do
         [
           adapter: Phoenix.PubSub.Redis,
           url: redis_url,
@@ -36,8 +38,6 @@ defmodule Ipncore.Application do
 
     # create folders
     make_folders(role)
-
-    put_hostname()
 
     # load falcon keys
     Ippan.P2P.Server.load_kem()
@@ -61,22 +61,23 @@ defmodule Ipncore.Application do
             {DnsStore, Path.join(data_dir, "dns/dns.db")},
             {BlockStore, Path.join(data_dir, "chain/block.db")},
             {RoundStore, Path.join(data_dir, "chain/round.db")},
-            {ThousandIsland, p2p_opts},
             Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts},
               id: :verifiers
             ),
             Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
-            Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
-            {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :key_dir)},
+            # Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
             {BlockMinerChannel, []},
             {EventMinerChannel, []},
+            {VoteCounter, []},
             {BlockTimer, []},
+            {ThousandIsland, p2p_opts},
+            {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :key_dir)},
             {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
           ]
 
         "verifier" ->
           miner_node =
-            case System.get_env("MINER") || Application.get_env(@otp_app, :miner) do
+            case miner do
               nil -> raise RuntimeError, "Set up a miner"
               x -> String.to_atom(x)
             end
@@ -88,7 +89,7 @@ defmodule Ipncore.Application do
               id: :verifiers
             ),
             # Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
-            Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
+            # Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
             {NodeMonitor, [miner_node]},
             {BlockVerifierChannel, []},
             {EventVerifierChannel, []},
@@ -139,10 +140,7 @@ defmodule Ipncore.Application do
     name = String.to_atom(name)
     Node.start(name)
     Node.set_cookie(name, String.to_atom(cookie))
+    Application.put_env(@otp_app, :hostname, my_ip())
     name
-  end
-
-  def put_hostname do
-    Application.put_env(@otp_app, :hostname, Ippan.Utils.my_ip())
   end
 end

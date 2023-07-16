@@ -42,22 +42,18 @@ defmodule NodeMonitor do
     {:noreply, %{state | conn: true}}
   end
 
-  def handle_info({:connect, node_name}, %{mailbox: mailbox, peer: peer} = state) do
+  def handle_info({:connect, node_name}, %{peer: peer} = state) do
     if node_name == peer do
       case Node.connect(node_name) do
         false ->
           :timer.send_after(@backoff, {:connect, node_name})
 
         true ->
-          on_connect_spawn(self(), node_name, mailbox)
+          on_connect_spawn(self(), node_name, state.mailbox)
       end
     end
 
     {:noreply, state}
-  end
-
-  def handle_info(:clear, state) do
-    {:noreply, %{state | mailbox: %{}}}
   end
 
   @impl true
@@ -77,6 +73,10 @@ defmodule NodeMonitor do
     end
   end
 
+  def handle_cast(:clear, state) do
+    {:noreply, %{state | mailbox: %{}}}
+  end
+
   @impl true
   def terminate(_reason, _state) do
     :net_kernel.monitor_nodes(false)
@@ -87,6 +87,7 @@ defmodule NodeMonitor do
   end
 
   defp on_connect_spawn(_pid, _node_name, %{}), do: :ok
+
   defp on_connect_spawn(pid, peer, mailbox) do
     spawn_link(fn ->
       for {_key, {pubsub, topic, message}} <- mailbox do

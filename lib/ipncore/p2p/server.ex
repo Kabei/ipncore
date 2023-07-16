@@ -55,13 +55,13 @@ defmodule Ippan.P2P.Server do
       ) do
     try do
       case decode!(data, sharedkey) do
-        %{id: id} = payload ->
+        %{id: id, msg: msg} ->
           from = %{id: vid, pubkey: pubkey}
 
           PubSub.local_broadcast(
             @pubsub_server,
             "echo:#{id}",
-            put_elem(payload, 1, from)
+            %{id: id, msg: put_elem(msg, 1, from)}
           )
 
           @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))

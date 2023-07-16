@@ -16,5 +16,4 @@ elif [ -n "$LOG" ]; then
     elixir --erl "+A $cpus +P $total_pids" -S mix run --no-halt > $LOG
 else
     elixir --erl "+A $cpus +P $total_pids" -S mix run --no-halt
-    elixir --erl "+A $cpus +P $total_pids" -S mix run --no-halt
 fi

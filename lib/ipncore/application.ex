@@ -89,7 +89,7 @@ defmodule Ipncore.Application do
             ),
             # Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
             # Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
-            {NodeMonitor, [miner]},
+            {NodeMonitor, miner},
             {BlockVerifierChannel, []},
             {EventVerifierChannel, []},
             {WalletVerifierChannel, []},

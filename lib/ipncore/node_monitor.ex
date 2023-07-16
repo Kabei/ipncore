@@ -3,8 +3,7 @@ defmodule NodeMonitor do
   use GenServer
   require Logger
 
-  @pubsub_server :verifiers
-  @topic "event"
+  @module __MODULE__
   @backoff 1_500
 
   def start_link(opts) do
@@ -12,43 +11,70 @@ defmodule NodeMonitor do
   end
 
   @impl true
-  def init(node_list) do
+  def init(peer) do
     :ok = :net_kernel.monitor_nodes(true)
-    {:ok, node_list, {:continue, :init}}
+
+    {:ok, %{peer: peer, mailbox: %{}, conn: false}, {:continue, :init}}
   end
 
   @impl true
-  def handle_continue(:init, node_list) do
-    for n <- node_list do
-      send(self(), {:connect, n})
-    end
+  def handle_continue(:init, %{peer: peer} = state) do
+    send(self(), {:connect, peer})
 
-    {:noreply, node_list}
+    {:noreply, state}
   end
 
   @impl true
-  def handle_info({:nodedown, node_name}, state) do
+  def handle_info({:nodedown, node_name}, %{peer: peer} = state) do
     Logger.debug(inspect({:nodedown, node_name}))
 
-    :timer.send_after(@backoff, {:connect, node_name})
-    {:noreply, state}
+    if node_name == peer do
+      :timer.send_after(@backoff, {:connect, node_name})
+
+      {:noreply, %{state | conn: false}}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_info({:nodeup, node_name}, state) do
     Logger.debug(inspect({:nodeup, node_name}))
-    {:noreply, state}
+    {:noreply, %{state | conn: true}}
   end
 
-  def handle_info({:connect, node_name}, state) do
-    case Node.connect(node_name) do
-      false ->
-        :timer.send_after(@backoff, {:connect, node_name})
+  def handle_info({:connect, node_name}, %{mailbox: mailbox, peer: peer} = state) do
+    if node_name == peer do
+      case Node.connect(node_name) do
+        false ->
+          :timer.send_after(@backoff, {:connect, node_name})
 
-      true ->
-        on_connect_spawn(node_name)
+        true ->
+          on_connect_spawn(self(), node_name, mailbox)
+      end
     end
 
     {:noreply, state}
+  end
+
+  def handle_info(:clear, state) do
+    {:noreply, %{state | mailbox: %{}}}
+  end
+
+  @impl true
+  def handle_cast(
+        {:push, pubsub, topic, message},
+        %{conn: conn, mailbox: mailbox, peer: peer} = state
+      ) do
+    if conn do
+      PubSub.direct_broadcast(peer, pubsub, topic, message)
+      {:noreply, state}
+    else
+      {:noreply,
+       %{
+         state
+         | mailbox: Map.put(mailbox, :rand.uniform(1_000_000_000), {pubsub, topic, message})
+       }}
+    end
   end
 
   @impl true
@@ -56,20 +82,18 @@ defmodule NodeMonitor do
     :net_kernel.monitor_nodes(false)
   end
 
-  defp on_connect_spawn(node_name) do
+  def push(pubsub, topic, message) do
+    GenServer.cast(@module, {:push, pubsub, topic, message})
+  end
+
+  defp on_connect_spawn(_pid, _node_name, %{}), do: :ok
+  defp on_connect_spawn(pid, peer, mailbox) do
     spawn_link(fn ->
-      {:ok, data} = MessageStore.all()
-      from = node()
-
-      for msg <- data do
-        PubSub.direct_broadcast(node_name, @pubsub_server, @topic, {"valid", from, msg})
+      for {_key, {pubsub, topic, message}} <- mailbox do
+        PubSub.direct_broadcast(peer, pubsub, topic, message)
       end
 
-      {:ok, data} = MessageStore.all_df()
-
-      for msg <- data do
-        PubSub.direct_broadcast(node_name, @pubsub_server, @topic, {"valid_df", from, msg})
-      end
+      GenServer.cast(pid, :clear)
     end)
   end
 end

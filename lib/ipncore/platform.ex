@@ -129,7 +129,7 @@ defmodule Platform do
 
       ValidatorStore.insert_sync([
         0,
-        "virsupay.com",
+        "visurpay.com",
         "Speedy",
         address,
         pk,

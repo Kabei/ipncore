@@ -13,7 +13,7 @@ defmodule VoteCounter do
   ]
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, hibernate_after: 5_000)
+    GenServer.start_link(__MODULE__, args, name: __MODULE__, hibernate_after: 5_000)
   end
 
   @impl true

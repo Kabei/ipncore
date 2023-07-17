@@ -62,7 +62,7 @@ defmodule Ippan.P2P do
     PubSub.local_broadcast(@pubsub_server, "echo:#{vid}", msg)
   end
 
-  @spec request(binary(), term(), integer(), integer()) :: :ok
+  @spec request(binary, term, integer, integer) :: any
   def request(vid, msg, timeout \\ 10_000, retry \\ 0) do
     id = :rand.uniform(1_000_000_000)
     to = "echo:#{vid}"

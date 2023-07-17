@@ -10,7 +10,7 @@ defmodule Ippan.P2P.Server do
   @version P2P.version()
   @handshake_timeout P2P.handshake_timeout()
   @timeout 60_000
-  @pubsub_server :network
+  # @pubsub_server :network
 
   @spec load_kem :: :ok
   def load_kem do
@@ -55,15 +55,9 @@ defmodule Ippan.P2P.Server do
       ) do
     try do
       case decode!(data, sharedkey) do
-        %{id: id, msg: msg} ->
+        %{id: id, msg: {action, rest}} ->
           from = %{id: vid, pubkey: pubkey}
-
-          PubSub.local_broadcast(
-            @pubsub_server,
-            "echo:#{id}",
-            %{id: id, msg: put_elem(msg, 1, from)}
-          )
-
+          PubSub.local_broadcast(:verifiers, "block", {action, from, rest})
           @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
 
         _ ->

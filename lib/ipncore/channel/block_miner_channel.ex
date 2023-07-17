@@ -80,7 +80,8 @@ defmodule BlockMinerChannel do
     {:noreply, state}
   end
 
-  def handle_info(_msg, state) do
+  def handle_info(msg, state) do
+    Logger.debug("#{__MODULE__} handle_info #{inspect(msg)}")
     {:noreply, state}
   end
 

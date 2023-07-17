@@ -472,7 +472,9 @@ defmodule BlockTimer do
 
     BlockStore.sync()
 
-    Logger.debug("Block #{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}")
+    Logger.debug(
+      "Block #{height}.#{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}"
+    )
 
     PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})
     P2P.push({"new_recv", block})

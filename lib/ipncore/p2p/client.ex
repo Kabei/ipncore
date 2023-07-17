@@ -209,6 +209,7 @@ defmodule Ippan.P2P.Client do
 
   defp check_mailbox(%{mailbox: %{}} = state) do
     IO.inspect("No mailbox")
+    IO.inspect(state.mailbox)
     state
   end
 

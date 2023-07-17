@@ -353,6 +353,7 @@ defmodule BlockTimer do
 
     if ev_count != 0 do
       start_link(fn ->
+        IO.inspect("import block file")
         {:ok, content} = File.read(decode_path)
 
         requests = decode!(content)
@@ -363,6 +364,7 @@ defmodule BlockTimer do
       end)
     else
       start_link(fn ->
+        IO.inspect("import block empty")
         mine_fun([], height, round, creator_id, prev_hash, timestamp)
 
         GenServer.cast(pid, {:complete, :import, block})

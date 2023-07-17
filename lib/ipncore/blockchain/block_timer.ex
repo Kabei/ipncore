@@ -344,19 +344,28 @@ defmodule BlockTimer do
            height: height,
            prev: prev_hash,
            round: round,
-           timestamp: timestamp
+           timestamp: timestamp,
+           ev_count: ev_count
          } = block,
          decode_path
        ) do
-    start_link(fn ->
-      {:ok, content} = File.read(decode_path)
+    if ev_count != 0 do
+      start_link(fn ->
+        {:ok, content} = File.read(decode_path)
 
-      requests = decode!(content)
+        requests = decode!(content)
 
-      mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
+        mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
 
-      GenServer.cast(pid, {:complete, :import, block})
-    end)
+        GenServer.cast(pid, {:complete, :import, block})
+      end)
+    else
+      start_link(fn ->
+        mine_fun([], height, round, creator_id, prev_hash, timestamp)
+
+        GenServer.cast(pid, {:complete, :import, block})
+      end)
+    end
   end
 
   # Create a block file and register transactions
@@ -473,7 +482,7 @@ defmodule BlockTimer do
     BlockStore.sync()
 
     Logger.debug(
-      "Block #{height}.#{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}"
+      "Block #{validator_id}.#{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}"
     )
 
     PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})

@@ -118,6 +118,7 @@ defmodule VoteCounter do
         %{minimum: minimum, round: current_round, validator_id: me} = state
       )
       when creator_id != validator_id and vote in [1, -1] and current_round <= round do
+    Logger.debug("vote #{creator_id}.#{height} | #{round}: #{vote}")
     # check signature, but it's me no check signature
     if me == validator_id or
          Cafezinho.Impl.verify(signature, "#{hash}#{vote}", from_pubkey) == :ok do
@@ -239,7 +240,7 @@ defmodule VoteCounter do
   # set new round and clear old blocks received
   @spec reset(number()) :: :ok
   def reset(round) do
-    GenServer.cast(@module, {:reset, round})
+    GenServer.call(@module, {:reset, round}, :infinity)
   end
 
   def make_vote(%{hash: hash} = block, validator_id, value) do

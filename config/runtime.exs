@@ -30,7 +30,7 @@ config :ipncore, :vid, System.get_env("VID", "0") |> String.to_integer()
   if is_miner do
     {max(cpus, 10), 4096}
   else
-    {100, 1_048_576}
+    {100, 16_384}
   end
 
 # P2P server

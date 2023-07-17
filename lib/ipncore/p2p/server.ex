@@ -54,15 +54,28 @@ defmodule Ippan.P2P.Server do
         %{id: vid, pubkey: pubkey, sharedkey: sharedkey} = state
       ) do
     try do
+      from = %{id: vid, pubkey: pubkey}
+
       case decode!(data, sharedkey) do
-        %{id: id, msg: {action, rest}} ->
-          from = %{id: vid, pubkey: pubkey}
-          PubSub.local_broadcast(:verifiers, "block", {action, from, rest})
-          @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
+        %{id: id, msg: msg} ->
+          case msg do
+            {"new_recv", rest} ->
+              send(VoteCounter, {"new_recv", from, rest})
+              @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
+
+            {"vote", rest} ->
+              send(VoteCounter, {"vote", from, rest})
+              @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
+
+            _ ->
+              :ok
+          end
 
         _ ->
           :ok
       end
+
+      # PubSub.local_broadcast(:verifiers, "block", {action, from, rest})
     rescue
       e ->
         # Logger.error(inspect(e))

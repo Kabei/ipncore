@@ -4,7 +4,7 @@ defmodule BlockVerifierChannel do
     topic: "block"
 
   alias Ippan.Block
-  import Global, only: [miner: 0]
+  # import Global, only: [miner: 0]
 
   def init(args) do
     PubSub.subscribe(@pubsub_server, @topic)
@@ -24,14 +24,18 @@ defmodule BlockVerifierChannel do
 
         vote = VoteCounter.make_vote(block, validator.id, 1)
 
-        PubSub.direct_broadcast(miner(), @pubsub_server, "block", {"valid", vote, node()})
+        # PubSub.direct_broadcast(miner(), @pubsub_server, "block", {"valid", vote, node()})
+        # send({VoteCounter, miner()}, {"valid", vote, node()})
+        NodeMonitor.push(@pubsub_server, "block", {"valid", vote, node()})
       rescue
         _ ->
           value = -1
           {:ok, signature} = Block.sign_vote(hash, value)
           vote = Map.merge(block, %{vote: value, signature: signature})
 
-          PubSub.direct_broadcast(miner(), @pubsub_server, "block", {"invalid", vote})
+          # PubSub.direct_broadcast(miner(), @pubsub_server, "block", {"invalid", vote})
+          # send({VoteCounter, miner()}, {"invalid", vote})
+          NodeMonitor.push(@pubsub_server, "block", {"invalid", vote})
       end
     end)
     |> Task.await(:infinity)

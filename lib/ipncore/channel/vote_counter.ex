@@ -144,7 +144,7 @@ defmodule VoteCounter do
   end
 
   def make_vote(%{hash: hash} = block, value) do
-    signature = Ippan.Block.sign_vote(hash, value)
+    {:ok, signature} = Ippan.Block.sign_vote(hash, value)
     Map.merge(block, %{vote: value, signature: signature})
   end
 

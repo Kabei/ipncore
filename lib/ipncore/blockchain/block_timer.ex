@@ -351,25 +351,21 @@ defmodule BlockTimer do
        ) do
     Logger.debug("#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import")
 
-    if ev_count != 0 do
-      start_link(fn ->
-        IO.inspect("import block file")
-        {:ok, content} = File.read(decode_path)
+    spawn_link(fn ->
+      requests =
+        if ev_count != 0 do
+          IO.inspect("import block file")
+          {:ok, content} = File.read(decode_path)
+          decode!(content)
+        else
+          IO.inspect("import block empty")
+          []
+        end
 
-        requests = decode!(content)
+      mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
 
-        mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
-
-        GenServer.cast(pid, {:complete, :import, block})
-      end)
-    else
-      start_link(fn ->
-        IO.inspect("import block empty")
-        mine_fun([], height, round, creator_id, prev_hash, timestamp)
-
-        GenServer.cast(pid, {:complete, :import, block})
-      end)
-    end
+      GenServer.cast(pid, {:complete, :import, block})
+    end)
   end
 
   # Create a block file and register transactions

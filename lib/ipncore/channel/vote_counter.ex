@@ -118,7 +118,7 @@ defmodule VoteCounter do
         %{minimum: minimum, round: current_round, validator_id: me} = state
       )
       when creator_id != validator_id and vote in [1, -1] and current_round <= round do
-    Logger.debug("vote #{creator_id}.#{height} | #{round}: #{vote}")
+    Logger.debug("vote #{creator_id}.#{height} | #{round} | #{vote}")
     # check signature, but it's me no check signature
     if me == validator_id or
          Cafezinho.Impl.verify(signature, "#{hash}#{vote}", from_pubkey) == :ok do

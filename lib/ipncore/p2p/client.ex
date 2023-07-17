@@ -131,13 +131,13 @@ defmodule Ippan.P2P.Client do
   # receved a message from pubsub
   def handle_info(
         %{id: id} = msg,
-        %{socket: socket, conn: conn, mailbox: mailbox, sharedkey: sharedkey} = state
+        %{conn: conn, mailbox: mailbox} = state
       ) do
     IO.inspect("new msg #{inspect(msg)}")
 
     case conn do
       true ->
-        @adapter.send(socket, encode(msg, sharedkey))
+        @adapter.send(state.socket, encode(msg, state.sharedkey))
         {:noreply, state}
 
       _ ->

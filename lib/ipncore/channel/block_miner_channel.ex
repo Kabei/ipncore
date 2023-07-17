@@ -38,10 +38,10 @@ defmodule BlockMinerChannel do
           try do
             :ok = BlockTimer.verify_empty!(block, from)
 
-            VoteCounter.make_vote(block, 1)
+            VoteCounter.make_vote(block, Default.validator_id(), 1)
           rescue
             _ ->
-              VoteCounter.make_vote(block, -1)
+              VoteCounter.make_vote(block, Default.validator_id(), -1)
           end
 
         send(VoteCounter, {:vote, vote, nil})

@@ -22,9 +22,7 @@ defmodule BlockVerifierChannel do
       try do
         :ok = BlockTimer.verify_file!(block, validator)
 
-        value = 1
-        {:ok, signature} = Block.sign_vote(hash, value)
-        vote = Map.merge(block, %{vote: value, signature: signature})
+        vote = VoteCounter.make_vote(block, validator.id, 1)
 
         PubSub.direct_broadcast(miner(), @pubsub_server, "block", {"valid", vote, node()})
       rescue

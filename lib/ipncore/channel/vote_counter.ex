@@ -143,9 +143,9 @@ defmodule VoteCounter do
     GenServer.call(VoteCounter, {:round, n}, :infinity)
   end
 
-  def make_vote(%{hash: hash} = block, value) do
+  def make_vote(%{hash: hash} = block, validator_id, value) do
     {:ok, signature} = Ippan.Block.sign_vote(hash, value)
-    Map.merge(block, %{vote: value, signature: signature})
+    Map.merge(block, %{vote: value, signature: signature, validator_id: validator_id})
   end
 
   # :ets.fun2ms(fn {_, x, _, _, _} = y when x <= 10 -> y end)

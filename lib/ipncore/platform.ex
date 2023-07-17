@@ -1,4 +1,5 @@
 defmodule Platform do
+  import Ippan.Utils, only: [to_atom: 1]
   alias Ippan.Address
 
   @token Application.compile_env(:ipncore, :token)
@@ -165,7 +166,8 @@ defmodule Platform do
 
     GlobalConst.new(Global, %{
       owner: address,
-      owner_pubkey: pk
+      owner_pubkey: pk,
+      miner: System.get_env("MINER") |> to_atom()
     })
   end
 end

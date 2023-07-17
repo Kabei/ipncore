@@ -2,7 +2,7 @@ defmodule Ippan.P2P.Server do
   use ThousandIsland.Handler
   import Ippan.P2P, only: [decode!: 2, encode: 2]
   alias Ippan.P2P
-  alias Phoenix.PubSub
+  # alias Phoenix.PubSub
   require Logger
 
   @otp_app :ipncore

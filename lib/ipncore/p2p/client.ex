@@ -133,12 +133,15 @@ defmodule Ippan.P2P.Client do
         %{id: id} = msg,
         %{socket: socket, conn: conn, mailbox: mailbox, sharedkey: sharedkey} = state
       ) do
+    IO.inspect("new msg #{inspect(msg)}")
+
     case conn do
       true ->
         @adapter.send(socket, encode(msg, sharedkey))
         {:noreply, state}
 
       _ ->
+        IO.inspect("set in mailbox")
         {:noreply, %{state | mailbox: Map.put(mailbox, id, msg)}}
     end
   end
@@ -179,7 +182,7 @@ defmodule Ippan.P2P.Client do
       :ok = :inet.setopts(socket, active: true)
 
       new_state =
-        Map.merge(state, %{socket: socket, sharedkey: sharedkey, tRef: tRef, conn: true})
+        Map.merge(state, %{conn: true, socket: socket, sharedkey: sharedkey, tRef: tRef})
 
       Logger.debug("#{hostname}:#{port} | connected")
       # IO.inspect(sharedkey, limit: :infinity)
@@ -214,6 +217,9 @@ defmodule Ippan.P2P.Client do
   defp check_mailbox(%{mailbox: %{}} = state), do: state
 
   defp check_mailbox(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
+    IO.inspect("mailbox")
+    IO.inspect(mailbox)
+
     for {_, msg} <- mailbox do
       @adapter.send(socket, encode(msg, sharedkey))
     end

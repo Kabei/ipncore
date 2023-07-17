@@ -133,7 +133,7 @@ defmodule Ippan.P2P.Client do
         %{id: id} = msg,
         %{conn: conn, mailbox: mailbox} = state
       ) do
-    IO.inspect("new msg #{inspect(msg)}")
+    IO.inspect("send a msg #{inspect(msg)}")
 
     case conn do
       true ->

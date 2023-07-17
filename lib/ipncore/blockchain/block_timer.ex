@@ -349,6 +349,8 @@ defmodule BlockTimer do
          } = block,
          decode_path
        ) do
+    Logger.debug("#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import")
+
     if ev_count != 0 do
       start_link(fn ->
         {:ok, content} = File.read(decode_path)

@@ -33,7 +33,7 @@ defmodule BlockVerifierChannel do
           signature = Block.sign_vote(hash, value)
           vote = Map.merge(block, %{vote: value, signature: signature})
 
-          PubSub.direct_broadcast(miner(), @pubsub_server, "block", {"valid", vote, node()})
+          PubSub.direct_broadcast(miner(), @pubsub_server, "block", {"invalid", vote})
       end
     end)
     |> Task.await(:infinity)

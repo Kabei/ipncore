@@ -34,12 +34,17 @@ defmodule BlockMinerChannel do
       if ev_count > 0 do
         push_fetch(block)
       else
-        try do
-          BlockTimer.verify_empty!(block, from)
-        rescue
-          _ ->
-            send(self(), {"valid", :error, block})
-        end
+        vote =
+          try do
+            :ok = BlockTimer.verify_empty!(block, from)
+
+            VoteCounter.make_vote(block, 1)
+          rescue
+            _ ->
+              VoteCounter.make_vote(block, -1)
+          end
+
+        send(VoteCounter, {:vote, vote, nil})
       end
 
       {:noreply, %{state | blocks: Map.put(blocks, block_unique_id, block)}}
@@ -50,17 +55,21 @@ defmodule BlockMinerChannel do
   end
 
   def handle_info(
-        {"valid", %{creator: creator, height: height, vote: value} = vote, node_origin},
+        {"valid", %{creator: creator, height: height} = vote, node_origin},
         state
       ) do
     send(VoteCounter, {:vote, vote, nil})
     P2P.push({"vote", vote})
 
-    if value == 1 do
-      spawn(fn ->
-        download_block_from_cluster!(node_origin, creator, height)
-      end)
-    end
+    spawn(fn ->
+      download_block_from_cluster!(node_origin, creator, height)
+    end)
+
+    {:noreply, state}
+  end
+
+  def handle_info({"invalid", vote}, state) do
+    P2P.push({"vote", vote})
 
     {:noreply, state}
   end
@@ -105,10 +114,12 @@ defmodule BlockMinerChannel do
   end
 
   defp download_block_from_cluster!(node_verifier, creator_id, height) do
-    hostname = node_verifier |> to_string() |> String.split("@") |> List.last()
-    url = "http://#{hostname}:8080/v1/download/block-decode/#{creator_id}/#{height}"
-    decode_path = Block.decode_path(creator_id, height)
-    {:ok, _abs_url} = Curl.download(url, decode_path)
+    spawn(fn ->
+      hostname = node_verifier |> to_string() |> String.split("@") |> List.last()
+      url = "http://#{hostname}:8080/v1/download/block-decode/#{creator_id}/#{height}"
+      decode_path = Block.decode_path(creator_id, height)
+      {:ok, _abs_url} = Curl.download(url, decode_path)
+    end)
   end
 
   defp push_fetch(block) do

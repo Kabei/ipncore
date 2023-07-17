@@ -50,7 +50,7 @@ defmodule VoteCounter do
            height: height,
            round: round,
            signature: signature,
-           validator: validator_id,
+           validator_id: validator_id,
            vote: vote
          }, from_pubkey},
         %{minimum: minimum, round: current_round, validator_id: me} = state

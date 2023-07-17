@@ -171,8 +171,6 @@ defmodule Ippan.P2P.Client do
 
   defp connect(%{hostname: hostname, port: port} = state) do
     try do
-      # Logger.debug("#{hostname}:#{port} | connecting...")
-
       {:ok, ip_addr} = :inet_udp.getaddr(String.to_charlist(hostname))
 
       {:ok, socket} = @adapter.connect(ip_addr, port, @tcp_opts)
@@ -185,12 +183,10 @@ defmodule Ippan.P2P.Client do
         Map.merge(state, %{conn: true, socket: socket, sharedkey: sharedkey, tRef: tRef})
 
       Logger.debug("#{hostname}:#{port} | connected")
-      # IO.inspect(sharedkey, limit: :infinity)
 
       {:ok, check_mailbox(new_state)}
     rescue
-      MatchError ->
-        # {:reply, :error, state}
+      _error ->
         {:error, state}
     end
   end
@@ -198,7 +194,6 @@ defmodule Ippan.P2P.Client do
   defp handshake(socket, state) do
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "WEL" <> @version <> pubkey} ->
-        # IO.inspect("Welcome #{byte_size(pubkey)}")
         {:ok, ciphertext, sharedkey} = NtruKem.enc(pubkey)
 
         id = Default.validator_id()
@@ -208,21 +203,23 @@ defmodule Ippan.P2P.Client do
         {:ok, sharedkey}
 
       error ->
-        # IO.inspect("error")
-        # IO.inspect(error)
         error
     end
   end
 
-  defp check_mailbox(%{mailbox: %{}} = state), do: state
+  defp check_mailbox(%{mailbox: %{}} = state) do
+    IO.inspect("No mailbox")
+    state
+  end
 
   defp check_mailbox(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
-    IO.inspect("mailbox")
     IO.inspect(mailbox)
 
     for {_, msg} <- mailbox do
       @adapter.send(socket, encode(msg, sharedkey))
     end
+
+    IO.inspect("mailbox sent")
 
     %{state | mailbox: %{}}
   end

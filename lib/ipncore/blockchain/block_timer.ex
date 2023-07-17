@@ -96,10 +96,11 @@ defmodule BlockTimer do
         %{
           mined: mined,
           validator_id: validator_id,
-          validators: validators,
-          wait_to_sync: wait_to_sync
+          validators: validators
         } = state
       ) do
+    mined = mined + 1
+
     return =
       if validator_id == creator_id do
         {:noreply,
@@ -107,7 +108,7 @@ defmodule BlockTimer do
            state
            | next_block: new_height,
              prev_block: new_hash,
-             mined: mined + 1,
+             mined: mined,
              wait_to_mine: false,
              wait_to_sync: false
          }}
@@ -115,7 +116,7 @@ defmodule BlockTimer do
         {:noreply, %{state | mined: mined + 1, block_sync: false, wait_to_sync: false}}
       end
 
-    if wait_to_sync or mined == validators do
+    if mined == validators do
       send(self(), :sync)
     end
 
@@ -155,11 +156,13 @@ defmodule BlockTimer do
           round_sync: round_sync
         } = state
       ) do
+    mined = mined + 1
+
     if not round_sync and mined == validators do
       send(BlockTimer, :sync)
     end
 
-    {:noreply, %{state | mined: mined + 1}}
+    {:noreply, %{state | mined: mined}}
   end
 
   def handle_cast({:validators, n}, %{validators: validators} = state) do

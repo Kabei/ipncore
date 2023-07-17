@@ -58,7 +58,7 @@ defmodule Ippan.P2P.Client do
 
   @impl true
   def handle_continue(:connect, initial_state) do
-    :timer.send_after(@time_to_reconnect, :reconnect)
+    send(self(), :reconnect)
     {:noreply, initial_state}
   end
 

@@ -207,20 +207,16 @@ defmodule Ippan.P2P.Client do
     end
   end
 
-  defp check_mailbox(%{mailbox: %{}} = state) do
-    IO.inspect("No mailbox")
-    IO.inspect(state.mailbox)
-    state
-  end
-
   defp check_mailbox(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
     IO.inspect(mailbox)
 
-    for {_, msg} <- mailbox do
-      @adapter.send(socket, encode(msg, sharedkey))
-    end
+    if mailbox == %{} do
+      for {_, msg} <- mailbox do
+        @adapter.send(socket, encode(msg, sharedkey))
+      end
 
-    IO.inspect("mailbox sent")
+      IO.inspect("mailbox sent")
+    end
 
     %{state | mailbox: %{}}
   end

@@ -68,11 +68,11 @@ defmodule Ipncore.Application do
             # Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
             # {BlockMinerChannel, []},
             {EventMinerChannel, []},
-            {BlockTimer, []},
-            {VoteCounter, []},
             {ThousandIsland, p2p_opts},
             {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :key_dir)},
-            {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
+            {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts},
+            {BlockTimer, []},
+            {VoteCounter, []}
           ]
 
         "verifier" ->

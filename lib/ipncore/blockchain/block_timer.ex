@@ -371,8 +371,8 @@ defmodule BlockTimer do
   end
 
   # Create a block file and register transactions
-  defp mine_fun(requests, height, round, validator_id, prev_hash, block_timestamp) do
-    block_path = Block.block_path(validator_id, height)
+  defp mine_fun(requests, height, round, creator_id, prev_hash, block_timestamp) do
+    block_path = Block.block_path(creator_id, height)
 
     events =
       Enum.reduce(requests, [], fn
@@ -467,7 +467,7 @@ defmodule BlockTimer do
       %{
         height: height,
         prev: prev_hash,
-        creator: validator_id,
+        creator: creator_id,
         hashfile: hashfile,
         round: round,
         timestamp: block_timestamp,
@@ -484,11 +484,13 @@ defmodule BlockTimer do
     BlockStore.sync()
 
     Logger.debug(
-      "Block #{validator_id}.#{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}"
+      "Block #{creator_id}.#{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}"
     )
 
-    PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})
-    P2P.push({"new_recv", block})
+    if creator_id == Default.validator_id() do
+      PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})
+      P2P.push({"new_recv", block})
+    end
 
     block.hash
   end

@@ -270,7 +270,7 @@ defmodule Ippan.P2P.Client do
     if File.exists?(file_path) do
       result =
         File.stream!(file_path, [], :line)
-        |> Enum.each(fn text ->
+        |> Enum.map(fn text ->
           text
           |> String.trim()
           |> String.replace(~r/\n|\r/, "")

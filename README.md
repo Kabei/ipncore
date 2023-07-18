@@ -38,17 +38,28 @@ curl https://github.com/kabei/releases/download/0.4/ipncore-install.sh \
 #### The installer will move the key files to the project's private folder.
 #
 ## Run
-
 There are two roles: the verifier performs preliminary verification and the miner writes transactions to the blockchain.
-### Miner role
-```bash
-MIX_ENV=prod ROLE=miner NODE=miner@172.17.0.1 COOKIE=supersecret \
-VID=1 DATA_DIR=/usr/src/data ./run.sh
-```
+
 ### Verifier role
 ```bash
-MIX_ENV=prod ROLE=verifier NODE=v1@172.17.0.2 COOKIE=supersecret \
-MINER=miner@172.17.0.1 VID=1 DATA_DIR=/usr/src/data ./run.sh
+echo "NODE=v1@127.0.0.1
+COOKIE=supersecret
+VID=0
+ROLE=miner
+DATA_DIR=/usr/src/data
+MINER=miner@127.0.0.1" > env_file
+
+./run.sh
+```
+### Miner role
+```bash
+echo "NODE=miner@127.0.0.1
+COOKIE=supersecret
+VID=0
+ROLE=miner
+DATA_DIR=/usr/src/data" > env_file
+
+./run.sh
 ```
 
 #

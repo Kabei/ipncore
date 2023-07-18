@@ -6,14 +6,18 @@ defmodule MapUtil do
     Enum.map(params, fn {k, v} -> {k, v} end)
   end
 
-  def to_atom_keywords(params) do
-    Enum.map(params, fn {k, v} -> {String.to_atom(k), v} end)
-  end
-
   def to_keywords(map, filter) do
     map
     |> Map.take(filter)
     |> Enum.map(fn {k, v} -> {k, v} end)
+  end
+
+  def to_atom_keywords(params) do
+    Enum.map(params, fn {k, v} -> {String.to_atom(k), v} end)
+  end
+
+  def to_existing_atom_keywords(params) do
+    Enum.map(params, fn {k, v} -> {String.to_existing_atom(k), v} end)
   end
 
   def to_atoms(map) do
@@ -21,6 +25,14 @@ defmodule MapUtil do
   end
 
   def to_atoms(map, filter) do
+    for {k, v} <- Map.take(map, filter), into: %{}, do: {String.to_existing_atom(k), v}
+  end
+
+  def to_existing_atoms(map) do
+    for {k, v} <- map, into: %{}, do: {String.to_existing_atom(k), v}
+  end
+
+  def to_existing_atoms(map, filter) do
     for {k, v} <- Map.take(map, filter), into: %{}, do: {String.to_atom(k), v}
   end
 

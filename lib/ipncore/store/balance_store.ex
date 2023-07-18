@@ -34,19 +34,19 @@ defmodule BalanceStore do
       lock:
         "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",
       unlock:
-        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3",
-      count_last_activity: "SELECT count(1) FROM #{@table} WHERE token = ?1 AND updated_at > ?2",
-      last_activity:
-        "SELECT id FROM #{@table} WHERE token = ?1 AND updated_at > ?2 ORDER BY updated_at"
+        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3"
+      # count_last_activity: "SELECT count(1) FROM #{@table} WHERE token = ?1 AND updated_at > ?2",
+      # last_activity:
+      #   "SELECT id FROM #{@table} WHERE token = ?1 AND updated_at > ?2 ORDER BY updated_at"
     }
 
-  def count_last_activity(timestamp) do
-    call({:execute_fetch, :count_last_activity, [@token, timestamp]})
-  end
+  # def count_last_activity(timestamp) do
+  #   call({:execute_fetch, :count_last_activity, [@token, timestamp]})
+  # end
 
-  def last_activity(timestamp) do
-    call({:execute_fetch, :last_activity, [@token, timestamp]})
-  end
+  # def last_activity(timestamp) do
+  #   call({:execute_fetch, :last_activity, [@token, timestamp]})
+  # end
 
   @spec income(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
           :ok | :error

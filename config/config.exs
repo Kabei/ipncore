@@ -22,7 +22,7 @@ config :ipncore, :block_data_max_size, 10_000_000
 config :ipncore, :block_interval, :timer.seconds(5)
 config :ipncore, :note_max_size, 255
 config :ipncore, :note_max_size, 1_000_000_000_000_000
-config :ipncore, :last_activity, :timer.hours(24)
+# config :ipncore, :last_activity, :timer.hours(24)
 config :ipncore, :timeout_refund, :timer.hours(72)
 config :ipncore, :message_timeout, :timer.seconds(15)
 

@@ -8,7 +8,7 @@ defmodule BlockTimer do
   @otp_app :ipncore
   @module __MODULE__
   @token Application.compile_env(:ipncore, :token)
-  @time_activity Application.compile_env(:ipncore, :last_activity)
+  # @time_activity Application.compile_env(:ipncore, :last_activity)
   @pubsub_verifiers :verifiers
   @topic_block "block"
   @topic_round "round"
@@ -597,23 +597,25 @@ defmodule BlockTimer do
   # Pay a player according to the calculation of the remaining
   # hash of the round ordered by activity in the last 24 hours
   defp run_jackpot(round_id, hash, round_timestamp) do
-    time_activity = round_timestamp - @time_activity
+    # time_activity = round_timestamp - @time_activity
 
     num =
-      :binary.part(hash, 24, 32)
+      :binary.part(hash, 24, 8)
       |> :binary.decode_unsigned()
 
-    count = BalanceStore.count_last_activity(time_activity)
+    count = WalletStore.total()
 
     if count > 0 do
       position = rem(num, count)
-      {:ok, players} = BalanceStore.last_activity(time_activity)
+      {:ok, players} = WalletStore.jackpot(position)
       [winner_id] = Enum.at(players, position)
       amount = EnvStore.get("WINNER_AMOUNT", 10) * count
       RoundStore.insert_winner(round_id, winner_id)
       BalanceStore.income(winner_id, @token, amount, round_timestamp)
+      Logger.debug("[Jackpot] Winner; #{winner_id}")
       :ok
     else
+      Logger.debug("[Jackpot] No winner")
       RoundStore.insert_winner(round_id, nil)
       :none
     end

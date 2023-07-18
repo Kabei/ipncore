@@ -4,7 +4,7 @@ defmodule BlockTimer do
   alias Ippan.{Block, Round, RequestHandler, P2P}
 
   import Ippan.Block,
-    only: [decode!: 1, encode!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
+    only: [decode_file!: 1, encode_file!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
 
   require Logger
 
@@ -95,6 +95,10 @@ defmodule BlockTimer do
 
   def put_validators(n) do
     GenServer.cast(@module, {:validators, n})
+  end
+
+  def check_state(state) do
+    GenServer.call(BlockTimer, {:check_state, state})
   end
 
   @impl true
@@ -191,6 +195,10 @@ defmodule BlockTimer do
 
   def handle_call(:height, _from, %{next_block: id} = state) do
     {:reply, id, state}
+  end
+
+  def handle_call(:state, _from, state) do
+    {:reply, state, state}
   end
 
   @doc """
@@ -374,7 +382,7 @@ defmodule BlockTimer do
         if ev_count != 0 do
           IO.inspect("import block file")
           {:ok, content} = File.read(decode_path)
-          decode!(content)
+          decode_file!(content)
         else
           IO.inspect("import block empty")
           []
@@ -471,7 +479,7 @@ defmodule BlockTimer do
       if empty do
         {Block.zero_hash_file(), 0}
       else
-        content = encode!(events)
+        content = encode_file!(events)
         hashfile = hash_file(block_path)
         :ok = File.write(block_path, content)
         block_size = File.stat!(block_path).size
@@ -586,7 +594,7 @@ defmodule BlockTimer do
     end
 
     {:ok, content} = File.read(output_path)
-    events = decode!(content)
+    events = decode_file!(content)
 
     decode_events =
       for {body, signature} <- events do
@@ -600,7 +608,7 @@ defmodule BlockTimer do
       Application.get_env(@otp_app, :decode_dir)
       |> Path.join(filename)
 
-    :ok = File.write(export_path, encode!(decode_events))
+    :ok = File.write(export_path, encode_file!(decode_events))
   end
 
   # Pay a player according to the calculation of the remaining

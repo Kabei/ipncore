@@ -158,11 +158,19 @@ defmodule Ippan.Block do
     "https://#{hostname}/v1/download/block/#{creator_id}/#{height}"
   end
 
-  def encode!(content) do
+  def cluster_block_url(hostname, creator_id, height) do
+    "http://#{hostname}:8080/v1/download/block/#{creator_id}/#{height}"
+  end
+
+  def cluster_decode_url(hostname, creator_id, height) do
+    "http://#{hostname}:8080/v1/download/block/#{creator_id}/#{height}"
+  end
+
+  def encode_file!(content) do
     :erlang.term_to_binary(content)
   end
 
-  def decode!(content) do
+  def decode_file!(content) do
     :erlang.binary_to_term(content, [:safe])
   end
 

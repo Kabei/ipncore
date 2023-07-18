@@ -251,7 +251,7 @@ defmodule VoteCounter do
   defp download_block_from_cluster!(node_verifier, creator_id, height) do
     spawn(fn ->
       hostname = node_verifier |> to_string() |> String.split("@") |> List.last()
-      url = "http://#{hostname}:8080/v1/download/block-decode/#{creator_id}/#{height}"
+      url = Block.cluster_decode_url(hostname, creator_id, height)
       decode_path = Block.decode_path(creator_id, height)
       {:ok, _abs_url} = Curl.download(url, decode_path)
     end)

@@ -48,7 +48,7 @@ defmodule Ippan.P2P.Client do
        pubkey: pubkey,
        privkey: privkey,
        conn: false,
-       mailbox: %{}
+       mailbox: load_mailbox(vid)
      }, {:continue, :connect}}
   end
 
@@ -130,20 +130,31 @@ defmodule Ippan.P2P.Client do
 
   # receved a message from pubsub
   def handle_info(
-        %{id: id} = msg,
-        %{conn: conn, mailbox: mailbox} = state
+        msg,
+        %{conn: conn, id: vid, mailbox: mailbox} = state
       ) do
     IO.inspect("send a msg #{inspect(msg)}")
 
-    case conn do
-      true ->
-        @adapter.send(state.socket, encode(msg, state.sharedkey))
-        {:noreply, state}
+    result =
+      case conn do
+        true ->
+          @adapter.send(state.socket, encode(msg, state.sharedkey))
+          state
 
-      _ ->
-        IO.inspect("set in mailbox")
-        {:noreply, %{state | mailbox: Map.put(mailbox, id, msg)}}
-    end
+        _ ->
+          case msg do
+            %{id: id} ->
+              IO.inspect("set in mailbox")
+              save_mailbox(vid, id, msg)
+              mailbox = Map.put(mailbox, id, msg)
+              %{state | mailbox: mailbox}
+
+            _ ->
+              state
+          end
+      end
+
+    {:noreply, result}
   end
 
   def handle_info(_, state) do
@@ -219,6 +230,41 @@ defmodule Ippan.P2P.Client do
     end
 
     %{state | mailbox: %{}}
+  end
+
+  defp save_mailbox(vid, id, value) do
+    data_dir = Application.get_env(:ipncore, :data_dir)
+    file_path = Path.join(data_dir, "mailbox.#{vid}.tmp")
+    value = :erlang.term_to_binary(value) |> Fast64.encode64()
+
+    {:ok, file} = File.open(file_path, [:append])
+    IO.write(file, "#{id}=#{value}\n")
+    File.close(file)
+  end
+
+  defp load_mailbox(vid) do
+    data_dir = Application.get_env(:ipncore, :data_dir)
+    file_path = Path.join(data_dir, "mailbox.#{vid}.tmp")
+
+    result =
+      File.stream!(file_path, [], :line)
+      |> Enum.each(fn text ->
+        text
+        |> String.trim()
+        |> String.replace(~r/\n|\r/, "")
+        |> String.split("=", parts: 2)
+        |> case do
+          [key, value] -> {key, Fast64.decode64(value) |> :erlang.binary_to_term()}
+          _ -> :ignored
+        end
+      end)
+      |> Enum.into(%{})
+
+    if result != %{} do
+      File.rm(file_path)
+    end
+
+    result
   end
 
   defp subscribe(vid) do

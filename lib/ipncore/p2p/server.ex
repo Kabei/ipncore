@@ -69,6 +69,15 @@ defmodule Ippan.P2P.Server do
               send(VoteCounter, {"vote", from, rest})
               @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
 
+            {"get_status", nil} ->
+              # P2P.request(vid, {"status", block_state}, 1)
+              block_state = :sys.get_state(BlockTimer)
+              @adapter.send(socket, encode({"status", block_state}, sharedkey))
+
+            # {"status", block_state} ->
+            #   block_state = :sys.get_state(BlockTimer)
+            #   BlockTimer.check_status(block_state, from)
+
             _ ->
               :ok
           end
@@ -113,8 +122,6 @@ defmodule Ippan.P2P.Server do
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
-        # IO.inspect("Thank")
-
         case NtruKem.dec(Application.get_env(@otp_app, :net_privkey), ciphertext) do
           {:ok, sharedkey} ->
             <<clientPubkey::bytes-size(32), id::64, signature::binary>> =

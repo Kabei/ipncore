@@ -4,6 +4,7 @@ defmodule Ipncore.Router do
   # use Plug.ErrorHandler
   require Logger
   alias Phoenix.PubSub
+  alias Ippan.Block
   import Global, only: [miner: 0]
 
   @json Application.compile_env(:ipncore, :json)
@@ -64,11 +65,9 @@ defmodule Ipncore.Router do
 
       unless is_nil(miner) do
         ip_local = String.split(miner, "@") |> List.last()
+        url = Block.cluster_block_url(ip_local, vid, height)
 
-        case Curl.download_block(
-               "http://#{ip_local}:8080/v1/download/block/#{vid}/#{height}",
-               block_path
-             ) do
+        case Curl.download_block(url, block_path) do
           {:ok, _output} ->
             conn
             |> put_resp_content_type("application/octet-stream")

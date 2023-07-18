@@ -345,18 +345,18 @@ defmodule BlockTimer do
       task_jackpot =
         Task.async(fn ->
           run_jackpot(next_round, hash, timestamp)
+          BalanceStore.sync()
         end)
 
       MessageStore.sync()
+      RoundStore.sync()
+      Task.await(task_jackpot, :infinity)
 
       if requests != [] do
         commit()
       end
 
-      RoundStore.sync()
       checkpoint_commit()
-
-      Task.await(task_jackpot, :infinity)
 
       GenServer.cast(pid, {:complete, :round, next_round + 1, next_round, hash})
     end)

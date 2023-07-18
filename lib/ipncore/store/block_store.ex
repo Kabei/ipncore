@@ -37,6 +37,8 @@ defmodule BlockStore do
       """
     ],
     stmt: %{
+      "fetch_between" =>
+        "SELECT hash FROM #{@table} WHERE creator = ?1 AND height BETWEEN ?2 AND ?3 ORDER BY height ASC",
       "fetch_round" => "SELECT hash FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
       "insert_vote" => "INSERT INTO #{@table_bft} values(?1,?2,?3,?4,?5,?6,?7)",
       "fetch_votes" =>
@@ -56,8 +58,13 @@ defmodule BlockStore do
     call({:execute_step, :last, [validator_id]})
   end
 
+  def fetch_between(creator_id, a, b) do
+    call({:execute_fetch, "fetch_between", [creator_id, a, b]})
+  end
+
   def count(validator_id) do
-    call({:execute_step, :count, [validator_id]})
+    {_, [total]} = call({:execute_step, :count, [validator_id]})
+    total
   end
 
   def count_by_round(round) do

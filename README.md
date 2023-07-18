@@ -10,6 +10,7 @@
 * Memory: 4 GB
 * HDD Space: +20 GB
 * Bandwitch: 50 Mbps
+* Public IPv4 / IPv6
 
 ## Dependencies
 

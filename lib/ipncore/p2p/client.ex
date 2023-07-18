@@ -2,7 +2,7 @@ defmodule Ippan.P2P.Client do
   use GenServer
   import Ippan.P2P, only: [decode!: 2, encode: 2]
   alias Phoenix.PubSub
-  alias Ippan.{Address, P2P}
+  alias Ippan.{Address, Block, P2P}
   require Logger
 
   @module __MODULE__
@@ -231,6 +231,23 @@ defmodule Ippan.P2P.Client do
       File.rm(file_path)
 
       IO.inspect("mailbox sent")
+    else
+      me = Default.validator_id()
+      b1 = BlockStore.count(vid)
+      b2 = BlockStore.count(me)
+
+      if b2 > b1 do
+        BlockStore.fetch_between(me, b1 + 1, b2)
+        |> case do
+          {:ok, data} ->
+            for block <- data do
+              P2P.push(vid, {"new_recv", Block.to_map(block)})
+            end
+
+          _ ->
+            :ok
+        end
+      end
     end
 
     %{state | mailbox: %{}}

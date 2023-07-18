@@ -48,7 +48,7 @@ defmodule BlockTimer do
     {:ok,
      %{
        block_sync: false,
-       mined: BlockStore.count_by_round(block_round),
+       mined: if(block_round == round_id, do: BlockStore.count_by_round(block_round), else: 0),
        next_block: block_id,
        next_round: round_id,
        prev_block: block_hash,

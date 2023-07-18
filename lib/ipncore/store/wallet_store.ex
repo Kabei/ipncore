@@ -32,10 +32,10 @@ defmodule WalletStore do
   end
 
   def jackpot(pos) do
-    {:row, res} = call({:execute_step, :jackpot, [pos]})
+    res = call({:execute_step, :jackpot, [pos]})
 
     case res do
-      [[_pos, id]] -> id
+      {:row, [_pos, id]} -> id
       _ -> nil
     end
   end

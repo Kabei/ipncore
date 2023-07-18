@@ -625,7 +625,7 @@ defmodule BlockTimer do
     if count > 0 do
       position = rem(num, count) + 1
       winner_id = WalletStore.jackpot(position)
-      amount = EnvStore.get("WINNER_AMOUNT", 10) * count
+      amount = EnvStore.get("WINNER_AMOUNT", 10)
       RoundStore.insert_winner(round_id, winner_id)
       BalanceStore.income(winner_id, @token, amount, round_timestamp)
       Logger.debug("[Jackpot] Winner: #{winner_id}")

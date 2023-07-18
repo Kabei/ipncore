@@ -2,7 +2,10 @@ defmodule BlockTimer do
   use GenServer
   alias Phoenix.PubSub
   alias Ippan.{Block, Round, RequestHandler, P2P}
-  import Ippan.Block, only: [decode!: 1, encode!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
+
+  import Ippan.Block,
+    only: [decode!: 1, encode!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
+
   require Logger
 
   @otp_app :ipncore
@@ -62,8 +65,12 @@ defmodule BlockTimer do
   @impl true
   def handle_continue(
         {:continue, _block_round},
-        %{mined: mined, next_round: next_round, next_block: next_block, validators: validators} =
-          state
+        %{
+          mined: mined,
+          next_round: next_round,
+          next_block: next_block,
+          validators: validators
+        } = state
       ) do
     cond do
       next_block > next_round ->
@@ -361,7 +368,9 @@ defmodule BlockTimer do
          } = block,
          decode_path
        ) do
-    Logger.debug("#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import")
+    Logger.debug(
+      "#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import"
+    )
 
     spawn_link(fn ->
       requests =
@@ -509,9 +518,12 @@ defmodule BlockTimer do
   Verify block metadata only
   """
   @spec verify_empty!(term, term) :: :ok
-  def verify_empty!(%{hash: hash, ev_count: 0, signature: signature, size: size} = block, %{
-        pubkey: pubkey
-      }) do
+  def verify_empty!(
+        %{hash: hash, ev_count: 0, signature: signature, size: size} = block,
+        %{
+          pubkey: pubkey
+        }
+      ) do
     if block.hashfile != Block.zero_hash_file() do
       raise(IppanError, "Hash block file is invalid")
     end
@@ -606,9 +618,8 @@ defmodule BlockTimer do
     count = WalletStore.total()
 
     if count > 0 do
-      position = rem(num, count)
-      {:ok, players} = WalletStore.jackpot(position)
-      [winner_id] = Enum.at(players, position)
+      position = rem(num, count) + 1
+      winner_id = WalletStore.jackpot(position)
       amount = EnvStore.get("WINNER_AMOUNT", 10) * count
       RoundStore.insert_winner(round_id, winner_id)
       BalanceStore.income(winner_id, @token, amount, round_timestamp)

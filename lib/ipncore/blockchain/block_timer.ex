@@ -155,7 +155,7 @@ defmodule BlockTimer do
   def handle_cast({:complete, :round, new_id, new_hash}, state) do
     IO.inspect("complete round")
     IO.inspect(state)
-    BlockMinerChannel.reset(new_id)
+    VoteCounter.reset(new_id)
     PubSub.broadcast(@pubsub_verifiers, @topic_round, {"start", new_id})
 
     tRef =
@@ -169,12 +169,12 @@ defmodule BlockTimer do
     {:noreply,
      %{
        state
-       | next_round: new_id,
+       | block_sync: false,
+         next_round: new_id,
          prev_round: new_hash,
          round_sync: false,
          mined: 0,
          tRef: tRef
-         #  block_sync: false
      }}
   end
 
@@ -368,9 +368,7 @@ defmodule BlockTimer do
          } = block,
          decode_path
        ) do
-    Logger.debug(
-      "#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import"
-    )
+    Logger.debug("#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import")
 
     spawn_link(fn ->
       requests =
@@ -623,7 +621,7 @@ defmodule BlockTimer do
       amount = EnvStore.get("WINNER_AMOUNT", 10) * count
       RoundStore.insert_winner(round_id, winner_id)
       BalanceStore.income(winner_id, @token, amount, round_timestamp)
-      Logger.debug("[Jackpot] Winner; #{winner_id}")
+      Logger.debug("[Jackpot] Winner: #{winner_id}")
       :ok
     else
       Logger.debug("[Jackpot] No winner")

@@ -280,6 +280,10 @@ defmodule Ippan.P2P.Client do
             _ -> :ignored
           end
         end)
+        |> Enum.filter(fn
+          :ignored -> false
+          _ -> true
+        end)
         |> Enum.into(%{})
 
       if result != %{} do

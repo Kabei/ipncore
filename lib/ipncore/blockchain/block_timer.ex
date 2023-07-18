@@ -289,7 +289,7 @@ defmodule BlockTimer do
 
       last_row_id_df = catch_last_row_id(requests_df)
 
-      new_hash =
+      new_block =
         mine_fun(
           requests ++ requests_df,
           next_block,
@@ -299,11 +299,13 @@ defmodule BlockTimer do
           :os.system_time(:millisecond)
         )
 
+      P2P.push({"new_recv", new_block})
+
       MessageStore.delete_all(last_row_id)
       MessageStore.delete_all_df(last_row_id_df)
       MessageStore.sync()
 
-      GenServer.cast(pid, {:complete, :block, next_block + 1, validator_id, new_hash})
+      GenServer.cast(pid, {:complete, :block, next_block + 1, validator_id, new_block.hash})
     end)
   end
 
@@ -511,12 +513,9 @@ defmodule BlockTimer do
       "Block #{creator_id}.#{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}"
     )
 
-    if creator_id == Default.validator_id() do
-      PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})
-      P2P.push({"new_recv", block})
-    end
+    PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})
 
-    block.hash
+    block
   end
 
   @doc """

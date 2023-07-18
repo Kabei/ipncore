@@ -225,7 +225,6 @@ defmodule BlockTimer do
   def handle_info(
         :sync,
         %{
-          block_sync: false,
           round_sync: false,
           validators: validators,
           mined: mined,

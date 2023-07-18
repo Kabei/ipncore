@@ -237,7 +237,7 @@ defmodule Ippan.P2P.Client do
       b2 = BlockStore.count(me)
 
       if b2 > b1 do
-        BlockStore.fetch_between(me, b1 + 1, b2)
+        BlockStore.fetch_between(me, b1, b2)
         |> case do
           {:ok, data} ->
             for block <- data do

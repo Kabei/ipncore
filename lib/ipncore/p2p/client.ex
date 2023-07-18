@@ -226,6 +226,10 @@ defmodule Ippan.P2P.Client do
         @adapter.send(socket, encode(msg, sharedkey))
       end
 
+      data_dir = Application.get_env(:ipncore, :data_dir)
+      file_path = Path.join(data_dir, "mailbox.#{vid}.tmp")
+      File.rm(file_path)
+
       IO.inspect("mailbox sent")
     end
 

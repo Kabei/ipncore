@@ -22,7 +22,7 @@ defmodule WalletStore do
       exists: "SELECT 1 FROM #{@table} WHERE id=?",
       delete: "DELETE FROM #{@table} WHERE id=?",
       jackpot:
-        "SELECT (SELECT row_number() AS pos, id FROM #{@table} ORDER BY created_at) WHERE pos = ?",
+        "SELECT pos, id FROM (SELECT ROW_NUMBER() OVER () AS pos, id FROM #{@table} ORDER BY created_at ASC) WHERE pos = ?",
       total: "SELECT count(1) FROM #{@table}"
     }
 

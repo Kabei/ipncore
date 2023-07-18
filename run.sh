@@ -1,6 +1,8 @@
 #!/bin/bash
 
 killall beam.smp
+killall epmd
+epmd -daemon
 
 cpus=$(nproc)
 total_pids=2000000

@@ -214,7 +214,7 @@ defmodule VoteCounter do
   # :ets.fun2ms(fn {_, x, _, _, _} when x <= 10 -> true end)
   @impl true
   def handle_call({:reset, new_round}, _from, %{round: old_round} = state)
-      when old_round < new_round do
+      when old_round <= new_round do
     # delete old round
     :ets.select_delete(@winners, [{{:_, :"$1"}, [{:"=<", :"$1", old_round}], [true]}])
     :ets.select_delete(@candidates, [{{:_, :"$1", :_}, [{:"=<", :"$1", old_round}], [true]}])

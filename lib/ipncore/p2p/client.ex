@@ -210,7 +210,7 @@ defmodule Ippan.P2P.Client do
   defp check_mailbox(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
     IO.inspect(mailbox)
 
-    if mailbox == %{} do
+    if mailbox != %{} do
       for {_, msg} <- mailbox do
         @adapter.send(socket, encode(msg, sharedkey))
       end

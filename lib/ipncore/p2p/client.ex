@@ -246,25 +246,29 @@ defmodule Ippan.P2P.Client do
     data_dir = Application.get_env(:ipncore, :data_dir)
     file_path = Path.join(data_dir, "mailbox.#{vid}.tmp")
 
-    result =
-      File.stream!(file_path, [], :line)
-      |> Enum.each(fn text ->
-        text
-        |> String.trim()
-        |> String.replace(~r/\n|\r/, "")
-        |> String.split("=", parts: 2)
-        |> case do
-          [key, value] -> {key, Fast64.decode64(value) |> :erlang.binary_to_term()}
-          _ -> :ignored
-        end
-      end)
-      |> Enum.into(%{})
+    if File.exists?(file_path) do
+      result =
+        File.stream!(file_path, [], :line)
+        |> Enum.each(fn text ->
+          text
+          |> String.trim()
+          |> String.replace(~r/\n|\r/, "")
+          |> String.split("=", parts: 2)
+          |> case do
+            [key, value] -> {key, Fast64.decode64(value) |> :erlang.binary_to_term()}
+            _ -> :ignored
+          end
+        end)
+        |> Enum.into(%{})
 
-    if result != %{} do
-      File.rm(file_path)
+      if result != %{} do
+        File.rm(file_path)
+      end
+
+      result
+    else
+      %{}
     end
-
-    result
   end
 
   defp subscribe(vid) do

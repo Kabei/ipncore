@@ -152,10 +152,12 @@ defmodule BlockTimer do
     {:noreply, %{state | mined: mined}}
   end
 
-  def handle_cast({:complete, :round, new_id, new_hash}, state) do
+  def handle_cast({:complete, :round, new_id, old_id, new_hash}, state) do
     IO.inspect("complete round")
     IO.inspect(state)
-    VoteCounter.reset(new_id)
+    VoteCounter.reset(old_id)
+    # send pubsub event
+    PubSub.broadcast(@pubsub_verifiers, @topic_round, {"end", old_id})
     PubSub.broadcast(@pubsub_verifiers, @topic_round, {"start", new_id})
 
     tRef =
@@ -348,10 +350,7 @@ defmodule BlockTimer do
 
       Task.await(task_jackpot, :infinity)
 
-      # send pubsub event
-      PubSub.broadcast(@pubsub_verifiers, @topic_round, {"end", next_round})
-
-      GenServer.cast(pid, {:complete, :round, next_round + 1, hash})
+      GenServer.cast(pid, {:complete, :round, next_round + 1, next_round, hash})
     end)
   end
 

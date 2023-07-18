@@ -99,6 +99,8 @@ defmodule BlockTimer do
           validators: validators
         } = state
       ) do
+    IO.inspect("complete block")
+    IO.inspect(state)
     mined = mined + 1
 
     return =
@@ -123,7 +125,29 @@ defmodule BlockTimer do
     return
   end
 
+  # complete mine foreign block
+  def handle_cast(
+        {:complete, :import, _block},
+        %{
+          mined: mined,
+          validators: validators,
+          round_sync: round_sync
+        } = state
+      ) do
+    IO.inspect("complete block import")
+    IO.inspect(state)
+    mined = mined + 1
+
+    if not round_sync and mined == validators do
+      send(BlockTimer, :sync)
+    end
+
+    {:noreply, %{state | mined: mined}}
+  end
+
   def handle_cast({:complete, :round, new_id, new_hash}, state) do
+    IO.inspect("complete round")
+    IO.inspect(state)
     BlockMinerChannel.reset(new_id)
     PubSub.broadcast(@pubsub_verifiers, @topic_round, {"start", new_id})
 
@@ -145,24 +169,6 @@ defmodule BlockTimer do
          tRef: tRef
          #  block_sync: false
      }}
-  end
-
-  # complete mine foreign block
-  def handle_cast(
-        {:complete, :import, _block},
-        %{
-          mined: mined,
-          validators: validators,
-          round_sync: round_sync
-        } = state
-      ) do
-    mined = mined + 1
-
-    if not round_sync and mined == validators do
-      send(BlockTimer, :sync)
-    end
-
-    {:noreply, %{state | mined: mined}}
   end
 
   def handle_cast({:validators, n}, %{validators: validators} = state) do
@@ -227,12 +233,16 @@ defmodule BlockTimer do
         } = state
       )
       when mined == validators do
+    IO.inspect("sync")
+    IO.inspect(state)
     :timer.cancel(tRef)
     spawn_round_worker(self(), state)
     {:noreply, %{state | round_sync: true}}
   end
 
   def handle_info(:sync, state) do
+    IO.inspect("sync ELSE")
+    IO.inspect(state)
     {:noreply, %{state | wait_to_sync: true}}
   end
 

@@ -218,7 +218,7 @@ defmodule Ippan.P2P.Client do
     end
   end
 
-  defp check_mailbox(%{mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
+  defp check_mailbox(%{id: vid, mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
     IO.inspect(mailbox)
 
     if mailbox != %{} do

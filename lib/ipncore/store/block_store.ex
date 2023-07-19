@@ -29,7 +29,7 @@ defmodule BlockStore do
         height BIGINT NOT NULL,
         validator_id BIGINT NOT NULL,
         round BIGINT NOT NULL,
-        hash BLOB NOT NULL
+        hash BLOB NOT NULL,
         PRIMARY KEY(creator_id, height, validator_id)
       );
       """

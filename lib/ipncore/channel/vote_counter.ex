@@ -38,11 +38,14 @@ defmodule VoteCounter do
 
     validators = ValidatorStore.total()
     round = RoundStore.total()
+    minimum = calc_minimum(validators)
+
+    load_votes(round, minimum)
 
     {:ok,
      %{
        validators: validators,
-       minimum: calc_minimum(validators),
+       minimum: minimum,
        round: round,
        validator_id: Default.validator_id()
      }}
@@ -80,6 +83,9 @@ defmodule VoteCounter do
         true ->
           # retransmit message
           P2P.push({"new_recv", block})
+          # save vote
+          BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
+          BlockStore.commit()
 
           # vote count by candidate
           case :ets.update_counter(
@@ -95,8 +101,6 @@ defmodule VoteCounter do
                   # send a task to save votes
                   t =
                     Task.async(fn ->
-                      BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
-
                       if ev_count > 0 do
                         # send task to a verifier node
                         validator = ValidatorStore.lookup([])
@@ -246,6 +250,44 @@ defmodule VoteCounter do
     rescue
       _ -> send(pid, {"invalid", block})
     end
+  end
+
+  defp load_votes(round, minimum) do
+    votes =
+      BlockStore.fetch_votes(round)
+
+    # set votes
+    Enum.each(votes, fn [creator_id, height, validator_id, round, _hash] ->
+      :ets.insert(@votes, {{creator_id, height, validator_id}, round})
+    end)
+
+    # set candidates
+    Enum.group_by(
+      votes,
+      fn [creator_id, height, _validator_id, round, hash] ->
+        {creator_id, height, hash, round}
+      end,
+      fn _ ->
+        1
+      end
+    )
+    |> Enum.each(fn {{creator_id, height, hash, round}, list_n} ->
+      candidate_unique_id = {creator_id, height, hash}
+
+      case :ets.update_counter(
+             @candidates,
+             candidate_unique_id,
+             {4, length(list_n)},
+             {candidate_unique_id, round, %{}, 0}
+           ) do
+        count when count == minimum ->
+          # set winners
+          :ets.insert(@winners, {{creator_id, height}, round})
+
+        _ ->
+          :ok
+      end
+    end)
   end
 
   # :ets.fun2ms(fn {_, x} = y when x <= 10 -> y end)

@@ -62,6 +62,13 @@ defmodule BlockStore do
     call({:execute_fetch, "fetch_between", [creator_id, a, b]})
   end
 
+  def fetch_votes(round) do
+    case call({:execute_fetch, "fetch_votes", [round]}) do
+      {:ok, res} -> res
+      _ -> []
+    end
+  end
+
   def count(validator_id) do
     {_, [total]} = call({:execute_step, :count, [validator_id]})
     total
@@ -91,10 +98,7 @@ defmodule BlockStore do
   end
 
   def insert_vote(creator_id, height, validator_id, round, hash) do
-    call(
-      {:execute_step, "insert_vote",
-       [creator_id, height, validator_id, round, hash]}
-    )
+    call({:execute_step, "insert_vote", [creator_id, height, validator_id, round, hash]})
   end
 
   def sum_votes(round, hash, creator) do

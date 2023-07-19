@@ -25,7 +25,7 @@ defmodule VoteCounter do
       if unquote(validators) > 2 do
         div(unquote(validators), 2) + 1
       else
-        2
+        1
       end
     end
   end
@@ -103,10 +103,7 @@ defmodule VoteCounter do
                         push_fetch(self(), block, validator)
                       else
                         # block empty
-                        case BlockTimer.verify(block, from.pubkey) do
-                          :ok -> send(BlockTimer, {:import, block})
-                          _ -> :error
-                        end
+                        send(BlockTimer, {:import, block})
                       end
                     end)
 
@@ -253,9 +250,9 @@ defmodule VoteCounter do
 
   # :ets.fun2ms(fn {_, x} = y when x <= 10 -> y end)
   # defp commit(round_number, hash) do
-    # :ets.select(@votes, [{{:_, :"$1"}, [{:==, :"$1", round_number}], [:"$_"]}])
-    # |> Enum.each(fn {{creator_id, height, validator_id}, round} ->
-    #   BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
-    # end)
+  # :ets.select(@votes, [{{:_, :"$1"}, [{:==, :"$1", round_number}], [:"$_"]}])
+  # |> Enum.each(fn {{creator_id, height, validator_id}, round} ->
+  #   BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
+  # end)
   # end
 end

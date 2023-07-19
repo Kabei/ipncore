@@ -174,7 +174,7 @@ defmodule BlockTimer do
 
     tRef =
       if state.wait_to_mine do
-        GenServer.cast(self(), :mine)
+        send(self(), :mine)
       else
         {:ok, tRef} = :timer.send_after(@block_interval, :mine)
         tRef
@@ -364,7 +364,6 @@ defmodule BlockTimer do
       task_jackpot =
         Task.async(fn ->
           run_jackpot(next_round, hash, timestamp)
-          BalanceStore.sync()
         end)
 
       MessageStore.sync()
@@ -681,6 +680,7 @@ defmodule BlockTimer do
       amount = EnvStore.get("WINNER_AMOUNT", 10)
       RoundStore.insert_winner(round_id, winner_id)
       BalanceStore.income(winner_id, @token, amount, round_timestamp)
+      BalanceStore.sync()
       Logger.debug("[Jackpot] Winner: #{winner_id}")
       :ok
     else

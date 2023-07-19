@@ -137,7 +137,8 @@ defmodule Store.Sqlite do
         |> Path.dirname()
         |> File.mkdir_p()
 
-        flags = [:sqlite_open_sharedcache]
+        # flags = [:sqlite_open_sharedcache]
+        flags = []
 
         {:ok, conn} = Sqlite3.open(path, flags)
         Sqlite3NIF.execute(conn, ~c"PRAGMA journal_mode = WAL")
@@ -646,6 +647,17 @@ defmodule Store.Sqlite do
       else
         defp lookup_transform(x), do: x
       end
+
+      defoverridable init: 1,
+                     all: 0,
+                     terminate: 2,
+                     lookup: 1,
+                     insert: 1,
+                     insert_sync: 1,
+                     update: 2,
+                     delete: 1,
+                     exists?: 1,
+                     owner?: 2
     end
   end
 end

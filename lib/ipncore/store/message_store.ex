@@ -98,7 +98,7 @@ defmodule MessageStore do
     call({:execute_changes, "insert_df", params})
   end
 
-  def delete_only(hash) do
+  def delete(hash) do
     call({:execute_step, "delete", [hash]})
   end
 

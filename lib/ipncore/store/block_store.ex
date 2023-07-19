@@ -9,16 +9,16 @@ defmodule BlockStore do
     create: [
       """
       CREATE TABLE IF NOT EXISTS #{@table}(
-        height BIGINT,
+        height BIGINT NOT NULL,
         creator BIGINT NOT NULL,
-        hash BLOB,
+        hash BLOB NOT NULL,
         prev BLOB,
-        hashfile BLOB NOT NULL,
+        hashfile BLOB,
         signature BLOB NOT NULL,
         round BIGINT NOT NULL,
         timestamp BIGINT NOT NULL,
         ev_count BIGINT DEFAULT 0,
-        size BIGINT NOT NULL,
+        size BIGINT DEFAULT 0,
         vsn SMALLINT NOT NULL,
         PRIMARY KEY(height, creator)
       );

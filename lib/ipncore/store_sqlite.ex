@@ -11,11 +11,7 @@ defmodule Store.Sqlite do
       @keys opts[:keys] || 1
       @cache opts[:cache] || false
       @max_cache_size opts[:cache_size] || 10_000_000
-      @stmts (opts[:stmt] || [])
-             |> Enum.map(fn {key, txt} ->
-               {key, String.trim(String.replace(txt, ~r/\n|\r/, ""))}
-             end)
-             |> Enum.into(%{})
+      @stmts opts[:stmt]
 
       require Logger
       alias Exqlite.Sqlite3NIF

@@ -22,10 +22,15 @@ defmodule VoteCounter do
 
   defmacrop calc_minimum(validators) do
     quote do
-      if unquote(validators) > 2 do
-        div(unquote(validators), 2) + 1
-      else
-        1
+      cond do
+        unquote(validators) > 50 ->
+          div(unquote(validators), 3) + 1
+
+        unquote(validators) > 2 ->
+          div(unquote(validators), 2) + 1
+
+        true ->
+          1
       end
     end
   end

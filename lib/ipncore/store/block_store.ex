@@ -37,9 +37,9 @@ defmodule BlockStore do
     stmt: %{
       "fetch_between" =>
         "SELECT * FROM #{@table} WHERE creator = ?1 AND height BETWEEN ?2 AND ?3 ORDER BY height ASC",
-      "fetch_hash_round" =>
+      "fetch_uniques" =>
         "SELECT creator, height FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
-      "fetch_uniques" => "SELECT hash FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
+      "fetch_hash_round" => "SELECT hash FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
       "insert_vote" => "INSERT INTO #{@table_bft} values(?1,?2,?3,?4,?5)",
       "fetch_votes" =>
         "SELECT * FROM #{@table_bft} WHERE round = ?1 ORDER BY creator_id ASC, validator_id ASC",

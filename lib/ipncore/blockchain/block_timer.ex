@@ -101,6 +101,10 @@ defmodule BlockTimer do
     GenServer.cast(@module, {:validators, n})
   end
 
+  def put_block_ignore_mine do
+    GenServer.cast(@module, "ignore_mine")
+  end
+
   def check_state(state) do
     GenServer.call(BlockTimer, {:check_state, state})
   end
@@ -191,6 +195,10 @@ defmodule BlockTimer do
 
   def handle_cast({:validators, n}, %{validators: validators} = state) do
     {:noreply, %{state | validators: validators + n}}
+  end
+
+  def handle_cast("ignore_mine", %{mined: mined} = state) do
+    {:noreply, %{state | mined: mined + 1}}
   end
 
   @impl true

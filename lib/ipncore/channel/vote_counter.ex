@@ -88,19 +88,7 @@ defmodule VoteCounter do
                  {3, 1},
                  {candidate_unique_id, round, block, 1}
                ) do
-            count when count >= minimum ->
-              if ev_count > 0 do
-                # send task to a verifier node
-                validator = ValidatorStore.lookup([])
-                push_fetch(self(), block, validator)
-              else
-                # block empty
-                case BlockTimer.verify(block, from.pubkey) do
-                  :ok -> send(BlockTimer, {:import, block})
-                  _ -> :error
-                end
-              end
-
+            count when count == minimum ->
               # it's a winner if the count is mayor than minimum required
               case :ets.insert_new(@winners, {winner_id, round}) do
                 true ->
@@ -109,10 +97,17 @@ defmodule VoteCounter do
                     Task.async(fn ->
                       commit(round)
 
-                      [{_id, _round, block, _count}] =
-                        :ets.lookup(@candidates, candidate_unique_id)
-
-                      send(BlockTimer, {:import, block})
+                      if ev_count > 0 do
+                        # send task to a verifier node
+                        validator = ValidatorStore.lookup([])
+                        push_fetch(self(), block, validator)
+                      else
+                        # block empty
+                        case BlockTimer.verify(block, from.pubkey) do
+                          :ok -> send(BlockTimer, {:import, block})
+                          _ -> :error
+                        end
+                      end
                     end)
 
                   Task.await(t, :infinity)
@@ -266,6 +261,7 @@ defmodule VoteCounter do
 
   def handle_info({"invalid", _block}, state) do
     # apply block empty with errors
+    BlockTimer.put_block_ignore_mine()
     {:noreply, state}
   end
 

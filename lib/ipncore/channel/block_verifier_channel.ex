@@ -3,9 +3,6 @@ defmodule BlockVerifierChannel do
     server: :verifiers,
     topic: "block"
 
-  alias Ippan.Block
-  # import Global, only: [miner: 0]
-
   def init(args) do
     PubSub.subscribe(@pubsub_server, @topic)
     {:ok, args}

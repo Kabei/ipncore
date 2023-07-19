@@ -121,7 +121,7 @@ defmodule Ippan.Block do
       to_string(height),
       to_string(round),
       normalize(prev),
-      hashfile,
+      normalize(hashfile),
       to_string(timestamp)
     ]
     |> IO.iodata_to_binary()

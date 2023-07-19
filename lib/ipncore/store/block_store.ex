@@ -25,13 +25,11 @@ defmodule BlockStore do
       """,
       """
       CREATE TABLE IF NOT EXISTS #{@table_bft}(
-        height BIGINT NOT NULL,
-        round BIGINT NOT NULL,
         creator_id BIGINT NOT NULL,
+        height BIGINT NOT NULL,
         validator_id BIGINT NOT NULL,
-        hash BLOB NOT NULL,
-        signature BLOB NOT NULL,
-        votes INTEGER NOT NULL,
+        round BIGINT NOT NULL,
+        hash BLOB NOT NULL
         PRIMARY KEY(creator_id, height, validator_id)
       );
       """
@@ -42,7 +40,7 @@ defmodule BlockStore do
       "fetch_hash_round" =>
         "SELECT creator, height FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
       "fetch_uniques" => "SELECT hash FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
-      "insert_vote" => "INSERT INTO #{@table_bft} values(?1,?2,?3,?4,?5,?6,?7)",
+      "insert_vote" => "INSERT INTO #{@table_bft} values(?1,?2,?3,?4,?5)",
       "fetch_votes" =>
         "SELECT * FROM #{@table_bft} WHERE round = ?1 ORDER BY creator_id ASC, validator_id ASC",
       "sum_votes" =>
@@ -92,10 +90,10 @@ defmodule BlockStore do
     call({:execute_step, "avg_round_time", [round]})
   end
 
-  def insert_vote(height, round, validator_id, creator_id, hash, signature, vote) do
+  def insert_vote(creator_id, height, validator_id, round, hash) do
     call(
       {:execute_step, "insert_vote",
-       [height, round, validator_id, creator_id, signature, hash, vote]}
+       [creator_id, height, validator_id, round, hash]}
     )
   end
 

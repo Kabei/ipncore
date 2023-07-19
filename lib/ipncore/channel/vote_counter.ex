@@ -95,7 +95,7 @@ defmodule VoteCounter do
                   # send a task to save votes
                   t =
                     Task.async(fn ->
-                      commit(round)
+                      BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
 
                       if ev_count > 0 do
                         # send task to a verifier node
@@ -125,125 +125,8 @@ defmodule VoteCounter do
       end
     end
 
-    # block_unique_id = {creator_id, height}
-    # candidate_unique_id = {creator_id, height, hash}
-
-    # result = :ets.lookup(@candidates, candidate_unique_id)
-
-    # if result == [] or round > round_number do
-    #   Logger.debug("not in cache")
-
-    #   case :ets.insert_new(@candidates, {candidate_unique_id, round, block, 0}) do
-    #     true ->
-
-    #       P2P.push({"new_recv", block})
-
-    #       _ ->
-    #   end
-
-    #   # check if a winner
-    #   case :ets.member(@winners, block_unique_id) do
-    #     false ->
-    #       if ev_count > 0 do
-    #         # send task to a verifier node
-    #         push_fetch(block)
-    #       else
-    #         # block empty
-    #         vote =
-    #           try do
-    #             :ok = BlockTimer.verify_empty!(block, from)
-
-    #             make_vote(block, Default.validator_id(), 1)
-    #           rescue
-    #             _ -> make_vote(block, Default.validator_id(), -1)
-    #           end
-
-    #         # send vote
-    #         send(VoteCounter, {"vote", vote, nil})
-    #       end
-
-    #     true ->
-    #       nil
-    #   end
-
-    #   {:noreply, state}
-    # else
-    #   Logger.debug("hit cache #{block.creator}.#{block.height}")
-
-    #   :ets.update_element(@candidates, candidate_unique_id, {2, block})
-    #   {:noreply, state}
-    # end
-
     {:noreply, state}
   end
-
-  # def handle_info(
-  #       {"vote",
-  #        %{
-  #          creator: creator_id,
-  #          hash: hash,
-  #          height: height,
-  #          round: round,
-  #          signature: signature,
-  #          validator_id: validator_id,
-  #          vote: vote
-  #        }, from_pubkey},
-  #       %{minimum: minimum, round: current_round, validator_id: me} = state
-  #     )
-  #     when creator_id != validator_id and vote in [1, -1] and current_round <= round do
-  #   Logger.debug("vote #{creator_id}.#{height} | #{round} | #{vote}")
-  #   # check signature, but it's me no check signature
-  #   if me == validator_id or
-  #        Cafezinho.Impl.verify(signature, "#{hash}#{vote}", from_pubkey) == :ok do
-  #     winner_id = {creator_id, height}
-  #     vote_id = {creator_id, height, validator_id}
-  #     candidate_unique_id = {creator_id, height, hash}
-
-  #     # check winner
-  #     unless :ets.member(@winners, winner_id) do
-  #       # insert voter
-  #       case :ets.insert_new(@votes, {vote_id, round, hash, signature, vote}) do
-  #         true ->
-  #           # vote count by candidate
-  #           case :ets.update_counter(
-  #                  @candidates,
-  #                  candidate_unique_id,
-  #                  {2, vote},
-  #                  {candidate_unique_id, round, 1}
-  #                ) do
-  #             count when count > minimum ->
-  #               # it's a winner if the count is mayor than minimum required
-  #               case :ets.insert_new(@winners, {winner_id, round}) do
-  #                 true ->
-  #                   # send a task to save votes
-  #                   t =
-  #                     Task.async(fn ->
-  #                       commit(round)
-
-  #                       [{_id, _round, block, _count}] =
-  #                         :ets.lookup(@candidates, candidate_unique_id)
-
-  #                       send(BlockTimer, {:import, block})
-  #                     end)
-
-  #                   Task.await(t, :infinity)
-
-  #                 _ ->
-  #                   :ok
-  #               end
-
-  #             _ ->
-  #               :ok
-  #           end
-
-  #         false ->
-  #           :ok
-  #       end
-  #     end
-  #   end
-
-  #   {:noreply, state}
-  # end
 
   def handle_info(
         {"valid", %{creator: creator, height: height} = block, node_origin},
@@ -285,8 +168,8 @@ defmodule VoteCounter do
       when old_round <= new_round do
     # delete old round
     :ets.select_delete(@winners, [{{:_, :"$1"}, [{:"=<", :"$1", old_round}], [true]}])
-    :ets.select_delete(@candidates, [{{:_, :"$1", :_, :_}, [{:"=<", :"$1", old_round}], [true]}])
-    :ets.select_delete(@votes, [{{:_, :"$1"}, [{:"=<", :"$1", old_round}], [true]}])
+    :ets.select_delete(@candidates, [{{:_, :"$1", :_}, [{:"=<", :"$1", old_round}], [true]}])
+    :ets.select_delete(@votes, [{{:_, :"$1", :_}, [{:"=<", :"$1", old_round}], [true]}])
 
     {:reply, :ok, %{state | round: new_round}}
   end
@@ -368,11 +251,11 @@ defmodule VoteCounter do
     end
   end
 
-  # :ets.fun2ms(fn {_, x, _} = y when x <= 10 -> y end)
-  defp commit(round_number) do
-    :ets.select(@votes, [{{:_, :"$1", :_}, [{:"=<", :"$1", round_number}], [:"$_"]}])
-    |> Enum.each(fn {{creator_id, height, validator_id}, round, hash, signature, vote} ->
-      BlockStore.insert_vote(height, round, validator_id, creator_id, hash, signature, vote)
-    end)
-  end
+  # :ets.fun2ms(fn {_, x} = y when x <= 10 -> y end)
+  # defp commit(round_number, hash) do
+    # :ets.select(@votes, [{{:_, :"$1"}, [{:==, :"$1", round_number}], [:"$_"]}])
+    # |> Enum.each(fn {{creator_id, height, validator_id}, round} ->
+    #   BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
+    # end)
+  # end
 end

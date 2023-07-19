@@ -45,10 +45,14 @@ defmodule BlockTimer do
           {0, nil, 0}
       end
 
+    block_unique_ids = BlockStore.fetch_uniques(round_id)
+
+    #  if(block_round == round_id, do: BlockStore.count_by_round(block_round), else: 0)
     {:ok,
      %{
        block_sync: false,
-       mined: if(block_round == round_id, do: BlockStore.count_by_round(block_round), else: 0),
+       blocks: block_unique_ids,
+       mined: length(block_unique_ids),
        next_block: block_id,
        next_round: round_id,
        prev_block: block_hash,
@@ -176,6 +180,7 @@ defmodule BlockTimer do
      %{
        state
        | block_sync: false,
+         blocks: [],
          next_round: new_id,
          prev_round: new_hash,
          round_sync: false,
@@ -227,16 +232,20 @@ defmodule BlockTimer do
   def handle_info(
         {:import, %{creator: creator_id, height: height, round: round} = block},
         %{
+          blocks: blocks,
           next_round: next_round
         } = state
       ) do
-    if round == next_round do
+    unique_block_id = {creator_id, height}
+
+    if round == next_round and unique_block_id not in blocks do
       decode_path = Block.decode_path(creator_id, height)
 
       spawn_remote_block_worker(self(), block, decode_path)
+      {:noreply, %{state | blocks: :lists.append(blocks, [unique_block_id])}}
+    else
+      {:noreply, state}
     end
-
-    {:noreply, state}
   end
 
   def handle_info(
@@ -336,7 +345,7 @@ defmodule BlockTimer do
         )
       end)
 
-      {:ok, result_hashes} = BlockStore.fetch_round(next_round)
+      result_hashes = BlockStore.fetch_hash_round(next_round)
       hashes = Enum.concat(result_hashes)
       count = length(hashes)
       hash = Round.compute_hash(next_round, prev_round, hashes)
@@ -479,7 +488,7 @@ defmodule BlockTimer do
 
     {hashfile, block_size} =
       if empty do
-        {Block.zero_hash_file(), 0}
+        {nil, 0}
       else
         content = encode_file!(events)
         hashfile = hash_file(block_path)
@@ -521,26 +530,63 @@ defmodule BlockTimer do
   @doc """
   Verify block metadata only
   """
-  @spec verify_empty!(term, term) :: :ok
-  def verify_empty!(
-        %{hash: hash, ev_count: 0, signature: signature, size: size} = block,
+  @spec verify(term, binary) :: :ok | :empty | :error
+  def verify(
         %{
-          pubkey: pubkey
-        }
+          creator: creator,
+          hash: hash,
+          height: height,
+          ev_count: 0,
+          hashfile: hashfile,
+          prev: prev,
+          round: round,
+          size: size,
+          signature: signature,
+          timestamp: timestamp
+        } = _block,
+        creator_pubkey
       ) do
-    if block.hashfile != Block.zero_hash_file() do
-      raise(IppanError, "Hash block file is invalid")
-    end
+    cond do
+      hashfile != nil ->
+        :error
 
-    if 0 != size do
-      raise IppanError, "Invalid block size"
-    end
+      0 != size ->
+        :error
 
-    if Cafezinho.Impl.verify(signature, hash, pubkey) != :ok do
-      raise(IppanError, "Invalid block signature")
-    end
+      Block.compute_hash(height, creator, round, prev, hashfile, timestamp) != hash ->
+        :error
 
-    :ok
+      Cafezinho.Impl.verify(signature, hash, creator_pubkey) != :ok ->
+        :error
+
+      true ->
+        :empty
+    end
+  end
+
+  def verify(
+        %{
+          creator: creator,
+          round: round,
+          prev: prev,
+          hash: hash,
+          height: height,
+          hashfile: hashfile,
+          signature: signature,
+          timestamp: timestamp
+        } = _block,
+        creator_pubkey
+      ) do
+    cond do
+      Cafezinho.Impl.verify(signature, hash, creator_pubkey) != :ok ->
+        :error
+
+      Block.compute_hash(height, creator, round, prev, hashfile, timestamp) != hash ->
+        :error
+
+      true ->
+        :ok
+    end
   end
 
   # Verify a block file

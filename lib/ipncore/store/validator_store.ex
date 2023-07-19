@@ -20,7 +20,7 @@ defmodule ValidatorStore do
       stake BIGINT NOT NULL DEFAULT 0,
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL
-    );",
+      );",
     stmt: %{
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
       lookup: "SELECT * FROM #{@table} WHERE id = ?1",
@@ -30,8 +30,8 @@ defmodule ValidatorStore do
       total: "SELECT COUNT(1) FROM #{@table}"
     }
 
-    def total do
-      {_, [total]} = call({:execute_step, :total, []})
-      total
-    end
+  def total do
+    {_, [total]} = call({:execute_step, :total, []})
+    total
+  end
 end

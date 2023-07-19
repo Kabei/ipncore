@@ -22,7 +22,9 @@ defmodule Platform do
 
         GlobalConst.new(Global, %{
           owner: wallet_owner,
-          owner_pubkey: wallet_pubkey
+          owner_pubkey: wallet_pubkey,
+          native_token: token,
+          vid: Application.get_env(:ipncore, :vid)
         })
     end
 
@@ -123,7 +125,8 @@ defmodule Platform do
         true,
         0,
         0,
-        @json.encode!(["coinbase", "lock", "burn"]),
+        # @json.encode!(["coinbase", "lock", "burn"]),
+        @json.encode!(["burn"]),
         timestamp,
         timestamp
       ])
@@ -167,7 +170,8 @@ defmodule Platform do
     GlobalConst.new(Global, %{
       owner: address,
       owner_pubkey: pk,
-      miner: System.get_env("MINER") |> to_atom()
+      miner: System.get_env("MINER") |> to_atom(),
+      vid: Application.get_env(:ipncore, :vid)
     })
   end
 end

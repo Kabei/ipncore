@@ -19,7 +19,7 @@ defmodule MessageStore do
         signature BLOB,
         size INTEGER DEFAULT 0,
         PRIMARY KEY(timestamp, hash)
-      );
+      )
       """,
       """
       CREATE TABLE IF NOT EXISTS #{@table_df}(
@@ -36,7 +36,7 @@ defmodule MessageStore do
         round BIGINT,
         PRIMARY KEY(key, type),
         UNIQUE(timestamp, hash)
-      );
+      )
       """
     ],
     stmt: %{

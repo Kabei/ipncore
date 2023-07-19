@@ -39,7 +39,9 @@ defmodule BlockStore do
     stmt: %{
       "fetch_between" =>
         "SELECT * FROM #{@table} WHERE creator = ?1 AND height BETWEEN ?2 AND ?3 ORDER BY height ASC",
-      "fetch_round" => "SELECT hash FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
+      "fetch_hash_round" =>
+        "SELECT creator, height FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
+      "fetch_uniques" => "SELECT hash FROM #{@table} WHERE round = ?1 ORDER BY creator ASC",
       "insert_vote" => "INSERT INTO #{@table_bft} values(?1,?2,?3,?4,?5,?6,?7)",
       "fetch_votes" =>
         "SELECT * FROM #{@table_bft} WHERE round = ?1 ORDER BY creator_id ASC, validator_id ASC",
@@ -72,8 +74,18 @@ defmodule BlockStore do
     total
   end
 
-  def fetch_round(round) do
-    call({:execute_fetch, "fetch_round", [round]})
+  def fetch_hash_round(round) do
+    case call({:execute_fetch, "fetch_hash_round", [round]}) do
+      {:ok, res} -> res
+      _ -> []
+    end
+  end
+
+  def fetch_uniques(round) do
+    case call({:execute_fetch, "fetch_uniques", [round]}) do
+      {:ok, res} -> res
+      _ -> []
+    end
   end
 
   def avg_round_time(round) do

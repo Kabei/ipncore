@@ -10,7 +10,7 @@ defmodule Ipncore.MixProject do
       app: @app,
       version: @version,
       config_path: "config/config.exs",
-      elixir: "~> 1.13",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
@@ -46,6 +46,30 @@ defmodule Ipncore.MixProject do
     ]
   end
 
+  # Run "mix help deps" to learn about dependencies.
+  defp deps do
+    [
+      {:benchee, "~> 1.0", only: [:dev, :test]},
+      {:bakeware, "~> 0.2.4", runtime: false},
+      {:globalconst, "~> 0.3.2"},
+      {:poolboy, "~> 1.5.2"},
+      {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
+      {:sntp, "~> 0.2.0"},
+      {:jason, "~> 1.4"},
+      {:msgpack, "~> 0.8.1"},
+      {:bandit, ">= 0.7.7"},
+      {:phoenix_pubsub_redis, "~> 3.0.1"},
+      # {:download, "~> 0.0.4"},
+      {:cafezinho, "~> 0.4.0"},
+      {:httpoison, "~> 2.0"},
+      {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
+      {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},
+      {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},
+      {:ntrukem, git: "https://kabei@github.com/kabei/ntrukem.git", branch: "master"},
+      {:fast64, git: "https://kabei@github.com/kabei/fast64_elixir.git", branch: "master"}
+    ]
+  end
+
   defp load_env_file do
     path = System.get_env("ENV_FILE", "env_file")
 
@@ -62,29 +86,6 @@ defmodule Ipncore.MixProject do
         end
       end)
     end
-  end
-
-  # Run "mix help deps" to learn about dependencies.
-  defp deps do
-    [
-      {:benchee, "~> 1.0", only: [:dev, :test]},
-      {:bakeware, "~> 0.2.4", runtime: false},
-      {:globalconst, "~> 0.3.2"},
-      {:poolboy, "~> 1.5.2"},
-      {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
-      {:sntp, "~> 0.2.0"},
-      {:jason, "~> 1.4"},
-      {:bandit, ">= 0.7.7"},
-      {:phoenix_pubsub_redis, "~> 3.0.1"},
-      # {:download, "~> 0.0.4"},
-      {:cafezinho, "~> 0.4.0"},
-      {:httpoison, "~> 2.0"},
-      {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
-      {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},
-      {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},
-      {:ntrukem, git: "https://kabei@github.com/kabei/ntrukem.git", branch: "master"},
-      {:fast64, git: "https://kabei@github.com/kabei/fast64_elixir.git", branch: "master"}
-    ]
   end
 
   def package do

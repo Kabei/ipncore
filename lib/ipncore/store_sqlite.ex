@@ -5,13 +5,18 @@ defmodule Store.Sqlite do
       @pool opts[:pool]
       @table opts[:table]
       @mod opts[:mod]
-      @stmts opts[:stmt] || []
       @create opts[:create]
       @alter opts[:alter] || []
       @version opts[:alter] || 0
       @keys opts[:keys] || 1
       @cache opts[:cache] || false
       @max_cache_size opts[:cache_size] || 10_000_000
+      @stmts (opts[:stmt] || [])
+             |> Enum.map(fn {key, txt} ->
+               {key, String.trim(String.replace(txt, ~r/\n|\r/, ""))}
+             end)
+             |> Enum.into(%{})
+
       require Logger
       alias Exqlite.Sqlite3NIF
       alias Exqlite.Sqlite3
@@ -139,12 +144,12 @@ defmodule Store.Sqlite do
         flags = [:sqlite_open_sharedcache]
 
         {:ok, conn} = Sqlite3.open(path, flags)
-        Sqlite3NIF.execute(conn, 'PRAGMA journal_mode = WAL')
-        Sqlite3NIF.execute(conn, 'PRAGMA synchronous = 0')
-        Sqlite3NIF.execute(conn, 'PRAGMA cache_size = 1000000')
-        Sqlite3NIF.execute(conn, 'PRAGMA temp_store = memory')
-        Sqlite3NIF.execute(conn, 'PRAGMA mmap_size = 30000000000')
-        Sqlite3NIF.execute(conn, 'PRAGMA case_sensitive_like = ON')
+        Sqlite3NIF.execute(conn, ~c"PRAGMA journal_mode = WAL")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA synchronous = 0")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA cache_size = 1000000")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA temp_store = memory")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA mmap_size = 30000000000")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA case_sensitive_like = ON")
         # Sqlite3NIF.execute(conn, 'PRAGMA threads = #{:erlang.system_info(:schedulers_online)}')
         # Sqlite3NIF.execute(conn, 'PRAGMA locking_mode = EXCLUSIVE')
         # Sqlite3NIF.execute(conn, 'PRAGMA read_uncommitted = true')
@@ -157,13 +162,13 @@ defmodule Store.Sqlite do
         flags = [:sqlite_open_readonly, :sqlite_open_uri]
 
         result = {:ok, conn} = Sqlite3.open(path, flags)
-        Sqlite3NIF.execute(conn, 'PRAGMA case_sensitive_like = ON')
+        Sqlite3NIF.execute(conn, ~c"PRAGMA case_sensitive_like = ON")
         result
       end
 
       def open_memory do
         result = {:ok, conn} = Sqlite3.open(":memory:")
-        Sqlite3NIF.execute(conn, 'PRAGMA case_sensitive_like = ON')
+        Sqlite3NIF.execute(conn, ~c"PRAGMA case_sensitive_like = ON")
         result
       end
 
@@ -176,11 +181,11 @@ defmodule Store.Sqlite do
       end
 
       def begin(conn) do
-        Sqlite3NIF.execute(conn, 'BEGIN')
+        Sqlite3NIF.execute(conn, ~c"BEGIN")
       end
 
       def commit(conn) do
-        Sqlite3NIF.execute(conn, 'COMMIT')
+        Sqlite3NIF.execute(conn, ~c"COMMIT")
       end
 
       def alter(conn, _version) do
@@ -188,7 +193,7 @@ defmodule Store.Sqlite do
       end
 
       defp check_version(conn) do
-        {:ok, stmt} = Sqlite3NIF.prepare(conn, 'PRAGMA USER_VERSION')
+        {:ok, stmt} = Sqlite3NIF.prepare(conn, ~c"PRAGMA USER_VERSION")
         {:row, [v]} = Sqlite3NIF.step(conn, stmt)
         Sqlite3NIF.release(conn, stmt)
 
@@ -198,7 +203,7 @@ defmodule Store.Sqlite do
 
           v < @version ->
             :ok = alter(conn, @version)
-            Sqlite3NIF.execute(conn, 'PRAGMA USER_VERSION #{@version}')
+            Sqlite3NIF.execute(conn, ~c"PRAGMA USER_VERSION #{@version}")
             :ok
 
           true ->
@@ -249,15 +254,15 @@ defmodule Store.Sqlite do
       end
 
       def savepoint(id) do
-        call({:execute, 'SAVEPOINT #{id}'})
+        call({:execute, ~c"SAVEPOINT #{id}"})
       end
 
       def sv_release(id) do
-        call({:execute, 'RELEASE #{id}'})
+        call({:execute, ~c"RELEASE #{id}"})
       end
 
       def sv_rollback(id) do
-        call({:execute, 'ROLLBACK TO #{id}'})
+        call({:execute, ~c"ROLLBACK TO #{id}"})
       end
 
       @spec update(map | Keyword.t(), map | Keyword.t()) ::
@@ -418,10 +423,10 @@ defmodule Store.Sqlite do
         end
 
         def handle_call(:delete_all, _from, %{conn: conn, ets: ets} = state) do
-          result = Sqlite3NIF.execute(conn, 'DELETE FROM #{@table}')
+          result = Sqlite3NIF.execute(conn, ~c"DELETE FROM #{@table}")
           :ets.delete_all_objects(ets)
           n = changes(conn)
-          Sqlite3NIF.execute(conn, 'VACUUM')
+          Sqlite3NIF.execute(conn, ~c"VACUUM")
           {:reply, n, state}
         end
       else
@@ -479,9 +484,9 @@ defmodule Store.Sqlite do
         end
 
         def handle_call(:delete_all, _from, %{conn: conn} = state) do
-          result = Sqlite3NIF.execute(conn, 'DELETE FROM #{@table}')
+          result = Sqlite3NIF.execute(conn, ~c"DELETE FROM #{@table}")
           n = changes(conn)
-          Sqlite3NIF.execute(conn, 'VACUUM')
+          Sqlite3NIF.execute(conn, ~c"VACUUM")
           {:reply, n, state}
         end
       end
@@ -510,7 +515,7 @@ defmodule Store.Sqlite do
             %{conn: conn} = state
           ) do
         {:ok, statement} =
-          Sqlite3NIF.prepare(conn, 'UPDATE #{@table} SET #{set_fields} WHERE #{where}')
+          Sqlite3NIF.prepare(conn, ~c"UPDATE #{@table} SET #{set_fields} WHERE #{where}")
 
         case Sqlite3NIF.bind_step_changes(conn, statement, values_list) do
           n when n > 0 ->
@@ -532,7 +537,7 @@ defmodule Store.Sqlite do
       end
 
       def handle_call(:all, _from, %{conn: conn, stmt: stmt} = state) do
-        {:ok, statement} = Sqlite3NIF.prepare(conn, 'SELECT * FROM #{@table}')
+        {:ok, statement} = Sqlite3NIF.prepare(conn, ~c"SELECT * FROM #{@table}")
         result = Sqlite3.fetch_all(conn, statement)
         Sqlite3NIF.release(conn, statement)
         {:reply, result, state}
@@ -545,7 +550,7 @@ defmodule Store.Sqlite do
       end
 
       def handle_call(:checkpoint, _from, %{conn: conn} = state) do
-        Sqlite3NIF.execute(conn, 'PRAGMA wal_checkpoint(TRUNCATE)')
+        Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
         {:reply, :ok, state}
       end
 
@@ -584,12 +589,12 @@ defmodule Store.Sqlite do
       end
 
       def handle_call(:begin, _from, %{conn: conn} = state) do
-        Sqlite3NIF.execute(conn, 'BEGIN')
+        Sqlite3NIF.execute(conn, ~c"BEGIN")
         {:reply, :ok, state}
       end
 
       def handle_call(:commit, _from, %{conn: conn} = state) do
-        Sqlite3NIF.execute(conn, 'COMMIT')
+        Sqlite3NIF.execute(conn, ~c"COMMIT")
         {:reply, :ok, state}
       end
 
@@ -602,24 +607,24 @@ defmodule Store.Sqlite do
       end
 
       def handle_call(:drop, _from, %{conn: conn} = state) do
-        result = Sqlite3NIF.execute(conn, 'DROP TABLE #{@table}')
-        Sqlite3NIF.execute(conn, 'VACUUM')
+        result = Sqlite3NIF.execute(conn, ~c"DROP TABLE #{@table}")
+        Sqlite3NIF.execute(conn, ~c"VACUUM")
         {:reply, result, state}
       end
 
       @impl true
       def terminate(_reason, %{conn: conn, ets: ets} = state) do
         commit(conn)
-        Sqlite3NIF.execute(conn, 'VACUUM')
-        Sqlite3NIF.execute(conn, 'PRAGMA optimize')
+        Sqlite3NIF.execute(conn, ~c"VACUUM")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA optimize")
         Sqlite3NIF.close(conn)
         :ets.delete(ets)
       end
 
       def terminate(_reason, %{conn: conn, stmt: stmts} = state) do
         commit(conn)
-        Sqlite3NIF.execute(conn, 'VACUUM')
-        Sqlite3NIF.execute(conn, 'PRAGMA optimize')
+        Sqlite3NIF.execute(conn, ~c"VACUUM")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA optimize")
 
         for stmt <- stmts do
           Sqlite3NIF.release(conn, stmt)

@@ -94,11 +94,6 @@ defmodule Ippan.Block do
     }
   end
 
-  def zero_hash_file,
-    do:
-      <<215, 178, 135, 49, 141, 108, 154, 141, 105, 41, 234, 36, 222, 56, 0, 124, 63, 25, 150,
-        225, 37, 216, 254, 73, 65, 240, 8, 33, 179, 137, 99, 137>>
-
   @spec put_hash(term()) :: term()
   def put_hash(
         block = %{

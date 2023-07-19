@@ -85,8 +85,8 @@ defmodule VoteCounter do
           case :ets.update_counter(
                  @candidates,
                  candidate_unique_id,
-                 {3, 1},
-                 {candidate_unique_id, round, block, 1}
+                 {4, 1},
+                 {candidate_unique_id, round, block, 0}
                ) do
             count when count == minimum ->
               # it's a winner if the count is mayor than minimum required

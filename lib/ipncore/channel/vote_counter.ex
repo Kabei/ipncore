@@ -85,7 +85,7 @@ defmodule VoteCounter do
           P2P.push({"new_recv", block})
           # save vote
           BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
-          BlockStore.commit()
+          BlockStore.sync()
 
           # vote count by candidate
           case :ets.update_counter(

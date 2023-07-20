@@ -162,6 +162,15 @@ defmodule Builder do
     end
   end
 
+  # {pk, sk, address} = Builder.gen_ed25519()
+  def gen_ed25519 do
+    {:ok, {pk, sk}} =
+      :rand.bytes(32)
+      |> Cafezinho.Impl.keypair_from_seed()
+
+    {pk, sk, Address.hash(0, pk)}
+  end
+
   # {pk, sk, address} = Builder.gen_ed25519(seed)
   def gen_ed25519(seed) do
     {:ok, {pk, sk}} = Cafezinho.Impl.keypair_from_seed(seed)

@@ -95,6 +95,12 @@ defmodule Ipncore.Application do
             {RoundChannel, []},
             {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts}
           ]
+
+        "test" ->
+          [
+            {MessageStore, Path.join(data_dir, "requests/messages.db")},
+            {WalletStore, Path.join(data_dir, "wallet/wallet.db")}
+          ]
       end
 
     case Supervisor.start_link(children, @opts) do

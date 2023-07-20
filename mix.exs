@@ -82,21 +82,19 @@ defmodule Ipncore.MixProject do
   end
 
   defp load_ini_file(path) do
-    if File.exists?(path) do
-      File.stream!(path, [], :line)
-      |> Enum.each(fn text ->
-        text
-        |> String.trim()
-        |> String.replace(~r/\n|\r|#.+/, "")
-        |> String.split("=", parts: 2)
-        |> case do
-          [key, value] ->
-            System.put_env(key, value)
+    File.stream!(path, [], :line)
+    |> Enum.each(fn text ->
+      text
+      |> String.trim()
+      |> String.replace(~r/\n|\r|#.+/, "")
+      |> String.split("=", parts: 2)
+      |> case do
+        [key, value] ->
+          System.put_env(key, value)
 
-          _ ->
-            :ignored
-        end
-      end)
-    end
+        _ ->
+          :ignored
+      end
+    end)
   end
 end

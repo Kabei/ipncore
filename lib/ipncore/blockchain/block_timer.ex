@@ -499,8 +499,8 @@ defmodule BlockTimer do
         {nil, 0}
       else
         content = encode_file!(events)
-        hashfile = hash_file(block_path)
         :ok = File.write(block_path, content)
+        hashfile = hash_file(block_path)
         block_size = File.stat!(block_path).size
         commit()
         {hashfile, block_size}

@@ -5,7 +5,7 @@ defmodule Platform do
   @token Application.compile_env(:ipncore, :token)
   @json Application.compile_env(:ipncore, :json)
 
-  def start("miner") do
+  def start("miner" = role) do
     data_dir = Application.get_env(:ipncore, :data_dir)
     {:ok, pid} = WalletStore.start_link(Path.join(data_dir, "wallet/wallet.db"))
     {:ok, pid2} = TokenStore.start_link(Path.join(data_dir, "token/token.db"))
@@ -14,7 +14,7 @@ defmodule Platform do
     # load native token data
     case TokenStore.lookup([@token]) do
       nil ->
-        init("miner")
+        init(role)
 
       token ->
         wallet_owner = token.owner
@@ -33,12 +33,14 @@ defmodule Platform do
     GenServer.stop(pid3, :normal)
   end
 
-  def start("verifier") do
+  def start("verifier" = role) do
     data_dir = Application.get_env(:ipncore, :data_dir)
     {:ok, pid} = WalletStore.start_link(Path.join(data_dir, "wallet/wallet.db"))
-    init("verifier")
+    init(role)
     GenServer.stop(pid, :normal)
   end
+
+  def start(_), do: :ok
 
   def has_owner? do
     case Global.get(:owner, false) do

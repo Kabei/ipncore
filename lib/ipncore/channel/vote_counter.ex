@@ -71,14 +71,13 @@ defmodule VoteCounter do
            hashfile: _hashfile,
            timestamp: _timestamp
          } = block},
-        %{minimum: minimum, round: round_number} = state
+        %{minimum: minimum, round: round_number, validator_id: me} = state
       )
-      when round >= round_number do
+      when round >= round_number and me != creator_id do
     Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
-    # its_me = me == creator_id
-    # its_creator = validator_id == creator_id
 
     validator = ValidatorStore.lookup([creator_id])
+
     if BlockTimer.verify(block, validator.pubkey) != :error do
       winner_id = {creator_id, height}
       vote_id = {creator_id, height, validator_id}

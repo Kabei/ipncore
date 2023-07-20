@@ -65,14 +65,14 @@ defmodule Ippan.P2P.Server do
               send(VoteCounter, {"new_recv", from, rest})
               @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
 
-            {"vote", rest} ->
-              send(VoteCounter, {"vote", from, rest})
-              @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
+            # {"vote", rest} ->
+            #   send(VoteCounter, {"vote", from, rest})
+            #   @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
 
-            {"get_status", nil} ->
-              # P2P.request(vid, {"status", block_state}, 1)
-              block_state = :sys.get_state(BlockTimer)
-              @adapter.send(socket, encode({"status", block_state}, sharedkey))
+            # {"get_status", nil} ->
+            #   # P2P.request(vid, {"status", block_state}, 1)
+            #   block_state = :sys.get_state(BlockTimer)
+            #   @adapter.send(socket, encode({"status", block_state}, sharedkey))
 
             # {"status", block_state} ->
             #   block_state = :sys.get_state(BlockTimer)

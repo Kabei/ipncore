@@ -240,9 +240,11 @@ defmodule BlockTimer do
         {:import, %{creator: creator_id, height: height, round: round} = block},
         %{
           blocks: blocks,
-          next_round: next_round
+          next_round: next_round,
+          validator_id: me
         } = state
-      ) do
+      )
+      when creator_id != me do
     unique_block_id = {creator_id, height}
 
     if round == next_round and unique_block_id not in blocks do

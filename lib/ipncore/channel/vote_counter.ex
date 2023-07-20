@@ -58,7 +58,7 @@ defmodule VoteCounter do
 
   @impl true
   def handle_info(
-        {"new_recv", %{id: validator_id} = from,
+        {"new_recv", %{id: validator_id},
          %{
            hash: hash,
            prev: _prev,
@@ -78,7 +78,8 @@ defmodule VoteCounter do
     # its_me = me == creator_id
     # its_creator = validator_id == creator_id
 
-    if BlockTimer.verify(block, from.pubkey) != :error do
+    validator = ValidatorStore.lookup([creator_id])
+    if BlockTimer.verify(block, validator.pubkey) != :error do
       winner_id = {creator_id, height}
       vote_id = {creator_id, height, validator_id}
       candidate_unique_id = {creator_id, height, hash}
@@ -103,12 +104,11 @@ defmodule VoteCounter do
               # it's a winner if the count is mayor than minimum required
               case :ets.insert_new(@winners, {winner_id, round}) do
                 true ->
-                  # send a task to save votes
+                  # create block
                   t =
                     Task.async(fn ->
                       if ev_count > 0 do
                         # send task to a verifier node
-                        validator = ValidatorStore.lookup([])
                         push_fetch(self(), block, validator)
                       else
                         # block empty

@@ -45,7 +45,8 @@ defmodule Ippan.Block do
   end
 
   def to_tuple(x) do
-    {x.height, x.hash, x.prev, x.hashfile, x.signature, x.timestamp, x.ev_count, x.size, x.vsn}
+    {x.height, x.creator, x.hash, x.prev, x.hashfile, x.signature, x.round, x.timestamp,
+     x.ev_count, x.size, x.vsn}
   end
 
   def to_map(

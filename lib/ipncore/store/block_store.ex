@@ -17,7 +17,7 @@ defmodule BlockStore do
         signature BLOB NOT NULL,
         round BIGINT NOT NULL,
         timestamp BIGINT NOT NULL,
-        ev_count BIGINT DEFAULT 0,
+        ev_count INTEGER DEFAULT 0,
         size BIGINT DEFAULT 0,
         vsn SMALLINT NOT NULL,
         PRIMARY KEY(height, creator)
@@ -88,7 +88,7 @@ defmodule BlockStore do
 
   def fetch_uniques(round) do
     case call({:execute_fetch, "fetch_uniques", [round]}) do
-      {:ok, res} -> res
+      {:ok, res} -> Enum.map(res, fn [c, h] -> {c, h} end)
       _ -> []
     end
   end

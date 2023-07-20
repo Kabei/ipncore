@@ -47,7 +47,6 @@ defmodule BlockTimer do
 
     block_unique_ids = BlockStore.fetch_uniques(round_id)
 
-    #  if(block_round == round_id, do: BlockStore.count_by_round(block_round), else: 0)
     {:ok,
      %{
        block_sync: false,
@@ -519,6 +518,8 @@ defmodule BlockTimer do
       }
       |> put_hash()
       |> put_signature()
+
+    IO.inspect(block)
 
     Block.to_list(block)
     |> BlockStore.insert_sync()

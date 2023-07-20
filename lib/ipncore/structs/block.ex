@@ -1,12 +1,12 @@
 defmodule Ippan.Block do
   @type t :: %__MODULE__{
           height: non_neg_integer(),
-          creator: integer(),
-          prev: binary(),
+          creator: non_neg_integer(),
+          prev: binary() | nil,
           hash: binary(),
-          hashfile: binary(),
+          hashfile: binary() | nil,
           signature: binary(),
-          round: integer(),
+          round: non_neg_integer(),
           timestamp: non_neg_integer(),
           ev_count: non_neg_integer(),
           vsn: non_neg_integer(),

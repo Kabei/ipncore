@@ -137,6 +137,7 @@ defmodule VoteCounter do
         {"valid", %{creator: creator, height: height} = block, node_origin},
         state
       ) do
+        Logger.debug("Block.valid #{creator}.#{height}")
     if :ets.member(@winners, {creator, height}) do
       spawn(fn ->
         download_block_from_cluster!(node_origin, creator, height)
@@ -147,7 +148,8 @@ defmodule VoteCounter do
     {:noreply, state}
   end
 
-  def handle_info({"invalid", _block}, state) do
+  def handle_info({"invalid", block}, state) do
+    Logger.debug("Block.invalid #{inspect(block)}")
     # apply block empty with errors
     BlockTimer.put_block_ignore_mine()
     {:noreply, state}

@@ -26,7 +26,9 @@ defmodule Ippan.P2P.Client do
     {:ok, {pubkey, privkey}} = Cafezinho.Impl.keypair_from_seed(seed)
 
     {:ok, pid} =
-      GenServer.start_link(@module, {hostname, port, pubkey, vid, privkey}, hibernate_after: 5_000)
+      GenServer.start_link(@module, {hostname, port, pubkey, vid, privkey},
+        hibernate_after: 5_000
+      )
 
     {:ok, pid}
   end
@@ -135,13 +137,25 @@ defmodule Ippan.P2P.Client do
       ) do
     IO.inspect("send a msg #{inspect(msg)}")
 
+    continue =
+      case msg do
+        {_, except} ->
+          vid not in except
+
+        _msg ->
+          true
+      end
+
     result =
-      case conn do
-        true ->
+      cond do
+        continue == false ->
+          state
+
+        conn ->
           @adapter.send(state.socket, encode(msg, state.sharedkey))
           state
 
-        _ ->
+        true ->
           case msg do
             %{id: id} ->
               IO.inspect("set in mailbox")

@@ -87,7 +87,7 @@ defmodule VoteCounter do
       case :ets.insert_new(@votes, {vote_id, round}) do
         true ->
           # retransmit message
-          P2P.push({"new_recv", block})
+          P2P.push_except({"new_recv", block}, [validator_id, creator_id])
           # save vote
           BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
           BlockStore.sync()

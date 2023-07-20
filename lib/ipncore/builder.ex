@@ -1,8 +1,8 @@
-defmodule Test do
+defmodule Builder do
   alias Ippan.Address
   alias Ippan.RequestHandler
 
-  # {pk, sk, pk2, sk2, address, address2} = Test.test()
+  # {pk, sk, pk2, sk2, address, address2} = Builder.test()
   def test do
     sk =
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
@@ -12,8 +12,8 @@ defmodule Test do
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
         100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
 
-    {pk, sk, address} = Test.gen_ed25519(sk)
-    {pk2, sk2, address2} = Test.gen_ed25519(sk2)
+    {pk, sk, address} = Builder.gen_ed25519(sk)
+    {pk2, sk2, address2} = Builder.gen_ed25519(sk2)
     {pk, sk, pk2, sk2, address, address2}
   end
 
@@ -26,61 +26,23 @@ defmodule Test do
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
         100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
 
-    {pk1, sk1, address1} = Test.gen_falcon(seed1)
-    {pk2, sk2, address2} = Test.gen_falcon(seed2)
+    {pk1, sk1, address1} = Builder.gen_falcon(seed1)
+    {pk2, sk2, address2} = Builder.gen_falcon(seed2)
 
     {pk1, sk1, address1, pk2, sk2, address2}
   end
 
-  # def init do
-  #   sk =
-  #     <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
-  #       100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 83>>
-
-  #   seed =
-  #     <<114, 126, 255, 205, 14, 72, 7, 127, 21, 47, 45, 57, 188, 66, 144, 114, 118, 204, 255, 86,
-  #       236, 6, 168, 77, 247, 60, 145, 142, 137, 32, 81, 188, 167, 95, 239, 138, 212, 128, 12,
-  #       211, 239, 154, 118, 40, 154, 90, 156, 28>>
-
-  #   {pk, sk, address} = Test.gen_ed25519(sk)
-  #   {pkv, _skv, _addressv} = Test.gen_falcon(seed)
-
-  #   Test.wallet_new(pk, 0) |> Test.run()
-
-  #   BlockTimer.mine()
-  #   BlockTimer.round_end()
-
-  #   Test.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", %{
-  #     "avatar" => "https://avatar.com",
-  #     "props" => ["coinbase", "lock", "burn"]
-  #   })
-  #   |> Test.run()
-
-  #   BlockTimer.mine()
-  #   BlockTimer.round_end()
-
-  #   Test.validator_new(sk, address, 0, address, "ippan.org", "Speedy", pk, pkv, 1, 0.01)
-  #   |> Test.run()
-
-  #   Test.validator_new(sk, address, 1, address, "ippan.co.uk", "Raptor", pk, pkv, 1, 0.01)
-  #   |> Test.run()
-
-  #   BlockTimer.mine()
-  #   BlockTimer.round_end()
-  # end
-
-  # Test.bench_send(10_000)
   @doc """
-  Test.init()
-  {pk, sk, pk1, sk1, address, address1} = Test.test()
-  Test.wallet_new(pk1, 0) |> Test.run()
-  Test.tx_coinbase(sk, address, "IPN", [[address1, 50000000000]]) |> Test.run()
+  Builder.init()
+  {pk, sk, pk1, sk1, address, address1} = Builder.test()
+  Builder.wallet_new(pk1, 0) |> Builder.run()
+  Builder.tx_coinbase(sk, address, "IPN", [[address1, 50000000000]]) |> Builder.run()
 
   # falcon
-  {pk2, sk2, address2, pk3, sk3, address3} = Test.test_falcon()
-  Test.wallet_new(pk2, 0) |> Test.run()
-  Test.wallet_new(pk3, 0) |> Test.run()
-  Test.tx_coinbase(sk, address, "IPN", [[address2, 50000000000]]) |> Test.run()
+  {pk2, sk2, address2, pk3, sk3, address3} = Builder.test_falcon()
+  Builder.wallet_new(pk2, 0) |> Builder.run()
+  Builder.wallet_new(pk3, 0) |> Builder.run()
+  Builder.tx_coinbase(sk, address, "IPN", [[address2, 50000000000]]) |> Builder.run()
 
   BlockBuilderWork.sync_all()
   """
@@ -89,13 +51,13 @@ defmodule Test do
   @spec bench_send(integer()) :: no_return()
   def bench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
     spawn(fn ->
-      {_pk, _sk, _pk2, sk1, address, address1} = Test.test()
+      {_pk, _sk, _pk2, sk1, address, address1} = Builder.test()
 
       chunks = div(n, cpus)
 
       list =
         for _ <- 1..n do
-          Test.tx_send(sk1, address1, address, "IPN", 10 + :rand.uniform(10000))
+          Builder.tx_send(sk1, address1, address, "IPN", 10 + :rand.uniform(10000))
         end
         |> Enum.chunk_every(chunks)
 
@@ -117,16 +79,16 @@ defmodule Test do
     # IO.puts("Time elapsed: #{end_time - start_time} µs")
   end
 
-  # Test.fbench_send(10_000)
+  # Builder.fbench_send(10_000)
   def fbench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
     spawn(fn ->
-      {_pk2, sk2, address2, _pk3, _sk3, address3} = Test.test_falcon()
+      {_pk2, sk2, address2, _pk3, _sk3, address3} = Builder.test_falcon()
 
       chunks = div(n, cpus)
 
       list =
         for _ <- 1..n do
-          Test.tx_send(sk2, address2, address3, "IPN", 10 + :rand.uniform(50000))
+          Builder.tx_send(sk2, address2, address3, "IPN", 10 + :rand.uniform(50000))
         end
         |> Enum.chunk_every(chunks)
 
@@ -200,22 +162,22 @@ defmodule Test do
     end
   end
 
-  # {pk, sk, address} = Test.gen_ed25519(seed)
+  # {pk, sk, address} = Builder.gen_ed25519(seed)
   def gen_ed25519(seed) do
     {:ok, {pk, sk}} = Cafezinho.Impl.keypair_from_seed(seed)
 
     {pk, sk, Address.hash(0, pk)}
   end
 
-  # {pkv, skv, addressv} = Test.gen_falcon(seed)
+  # {pkv, skv, addressv} = Builder.gen_falcon(seed)
   def gen_falcon(seed) do
     {:ok, pk, sk} = Falcon.gen_keys_from_seed(seed)
 
     {pk, sk, Address.hash(1, pk)}
   end
 
-  # {pk, address} = Test.gen_secp256k1(sk)
-  # {pk2, address2} = Test.gen_secp256k1(sk2)
+  # {pk, address} = Builder.gen_secp256k1(sk)
+  # {pk2, address2} = Builder.gen_secp256k1(sk2)
   # def gen_secp256k1(sk) do
   #   pk =
   #     sk
@@ -225,13 +187,13 @@ defmodule Test do
   #   {pk, Address.hash(2, pk)}
   # end
 
-  # Test.wallet_new(pk, 0) |> Test.build_request
+  # Builder.wallet_new(pk, 0) |> Builder.build_request
   def wallet_new(pk, validator_id) do
     [0, :os.system_time(:millisecond), Fast64.encode64(pk), validator_id]
     |> Jason.encode!()
   end
 
-  # Test.wallet_subscribe(sk, address, 1) |> Test.build_request
+  # Builder.wallet_subscribe(sk, address, 1) |> Builder.build_request
   def wallet_subscribe(secret, address, validator_id) do
     body =
       [1, :os.system_time(:millisecond), address, validator_id]
@@ -244,7 +206,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.env_set(sk, address, "test", "value-test") |> Test.build_request
+  # Builder.env_set(sk, address, "test", "value-test") |> Builder.build_request
   def env_set(secret, address, name, value) do
     body =
       [50, :os.system_time(:millisecond), address, name, value]
@@ -257,7 +219,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.env_delete(sk, address, "test") |> Test.build_request
+  # Builder.env_delete(sk, address, "test") |> Builder.build_request
   def env_delete(secret, address, name) do
     body =
       [51, :os.system_time(:millisecond), address, name]
@@ -270,8 +232,8 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
-  # Test.token_new(sk, address, "USD", address, "DOLLAR", 5, "$", %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Test.build_request
+  # Builder.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
+  # Builder.token_new(sk, address, "USD", address, "DOLLAR", 5, "$", %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Builder.build_request
   def token_new(
         secret,
         address,
@@ -306,7 +268,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.token_update(sk, address, "USD", %{"name" => "Dollar"}) |> Test.build_request()
+  # Builder.token_update(sk, address, "USD", %{"name" => "Dollar"}) |> Builder.build_request()
   def token_update(secret, address, id, params) do
     body =
       [201, :os.system_time(:millisecond), address, id, params]
@@ -319,7 +281,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.token_delete(sk, address, "USD") |> Test.build_request()
+  # Builder.token_delete(sk, address, "USD") |> Builder.build_request()
   def token_delete(secret, address, id) do
     body =
       [202, :os.system_time(:millisecond), address, id]
@@ -332,7 +294,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.validator_new(sk, address, 0, address, "ippan.net", "net core", pkv, 1, 5.0) |> Test.build_request()
+  # Builder.validator_new(sk, address, 0, address, "ippan.net", "net core", pkv, 1, 5.0) |> Builder.build_request()
   def validator_new(
         secret,
         address,
@@ -369,7 +331,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.validator_update(sk, address, 1, %{"fee" => 7.0}) |> Test.build_request()
+  # Builder.validator_update(sk, address, 1, %{"fee" => 7.0}) |> Builder.build_request()
   def validator_update(secret, address, id, params) do
     body =
       [101, :os.system_time(:millisecond), address, id, params]
@@ -382,7 +344,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.validator_delete(sk, address, 1) |> Test.build_request()
+  # Builder.validator_delete(sk, address, 1) |> Builder.build_request()
   def validator_delete(secret, address, id) do
     body =
       [102, :os.system_time(:millisecond), address, id]
@@ -395,7 +357,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.tx_coinbase(sk, address, "IPN", [[address2, 50000000]]) |> Test.build_request()
+  # Builder.tx_coinbase(sk, address, "IPN", [[address2, 50000000]]) |> Builder.build_request()
   def tx_coinbase(secret, address, token, outputs) do
     body =
       [300, :os.system_time(:millisecond), address, token, outputs]
@@ -408,8 +370,8 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.tx_send(sk2, address2, address, "IPN", 50000) |> Test.build_request()
-  # Test.tx_send(sk2, address2, address, "IPN", 4000) |> Test.build_request()
+  # Builder.tx_send(sk2, address2, address, "IPN", 50000) |> Builder.build_request()
+  # Builder.tx_send(sk2, address2, address, "IPN", 4000) |> Builder.build_request()
   def tx_send(secret, address, to, token, amount) do
     body =
       [301, :os.system_time(:millisecond), address, to, token, amount]
@@ -424,7 +386,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.tx_burn(sk2, address2, "IPN", 1000) |> Test.build_request()
+  # Builder.tx_burn(sk2, address2, "IPN", 1000) |> Builder.build_request()
   def tx_burn(secret, address, token, amount) do
     body =
       [302, :os.system_time(:millisecond), address, token, amount]
@@ -437,7 +399,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.tx_refund(sk, address, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Test.build_request()
+  # Builder.tx_refund(sk, address, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.build_request()
   def tx_refund(secret, address, hash) do
     body =
       [303, :os.system_time(:millisecond), address, hash]
@@ -450,7 +412,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.domain_new(sk2, address2, "example.ipn", address, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Test.build_request()
+  # Builder.domain_new(sk2, address2, "example.ipn", address, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Builder.build_request()
   def domain_new(
         secret,
         address,
@@ -473,7 +435,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.domain_update(sk, address, "example.ipn", %{"email" => "pop@email.com"}) |> Test.build_request()
+  # Builder.domain_update(sk, address, "example.ipn", %{"email" => "pop@email.com"}) |> Builder.build_request()
   def domain_update(
         secret,
         address,
@@ -491,7 +453,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.domain_delete(sk, address, "example.ipn") |> Test.build_request()
+  # Builder.domain_delete(sk, address, "example.ipn") |> Builder.build_request()
   def domain_delete(
         secret,
         address,
@@ -508,7 +470,7 @@ defmodule Test do
     {body, sig}
   end
 
-  # Test.domain_renew(sk, address, "example.ipn", 1000) |> Test.build_request()
+  # Builder.domain_renew(sk, address, "example.ipn", 1000) |> Builder.build_request()
   def domain_renew(
         secret,
         address,

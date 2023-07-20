@@ -38,7 +38,8 @@ defmodule Ipncore.MixProject do
     if System.otp_release() |> String.to_integer() < @min_otp,
       do: raise(RuntimeError, "OTP invalid version. Required minimum v#{@min_otp}")
 
-    load_env_file()
+    # load env file
+    System.get_env("ENV_FILE", "env_file") |> load_ini_file()
 
     [
       extra_applications: [:crypto, :syntax_tools, :logger],
@@ -70,24 +71,6 @@ defmodule Ipncore.MixProject do
     ]
   end
 
-  defp load_env_file do
-    path = System.get_env("ENV_FILE", "env_file")
-
-    if File.exists?(path) do
-      File.stream!(path, [], :line)
-      |> Enum.each(fn text ->
-        text
-        |> String.trim()
-        |> String.replace(~r/\n|\r/, "")
-        |> String.split("=", parts: 2)
-        |> case do
-          [key, value] -> System.put_env(key, value)
-          _ -> :ignored
-        end
-      end)
-    end
-  end
-
   def package do
     [
       name: @app,
@@ -96,5 +79,24 @@ defmodule Ipncore.MixProject do
       licenses: ["MIT"],
       files: ["lib/*", "mix.exs", "README*", "LICENSE*"]
     ]
+  end
+
+  defp load_ini_file(path) do
+    if File.exists?(path) do
+      File.stream!(path, [], :line)
+      |> Enum.each(fn text ->
+        text
+        |> String.trim()
+        |> String.replace(~r/\n|\r|#.+/, "")
+        |> String.split("=", parts: 2)
+        |> case do
+          [key, value] ->
+            System.put_env(key, value)
+
+          _ ->
+            :ignored
+        end
+      end)
+    end
   end
 end

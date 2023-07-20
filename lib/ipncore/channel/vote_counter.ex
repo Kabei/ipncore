@@ -24,10 +24,10 @@ defmodule VoteCounter do
     quote do
       cond do
         unquote(validators) > 50 ->
-          div(unquote(validators), 3) + 1
+          round(unquote(validators) / 3)
 
         unquote(validators) > 2 ->
-          div(unquote(validators), 2) + 1
+          round(unquote(validators) / 2)
 
         true ->
           1

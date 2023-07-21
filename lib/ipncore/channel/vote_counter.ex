@@ -47,6 +47,8 @@ defmodule VoteCounter do
 
     load_votes(round, minimum)
 
+    PubSub.subscribe(:verifiers, "block")
+
     {:ok,
      %{
        validators: validators,
@@ -186,6 +188,7 @@ defmodule VoteCounter do
     :ets.delete(@votes)
     :ets.delete(@candidates)
     :ets.delete(@winners)
+    PubSub.unsubscribe(:verifiers, "block")
   end
 
   def put_validators(n) do

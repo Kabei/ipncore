@@ -446,14 +446,7 @@ defmodule BlockTimer do
               round
             )
 
-            acc ++
-              case signature do
-                nil ->
-                  [message]
-
-                _ ->
-                  [{message, signature}]
-              end
+            acc ++ [{message, signature}]
           rescue
             # block failed
             e ->
@@ -489,7 +482,14 @@ defmodule BlockTimer do
               round
             )
 
-            acc ++ [{message, signature}]
+            acc ++
+              case signature do
+                nil ->
+                  [message]
+
+                _ ->
+                  [{message, signature}]
+              end
           rescue
             # block failed
             e ->
@@ -662,7 +662,7 @@ defmodule BlockTimer do
       Enum.each(
         events,
         fn
-          {body, nil} ->
+          {body, signature} ->
             hash = Blake3.hash(body)
             size = byte_size(body)
             RequestHandler.valid!(hash, body, size, signature, creator_id)

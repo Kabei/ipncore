@@ -139,7 +139,8 @@ defmodule VoteCounter do
         {"valid", %{creator: creator, height: height} = block, node_origin},
         state
       ) do
-        Logger.debug("Block.valid #{creator}.#{height}")
+    Logger.debug("Block.valid #{creator}.#{height}")
+
     if :ets.member(@winners, {creator, height}) do
       spawn(fn ->
         download_block_from_cluster!(node_origin, creator, height)
@@ -207,12 +208,10 @@ defmodule VoteCounter do
   end
 
   defp download_block_from_cluster!(node_verifier, creator_id, height) do
-    spawn(fn ->
-      hostname = node_verifier |> to_string() |> String.split("@") |> List.last()
-      url = Block.cluster_decode_url(hostname, creator_id, height)
-      decode_path = Block.decode_path(creator_id, height)
-      {:ok, _abs_url} = Curl.download(url, decode_path)
-    end)
+    hostname = node_verifier |> to_string() |> String.split("@") |> List.last()
+    url = Block.cluster_decode_url(hostname, creator_id, height)
+    decode_path = Block.decode_path(creator_id, height)
+    {:ok, _abs_url} = Curl.download(url, decode_path)
   end
 
   defp push_fetch(pid, block, validator), do: push_fetch(pid, block, validator, 1)

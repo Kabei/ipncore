@@ -446,7 +446,14 @@ defmodule BlockTimer do
               round
             )
 
-            acc ++ [{message, signature}]
+            acc ++
+              case signature do
+                nil ->
+                  [message]
+
+                _ ->
+                  [{message, signature}]
+              end
           rescue
             # block failed
             e ->
@@ -660,10 +667,10 @@ defmodule BlockTimer do
             size = byte_size(body)
             RequestHandler.valid!(hash, body, size, signature, creator_id)
 
-          {body, signature} ->
+          body ->
             hash = Blake3.hash(body)
             size = byte_size(body) + byte_size(signature)
-            RequestHandler.valid!(hash, body, size, signature, creator_id)
+            RequestHandler.valid!(hash, body, size)
         end
       )
 

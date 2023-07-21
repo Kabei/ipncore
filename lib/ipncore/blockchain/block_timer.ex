@@ -654,7 +654,7 @@ defmodule BlockTimer do
     decode_events =
       for {body, signature} <- events do
         hash = Blake3.hash(body)
-        size = byte_size(body) + byte_size(signature)
+        size = byte_size(body) + byte_size(signature || 0)
 
         RequestHandler.valid!(hash, body, size, signature, creator_id)
       end

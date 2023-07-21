@@ -13,6 +13,8 @@ defmodule BlockVerifierChannel do
         {"fetch", %{hash: hash} = block, validator},
         state
       ) do
+    IO.inspect(block)
+
     Task.async(fn ->
       Logger.debug("block.fetch #{Base.encode16(hash)}")
 

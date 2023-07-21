@@ -41,7 +41,7 @@ defmodule Ippan.RequestHandler do
             size
           ]
 
-        false ->
+        _false ->
           [
             timestamp,
             hash,
@@ -99,7 +99,7 @@ defmodule Ippan.RequestHandler do
             size
           ]
 
-        false ->
+        _false ->
           [
             timestamp,
             hash,

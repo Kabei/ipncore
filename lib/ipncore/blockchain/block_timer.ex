@@ -248,9 +248,7 @@ defmodule BlockTimer do
     unique_block_id = {creator_id, height}
 
     if round == next_round and unique_block_id not in blocks do
-      decode_path = Block.decode_path(creator_id, height)
-
-      spawn_remote_block_worker(self(), block, decode_path)
+      spawn_remote_block_worker(self(), block)
       {:noreply, %{state | blocks: :lists.append(blocks, [unique_block_id])}}
     else
       {:noreply, state}
@@ -391,12 +389,12 @@ defmodule BlockTimer do
            round: round,
            timestamp: timestamp,
            ev_count: ev_count
-         } = block,
-         decode_path
+         } = block
        ) do
-    Logger.debug("#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import")
-
     spawn_link(fn ->
+      decode_path = Block.decode_path(creator_id, height)
+      Logger.debug("#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import")
+
       requests =
         if ev_count != 0 do
           IO.inspect("import block file")
@@ -406,6 +404,8 @@ defmodule BlockTimer do
           IO.inspect("import block empty")
           []
         end
+
+      IO.inspect(requests)
 
       mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
 
@@ -664,14 +664,14 @@ defmodule BlockTimer do
         fn
           {body, signature} ->
             hash = Blake3.hash(body)
-            size = byte_size(body)
+            size = byte_size(body) + byte_size(signature)
 
             RequestHandler.valid!(hash, body, size, signature, creator_id)
             |> elem(1)
 
           body ->
             hash = Blake3.hash(body)
-            size = byte_size(body) + byte_size(signature)
+            size = byte_size(body)
 
             RequestHandler.valid!(hash, body, size)
             |> elem(1)

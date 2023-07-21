@@ -659,7 +659,7 @@ defmodule BlockTimer do
     events = decode_file!(content)
 
     decode_events =
-      Enum.each(
+      Enum.map(
         events,
         fn
           {body, signature} ->

@@ -548,9 +548,10 @@ defmodule BlockTimer do
               message,
               signature,
               size
-            ],
+            ] = msg,
             acc ->
               try do
+                MessageStore.insert_df(msg)
                 args = decode_term(args)
 
                 RequestHandler.handle!(

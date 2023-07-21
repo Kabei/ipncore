@@ -421,7 +421,7 @@ defmodule BlockTimer do
     events =
       case format do
         :local ->
-          Enum.reduce(requests, [], fn
+          Enum.reduce(requests, %{}, fn
             [
               timestamp,
               hash,
@@ -449,7 +449,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                acc ++ [{message, signature}]
+                Map.put(acc, hash, {message, signature})
               rescue
                 # block failed
                 e ->
@@ -485,14 +485,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                acc ++
-                  case signature do
-                    nil ->
-                      [message]
-
-                    _ ->
-                      [{message, signature}]
-                  end
+                Map.put(acc, hash, if(signature, do: message, else: {message, signature}))
               rescue
                 # block failed
                 e ->
@@ -502,7 +495,7 @@ defmodule BlockTimer do
           end)
 
         _import ->
-          Enum.reduce(requests, [], fn
+          Enum.reduce(requests, %{}, fn
             [
               timestamp,
               hash,
@@ -529,7 +522,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                acc ++ [{message, signature}]
+                Map.put_new(acc, hash, {message, signature})
               rescue
                 # block failed
                 e ->
@@ -565,22 +558,17 @@ defmodule BlockTimer do
                   round
                 )
 
-                acc ++
-                  case signature do
-                    nil ->
-                      [message]
-
-                    _ ->
-                      [{message, signature}]
-                  end
+                Map.put_new(acc, hash, if(signature, do: message, else: {message, signature}))
               rescue
                 # block failed
                 e ->
+                  MessageStore.delete(hash)
                   Logger.debug(Exception.format(:error, e, __STACKTRACE__))
                   acc
               end
           end)
       end
+      |> Map.values()
 
     ev_count = length(events)
     empty = ev_count == 0

@@ -18,9 +18,12 @@ defmodule BlockVerifierChannel do
 
       try do
         :ok = BlockTimer.verify_file!(block, validator)
+        Logger.debug("block.valid #{Base.encode16(hash)}")
         NodeMonitor.push(@pubsub_server, "block", {"valid", block, node()})
       rescue
-        _ ->
+        ex ->
+          Logger.debug(Exception.format(:error, ex, __STACKTRACE__))
+          Logger.debug("block.invalid #{Base.encode16(hash)}")
           NodeMonitor.push(@pubsub_server, "block", {"invalid", block})
       end
     end)

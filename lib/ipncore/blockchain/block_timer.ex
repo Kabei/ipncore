@@ -312,7 +312,8 @@ defmodule BlockTimer do
           next_round,
           validator_id,
           prev_block,
-          :os.system_time(:millisecond)
+          :os.system_time(:millisecond),
+          :local
         )
 
       P2P.push({"new_recv", new_block})
@@ -407,96 +408,178 @@ defmodule BlockTimer do
 
       IO.inspect(requests)
 
-      mine_fun(requests, height, round, creator_id, prev_hash, timestamp)
+      mine_fun(requests, height, round, creator_id, prev_hash, timestamp, :import)
 
       GenServer.cast(pid, {:complete, :import, block})
     end)
   end
 
   # Create a block file and register transactions
-  defp mine_fun(requests, height, round, creator_id, prev_hash, block_timestamp) do
+  defp mine_fun(requests, height, round, creator_id, prev_hash, block_timestamp, format) do
     block_path = Block.block_path(creator_id, height)
 
     events =
-      Enum.reduce(requests, [], fn
-        [
-          timestamp,
-          hash,
-          type,
-          account_id,
-          validator_id,
-          args,
-          message,
-          signature,
-          size,
-          _rowid
-        ],
-        acc ->
-          try do
-            args = decode_term(args)
-
-            RequestHandler.handle!(
+      case format do
+        :local ->
+          Enum.reduce(requests, [], fn
+            [
+              timestamp,
               hash,
               type,
-              timestamp,
               account_id,
               validator_id,
-              size,
               args,
-              round
-            )
-
-            acc ++ [{message, signature}]
-          rescue
-            # block failed
-            e ->
-              Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-              acc
-          end
-
-        [
-          _key,
-          type,
-          timestamp,
-          hash,
-          account_id,
-          validator_id,
-          args,
-          message,
-          signature,
-          size,
-          _rowid
-        ],
-        acc ->
-          try do
-            args = decode_term(args)
-
-            RequestHandler.handle!(
-              hash,
-              type,
-              timestamp,
-              account_id,
-              validator_id,
+              message,
+              signature,
               size,
-              args,
-              round
-            )
+              _rowid
+            ],
+            acc ->
+              try do
+                args = decode_term(args)
 
-            acc ++
-              case signature do
-                nil ->
-                  [message]
+                RequestHandler.handle!(
+                  hash,
+                  type,
+                  timestamp,
+                  account_id,
+                  validator_id,
+                  size,
+                  args,
+                  round
+                )
 
-                _ ->
-                  [{message, signature}]
+                acc ++ [{message, signature}]
+              rescue
+                # block failed
+                e ->
+                  Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+                  acc
               end
-          rescue
-            # block failed
-            e ->
-              Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-              acc
-          end
-      end)
+
+            [
+              _key,
+              type,
+              timestamp,
+              hash,
+              account_id,
+              validator_id,
+              args,
+              message,
+              signature,
+              size,
+              _rowid
+            ],
+            acc ->
+              try do
+                args = decode_term(args)
+
+                RequestHandler.handle!(
+                  hash,
+                  type,
+                  timestamp,
+                  account_id,
+                  validator_id,
+                  size,
+                  args,
+                  round
+                )
+
+                acc ++
+                  case signature do
+                    nil ->
+                      [message]
+
+                    _ ->
+                      [{message, signature}]
+                  end
+              rescue
+                # block failed
+                e ->
+                  Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+                  acc
+              end
+          end)
+
+        _import ->
+          Enum.reduce(requests, [], fn
+            [
+              timestamp,
+              hash,
+              type,
+              account_id,
+              validator_id,
+              args,
+              message,
+              signature,
+              size
+            ],
+            acc ->
+              try do
+                args = decode_term(args)
+
+                RequestHandler.handle!(
+                  hash,
+                  type,
+                  timestamp,
+                  account_id,
+                  validator_id,
+                  size,
+                  args,
+                  round
+                )
+
+                acc ++ [{message, signature}]
+              rescue
+                # block failed
+                e ->
+                  Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+                  acc
+              end
+
+            [
+              _key,
+              type,
+              timestamp,
+              hash,
+              account_id,
+              validator_id,
+              args,
+              message,
+              signature,
+              size
+            ],
+            acc ->
+              try do
+                args = decode_term(args)
+
+                RequestHandler.handle!(
+                  hash,
+                  type,
+                  timestamp,
+                  account_id,
+                  validator_id,
+                  size,
+                  args,
+                  round
+                )
+
+                acc ++
+                  case signature do
+                    nil ->
+                      [message]
+
+                    _ ->
+                      [{message, signature}]
+                  end
+              rescue
+                # block failed
+                e ->
+                  Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+                  acc
+              end
+          end)
+      end
 
     ev_count = length(events)
     empty = ev_count == 0

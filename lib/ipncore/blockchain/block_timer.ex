@@ -606,7 +606,7 @@ defmodule BlockTimer do
     end
   end
 
-  # Verify a block file
+  # Verify a block file and conver to decode block file
   @spec verify_file!(term, term) :: :ok
   def verify_file!(
         %{
@@ -665,12 +665,16 @@ defmodule BlockTimer do
           {body, signature} ->
             hash = Blake3.hash(body)
             size = byte_size(body)
+
             RequestHandler.valid!(hash, body, size, signature, creator_id)
+            |> elem(1)
 
           body ->
             hash = Blake3.hash(body)
             size = byte_size(body) + byte_size(signature)
+
             RequestHandler.valid!(hash, body, size)
+            |> elem(1)
         end
       )
 

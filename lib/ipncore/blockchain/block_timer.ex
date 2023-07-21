@@ -485,7 +485,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put(acc, hash, if(signature, do: message, else: {message, signature}))
+                Map.put(acc, hash, if(signature, do: {message, signature}, else: message))
               rescue
                 # block failed
                 e ->
@@ -558,7 +558,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, if(signature, do: message, else: {message, signature}))
+                Map.put_new(acc, hash, if(signature, do: {message, signature}, else: message))
               rescue
                 # block failed
                 e ->

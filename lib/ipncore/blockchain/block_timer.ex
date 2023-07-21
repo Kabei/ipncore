@@ -652,12 +652,20 @@ defmodule BlockTimer do
     events = decode_file!(content)
 
     decode_events =
-      for {body, signature} <- events do
-        hash = Blake3.hash(body)
-        size = byte_size(body) + byte_size(signature || 0)
+      Enum.each(
+        events,
+        fn
+          {body, nil} ->
+            hash = Blake3.hash(body)
+            size = byte_size(body)
+            RequestHandler.valid!(hash, body, size, signature, creator_id)
 
-        RequestHandler.valid!(hash, body, size, signature, creator_id)
-      end
+          {body, signature} ->
+            hash = Blake3.hash(body)
+            size = byte_size(body) + byte_size(signature)
+            RequestHandler.valid!(hash, body, size, signature, creator_id)
+        end
+      )
 
     export_path =
       Application.get_env(@otp_app, :decode_dir)

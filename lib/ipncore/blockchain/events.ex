@@ -193,7 +193,7 @@ defmodule Ippan.Events do
       name: "tx.refundable",
       mod: Tx,
       base: :tx,
-      fun: :send_with_refund,
+      fun: :send_refundable,
       auth: true
     }
 

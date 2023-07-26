@@ -14,10 +14,6 @@ defmodule Ippan.DNS do
 
   def editable, do: ~w(data ttl)
 
-  def default_hash(domain, data) do
-    :crypto.hash(:md5, "#{domain}#{data}")
-  end
-
   def to_list(x) do
     [
       x.domain,

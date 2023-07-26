@@ -105,7 +105,7 @@ defmodule Ippan.Func.Dns do
 
             :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
 
-            DnsStore.update(ref, domain: domain, hash: dns_hash, owner: account_id)
+            DnsStore.update(ref, domain: domain, hash: dns_hash)
         end
     end
   end

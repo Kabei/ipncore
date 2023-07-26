@@ -42,7 +42,7 @@ defmodule Ippan.Func.Tx do
   end
 
   # with refund enabled
-  def send_with_refund(source, to, token, amount) do
+  def send_refundable(source, to, token, amount) do
     :ok = send(source, to, token, amount)
 
     %{id: account_id, hash: hash, timestamp: timestamp} = source
@@ -136,9 +136,9 @@ defmodule Ippan.Func.Tx do
     end
   end
 
-  def refund(%{id: account_id, timestamp: timestamp}, hash)
-      when byte_size(hash) == 64 do
-    hash = Base.decode16!(hash)
+  def refund(%{id: account_id, timestamp: timestamp}, hash16)
+      when byte_size(hash16) == 64 do
+    hash = Base.decode16!(hash16, case: :mixed)
 
     [sender_id, token, refund_amount] = RefundStore.lookup([hash, account_id, timestamp])
 

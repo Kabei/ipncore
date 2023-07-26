@@ -183,7 +183,7 @@ defmodule Ippan.Func.Validator do
         raise IppanError, "Invalid owner"
 
       true ->
-        ValidatorStore.delete(id)
+        ValidatorStore.delete([id])
 
         PubSub.broadcast(@pubsub_server, "validator", {"delete", id})
     end

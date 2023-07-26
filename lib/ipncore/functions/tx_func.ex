@@ -61,11 +61,11 @@ defmodule Ippan.Func.Tx do
       when length(outputs) > 0 do
     hash16 = Base.encode16(hash)
 
-    case TokenStore.fetch("owner_props", [token, account_id, "%coinbase%"]) do
-      {:ok, [[1]]} ->
+    case TokenStore.step("owner_props", [token, account_id, "%coinbase%"]) do
+      {:row, [1]} ->
         BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
           try do
-            Sqlite3NIF.execute(conn, 'SAVEPOINT #{hash16}')
+            Sqlite3NIF.execute(conn, ~c"SAVEPOINT #{hash16}")
             statment = Map.get(stmt, :income)
 
             total =
@@ -97,13 +97,20 @@ defmodule Ippan.Func.Tx do
             # Logger.info(inspect(total))
 
             # sum supply
-            TokenStore.step("sum_supply", [token, total])
-            Sqlite3NIF.execute(conn, 'RELEASE #{hash16}')
+            case TokenStore.step_change("sum_supply", [token, total]) do
+              1 ->
+                Sqlite3NIF.execute(conn, ~c"RELEASE #{hash16}")
+
+              0 ->
+                Sqlite3NIF.execute(conn, ~c"ROLLBACK TO #{hash16}")
+                raise ArgumentError, "Max supply exceeded"
+            end
+
             {:reply, :ok, state}
           rescue
             ex ->
               Logger.error(Exception.format(:error, ex, __STACKTRACE__))
-              Sqlite3NIF.execute(conn, 'ROLLBACK TO #{hash16}')
+              Sqlite3NIF.execute(conn, ~c"ROLLBACK TO #{hash16}")
               {:reply, {:error, ex.message}, state}
           end
         end)
@@ -114,11 +121,11 @@ defmodule Ippan.Func.Tx do
   end
 
   def burn(%{id: account_id, timestamp: timestamp}, token, amount) do
-    case TokenStore.fetch(:props, [token, "%burn%"]) do
-      {:ok, [[1]]} ->
+    case TokenStore.step(:props, [token, "%burn%"]) do
+      {:row, [1]} ->
         case BalanceStore.burn(account_id, token, amount, timestamp) do
           1 ->
-            TokenStore.fetch(:sum_burned, [token, amount])
+            TokenStore.step(:sum_burned, [token, amount])
 
           _ ->
             raise IppanError, "Invalid operation"
@@ -137,7 +144,7 @@ defmodule Ippan.Func.Tx do
 
     case BalanceStore.send(account_id, sender_id, token, refund_amount, timestamp) do
       :ok ->
-        RefundStore.delete(hash)
+        RefundStore.delete([hash])
 
       _ ->
         raise IppanError, "Invalid operation"

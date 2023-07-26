@@ -22,7 +22,7 @@ defmodule ValidatorVerifierChannel do
   end
 
   def handle_info({"delete", validator_id}, state) do
-    ValidatorStore.delete(validator_id)
+    ValidatorStore.delete([validator_id])
     {:noreply, state}
   end
 

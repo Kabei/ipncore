@@ -18,19 +18,23 @@ defmodule TokenStore do
       enabled BOOLEAN,
       supply BIGINT DEFAULT 0,
       burned BIGINT DEFAULT 0,
+      max_supply BIGINT DEFAULT 0,
       props BLOB,
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL
     ) WITHOUT ROWID"],
     stmt: %{
-      "sum_supply" => ~c"UPDATE #{@table} SET supply = supply + ?2 WHERE id = ?1",
-      "sum_burned" => ~c"UPDATE #{@table} SET burned = burned + ?2 WHERE id = ?1",
+      "sum_supply" =>
+        ~c"UPDATE #{@table} SET supply = supply + ?2 WHERE id = ?1 AND (max_supply = 0 OR max_supply >= supply + ?2)",
+      "sum_burned" =>
+        ~c"UPDATE #{@table} SET burned = burned + ?2, supply = supply - ?2 WHERE id = ?1",
       "owner_props" => ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2 AND props LIKE ?3",
       "props" => ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND props LIKE ?2",
-      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",
       lookup: ~c"SELECT * FROM #{@table} WHERE id = ?",
       exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?",
-      delete: ~c"DELETE FROM #{@table} WHERE id = ?1 AND owner = ?2 AND supply = 0 AND burned = 0",
+      delete:
+        ~c"DELETE FROM #{@table} WHERE id = ?1 AND owner = ?2 AND supply = 0 AND burned = 0",
       owner: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2"
     }
 

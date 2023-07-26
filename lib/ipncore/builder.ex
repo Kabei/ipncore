@@ -242,8 +242,8 @@ defmodule Builder do
     {body, sig}
   end
 
-  # Builder.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
-  # Builder.token_new(sk, address, "USD", address, "DOLLAR", 5, "$", %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Builder.build_request
+  # Builder.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
+  # Builder.token_new(sk, address, "USD", address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Builder.build_request
   def token_new(
         secret,
         address,
@@ -252,6 +252,7 @@ defmodule Builder do
         name,
         decimal,
         symbol,
+        max_supply,
         %{
           "avatar" => _avatar_url,
           "props" => _props
@@ -267,6 +268,7 @@ defmodule Builder do
         name,
         decimal,
         symbol,
+        max_supply,
         opts
       ]
       |> Jason.encode!()

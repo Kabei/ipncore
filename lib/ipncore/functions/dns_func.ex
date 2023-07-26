@@ -27,8 +27,8 @@ defmodule Ippan.Func.Dns do
       not Match.domain?(domain) ->
         raise IppanError, "Invalid domain"
 
-      # type not in @dns_types ->
-      #   raise IppanError, "DNS record type not supported"
+      not DomainStore.owner?(domain, account_id) ->
+        raise IppanError, "Invalid owner"
 
       not match?(
         {_, _, _, _, _value},
@@ -66,7 +66,7 @@ defmodule Ippan.Func.Dns do
       ) do
     map_filter = Map.take(params, DNS.editable())
     {_subdomain, domain} = Domain.split(fullname)
-    dns_hash = Base.decode16(dns_hash16)
+    dns_hash = Base.decode16!(dns_hash16, case: :mixed)
 
     cond do
       map_filter != params ->
@@ -116,7 +116,7 @@ defmodule Ippan.Func.Dns do
     if DomainStore.owner?(domain, account_id) do
       case subdomain do
         "" ->
-          DnsStore.delete(domain)
+          DnsStore.delete([domain])
 
         subdomain ->
           DnsStore.step_change("delete_name", [domain, subdomain])
@@ -138,7 +138,7 @@ defmodule Ippan.Func.Dns do
 
   def delete(%{id: account_id}, fullname, hash16) do
     {subdomain, domain} = Domain.split(fullname)
-    hash = Base.decode16(hash16, case: :mixed)
+    hash = Base.decode16!(hash16, case: :mixed)
 
     if DomainStore.owner?(domain, account_id) do
       DnsStore.step_change("delete_hash", [domain, subdomain, hash])

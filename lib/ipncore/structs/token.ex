@@ -10,6 +10,7 @@ defmodule Ippan.Token do
           enabled: boolean(),
           supply: non_neg_integer(),
           burned: non_neg_integer(),
+          max_supply: non_neg_integer(),
           props: list() | nil,
           created_at: non_neg_integer(),
           updated_at: non_neg_integer()
@@ -30,6 +31,7 @@ defmodule Ippan.Token do
             enabled: true,
             supply: 0,
             burned: 0,
+            max_supply: 0,
             props: [],
             created_at: nil,
             updated_at: nil
@@ -45,6 +47,7 @@ defmodule Ippan.Token do
       x.enabled,
       x.supply,
       x.burned,
+      x.max_supply,
       @json.encode!(x.props),
       x.created_at,
       x.updated_at
@@ -61,12 +64,13 @@ defmodule Ippan.Token do
         enabled,
         supply,
         burned,
+        max_supply,
         props,
         created_at,
         updated_at
       ]) do
-    {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, @json.encode!(props),
-     created_at, updated_at}
+    {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, max_supply,
+     @json.encode!(props), created_at, updated_at}
   end
 
   def to_tuple(x) do
@@ -75,8 +79,8 @@ defmodule Ippan.Token do
   end
 
   def to_map(
-        {id, name, owner, avatar, decimal, symbol, enabled, supply, burned, props, created_at,
-         updated_at}
+        {id, name, owner, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
+         created_at, updated_at}
       ) do
     %{
       id: id,
@@ -88,6 +92,7 @@ defmodule Ippan.Token do
       enabled: enabled,
       supply: supply,
       burned: burned,
+      max_supply: max_supply,
       props: @json.decode!(props),
       created_at: created_at,
       updated_at: updated_at
@@ -104,6 +109,7 @@ defmodule Ippan.Token do
         enabled,
         supply,
         burned,
+        max_supply,
         props,
         created_at,
         updated_at
@@ -118,6 +124,7 @@ defmodule Ippan.Token do
       enabled: enabled,
       supply: supply,
       burned: burned,
+      max_supply: max_supply,
       props: @json.decode!(props),
       created_at: created_at,
       updated_at: updated_at

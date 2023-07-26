@@ -3,6 +3,7 @@ defmodule Ippan.Func.Token do
   alias Ippan.Token
 
   @type result :: Ippan.Request.result()
+  @max_number 9_223_372_036_854_775_807
   # @token Application.compile_env(:ipncore, :token)
 
   def pre_new(
@@ -12,10 +13,11 @@ defmodule Ippan.Func.Token do
         name,
         decimal,
         symbol,
+        max_supply,
         opts \\ %{}
       )
       when byte_size(id) <= 10 and byte_size(name) <= 100 and decimal in 0..18 and
-             byte_size(symbol) in 0..5 do
+             byte_size(symbol) in 0..5 and max_supply >= 0 and max_supply <= @max_number do
     map_filter =
       opts
       |> Map.take(Token.optionals())
@@ -57,6 +59,7 @@ defmodule Ippan.Func.Token do
         name,
         decimal,
         symbol,
+        max_supply,
         opts \\ %{}
       ) do
     map_filter =
@@ -70,6 +73,7 @@ defmodule Ippan.Func.Token do
         name: name,
         decimal: decimal,
         symbol: symbol,
+        max_supply: max_supply,
         created_at: timestamp,
         updated_at: timestamp
       }

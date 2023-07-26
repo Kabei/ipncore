@@ -40,11 +40,11 @@ defmodule MessageStore do
       "select" =>
         ~c"SELECT timestamp, hash, type, account_id, validator_id, args, message, signature, size, ROWID
         FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, ROWID, *  FROM #{@table})
-        WHERE total <= ?1 and validator_id = ?2",
+        WHERE total <= ?1 and validator_id = ?2 ORDER BY timestamp, hash",
       "select_df" =>
         ~c"SELECT key, type, timestamp, hash, account_id, validator_id, args, message, signature, size, ROWID
         FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, ROWID, * FROM #{@table_df} WHERE round IS NULL)
-        WHERE total <= ?1 and validator_id = ?2",
+        WHERE total <= ?1 and validator_id = ?2 ORDER BY timestamp, hash",
       "delete_all" => ~c"DELETE FROM #{@table} WHERE ROWID <= ?1",
       "delete_all_df" => ~c"DELETE FROM #{@table_df} WHERE ROWID <= ?1 AND round IS NULL",
       "delete_all_df_approved" =>

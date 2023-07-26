@@ -113,6 +113,7 @@ defmodule Platform do
         true,
         0,
         0,
+        42_000_000_000_000_000,
         @json.encode!(["coinbase", "lock", "burn"]),
         # @json.encode!(["burn"]),
         timestamp,

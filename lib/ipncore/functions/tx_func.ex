@@ -121,11 +121,11 @@ defmodule Ippan.Func.Tx do
   end
 
   def burn(%{id: account_id, timestamp: timestamp}, token, amount) do
-    case TokenStore.step(:props, [token, "%burn%"]) do
+    case TokenStore.step("props", [token, "%burn%"]) do
       {:row, [1]} ->
         case BalanceStore.burn(account_id, token, amount, timestamp) do
           1 ->
-            TokenStore.step(:sum_burned, [token, amount])
+            TokenStore.step("sum_burned", [token, amount])
 
           _ ->
             raise IppanError, "Invalid operation"

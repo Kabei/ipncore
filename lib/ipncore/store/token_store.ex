@@ -41,10 +41,10 @@ defmodule TokenStore do
     size: 10_000_000
 
   def sum_suppy(token, total) do
-    call(:step, {"sum_supply", [token, total]})
+    call({:step, "sum_supply", [token, total]})
   end
 
   def sum_burned(token, total) do
-    call(:step, {"sum_burned", [token, total]})
+    call({:step, "sum_burned", [token, total]})
   end
 end

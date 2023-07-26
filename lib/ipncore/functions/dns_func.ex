@@ -48,7 +48,7 @@ defmodule Ippan.Func.Dns do
               hash: DNS.fun_hash([fullname, "#{type}", data])
             }
             |> DNS.to_list()
-            |> DnsStore.replace()
+            |> DnsStore.insert_sync()
         end
     end
   end

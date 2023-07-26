@@ -70,6 +70,6 @@ defmodule Ippan.DNS do
 
   def fun_hash(data) do
     # :crypto.hash(:md5, data)
-    Blake3.hash(data) |> :binary.part(16, 16)
+    data |> IO.iodata_to_binary() |> Blake3.hash() |> :binary.part(16, 16)
   end
 end

@@ -700,12 +700,12 @@ defmodule BlockTimer do
     filename = Path.basename(output_path)
 
     unless file_exists do
-      {:ok, _} = Curl.download_block(remote_url, output_path)
+      :ok = Curl.download_block(remote_url, output_path)
     else
       {:ok, filestat} = File.stat(output_path)
 
       if filestat.size != size do
-        {:ok, _} = Curl.download_block(remote_url, output_path)
+        :ok = Curl.download_block(remote_url, output_path)
       end
     end
 

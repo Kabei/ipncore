@@ -80,7 +80,7 @@ defmodule Ipncore.Router do
         url = Block.cluster_block_url(ip_local, vid, height)
 
         case Curl.download_block(url, block_path) do
-          {:ok, _output} ->
+          :ok ->
             conn
             |> put_resp_content_type("application/octet-stream")
             |> send_file(200, block_path)

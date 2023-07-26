@@ -7,7 +7,7 @@ defmodule EnvStore do
     base: :env,
     table: @table,
     mod: Ippan.Env,
-    create: [~c"
+    create: ["
     CREATE TABLE IF NOT EXISTS #{@table}(
     name TEXT PRIMARY KEY NOT NULL,
     value BLOB,

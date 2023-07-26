@@ -1,4 +1,6 @@
 defmodule Store.Cache do
+  alias Exqlite.Sqlite3NIF
+
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
       @table opts[:table]
@@ -16,18 +18,29 @@ defmodule Store.Cache do
       ]
 
       alias Ippan.Utils
+      alias Exqlite.Sqlite3NIF
+      alias Exqlite.Sqlite3
 
       if @full do
         def init(state) do
           :ets.new(@table, @opts)
 
-          for item <- all() do
+          begin(state.conn)
+
+          {:ok, state, {:continue, :continue}}
+        end
+
+        @impl true
+        def handle_continue(:continue, %{conn: conn} = state) do
+          {:ok, statement} = Sqlite3NIF.prepare(conn, ~c"SELECT * fROM #{@table}")
+          {:ok, data} = Sqlite3.fetch_all(conn, statement)
+          Sqlite3NIF.release(conn, statement)
+
+          for item <- data do
             :ets.insert(@table, @mod.to_tuple(item))
           end
 
-          begin(state.conn)
-
-          {:ok, state}
+          {:noreply, state}
         end
 
         def exists?(key) do

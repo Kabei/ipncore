@@ -8,13 +8,12 @@ defmodule WalletStore do
     table: @table,
     cache: true,
     mod: Ippan.Wallet,
-    create: [~c"
-    CREATE TABLE IF NOT EXISTS #{@table}(
+    create: ["CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT PRIMARY KEY NOT NULL,
       pubkey BLOB NOT NULL,
       validator BIGINT NOT NULL,
       created_at BIGINT NOT NULL
-    ) WITHOUT ROWID;"],
+    ) WITHOUT ROWID"],
     stmt: %{
       insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4)",
       validator: ~c"SELECT pubkey, validator FROM #{@table} WHERE id=?1 AND validator=?2",

@@ -1,6 +1,4 @@
 defmodule Store.Sqlite2 do
-  alias Exqlite.Sqlite3NIF
-
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
       @base opts[:base]

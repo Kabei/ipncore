@@ -362,7 +362,7 @@ defmodule Store.Sqlite do
                     nil
                 end
 
-              [value] ->
+              [value | _] ->
                 lookup_transform(value)
             end
 

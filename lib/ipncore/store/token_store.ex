@@ -8,7 +8,7 @@ defmodule TokenStore do
     base: :token,
     mod: Ippan.Token,
     table: @table,
-    create: [~c"
+    create: ["
     CREATE TABLE IF NOT EXISTS #{@table}(
       id VARCHAR(20) PRIMARY KEY NOT NULL,
       owner BLOB NOT NULL,
@@ -23,8 +23,7 @@ defmodule TokenStore do
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL
     ) WITHOUT ROWID;
-    ", ~c"
-    CREATE TABLE IF NOT EXISTS #{@table_df}(
+    ", "CREATE TABLE IF NOT EXISTS #{@table_df}(
       id VARCHAR(20) PRIMARY KEY NOT NULL,
       owner BLOB NOT NULL,
       name TEXT NOT NULL,
@@ -38,8 +37,7 @@ defmodule TokenStore do
       created_at BIGINT NOT NULL,
       hash BLOB NOT NULL,
       round BIGINT NOT NULL
-    ) WITHOUT ROWID;
-    "],
+    ) WITHOUT ROWID"],
     stmt: %{
       "sum_supply" => ~c"UPDATE #{@table} SET supply = supply + ?2 WHERE id = ?1",
       "sum_burned" => ~c"UPDATE #{@table} SET burned = burned + ?2 WHERE id = ?1",

@@ -6,7 +6,7 @@ defmodule MessageStore do
     base: :msg,
     table: @table,
     create: [
-      ~c"CREATE TABLE IF NOT EXISTS #{@table}(
+      "CREATE TABLE IF NOT EXISTS #{@table}(
         timestamp BIGINT,
         hash BLOB,
         type INTEGER,
@@ -18,7 +18,7 @@ defmodule MessageStore do
         size INTEGER DEFAULT 0,
         PRIMARY KEY(timestamp, hash)
       )",
-      ~c"CREATE TABLE IF NOT EXISTS #{@table_df}(
+      "CREATE TABLE IF NOT EXISTS #{@table_df}(
         key BLOB,
         type INTEGER,
         timestamp BIGINT,

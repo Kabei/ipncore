@@ -5,7 +5,7 @@ defmodule DnsStore do
     base: :dns,
     table: @table,
     mod: Ippan.DNS,
-    create: ~c"CREATE TABLE IF NOT EXISTS #{@table}(
+    create: "CREATE TABLE IF NOT EXISTS #{@table}(
       domain TEXT NOT NULL,
       name TEXT NOT NULL,
       type TINYINT NOT NULL,

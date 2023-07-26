@@ -104,6 +104,12 @@ defmodule Ippan.Func.Token do
   end
 
   def delete(%{id: account_id}, id) when byte_size(id) <= 10 do
-    TokenStore.delete([id, account_id])
+    case TokenStore.step_change(:delete, [id, account_id]) do
+      1 ->
+        :ok
+
+      _ ->
+        raise IppanError, "Invalid operation"
+    end
   end
 end

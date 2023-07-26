@@ -30,7 +30,7 @@ defmodule TokenStore do
       insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
       lookup: ~c"SELECT * FROM #{@table} WHERE id = ?",
       exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?",
-      delete: ~c"DELETE FROM #{@table} WHERE id = ? AND owner = ? AND supply = 0 AND burned = 0",
+      delete: ~c"DELETE FROM #{@table} WHERE id = ?1 AND owner = ?2 AND supply = 0 AND burned = 0",
       owner: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2"
     }
 

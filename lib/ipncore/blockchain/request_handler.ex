@@ -1,5 +1,6 @@
 defmodule Ippan.RequestHandler do
   require Logger
+  require Global
   alias Ippan.Events
   # alias Phoenix.PubSub
 
@@ -34,7 +35,7 @@ defmodule Ippan.RequestHandler do
             timestamp,
             hash,
             nil,
-            Default.validator_id(),
+            Global.validator_id(),
             :erlang.term_to_binary(args),
             msg,
             nil,
@@ -47,7 +48,7 @@ defmodule Ippan.RequestHandler do
             hash,
             type,
             nil,
-            Default.validator_id(),
+            Global.validator_id(),
             :erlang.term_to_binary(args),
             msg,
             nil,
@@ -69,12 +70,12 @@ defmodule Ippan.RequestHandler do
     {wallet_pubkey, wallet_validator} =
       case valid_validator do
         true ->
-          {_id, wallet_pubkey, wallet_validator} = WalletStore.lookup(from)
+          {_id, wallet_pubkey, wallet_validator, _created_at} = WalletStore.lookup(from)
           if wallet_validator != node_validator_id, do: raise(IppanError, "Invalid validator")
           {wallet_pubkey, wallet_validator}
 
         false ->
-          {_id, wallet_pubkey, _wallet_validator} = WalletStore.lookup(from)
+          {_id, wallet_pubkey, _wallet_validator, _created_at} = WalletStore.lookup(from)
           {wallet_pubkey, nil}
       end
 

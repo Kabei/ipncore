@@ -1,43 +1,49 @@
 defmodule Global do
-  use GlobalConst.DummyModule
-
   defmacro miner do
     quote do
-      Global.get(:miner)
+      Default.get(:miner)
     end
   end
 
   defmacro owner do
     quote do
-      Global.get(:owner)
+      Default.get(:owner)
     end
   end
 
-  def pubkey do
-    get(:privkey)
-  end
-
-  def privkey do
-    get(:privkey)
-  end
-
-  def has_owner? do
-    case get(:owner, false) do
-      false ->
-        false
-
-      _ ->
-        true
+  defmacro pubkey do
+    quote do
+      Default.get(:privkey)
     end
   end
 
-  def owner?(nil), do: false
-
-  def owner?(id) do
-    get(:owner, nil) == id
+  defmacro privkey do
+    quote do
+      Default.get(:privkey)
+    end
   end
 
-  def validator_id do
-    get(:vid)
+  defmacro has_owner? do
+    quote do
+      case Default.get(:owner, false) do
+        false ->
+          false
+
+        _ ->
+          true
+      end
+    end
+  end
+
+  defmacro owner?(id) do
+    quote do
+      Default.get(:owner, nil) == unquote(id)
+    end
+  end
+
+  defmacro validator_id do
+    quote do
+      Default.get(:vid)
+    end
   end
 end

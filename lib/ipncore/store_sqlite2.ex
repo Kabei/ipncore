@@ -205,7 +205,7 @@ defmodule Store.Sqlite2 do
 
       @spec all() :: {:ok, [any()]} | {:error, term()}
       def all do
-        call({:fetch, ~c"SELECT * FROM #{@table}", []})
+        call({:execute, :fetch, ~c"SELECT * FROM #{@table}", []})
       end
 
       def delete(params) do

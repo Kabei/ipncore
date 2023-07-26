@@ -1,4 +1,5 @@
 defmodule Ippan.Func.Token do
+  require Global
   alias Ippan.Token
 
   @type result :: Ippan.Request.result()

@@ -1,4 +1,5 @@
 defmodule Ippan.Func.Validator do
+  require Global
   import Guards
   alias Phoenix.PubSub
   alias Ippan.Validator

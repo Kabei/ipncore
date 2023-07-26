@@ -3,6 +3,7 @@ defmodule VoteCounter do
   alias Phoenix.PubSub
   alias Ippan.{Block, P2P}
   require Logger
+  require Global
 
   @module __MODULE__
   @votes :votes
@@ -54,7 +55,7 @@ defmodule VoteCounter do
        validators: validators,
        minimum: minimum,
        round: round,
-       validator_id: Default.validator_id()
+       validator_id: Global.validator_id()
      }}
   end
 

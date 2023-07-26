@@ -5,7 +5,7 @@ defmodule Store.Cache do
       @mod opts[:mod]
       @partial opts[:mode] == "partial"
       @full opts[:mode] == "full"
-      @size opts[:size]
+      @size opts[:size] || 0
       @keypos opts[:keypos] || 1
       @opts [
         :set,
@@ -19,6 +19,8 @@ defmodule Store.Cache do
 
       if @full do
         def init(state) do
+          :ets.new(@table, @opts)
+
           for item <- all() do
             :ets.insert(@table, @mod.to_tuple(item))
           end
@@ -46,14 +48,17 @@ defmodule Store.Cache do
           :ets.insert(@table, {key, value})
           cast({:step, :insert, [key, value]})
         end
-
-        def terminate(_reason, %{conn: conn, stmts: stmts} = state) do
-          stop(conn, stmts)
-          :ets.delete(@table)
-        end
       end
 
       if @partial do
+        def init(state) do
+          :ets.new(@table, @opts)
+
+          begin(state.conn)
+
+          {:ok, state}
+        end
+
         def lookup(key) do
           case :ets.lookup(@table, key) do
             [] ->
@@ -147,6 +152,11 @@ defmodule Store.Cache do
           |> Enum.join(" AND ")
 
         call({:update, set_fields, where, values ++ w_values})
+      end
+
+      def terminate(_reason, %{conn: conn, stmt: stmts} = state) do
+        stop(conn, stmts)
+        :ets.delete(@table)
       end
 
       defp get_key([key]), do: key

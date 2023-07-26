@@ -1,5 +1,6 @@
 defmodule Ippan.P2P.ClientPool do
   require Logger
+  require Global
   use GenServer
   alias Ippan.Validator
   alias Ippan.P2P.Client
@@ -16,7 +17,7 @@ defmodule Ippan.P2P.ClientPool do
   def init(key_path) do
     Process.flag(:trap_exit, true)
     {:ok, validators} = ValidatorStore.all()
-    myid = Default.validator_id()
+    myid = Global.validator_id()
 
     clients =
       Enum.map(validators, fn x ->
@@ -52,7 +53,7 @@ defmodule Ippan.P2P.ClientPool do
     IO.inspect(validator)
     validator_id = validator.id
 
-    if Default.validator_id() != validator_id and not Map.has_key?(clients, validator_id) do
+    if Global.validator_id() != validator_id and not Map.has_key?(clients, validator_id) do
       hostname = validator.hostname
       {:ok, pid} = Client.start_link({hostname, @port, validator_id, key_path})
 
@@ -67,7 +68,7 @@ defmodule Ippan.P2P.ClientPool do
         {"update", validator_id, %{hostname: new_hostname}},
         %{clients: clients, key_path: key_path} = state
       ) do
-    if Default.validator_id() != validator_id do
+    if Global.validator_id() != validator_id do
       %{pid: old_pid} = Map.get(clients, validator_id)
       GenServer.stop(old_pid, :normal)
       {:ok, pid} = Client.start_link({new_hostname, @port, validator_id, key_path})
@@ -78,7 +79,7 @@ defmodule Ippan.P2P.ClientPool do
   end
 
   def handle_info({"delete", validator_id}, %{clients: clients} = state) do
-    if Default.validator_id() != validator_id do
+    if Global.validator_id() != validator_id do
       %{pid: pid} = Map.get(clients, validator_id)
       GenServer.stop(pid, :normal)
       Logger.info("Validator's licence deleted")

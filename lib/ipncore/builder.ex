@@ -1,4 +1,5 @@
 defmodule Builder do
+  require Global
   alias Ippan.Address
   alias Ippan.RequestHandler
 
@@ -125,7 +126,7 @@ defmodule Builder do
       hash = Blake3.hash(body)
       sig = Fast64.decode64(sig)
       size = byte_size(body) + byte_size(sig)
-      {event, msg} = RequestHandler.valid!(hash, body, size, sig, Default.validator_id())
+      {event, msg} = RequestHandler.valid!(hash, body, size, sig, Global.validator_id())
 
       case event do
         %{deferred: false} ->

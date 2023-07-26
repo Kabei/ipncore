@@ -18,7 +18,7 @@ defmodule WalletStore do
     stmt: %{
       insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4)",
       validator: ~c"SELECT pubkey, validator FROM #{@table} WHERE id=?1 AND validator=?2",
-      lookup: ~c"SELECT pubkey, validator FROM #{@table} WHERE id=?",
+      lookup: ~c"SELECT * FROM #{@table} WHERE id=?",
       exists: ~c"SELECT 1 FROM #{@table} WHERE id=?",
       delete: ~c"DELETE FROM #{@table} WHERE id=?",
       jackpot:

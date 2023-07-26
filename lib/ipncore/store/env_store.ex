@@ -23,6 +23,5 @@ defmodule EnvStore do
   use Store.Cache,
     table: :env,
     mod: Env,
-    mode: "full",
-    size: 10_000_000
+    mode: "full"
 end

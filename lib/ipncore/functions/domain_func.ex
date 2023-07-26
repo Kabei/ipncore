@@ -1,4 +1,5 @@
 defmodule Ippan.Func.Domain do
+  require Global
   alias Ippan.Domain
   alias Ippan.Utils
   @fullname_max_size 255
@@ -72,7 +73,7 @@ defmodule Ippan.Func.Domain do
     map_filter = Map.take(opts, Domain.optionals())
 
     amount = Domain.price(domain_name, days)
-    chain_owner = Global.get(:owner)
+    chain_owner = Global.owner()
 
     domain =
       %Domain{
@@ -151,7 +152,7 @@ defmodule Ippan.Func.Domain do
   def renew(%{id: account_id, timestamp: timestamp}, name, days)
       when is_integer(days) and days > 0 do
     amount = Domain.price(name, days)
-    chain_owner = Global.get(:owner)
+    chain_owner = Global.owner()
 
     cond do
       not DomainStore.owner?(name, account_id) ->

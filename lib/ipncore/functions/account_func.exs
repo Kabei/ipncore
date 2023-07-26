@@ -1,4 +1,5 @@
 defmodule Ippan.Func.Account do
+  require Global
   alias Ippan.{Address, Account}
 
   def new(
@@ -13,7 +14,7 @@ defmodule Ippan.Func.Account do
       byte_size(pubkey) != 897 or byte_size(pubkey) != 65 ->
         raise IppanError, "Invalid pubkey size"
 
-      validator_id != Default.validator_id() ->
+      validator_id != Global.validator_id() ->
         raise IppanError, "Invalid Validator ID"
 
       true ->

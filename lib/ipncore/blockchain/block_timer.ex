@@ -7,6 +7,7 @@ defmodule BlockTimer do
     only: [decode_file!: 1, encode_file!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
 
   require Logger
+  require Global
 
   @otp_app :ipncore
   @module __MODULE__
@@ -26,7 +27,7 @@ defmodule BlockTimer do
 
   @impl true
   def init(_args) do
-    validator_id = Default.validator_id()
+    validator_id = Global.validator_id()
 
     # fetch last round
     {round_id, round_hash} =

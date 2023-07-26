@@ -5,7 +5,7 @@ defmodule Ipncore.Router do
   require Logger
   alias Phoenix.PubSub
   alias Ippan.Block
-  import Global, only: [miner: 0]
+  require Global
 
   @json Application.compile_env(:ipncore, :json)
   @max_size Application.compile_env(:ipncore, :message_max_size)
@@ -24,7 +24,7 @@ defmodule Ipncore.Router do
           [sig] ->
             sig = Fast64.decode64(sig)
             size = byte_size(body) + byte_size(sig)
-            RequestHandler.valid!(hash, body, size, sig, Default.validator_id())
+            RequestHandler.valid!(hash, body, size, sig, Global.validator_id())
 
           _ ->
             size = byte_size(body)
@@ -34,11 +34,23 @@ defmodule Ipncore.Router do
       case event do
         %{deferred: false} ->
           MessageStore.insert(msg)
-          PubSub.direct_broadcast(miner(), :verifiers, "event", {"valid", node(), hash, msg})
+
+          PubSub.direct_broadcast(
+            Global.miner(),
+            :verifiers,
+            "event",
+            {"valid", node(), hash, msg}
+          )
 
         %{deferred: true} ->
           MessageStore.insert_df(msg)
-          PubSub.direct_broadcast(miner(), :verifiers, "event", {"valid_df", node(), hash, msg})
+
+          PubSub.direct_broadcast(
+            Global.miner(),
+            :verifiers,
+            "event",
+            {"valid_df", node(), hash, msg}
+          )
       end
 
       json(conn, %{"hash" => Base.encode16(hash)})

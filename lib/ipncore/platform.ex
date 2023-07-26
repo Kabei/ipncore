@@ -5,7 +5,7 @@ defmodule Platform do
   @token Application.compile_env(:ipncore, :token)
   @json Application.compile_env(:ipncore, :json)
 
-  def start("miner" = role) do
+  def start(role) when role != "test" do
     data_dir = Application.get_env(:ipncore, :data_dir)
     {:ok, pid} = WalletStore.start_link(Path.join(data_dir, "wallet/wallet.db"))
     {:ok, pid2} = TokenStore.start_link(Path.join(data_dir, "token/token.db"))
@@ -18,9 +18,9 @@ defmodule Platform do
 
       token ->
         wallet_owner = token.owner
-        {_id, wallet_pubkey, _wallet_validator} = WalletStore.lookup(wallet_owner)
+        {_id, wallet_pubkey, _wallet_validator, _created_at} = WalletStore.lookup(wallet_owner)
 
-        GlobalConst.new(Global, %{
+        GlobalConst.new(Default, %{
           owner: wallet_owner,
           owner_pubkey: wallet_pubkey,
           native_token: token,
@@ -35,12 +35,12 @@ defmodule Platform do
     GenServer.stop(pid3, :normal)
   end
 
-  def start("verifier" = role) do
-    data_dir = Application.get_env(:ipncore, :data_dir)
-    {:ok, pid} = WalletStore.start_link(Path.join(data_dir, "wallet/wallet.db"))
-    init(role)
-    GenServer.stop(pid, :normal)
-  end
+  # def start("verifier" = role) do
+  #   data_dir = Application.get_env(:ipncore, :data_dir)
+  #   {:ok, pid} = WalletStore.start_link(Path.join(data_dir, "wallet/wallet.db"))
+  #   init(role)
+  #   GenServer.stop(pid, :normal)
+  # end
 
   def start(_), do: :ok
 
@@ -155,7 +155,7 @@ defmodule Platform do
 
     WalletStore.sync()
 
-    GlobalConst.new(Global, %{
+    GlobalConst.new(Default, %{
       owner: address,
       owner_pubkey: pk,
       miner: System.get_env("MINER") |> to_atom(),

@@ -8,24 +8,20 @@ defmodule Ippan.Wallet do
 
   defstruct [:id, :pubkey, :validator, :created_at]
 
+  def to_list({id, pubkey, validator, created_at}) do
+    [id, pubkey, validator, created_at]
+  end
+
   def to_list(x) do
     [x.id, x.pubkey, x.validator, x.created_at]
   end
 
-  def to_tuple([id, pubkey, validator]) do
-    {id, pubkey, validator}
+  def to_tuple([id, pubkey, validator, created_at]) do
+    {id, pubkey, validator, created_at}
   end
 
   def to_tuple(x) do
     {x.id, x.pubkey, x.validator, x.created_at}
-  end
-
-  def to_map({id, pubkey, validator}) do
-    [id, pubkey, validator]
-  end
-
-  def to_map([id, pubkey, validator]) do
-    [id, pubkey, validator]
   end
 
   def to_map({id, pubkey, validator, created_at}) do

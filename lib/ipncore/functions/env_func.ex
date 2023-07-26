@@ -1,4 +1,6 @@
 defmodule Ippan.Func.Env do
+  require Global
+
   def pre_set(%{id: account_id, hash: hash, round: round, timestamp: timestamp}, name, value)
       when byte_size(name) <= 256 do
     bin = :erlang.term_to_binary(value)

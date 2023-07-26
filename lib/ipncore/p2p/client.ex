@@ -3,6 +3,7 @@ defmodule Ippan.P2P.Client do
   import Ippan.P2P, only: [decode!: 2, encode: 2]
   alias Phoenix.PubSub
   alias Ippan.{Address, Block, P2P}
+  require Global
   require Logger
 
   @module __MODULE__
@@ -221,7 +222,7 @@ defmodule Ippan.P2P.Client do
       {:ok, "WEL" <> @version <> pubkey} ->
         {:ok, ciphertext, sharedkey} = NtruKem.enc(pubkey)
 
-        id = Default.validator_id()
+        id = Global.validator_id()
         {:ok, signature} = Cafezinho.Impl.sign(sharedkey, state.privkey)
         authtext = encode(state.pubkey <> <<id::64>> <> signature, sharedkey)
         @adapter.send(socket, "THX" <> ciphertext <> authtext)
@@ -246,7 +247,7 @@ defmodule Ippan.P2P.Client do
 
       IO.inspect("mailbox sent")
     else
-      me = Default.validator_id()
+      me = Global.validator_id()
       b1 = BlockStore.count(vid)
       b2 = BlockStore.count(me)
 

@@ -8,8 +8,7 @@ defmodule BalanceStore do
     base: :balance,
     table: @table,
     mod: Ippan.Balance,
-    create: "
-    CREATE TABLE IF NOT EXISTS #{@table}(
+    create: "CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
       amount BIGINT DEFAULT 0,
@@ -17,7 +16,7 @@ defmodule BalanceStore do
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL,
       PRIMARY KEY (id, token)
-    ) WITHOUT ROWID;",
+    ) WITHOUT ROWID",
     stmt: %{
       insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
       replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",

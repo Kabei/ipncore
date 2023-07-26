@@ -61,7 +61,7 @@ defmodule Ippan.Func.Tx do
       when length(outputs) > 0 do
     hash16 = Base.encode16(hash)
 
-    case TokenStore.fetch(:owner_props, [token, account_id, "%coinbase%"]) do
+    case TokenStore.fetch("owner_props", [token, account_id, "%coinbase%"]) do
       {:ok, [[1]]} ->
         BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
           try do

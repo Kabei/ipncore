@@ -1,9 +1,8 @@
 defmodule TokenStore do
   @table "token"
-  # table with transaction deferred
-  @table_df "token_df"
 
   alias Ippan.Token
+
   use Store.Sqlite2,
     base: :token,
     mod: Ippan.Token,
@@ -22,21 +21,6 @@ defmodule TokenStore do
       props BLOB,
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL
-    ) WITHOUT ROWID;
-    ", "CREATE TABLE IF NOT EXISTS #{@table_df}(
-      id VARCHAR(20) PRIMARY KEY NOT NULL,
-      owner BLOB NOT NULL,
-      name TEXT NOT NULL,
-      avatar TEXT,
-      decimal TINYINT DEFAULT 0,
-      symbol VARCHAR(5) NOT NULL,
-      enabled BOOLEAN,
-      supply BIGINT DEFAULT 0,
-      burned BIGINT DEFAULT 0,
-      props BLOB,
-      created_at BIGINT NOT NULL,
-      hash BLOB NOT NULL,
-      round BIGINT NOT NULL
     ) WITHOUT ROWID"],
     stmt: %{
       "sum_supply" => ~c"UPDATE #{@table} SET supply = supply + ?2 WHERE id = ?1",

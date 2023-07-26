@@ -55,10 +55,8 @@ defmodule Ippan.P2P.Server do
       ) do
     try do
       from = %{id: vid, pubkey: pubkey}
-      r = decode!(data, sharedkey)
-      IO.inspect(r)
 
-      case r do
+      case decode!(data, sharedkey) do
         %{id: id, msg: msg} ->
           case msg do
             {"new_recv", rest} ->

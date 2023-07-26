@@ -396,7 +396,7 @@ defmodule Store.Sqlite do
 
               {:reply, result, state}
 
-            [{_, value}] ->
+            [value | _] ->
               map = apply(@mod, :to_map, [value])
               {:reply, map.owner == owner, state}
           end

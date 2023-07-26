@@ -127,8 +127,8 @@ defmodule Platform do
         pk,
         pkf,
         nil,
+        2,
         1,
-        0.01,
         0,
         timestamp,
         timestamp
@@ -142,8 +142,8 @@ defmodule Platform do
         pk,
         pkf,
         nil,
+        2,
         1,
-        0.01,
         0,
         timestamp,
         timestamp

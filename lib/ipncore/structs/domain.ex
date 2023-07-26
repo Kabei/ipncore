@@ -34,6 +34,10 @@ defmodule Ippan.Domain do
     {Enum.join(subdomain, "."), Enum.join(domain, ".")}
   end
 
+  def join(subdomain, domain) do
+    Enum.join([subdomain, domain], ".")
+  end
+
   def price(name, days) do
     x =
       name

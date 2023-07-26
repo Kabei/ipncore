@@ -21,6 +21,8 @@ defmodule Ippan.Func.Dns do
              ttl in @ttl_range do
     {subdomain, domain} = Domain.split(fullname)
 
+    dns_type = DNS.type_to_alpha(type)
+
     cond do
       not Match.domain?(domain) ->
         raise IppanError, "Invalid domain"
@@ -28,7 +30,10 @@ defmodule Ippan.Func.Dns do
       # type not in @dns_types ->
       #   raise IppanError, "DNS record type not supported"
 
-      not match?({_, _, _, _, _value}, :dnslib.resource(~c"#{domain} IN #{ttl} #{type} #{data}")) ->
+      not match?(
+        {_, _, _, _, _value},
+        :dnslib.resource(~c"#{fullname} IN #{ttl} #{dns_type} #{data}")
+      ) ->
         raise IppanError, "DNS resource error"
 
       true ->
@@ -76,16 +81,20 @@ defmodule Ippan.Func.Dns do
             raise IppanError, "Invalid validator"
 
           validator ->
-            dns_map = DnsStore.one([domain, dns_hash])
+            dns_map = DnsStore.one([domain, dns_hash]) |> DNS.to_map()
 
             data = map_filter["data"]
+
+            dns_type = DNS.type_to_alpha(dns_map.type)
+
+            fullname = Domain.join(dns_map.name, dns_map.domain)
 
             if data do
               if not match?(
                    {_, _, _, _, _value},
-                   :dnslib.resource(~c"#{domain} IN #{dns_map.ttl} #{dns_map.type} #{data}")
+                   :dnslib.resource(~c"#{fullname} IN #{dns_map.ttl} #{dns_type} #{data}")
                  ) do
-                raise IppanError, "DNS resource error"
+                raise ArgumentError, "DNS resource error"
               end
             end
 

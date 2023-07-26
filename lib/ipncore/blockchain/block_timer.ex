@@ -118,8 +118,8 @@ defmodule BlockTimer do
           validators: validators
         } = state
       ) do
-    IO.inspect("complete block")
-    IO.inspect(state)
+    # IO.inspect("complete block")
+    # IO.inspect(state)
     mined = mined + 1
 
     return =
@@ -153,8 +153,8 @@ defmodule BlockTimer do
           round_sync: round_sync
         } = state
       ) do
-    IO.inspect("complete block import")
-    IO.inspect(state)
+    # IO.inspect("complete block import")
+    # IO.inspect(state)
     mined = mined + 1
 
     if not round_sync and mined == validators do
@@ -165,8 +165,8 @@ defmodule BlockTimer do
   end
 
   def handle_cast({:complete, :round, new_id, old_id, new_hash}, state) do
-    IO.inspect("complete round")
-    IO.inspect(state)
+    # IO.inspect("complete round")
+    # IO.inspect(state)
     VoteCounter.reset(old_id)
     # send pubsub event
     PubSub.broadcast(@pubsub_verifiers, @topic_round, {"end", old_id})
@@ -266,16 +266,16 @@ defmodule BlockTimer do
         } = state
       )
       when mined == validators do
-    IO.inspect("sync")
-    IO.inspect(state)
+    # IO.inspect("sync")
+    # IO.inspect(state)
     :timer.cancel(tRef)
     spawn_round_worker(self(), state)
     {:noreply, %{state | round_sync: true}}
   end
 
   def handle_info(:sync, state) do
-    IO.inspect("sync ELSE")
-    IO.inspect(state)
+    # IO.inspect("sync ELSE")
+    # IO.inspect(state)
     {:noreply, %{state | wait_to_sync: true}}
   end
 
@@ -399,11 +399,11 @@ defmodule BlockTimer do
 
       requests =
         if ev_count != 0 do
-          IO.inspect("import block file")
+          # IO.inspect("import block file")
           {:ok, content} = File.read(decode_path)
           decode_file!(content)
         else
-          IO.inspect("import block empty")
+          # IO.inspect("import block empty")
           []
         end
 
@@ -599,7 +599,7 @@ defmodule BlockTimer do
       |> put_hash()
       |> put_signature()
 
-    IO.inspect(block)
+    # IO.inspect(block)
 
     Block.to_list(block)
     |> BlockStore.insert_sync()

@@ -77,7 +77,7 @@ defmodule VoteCounter do
         %{minimum: minimum, round: round_number, validator_id: me} = state
       )
       when round >= round_number and me != creator_id do
-    Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
+    # Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
 
     validator = ValidatorStore.lookup([creator_id])
 
@@ -140,7 +140,7 @@ defmodule VoteCounter do
         {"valid", %{creator: creator, height: height} = block, node_origin},
         state
       ) do
-    Logger.debug("Block.valid #{creator}.#{height}")
+    # Logger.debug("Block.valid #{creator}.#{height}")
 
     if :ets.member(@winners, {creator, height}) do
       spawn(fn ->
@@ -153,14 +153,14 @@ defmodule VoteCounter do
   end
 
   def handle_info({"invalid", block}, state) do
-    Logger.debug("Block.invalid #{inspect(block)}")
+    # Logger.debug("Block.invalid #{inspect(block)}")
     # apply block empty with errors
     BlockTimer.put_block_ignore_mine()
     {:noreply, state}
   end
 
   def handle_info(msg, state) do
-    Logger.debug("#{__MODULE__} handle_info #{inspect(msg)}")
+    # Logger.debug("#{__MODULE__} handle_info #{inspect(msg)}")
     {:noreply, state}
   end
 
@@ -234,7 +234,7 @@ defmodule VoteCounter do
 
           case Node.ping(node_atom) do
             :pong ->
-              Logger.debug(inspect("pong block:#{node_atom}"))
+              # Logger.debug(inspect("pong block:#{node_atom}"))
 
               PubSub.direct_broadcast(
                 node_atom,
@@ -244,7 +244,7 @@ defmodule VoteCounter do
               )
 
             :pang ->
-              Logger.debug("pang")
+              # Logger.debug("pang")
               :timer.sleep(1000)
               push_fetch(pid, block, validator, retry - 1)
           end

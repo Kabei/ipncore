@@ -428,14 +428,14 @@ defmodule Builder do
         address,
         domain_name,
         owner,
-        years,
+        days,
         %{
           "email" => _email,
           "avatar" => _avatar
         } = params
       ) do
     body =
-      [400, :os.system_time(:millisecond), address, domain_name, owner, years, params]
+      [400, :os.system_time(:millisecond), address, domain_name, owner, days, params]
       |> Jason.encode!()
 
     hash = hash_fun(body)

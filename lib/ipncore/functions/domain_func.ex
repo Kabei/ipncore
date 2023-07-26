@@ -4,6 +4,7 @@ defmodule Ippan.Func.Domain do
   alias Ippan.Utils
   @fullname_max_size 255
   @token Application.compile_env(:ipncore, :token)
+  @one_day :timer.hours(24)
 
   def pre_new(
         %{id: account_id, hash: hash, size: size, round: round, timestamp: timestamp, validator: validator_id},
@@ -36,7 +37,7 @@ defmodule Ippan.Func.Domain do
           name: domain_name,
           owner: owner,
           created_at: timestamp,
-          renewed_at: timestamp + days * 86_400_000,
+          renewed_at: timestamp + days * @one_day,
           updated_at: timestamp
         }
         |> Map.merge(MapUtil.to_atoms(map_filter))
@@ -80,7 +81,7 @@ defmodule Ippan.Func.Domain do
         name: domain_name,
         owner: owner,
         created_at: timestamp,
-        renewed_at: timestamp + days * 86_400_000,
+        renewed_at: timestamp + days * @one_day,
         updated_at: timestamp
       }
       |> Map.merge(MapUtil.to_atoms(map_filter))
@@ -161,7 +162,7 @@ defmodule Ippan.Func.Domain do
       BalanceStore.send(account_id, chain_owner, @token, amount, timestamp) != :ok ->
         raise IppanError, "Insufficient balance"
 
-      DomainStore.renew(name, account_id, days * 86_400_000, timestamp) != 1 ->
+      DomainStore.renew(name, account_id, days * @one_day, timestamp) != 1 ->
         raise IppanError, "Invalid operation"
 
       true ->

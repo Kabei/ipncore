@@ -98,18 +98,18 @@ defmodule Ippan.Func.Wallet do
   end
 
   def subscribe(
-        %{id: account_id, validator: validator_id, timestamp: timestamp, size: size},
+        %{id: account_id, timestamp: timestamp, size: size},
         new_validator_id
       ) do
     validator = ValidatorStore.lookup([new_validator_id])
     # fee amount is tx size
     :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
-    WalletStore.update(%{validator: validator_id}, id: account_id)
+    WalletStore.update(%{validator: new_validator_id}, id: account_id)
 
     PubSub.broadcast(
       @pubsub,
       @topic,
-      {"sub", %{id: account_id, validator: validator_id}}
+      {"sub", %{id: account_id, validator: new_validator_id}}
     )
   end
 end

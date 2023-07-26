@@ -7,7 +7,14 @@ defmodule Ippan.Func.Domain do
   @one_day :timer.hours(24)
 
   def pre_new(
-        %{id: account_id, hash: hash, size: size, round: round, timestamp: timestamp, validator: validator_id},
+        %{
+          id: account_id,
+          hash: hash,
+          size: size,
+          round: round,
+          timestamp: timestamp,
+          validator: validator_id
+        },
         domain_name,
         owner,
         days,
@@ -147,7 +154,7 @@ defmodule Ippan.Func.Domain do
   end
 
   def delete(%{id: account_id}, domain_name) do
-    DomainStore.delete([domain_name, account_id])
+    1 = DomainStore.step_change(:delete, [domain_name, account_id])
   end
 
   def renew(%{id: account_id, timestamp: timestamp}, name, days)

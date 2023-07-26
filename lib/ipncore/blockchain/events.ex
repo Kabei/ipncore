@@ -8,7 +8,7 @@ defmodule Ippan.Events do
     Validator,
     Token,
     Domain,
-    DNS,
+    Dns,
     Wallet
   }
 
@@ -246,7 +246,7 @@ defmodule Ippan.Events do
       id: n,
       name: "dns.new",
       base: :dns,
-      mod: DNS,
+      mod: Dns,
       fun: :new,
       auth: true
     }
@@ -256,7 +256,7 @@ defmodule Ippan.Events do
       id: n,
       name: "dns.update",
       base: :dns,
-      mod: DNS,
+      mod: Dns,
       fun: :update,
       auth: true
     }
@@ -266,7 +266,7 @@ defmodule Ippan.Events do
       id: n,
       name: "dns.delete",
       base: :dns,
-      mod: DNS,
+      mod: Dns,
       fun: :delete,
       auth: true
     }

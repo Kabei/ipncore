@@ -3,12 +3,12 @@ defmodule TokenStore do
   # table with transaction deferred
   @table_df "token_df"
 
-  use Store.Sqlite,
+  alias Ippan.Token
+  use Store.Sqlite2,
     base: :token,
-    cache: true,
     mod: Ippan.Token,
     table: @table,
-    create: ["
+    create: [~c"
     CREATE TABLE IF NOT EXISTS #{@table}(
       id VARCHAR(20) PRIMARY KEY NOT NULL,
       owner BLOB NOT NULL,
@@ -23,7 +23,7 @@ defmodule TokenStore do
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL
     ) WITHOUT ROWID;
-    ", "
+    ", ~c"
     CREATE TABLE IF NOT EXISTS #{@table_df}(
       id VARCHAR(20) PRIMARY KEY NOT NULL,
       owner BLOB NOT NULL,
@@ -40,21 +40,30 @@ defmodule TokenStore do
       round BIGINT NOT NULL
     ) WITHOUT ROWID;
     "],
-    # WHERE timestamp > ?4 OR timestamp == ?4 AND hash > ?3
     stmt: %{
-      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
-      replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
-      lookup: "SELECT * FROM #{@table} WHERE id = ?",
-      exists: "SELECT 1 FROM #{@table} WHERE id = ?",
-      delete: "DELETE FROM #{@table} WHERE id = ? AND owner = ? AND supply = 0 AND burned = 0",
-      sum_supply: "UPDATE #{@table} SET supply = supply + ?2 WHERE id = ?1",
-      sum_burned: "UPDATE #{@table} SET burned = burned + ?2 WHERE id = ?1",
-      owner: "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
-      owner_props: "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2 AND props LIKE ?3",
-      props: "SELECT 1 FROM #{@table} WHERE id = ?1 AND props LIKE ?2",
-      move:
-        "INSERT OR IGNORE INTO #{@table} (id, owner, name, avatar, decimal, symbol, enabled, supply, burned, props, created_at, updated_at)
-        SELECT id, owner, name, avatar, decimal, symbol, enabled, supply, burned, props, created_at, created_at FROM #{@table_df} WHERE round=?1",
-      delete_deferred: "DELETE FROM #{@table_df} WHERE round=?1"
+      "sum_supply" => ~c"UPDATE #{@table} SET supply = supply + ?2 WHERE id = ?1",
+      "sum_burned" => ~c"UPDATE #{@table} SET burned = burned + ?2 WHERE id = ?1",
+      "owner_props" => ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2 AND props LIKE ?3",
+      "props" => ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND props LIKE ?2",
+      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+      replace: ~c"REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+      lookup: ~c"SELECT * FROM #{@table} WHERE id = ?",
+      exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?",
+      delete: ~c"DELETE FROM #{@table} WHERE id = ? AND owner = ? AND supply = 0 AND burned = 0",
+      owner: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2"
     }
+
+  use Store.Cache,
+    table: :token,
+    mod: Token,
+    mode: "partial",
+    size: 10_000_000
+
+  def sum_suppy(token, total) do
+    call(:step, {"sum_supply", [token, total]})
+  end
+
+  def sum_burned(token, total) do
+    call(:step, {"sum_burned", [token, total]})
+  end
 end

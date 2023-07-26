@@ -211,7 +211,7 @@ defmodule VoteCounter do
     hostname = node_verifier |> to_string() |> String.split("@") |> List.last()
     url = Block.cluster_decode_url(hostname, creator_id, height)
     decode_path = Block.decode_path(creator_id, height)
-    {:ok, _abs_url} = Curl.download(url, decode_path)
+    :ok = Curl.download(url, decode_path)
   end
 
   defp push_fetch(pid, block, validator), do: push_fetch(pid, block, validator, 1)

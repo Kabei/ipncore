@@ -12,7 +12,7 @@ defmodule Curl do
            output
          ]) do
       {_, 0} ->
-        {:ok, output}
+        :ok
 
       {_, n} ->
         {:error, n}
@@ -32,7 +32,7 @@ defmodule Curl do
            output
          ]) do
       {_, 0} ->
-        {:ok, output}
+        :ok
 
       {_, n} ->
         {:error, n}

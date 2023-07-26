@@ -49,6 +49,8 @@ defmodule Ipncore.Application do
     children =
       case role do
         "miner" ->
+          Sqlite3Tools.init()
+
           [
             {MessageStore, Path.join(data_dir, "requests/messages.db")},
             {WalletStore, Path.join(data_dir, "wallet/wallet.db")},

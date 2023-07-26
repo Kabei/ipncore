@@ -28,7 +28,7 @@ defmodule Ippan.Func.Dns do
       # type not in @dns_types ->
       #   raise IppanError, "DNS record type not supported"
 
-      not match?({_, _, _, _, _value}, :dnslib.resource('#{domain} IN #{ttl} #{type} #{data}')) ->
+      not match?({_, _, _, _, _value}, :dnslib.resource(~c"#{domain} IN #{ttl} #{type} #{data}")) ->
         raise IppanError, "DNS resource error"
 
       true ->
@@ -45,7 +45,7 @@ defmodule Ippan.Func.Dns do
               data: data,
               type: type,
               ttl: ttl,
-              hash: fun_hash([fullname, "#{type}", data])
+              hash: DNS.fun_hash([fullname, "#{type}", data])
             }
             |> DNS.to_list()
             |> DnsStore.replace()
@@ -76,14 +76,14 @@ defmodule Ippan.Func.Dns do
             raise IppanError, "Invalid validator"
 
           validator ->
-            dns_map = DnsStore.lookup([domain, dns_hash])
+            dns_map = DnsStore.one([domain, dns_hash])
 
             data = map_filter["data"]
 
             if data do
               if not match?(
                    {_, _, _, _, _value},
-                   :dnslib.resource('#{domain} IN #{dns_map.ttl} #{dns_map.type} #{data}')
+                   :dnslib.resource(~c"#{domain} IN #{dns_map.ttl} #{dns_map.type} #{data}")
                  ) do
                 raise IppanError, "DNS resource error"
               end
@@ -110,7 +110,7 @@ defmodule Ippan.Func.Dns do
           DnsStore.delete(domain)
 
         subdomain ->
-          DnsStore.execute_changes("delete_name", [domain, subdomain])
+          DnsStore.step_change("delete_name", [domain, subdomain])
       end
     else
       raise IppanError, "Invalid Owner"
@@ -121,7 +121,7 @@ defmodule Ippan.Func.Dns do
     {subdomain, domain} = Domain.split(fullname)
 
     if DomainStore.owner?(domain, account_id) do
-      DnsStore.execute_changes("delete_type", [domain, subdomain, type])
+      DnsStore.step_change("delete_type", [domain, subdomain, type])
     else
       raise IppanError, "Invalid Owner"
     end
@@ -131,13 +131,9 @@ defmodule Ippan.Func.Dns do
     {subdomain, domain} = Domain.split(fullname)
 
     if DomainStore.owner?(domain, account_id) do
-      DnsStore.execute_changes("delete_hash", [domain, subdomain, hash])
+      DnsStore.step_change("delete_hash", [domain, subdomain, hash])
     else
       raise IppanError, "Invalid Owner"
     end
-  end
-
-  defp fun_hash(data) do
-    :crypto.hash(:md5, data)
   end
 end

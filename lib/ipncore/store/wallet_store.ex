@@ -1,14 +1,14 @@
 defmodule WalletStore do
   @table "wallet"
 
-  use Store.Sqlite,
+  alias Ippan.Wallet
+
+  use Store.Sqlite2,
     base: :wallet,
-    # pool: :wallet_pool,
     table: @table,
     cache: true,
-    cache_size: 50_000_000,
     mod: Ippan.Wallet,
-    create: ["
+    create: [~c"
     CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT PRIMARY KEY NOT NULL,
       pubkey BLOB NOT NULL,
@@ -16,23 +16,29 @@ defmodule WalletStore do
       created_at BIGINT NOT NULL
     ) WITHOUT ROWID;"],
     stmt: %{
-      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4)",
-      validator: "SELECT pubkey, validator FROM #{@table} WHERE id=?1 AND validator=?2",
-      lookup: "SELECT id, pubkey, validator FROM #{@table} WHERE id=?",
-      exists: "SELECT 1 FROM #{@table} WHERE id=?",
-      delete: "DELETE FROM #{@table} WHERE id=?",
+      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4)",
+      validator: ~c"SELECT pubkey, validator FROM #{@table} WHERE id=?1 AND validator=?2",
+      lookup: ~c"SELECT pubkey, validator FROM #{@table} WHERE id=?",
+      exists: ~c"SELECT 1 FROM #{@table} WHERE id=?",
+      delete: ~c"DELETE FROM #{@table} WHERE id=?",
       jackpot:
-        "SELECT pos, id FROM (SELECT ROW_NUMBER() OVER () AS pos, id FROM #{@table} ORDER BY created_at ASC) WHERE pos = ?",
-      total: "SELECT count(1) FROM #{@table}"
+        ~c"SELECT pos, id FROM (SELECT ROW_NUMBER() OVER () AS pos, id FROM #{@table} ORDER BY created_at ASC) WHERE pos = ?",
+      total: ~c"SELECT count(1) FROM #{@table}"
     }
 
+  use Store.Cache,
+    table: :wallet,
+    mod: Wallet,
+    mode: "partial",
+    size: 50_000_000
+
   def total do
-    {_, [total]} = call({:execute_step, :total, []})
+    {_, [total]} = call({:step, :total, []})
     total
   end
 
   def jackpot(pos) do
-    res = call({:execute_step, :jackpot, [pos]})
+    res = call({:step, :jackpot, [pos]})
 
     case res do
       {:row, [_pos, id]} -> id

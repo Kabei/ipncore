@@ -4,7 +4,7 @@ defmodule AccountStore do
   use Store.Sqlite,
     base: :account,
     table: @table,
-    create: "
+    create: ~c"
     CREATE TABLE IF NOT EXISTS #{@table}(
     id BLOB PRIMARY KEY NOT NULL,
     validator BIGINT NOT NULL,
@@ -14,12 +14,10 @@ defmodule AccountStore do
     ) WITHOUT ROWID;
     ",
     stmt: %{
-      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5) ON CONFLICT (id)
-        DO UPDATE SET validator=?2, created_at=?3
-        WHERE created_at > ?3",
-      lookup: "SELECT * FROM #{@table} WHERE id=?",
-      validator: "SELECT * FROM #{@table} WHERE id=? AND validator=?",
-      exists: "SELECT 1 FROM #{@table} WHERE id=?",
-      delete: "DELETE FROM #{@table} WHERE id=?"
+      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5)",
+      lookup: ~c"SELECT * FROM #{@table} WHERE id=?",
+      validator: ~c"SELECT * FROM #{@table} WHERE id=? AND validator=?",
+      exists: ~c"SELECT 1 FROM #{@table} WHERE id=?",
+      delete: ~c"DELETE FROM #{@table} WHERE id=?"
     }
 end

@@ -8,7 +8,7 @@ defmodule BalanceStore do
     base: :balance,
     table: @table,
     mod: Ippan.Balance,
-    create: "
+    create: ~c"
     CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
@@ -19,25 +19,22 @@ defmodule BalanceStore do
       PRIMARY KEY (id, token)
     ) WITHOUT ROWID;",
     stmt: %{
-      insert: "INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
-      replace: "REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
-      balance: "SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2 AND amount >= ?3",
-      lookup: "SELECT * FROM #{@table} WHERE id = ?1 AND token = ?2",
-      exists: "SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2",
-      delete: "DELETE FROM #{@table} WHERE id = ?1 AND token = ?2",
+      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
+      replace: ~c"REPLACE INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
+      balance: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2 AND amount >= ?3",
+      lookup: ~c"SELECT * FROM #{@table} WHERE id = ?1 AND token = ?2",
+      exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2",
+      delete: ~c"DELETE FROM #{@table} WHERE id = ?1 AND token = ?2",
       send:
-        "UPDATE #{@table} SET amount = amount - ?3, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
-      income: "INSERT INTO #{@table} (id,token,amount,created_at,updated_at)
+        ~c"UPDATE #{@table} SET amount = amount - ?3, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
+      income: ~c"INSERT INTO #{@table} (id,token,amount,created_at,updated_at)
       VALUES(?1, ?2, ?3, ?4, ?4) ON CONFLICT (id, token)
       DO UPDATE SET amount = amount + ?3, updated_at = ?4
       WHERE id = ?1 AND token = ?2",
       lock:
-        "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",
+        ~c"UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",
       unlock:
-        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3"
-      # count_last_activity: "SELECT count(1) FROM #{@table} WHERE token = ?1 AND updated_at > ?2",
-      # last_activity:
-      #   "SELECT id FROM #{@table} WHERE token = ?1 AND updated_at > ?2 ORDER BY updated_at"
+        ~c"UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3"
     }
 
   # def count_last_activity(timestamp) do

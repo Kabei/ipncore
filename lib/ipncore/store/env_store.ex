@@ -1,12 +1,13 @@
 defmodule EnvStore do
   @table "env"
 
-  use Store.Sqlite,
+  alias Ippan.Env
+
+  use Store.Sqlite2,
     base: :env,
     table: @table,
-    cache: false,
     mod: Ippan.Env,
-    create: ["
+    create: [~c"
     CREATE TABLE IF NOT EXISTS #{@table}(
     name TEXT PRIMARY KEY NOT NULL,
     value BLOB,
@@ -14,18 +15,14 @@ defmodule EnvStore do
     ) WITHOUT ROWID;
     "],
     stmt: %{
-      insert: "REPLACE INTO #{@table} values(?1, ?2, ?3)",
-      delete: "DELETE FROM #{@table} WHERE name=?1",
-      lookup: "SELECT value FROM #{@table} WHERE name=?1"
+      insert: ~c"REPLACE INTO #{@table} values(?1, ?2, ?3)",
+      delete: ~c"DELETE FROM #{@table} WHERE name=?1",
+      lookup: ~c"SELECT value FROM #{@table} WHERE name=?1"
     }
 
-  def get(name, default \\ nil) do
-    case lookup(name) do
-      nil ->
-        default
-
-      val ->
-        :erlang.binary_to_term(val)
-    end
-  end
+  use Store.Cache,
+    table: :env,
+    mod: Env,
+    mode: "full",
+    size: 10_000_000
 end

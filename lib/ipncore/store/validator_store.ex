@@ -22,9 +22,9 @@ defmodule ValidatorStore do
       updated_at BIGINT NOT NULL
       );",
     stmt: %{
+      "owner" => "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
       insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
       lookup: "SELECT * FROM #{@table} WHERE id = ?1",
-      owner: "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
       exists: "SELECT 1 FROM #{@table} WHERE id = ?1",
       delete: "DELETE FROM #{@table} WHERE id = ?1",
       total: "SELECT COUNT(1) FROM #{@table}"

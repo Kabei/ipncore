@@ -31,16 +31,15 @@ defmodule Ippan.DNS do
 
   def to_tuple(x) do
     {
-      x.domain,
+      {x.domain, x.hash},
       x.name,
       x.type,
       x.data,
-      x.ttl,
-      x.hash
+      x.ttl
     }
   end
 
-  def to_map({domain, name, type, data, ttl, hash}) do
+  def to_map({{domain, hash}, name, type, data, ttl}) do
     %{
       domain: domain,
       name: name,
@@ -67,5 +66,10 @@ defmodule Ippan.DNS do
       ttl: ttl,
       hash: hash
     }
+  end
+
+  def fun_hash(data) do
+    # :crypto.hash(:md5, data)
+    Blake3.hash(data) |> :binary.part(16, 16)
   end
 end

@@ -1,19 +1,3 @@
-defmodule Global do
-  use GlobalConst.DummyModule
-
-  defmacro miner do
-    quote do
-      Global.get(:miner)
-    end
-  end
-
-  defmacro owner do
-    quote do
-      Global.get(:owner)
-    end
-  end
-end
-
 defmodule Default do
   @block_interval Application.compile_env(:ipncore, :block_interval)
   @token Application.compile_env(:ipncore, :token)

@@ -100,7 +100,7 @@ defmodule Ippan.Func.Validator do
       not Match.hostname?(hostname) ->
         raise IppanError, "Invalid hostname"
 
-      not Platform.owner?(account_id) ->
+      not Global.owner?(account_id) ->
         raise IppanError, "Invalid operation"
 
       true ->
@@ -178,7 +178,7 @@ defmodule Ippan.Func.Validator do
   @spec delete(Source.t(), term) :: result()
   def delete(%{id: account_id}, id) do
     cond do
-      not Platform.owner?(account_id) and not ValidatorStore.owner?(id, account_id) ->
+      not Global.owner?(account_id) and not ValidatorStore.owner?(id, account_id) ->
         raise IppanError, "Invalid owner"
 
       true ->

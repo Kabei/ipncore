@@ -406,8 +406,6 @@ defmodule BlockTimer do
           []
         end
 
-      IO.inspect(requests)
-
       mine_fun(requests, height, round, creator_id, prev_hash, timestamp, :import)
 
       GenServer.cast(pid, {:complete, :import, block})
@@ -524,7 +522,7 @@ defmodule BlockTimer do
 
                 Map.put_new(acc, hash, {message, signature})
               rescue
-                # block failed
+                # tx failed
                 e ->
                   Logger.debug(Exception.format(:error, e, __STACKTRACE__))
                   acc
@@ -560,15 +558,15 @@ defmodule BlockTimer do
 
                 Map.put_new(acc, hash, if(signature, do: {message, signature}, else: message))
               rescue
-                # block failed
+                # tx failed
                 e ->
-                  MessageStore.delete(hash)
+                  MessageStore.delete_df(hash)
                   Logger.debug(Exception.format(:error, e, __STACKTRACE__))
                   acc
               end
           end)
       end
-      |> Map.values()
+      |> :maps.values()
 
     ev_count = length(events)
     empty = ev_count == 0
@@ -690,6 +688,7 @@ defmodule BlockTimer do
           prev: prev,
           signature: signature,
           timestamp: timestamp,
+          ev_count: ev_count,
           size: size
         } = block,
         %{hostname: hostname, pubkey: pubkey}
@@ -749,6 +748,10 @@ defmodule BlockTimer do
             |> elem(1)
         end
       )
+
+    if ev_count != length(decode_events) do
+      raise(IppanError, "Invalid block size and decode events size")
+    end
 
     export_path =
       Application.get_env(@otp_app, :decode_dir)

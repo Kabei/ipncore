@@ -45,26 +45,8 @@ defmodule Ippan.Block do
   end
 
   def to_tuple(x) do
-    {x.height, x.creator, x.hash, x.prev, x.hashfile, x.signature, x.round, x.timestamp,
+    {{x.creator, x.height}, x.hash, x.prev, x.hashfile, x.signature, x.round, x.timestamp,
      x.ev_count, x.size, x.vsn}
-  end
-
-  def to_map(
-        {height, creator, hash, prev, hashfile, signature, round, timestamp, ev_count, size, vsn}
-      ) do
-    %{
-      height: height,
-      creator: creator,
-      prev: prev,
-      hash: hash,
-      hashfile: hashfile,
-      signature: signature,
-      round: round,
-      timestamp: timestamp,
-      ev_count: ev_count,
-      vsn: vsn,
-      size: size
-    }
   end
 
   def to_map([
@@ -89,6 +71,25 @@ defmodule Ippan.Block do
       signature: signature,
       timestamp: timestamp,
       round: round,
+      ev_count: ev_count,
+      vsn: vsn,
+      size: size
+    }
+  end
+
+  def to_map(
+        {{creator, height}, hash, prev, hashfile, signature, round, timestamp, ev_count, size,
+         vsn}
+      ) do
+    %{
+      height: height,
+      creator: creator,
+      prev: prev,
+      hash: hash,
+      hashfile: hashfile,
+      signature: signature,
+      round: round,
+      timestamp: timestamp,
       ev_count: ev_count,
       vsn: vsn,
       size: size

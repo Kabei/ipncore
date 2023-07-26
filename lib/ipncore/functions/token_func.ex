@@ -29,7 +29,7 @@ defmodule Ippan.Func.Token do
       map_filter != opts ->
         raise IppanError, "Invalid options parameter"
 
-      Platform.has_owner?() and not Platform.owner?(account_id) ->
+      Global.has_owner?() and not Global.owner?(account_id) ->
         raise IppanError, "Invalid operation"
 
       true ->

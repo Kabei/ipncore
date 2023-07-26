@@ -12,18 +12,20 @@ defmodule Platform do
     {:ok, pid3} = ValidatorStore.start_link(Path.join(data_dir, "validator/validator.db"))
 
     # load native token data
-    case TokenStore.lookup([@token]) do
+    case TokenStore.lookup_map(@token) do
       nil ->
         init(role)
 
       token ->
         wallet_owner = token.owner
-        [_, wallet_pubkey, _wallet_validator] = WalletStore.lookup([wallet_owner])
+        {_id, wallet_pubkey, _wallet_validator} = WalletStore.lookup(wallet_owner)
 
         GlobalConst.new(Global, %{
           owner: wallet_owner,
           owner_pubkey: wallet_pubkey,
           native_token: token,
+          pubkey: Application.get_env(:ipncore, :pubkey),
+          privkey: Application.get_env(:ipncore, :privkey),
           vid: Application.get_env(:ipncore, :vid)
         })
     end
@@ -41,22 +43,6 @@ defmodule Platform do
   end
 
   def start(_), do: :ok
-
-  def has_owner? do
-    case Global.get(:owner, false) do
-      false ->
-        false
-
-      _ ->
-        true
-    end
-  end
-
-  def owner?(nil), do: false
-
-  def owner?(id) do
-    Global.get(:owner, nil) == id
-  end
 
   defp init(role) do
     pk =
@@ -173,6 +159,8 @@ defmodule Platform do
       owner: address,
       owner_pubkey: pk,
       miner: System.get_env("MINER") |> to_atom(),
+      pubkey: Application.get_env(:ipncore, :pubkey),
+      privkey: Application.get_env(:ipncore, :privkey),
       vid: Application.get_env(:ipncore, :vid)
     })
   end

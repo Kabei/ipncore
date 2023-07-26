@@ -42,7 +42,7 @@ defmodule Ippan.Func.Tx do
   end
 
   # with refund enabled
-  def send(source, to, token, amount, 1) do
+  def send_with_refund(source, to, token, amount) do
     :ok = send(source, to, token, amount)
 
     %{id: account_id, hash: hash, timestamp: timestamp} = source

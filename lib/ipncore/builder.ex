@@ -396,9 +396,9 @@ defmodule Builder do
     {body, sig}
   end
 
-  def tx_send_with_refund(secret, address, to, token, amount) do
+  def tx_refundable(secret, address, to, token, amount) do
     body =
-      [301, :os.system_time(:millisecond), address, to, token, amount, 1]
+      [304, :os.system_time(:millisecond), address, to, token, amount]
       |> Jason.encode!()
 
     hash = hash_fun(body)

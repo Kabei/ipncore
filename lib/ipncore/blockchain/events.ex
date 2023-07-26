@@ -187,6 +187,16 @@ defmodule Ippan.Events do
       auth: true
     }
 
+  def lookup(n = 304),
+    do: %Event{
+      id: n,
+      name: "tx.refundable",
+      mod: Tx,
+      base: :tx,
+      fun: :send_with_refund,
+      auth: true
+    }
+
   def lookup(n = 400),
     do: %Event{
       id: n,

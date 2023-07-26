@@ -387,7 +387,17 @@ defmodule Builder do
       [301, :os.system_time(:millisecond), address, to, token, amount]
       |> Jason.encode!()
 
-    # |> :erlang.term_to_binary()
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def tx_send_with_refund(secret, address, to, token, amount) do
+    body =
+      [301, :os.system_time(:millisecond), address, to, token, amount, 1]
+      |> Jason.encode!()
 
     hash = hash_fun(body)
 
@@ -488,7 +498,91 @@ defmodule Builder do
         days
       ) do
     body =
-      [402, :os.system_time(:millisecond), address, domain_name, days]
+      [403, :os.system_time(:millisecond), address, domain_name, days]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def balance_lock(secret, address, token_id, to, amount) do
+    body =
+      [250, :os.system_time(:millisecond), address, token_id, to, amount]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def balance_unlock(secret, address, token_id, to, amount) do
+    body =
+      [251, :os.system_time(:millisecond), address, token_id, to, amount]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def dns_new(secret, address, fullname, type, data, ttl) do
+    body =
+      [500, :os.system_time(:millisecond), address, fullname, type, data, ttl]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def dns_update(secret, address, fullname, dns_hash16, params) do
+    body =
+      [501, :os.system_time(:millisecond), address, fullname, dns_hash16, params]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def dns_delete(secret, address, fullname) do
+    body =
+      [502, :os.system_time(:millisecond), address, fullname]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def dns_delete(secret, address, fullname, type) when is_integer(type) do
+    body =
+      [502, :os.system_time(:millisecond), address, fullname, type]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def dns_delete(secret, address, fullname, hash16) do
+    body =
+      [502, :os.system_time(:millisecond), address, fullname, hash16]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -503,12 +597,12 @@ defmodule Builder do
 
     (first <>
        case first do
-         "0" ->
-           Cafezinho.Impl.sign(msg, secret)
-           |> elem(1)
-
          "1" ->
            Falcon.sign(secret, msg)
+           |> elem(1)
+
+         _ ->
+           Cafezinho.Impl.sign(msg, secret)
            |> elem(1)
 
            #  "2" ->

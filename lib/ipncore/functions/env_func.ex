@@ -27,6 +27,6 @@ defmodule Ippan.Func.Env do
   end
 
   def delete(_source, name) do
-    EnvStore.delete(name)
+    EnvStore.delete([name])
   end
 end

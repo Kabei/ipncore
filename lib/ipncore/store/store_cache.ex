@@ -61,6 +61,11 @@ defmodule Store.Cache do
           :ets.insert(@table, {key, value})
           cast({:step, :insert, [key, value]})
         end
+
+        def delete(key) do
+          :ets.delete(@table, key)
+          cast({:step, :delete, [key]})
+        end
       end
 
       if @partial do

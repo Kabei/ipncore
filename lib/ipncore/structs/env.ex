@@ -20,10 +20,10 @@ defmodule Ippan.Env do
   end
 
   def to_map({name, value, timestamp}) do
-    %{name: name, value: value, ttl: timestamp}
+    %{name: name, value: value, timestamp: timestamp}
   end
 
   def to_map([name, value, timestamp]) do
-    %{name: name, value: value, ttl: timestamp}
+    %{name: name, value: value, timestamp: timestamp}
   end
 end

@@ -127,8 +127,9 @@ defmodule Ippan.Func.Dns do
     end
   end
 
-  def delete(%{id: account_id}, fullname, hash) do
+  def delete(%{id: account_id}, fullname, hash16) do
     {subdomain, domain} = Domain.split(fullname)
+    hash = Base.decode16(hash16, case: :mixed)
 
     if DomainStore.owner?(domain, account_id) do
       DnsStore.step_change("delete_hash", [domain, subdomain, hash])

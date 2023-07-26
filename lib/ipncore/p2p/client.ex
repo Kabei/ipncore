@@ -77,8 +77,8 @@ defmodule Ippan.P2P.Client do
           {:noreply, state}
       end
     catch
-      :exit, m ->
-        IO.inspect(m)
+      :exit, _m ->
+        # IO.inspect(m)
         :timer.send_after(@time_to_reconnect, :reconnect)
         {:noreply, state}
     end
@@ -136,7 +136,7 @@ defmodule Ippan.P2P.Client do
         msg,
         %{conn: conn, id: vid, mailbox: mailbox} = state
       ) do
-    IO.inspect("send a msg #{inspect(msg)}")
+    # IO.inspect("send a msg #{inspect(msg)}")
 
     continue =
       case msg do
@@ -159,7 +159,7 @@ defmodule Ippan.P2P.Client do
         true ->
           case msg do
             %{id: id} ->
-              IO.inspect("set in mailbox")
+              # IO.inspect("set in mailbox")
               save_mailbox(vid, id, msg)
               mailbox = Map.put(mailbox, id, msg)
               %{state | mailbox: mailbox}
@@ -234,7 +234,7 @@ defmodule Ippan.P2P.Client do
   end
 
   defp check_mailbox(%{id: vid, mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
-    IO.inspect(mailbox)
+    # IO.inspect(mailbox)
 
     if mailbox != %{} do
       for {_, msg} <- mailbox do
@@ -245,7 +245,7 @@ defmodule Ippan.P2P.Client do
       file_path = Path.join(data_dir, "mailbox.#{vid}.tmp")
       File.rm(file_path)
 
-      IO.inspect("mailbox sent")
+      # IO.inspect("mailbox sent")
     else
       me = Global.validator_id()
       b1 = BlockStore.count(vid)

@@ -152,14 +152,14 @@ defmodule VoteCounter do
     {:noreply, state}
   end
 
-  def handle_info({"invalid", block}, state) do
+  def handle_info({"invalid", _block}, state) do
     # Logger.debug("Block.invalid #{inspect(block)}")
     # apply block empty with errors
     BlockTimer.put_block_ignore_mine()
     {:noreply, state}
   end
 
-  def handle_info(msg, state) do
+  def handle_info(_msg, state) do
     # Logger.debug("#{__MODULE__} handle_info #{inspect(msg)}")
     {:noreply, state}
   end

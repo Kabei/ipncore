@@ -257,12 +257,12 @@ defmodule BalanceStore do
     call({:call, fun})
   end
 
-  @spec lock(binary, String.t(), non_neg_integer()) :: boolean()
+  @spec lock(binary, String.t(), non_neg_integer()) :: integer()
   def lock(id, token, amount) do
     call({:execute_changes, :lock, [id, token, amount]})
   end
 
-  @spec unlock(binary, String.t(), non_neg_integer()) :: boolean()
+  @spec unlock(binary, String.t(), non_neg_integer()) :: integer()
   def unlock(id, token, amount) do
     call({:execute_changes, :unlock, [id, token, amount]})
   end

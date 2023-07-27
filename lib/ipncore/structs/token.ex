@@ -90,13 +90,13 @@ defmodule Ippan.Token do
         created_at,
         updated_at
       ]) do
-    {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, max_supply,
-     @json.encode!(props), created_at, updated_at}
+    {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
+     created_at, updated_at}
   end
 
   def to_tuple(x) do
     {x.id, x.owner, x.name, x.avatar, x.decimal, x.symbol, x.enabled, x.supply, x.burned,
-     x.max_supply, @json.encode!(x.props), x.created_at, x.updated_at}
+     x.max_supply, x.props, x.created_at, x.updated_at}
   end
 
   def to_map(

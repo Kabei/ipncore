@@ -338,6 +338,7 @@ defmodule BlockTimer do
                                hash,
                                account_id,
                                validator_id,
+                               node_id,
                                args,
                                _message,
                                _signature,
@@ -349,6 +350,7 @@ defmodule BlockTimer do
           timestamp,
           account_id,
           validator_id,
+          node_id,
           size,
           decode_term(args)
         )
@@ -427,6 +429,7 @@ defmodule BlockTimer do
               type,
               account_id,
               validator_id,
+              node_id,
               args,
               message,
               signature,
@@ -443,6 +446,7 @@ defmodule BlockTimer do
                   timestamp,
                   account_id,
                   validator_id,
+                  node_id,
                   size,
                   args,
                   round
@@ -463,6 +467,7 @@ defmodule BlockTimer do
               hash,
               account_id,
               validator_id,
+              node_id,
               args,
               message,
               signature,
@@ -479,6 +484,7 @@ defmodule BlockTimer do
                   timestamp,
                   account_id,
                   validator_id,
+                  node_id,
                   size,
                   args,
                   round
@@ -501,6 +507,7 @@ defmodule BlockTimer do
               type,
               account_id,
               validator_id,
+              node_id,
               args,
               message,
               signature,
@@ -516,6 +523,7 @@ defmodule BlockTimer do
                   timestamp,
                   account_id,
                   validator_id,
+                  node_id,
                   size,
                   args,
                   round
@@ -536,6 +544,7 @@ defmodule BlockTimer do
               hash,
               account_id,
               validator_id,
+              node_id,
               args,
               message,
               signature,
@@ -552,6 +561,7 @@ defmodule BlockTimer do
                   timestamp,
                   account_id,
                   validator_id,
+                  node_id,
                   size,
                   args,
                   round

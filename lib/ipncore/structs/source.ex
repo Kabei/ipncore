@@ -6,8 +6,9 @@ defmodule Ippan.Request.Source do
           event: Event.t(),
           id: String.t() | nil,
           validator: number() | nil,
+          node: number() | nil,
           timestamp: non_neg_integer(),
           size: non_neg_integer()
         }
-  defstruct [:hash, :event, :id, :validator, :timestamp, :size]
+  defstruct [:hash, :event, :id, :validator, :node, :timestamp, :size]
 end

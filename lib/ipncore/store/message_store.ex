@@ -12,6 +12,7 @@ defmodule MessageStore do
         type INTEGER,
         account_id BLOB,
         validator_id BIGINT,
+        node_id BIGINT,
         args BLOB,
         message BLOB,
         signature BLOB,
@@ -25,6 +26,7 @@ defmodule MessageStore do
         hash BLOB,
         account_id BLOB,
         validator_id BIGINT,
+        node_id BIGINT,
         args BLOB,
         message BLOB,
         signature BLOB,
@@ -40,11 +42,11 @@ defmodule MessageStore do
       "select" =>
         ~c"SELECT timestamp, hash, type, account_id, validator_id, args, message, signature, size, ROWID
         FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, ROWID, *  FROM #{@table})
-        WHERE total <= ?1 and validator_id = ?2 ORDER BY timestamp, hash",
+        WHERE total <= ?1 AND node_id = ?2 ORDER BY timestamp, hash",
       "select_df" =>
         ~c"SELECT key, type, timestamp, hash, account_id, validator_id, args, message, signature, size, ROWID
         FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, ROWID, * FROM #{@table_df} WHERE round IS NULL)
-        WHERE total <= ?1 and validator_id = ?2 ORDER BY timestamp, hash",
+        WHERE total <= ?1 AND node_id = ?2 ORDER BY timestamp, hash",
       "delete_all" => ~c"DELETE FROM #{@table} WHERE ROWID <= ?1",
       "delete_all_df" => ~c"DELETE FROM #{@table_df} WHERE ROWID <= ?1 AND round IS NULL",
       "delete_all_df_approved" =>
@@ -54,10 +56,10 @@ defmodule MessageStore do
       "delete_df" => ~c"DELETE FROM #{@table_df} WHERE timestamp = ? AND hash = ?",
       "approve_df" => ~c"UPDATE #{@table_df} SET round=?1 WHERE timestamp = ?2 AND hash = ?3",
       "insert_df" =>
-        ~c"INSERT INTO #{@table_df} (key,type,timestamp,hash,account_id,validator_id,args,message,signature,size) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
+        ~c"INSERT INTO #{@table_df} (key,type,timestamp,hash,account_id,validator_id,node_id,args,message,signature,size) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
       ON CONFLICT (key,type) DO UPDATE SET timestamp=?3, hash=?4, account_id=?5, validator_id=?6, args=?7, message=?8, signature=?9, size=?10
       WHERE timestamp > EXCLUDED.timestamp OR timestamp = EXCLUDED.timestamp AND hash > EXCLUDED.hash",
-      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)"
+      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)"
     }
 
   def all_df do

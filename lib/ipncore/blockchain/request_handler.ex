@@ -35,6 +35,7 @@ defmodule Ippan.RequestHandler do
             timestamp,
             hash,
             nil,
+            nil,
             Global.validator_id(),
             :erlang.term_to_binary(args),
             msg,
@@ -47,6 +48,7 @@ defmodule Ippan.RequestHandler do
             timestamp,
             hash,
             type,
+            nil,
             nil,
             Global.validator_id(),
             :erlang.term_to_binary(args),
@@ -74,9 +76,9 @@ defmodule Ippan.RequestHandler do
           if wallet_validator != node_validator_id, do: raise(IppanError, "Invalid validator")
           {wallet_pubkey, wallet_validator}
 
-        false ->
-          {_id, wallet_pubkey, _wallet_validator, _created_at} = WalletStore.lookup(from)
-          {wallet_pubkey, nil}
+        _false ->
+          {_id, wallet_pubkey, wallet_validator, _created_at} = WalletStore.lookup(from)
+          {wallet_pubkey, wallet_validator}
       end
 
     <<sig_flag::bytes-size(1), signature::binary>> = sig_with_flag
@@ -93,6 +95,7 @@ defmodule Ippan.RequestHandler do
             timestamp,
             hash,
             from,
+            wallet_validator,
             node_validator_id,
             :erlang.term_to_binary(args),
             msg,
@@ -107,6 +110,7 @@ defmodule Ippan.RequestHandler do
             type,
             from,
             wallet_validator,
+            node_validator_id,
             :erlang.term_to_binary(args),
             msg,
             sig_with_flag,
@@ -119,13 +123,14 @@ defmodule Ippan.RequestHandler do
 
   # ======================================================
 
-  def handle!(hash, type, timestamp, account_id, node_validator_id, size, nil, round) do
+  def handle!(hash, type, timestamp, account_id, validator_id, node_id, size, nil, round) do
     event = Events.lookup(type)
 
     source = %{
       id: account_id,
       type: type,
-      validator: node_validator_id,
+      validator: validator_id,
+      node: node_id,
       hash: hash,
       round: round,
       timestamp: timestamp,
@@ -141,7 +146,7 @@ defmodule Ippan.RequestHandler do
     end
   end
 
-  def handle!(hash, type, timestamp, account_id, node_validator_id, size, args, round) do
+  def handle!(hash, type, timestamp, account_id, validator_id, node_id, size, args, round) do
     event = Events.lookup(type)
 
     case event do
@@ -149,7 +154,8 @@ defmodule Ippan.RequestHandler do
         source = %{
           id: account_id,
           type: type,
-          validator: node_validator_id,
+          validator: validator_id,
+          node: node_id,
           hash: hash,
           round: round,
           timestamp: timestamp,
@@ -163,7 +169,8 @@ defmodule Ippan.RequestHandler do
           id: account_id,
           type: type,
           key: hd(args) |> to_string,
-          validator: node_validator_id,
+          validator: node_id,
+          node: node_id,
           hash: hash,
           round: round,
           timestamp: timestamp,
@@ -174,7 +181,7 @@ defmodule Ippan.RequestHandler do
     end
   end
 
-  def handle_post!(hash, type, timestamp, account_id, validator_id, size, args) do
+  def handle_post!(hash, type, timestamp, account_id, validator_id, node_id, size, args) do
     event = Events.lookup(type)
 
     source = %{
@@ -182,6 +189,7 @@ defmodule Ippan.RequestHandler do
       type: type,
       key: hd(args) |> to_string,
       validator: validator_id,
+      node: node_id,
       hash: hash,
       timestamp: timestamp,
       size: size

@@ -169,7 +169,7 @@ defmodule Ippan.RequestHandler do
           id: account_id,
           type: type,
           key: hd(args) |> to_string,
-          validator: node_id,
+          validator: validator_id,
           node: node_id,
           hash: hash,
           round: round,

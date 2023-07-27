@@ -82,18 +82,12 @@ defmodule Ippan.Func.Wallet do
       validator_id == new_validator_id ->
         raise IppanError, "Already subscribe"
 
-      not ValidatorStore.exists?(validator_id) ->
+      not ValidatorStore.exists?(new_validator_id) ->
         raise IppanError, "Validator not exists"
 
       true ->
-        case ValidatorStore.lookup([new_validator_id]) do
-          nil ->
-            raise IppanError, "Validator not exists"
-
-          _ ->
-            :ok = BalanceStore.balance(account_id, @token, size)
-            MessageStore.approve_df(round, timestamp, hash)
-        end
+        :ok = BalanceStore.balance(account_id, @token, size)
+        MessageStore.approve_df(round, timestamp, hash)
     end
   end
 

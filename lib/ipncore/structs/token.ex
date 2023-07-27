@@ -37,7 +37,7 @@ defmodule Ippan.Token do
             updated_at: nil
 
   def to_list(
-        {id, name, owner, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
+        {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
          created_at, updated_at}
       ) do
     [
@@ -100,7 +100,7 @@ defmodule Ippan.Token do
   end
 
   def to_map(
-        {id, name, owner, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
+        {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
          created_at, updated_at}
       ) do
     %{

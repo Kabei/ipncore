@@ -78,7 +78,7 @@ defmodule MessageStore do
     call({:fetch, "all_df", []})
   end
 
-  def all_df do
+  def all_hash do
     call({:fetch, "all_hash", []})
   end
 

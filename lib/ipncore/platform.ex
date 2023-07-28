@@ -7,9 +7,9 @@ defmodule Platform do
 
   def start(role) when role != "test" do
     data_dir = Application.get_env(:ipncore, :data_dir)
-    {:ok, pid} = TokenStore.start_link(Path.join(data_dir, "store/assets.db"))
-    {:ok, pid2} = WalletStore.start_link(Path.join(data_dir, "store/accounts.db"))
-    {:ok, pid3} = ValidatorStore.start_link(Path.join(data_dir, "store/assets.db"))
+    {:ok, pid} = TokenStore.start_link(Path.join(data_dir, "token/token.db"))
+    {:ok, pid2} = WalletStore.start_link(Path.join(data_dir, "wallet/wallet.db"))
+    {:ok, pid3} = ValidatorStore.start_link(Path.join(data_dir, "validator/validator.db"))
 
     # load native token data
     case TokenStore.lookup_map(@token) do

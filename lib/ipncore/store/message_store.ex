@@ -3,8 +3,8 @@ defmodule MessageStore do
   @table_df "msg_df"
   @table_hash "hashmap"
 
-  @every div(86400, Application.compile_env(:ipncore, :block_interval))
   @expiry_time :timer.hours(24)
+  @every div(@expiry_time, 1000) |> div(Application.compile_env(:ipncore, :block_interval))
 
   use Store.Sqlite2,
     base: :msg,

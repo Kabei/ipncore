@@ -53,7 +53,7 @@ defmodule Ipncore.Router do
                 Global.miner(),
                 :verifiers,
                 "event",
-                {"valid_df", node(), hash, timestamp, msg}
+                {"valid_df", node(), msg}
               )
           end
 

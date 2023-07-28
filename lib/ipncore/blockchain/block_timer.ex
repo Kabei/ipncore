@@ -12,7 +12,6 @@ defmodule BlockTimer do
   @otp_app :ipncore
   @module __MODULE__
   @token Application.compile_env(:ipncore, :token)
-  # @time_activity Application.compile_env(:ipncore, :last_activity)
   @pubsub_verifiers :verifiers
   @topic_block "block"
   @topic_round "round"
@@ -327,15 +326,15 @@ defmodule BlockTimer do
     end)
   end
 
-  defp spawn_round_worker(pid, %{next_round: next_round, prev_round: prev_round}) do
+  defp spawn_round_worker(pid, %{next_round: current_round, prev_round: prev_round}) do
     spawn_link(fn ->
-      {:ok, requests} = MessageStore.delete_all_df_approved(next_round)
+      {:ok, requests} = MessageStore.delete_all_df_approved(current_round)
 
       Enum.each(requests, fn [
+                               hash,
+                               timestamp,
                                _key,
                                type,
-                               timestamp,
-                               hash,
                                account_id,
                                validator_id,
                                node_id,
@@ -356,17 +355,19 @@ defmodule BlockTimer do
         )
       end)
 
-      result_hashes = BlockStore.fetch_hash_round(next_round)
+      result_hashes = BlockStore.fetch_hash_round(current_round)
       hashes = Enum.concat(result_hashes)
       count = length(hashes)
-      hash = Round.compute_hash(next_round, prev_round, hashes)
-      {:row, [timestamp]} = BlockStore.avg_round_time(next_round)
+      hash = Round.compute_hash(current_round, prev_round, hashes)
+      {:row, [timestamp]} = BlockStore.avg_round_time(current_round)
 
-      RoundStore.insert([next_round, hash, prev_round, count, timestamp])
+      RoundStore.insert([current_round, hash, prev_round, count, timestamp])
 
       task_jackpot =
         Task.async(fn ->
-          run_jackpot(next_round, hash, timestamp)
+          run_jackpot(current_round, hash, timestamp)
+          MessageStore.delete_expiry(current_round, timestamp)
+          DomainStore.delete_expiry(current_round, timestamp)
         end)
 
       MessageStore.sync()
@@ -379,7 +380,7 @@ defmodule BlockTimer do
 
       checkpoint_commit()
 
-      GenServer.cast(pid, {:complete, :round, next_round + 1, next_round, hash})
+      GenServer.cast(pid, {:complete, :round, current_round + 1, current_round, hash})
     end)
   end
 
@@ -424,8 +425,8 @@ defmodule BlockTimer do
         :local ->
           Enum.reduce(requests, %{}, fn
             [
-              timestamp,
               hash,
+              timestamp,
               type,
               account_id,
               validator_id,
@@ -452,7 +453,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put(acc, hash, {message, signature})
+                Map.put_new(acc, hash, {message, signature})
               rescue
                 # block failed
                 e ->
@@ -461,10 +462,10 @@ defmodule BlockTimer do
               end
 
             [
+              hash,
+              timestamp,
               _key,
               type,
-              timestamp,
-              hash,
               account_id,
               validator_id,
               node_id,
@@ -490,7 +491,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put(acc, hash, if(signature, do: {message, signature}, else: message))
+                Map.put_new(acc, hash, if(signature, do: {message, signature}, else: message))
               rescue
                 # block failed
                 e ->
@@ -502,8 +503,8 @@ defmodule BlockTimer do
         _import ->
           Enum.reduce(requests, %{}, fn
             [
-              timestamp,
               hash,
+              timestamp,
               type,
               account_id,
               validator_id,
@@ -538,10 +539,10 @@ defmodule BlockTimer do
               end
 
             [
+              hash,
+              timestamp,
               _key,
               type,
-              timestamp,
-              hash,
               account_id,
               validator_id,
               node_id,
@@ -761,7 +762,7 @@ defmodule BlockTimer do
       )
 
     if ev_count != length(decode_events) do
-      raise(IppanError, "Invalid block size and decode events size")
+      raise(IppanError, "Invalid block size and valid events size")
     end
 
     export_path =

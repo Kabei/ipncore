@@ -128,7 +128,7 @@ defmodule Ipncore.Application do
     # catch routes
     data_dir = Application.get_env(@otp_app, :data_dir)
     block_dir = Path.join(data_dir, "blocks")
-    block_decode_dir = Path.join(data_dir, "blocks-decode")
+    block_decode_dir = Path.join(data_dir, "blocks/decoded")
     # set variable
     Application.put_env(@otp_app, :block_dir, block_dir)
     Application.put_env(@otp_app, :decode_dir, block_decode_dir)

@@ -7,59 +7,8 @@ defmodule Ippan.Func.Validator do
 
   @type result :: Ippan.Request.result()
   @pubsub_server :verifiers
+  @token Application.compile_env(:ipncore, :token)
 
-  def new(
-        %{timestamp: timestamp},
-        id,
-        owner_id,
-        hostname,
-        name,
-        pubkey,
-        net_pubkey,
-        fee_type,
-        fee,
-        opts \\ %{}
-      ) do
-    map_filter = Map.take(opts, Validator.optionals())
-    pubkey = Fast64.decode64(pubkey)
-    net_pubkey = Fast64.decode64(net_pubkey)
-
-    validator =
-      %Validator{
-        id: id,
-        hostname: hostname,
-        name: name,
-        pubkey: pubkey,
-        net_pubkey: net_pubkey,
-        owner: owner_id,
-        fee: fee,
-        fee_type: fee_type,
-        stake: 0,
-        created_at: timestamp,
-        updated_at: timestamp
-      }
-      |> Map.merge(MapUtil.to_atoms(map_filter))
-      |> MapUtil.validate_url(:avatar)
-
-    validator
-    |> Validator.to_list()
-    |> ValidatorStore.insert_sync()
-
-    PubSub.broadcast(@pubsub_server, "validator", {"new", validator})
-  end
-
-  @spec pre_new(
-          any(),
-          number(),
-          String.t(),
-          String.t(),
-          String.t(),
-          binary(),
-          binary(),
-          non_neg_integer(),
-          non_neg_integer(),
-          map()
-        ) :: result()
   def pre_new(
         %{id: account_id, hash: hash, round: round, timestamp: timestamp},
         id,
@@ -70,6 +19,7 @@ defmodule Ippan.Func.Validator do
         net_pubkey,
         fee_type,
         fee,
+        stake,
         opts \\ %{}
       )
       when is_positive(id) and
@@ -101,8 +51,11 @@ defmodule Ippan.Func.Validator do
       not Match.hostname?(hostname) ->
         raise IppanError, "Invalid hostname"
 
-      not Global.owner?(account_id) ->
-        raise IppanError, "Invalid operation"
+      # not Global.owner?(account_id) ->
+      #   raise IppanError, "Invalid operation"
+
+      stake != EnvStore.get("STAKE", 0) ->
+        raise IppanError, "Invalid stake amount"
 
       true ->
         %Validator{
@@ -120,8 +73,61 @@ defmodule Ippan.Func.Validator do
         |> Map.merge(MapUtil.to_atoms(map_filter))
         |> MapUtil.validate_url(:avatar)
 
-        MessageStore.approve_df(round, timestamp, hash)
+        case BalanceStore.balance(
+               account_id,
+               @token,
+               stake
+             ) do
+          :ok ->
+            MessageStore.approve_df(round, timestamp, hash)
+
+          _ ->
+            raise IppanError, "Insufficient balance"
+        end
     end
+  end
+
+  def new(
+        %{id: account_id, timestamp: timestamp},
+        id,
+        owner_id,
+        hostname,
+        name,
+        pubkey,
+        net_pubkey,
+        fee_type,
+        fee,
+        stake,
+        opts \\ %{}
+      ) do
+    map_filter = Map.take(opts, Validator.optionals())
+    pubkey = Fast64.decode64(pubkey)
+    net_pubkey = Fast64.decode64(net_pubkey)
+
+    1 = BalanceStore.burn(account_id, @token, stake, timestamp)
+
+    validator =
+      %Validator{
+        id: id,
+        hostname: hostname,
+        name: name,
+        pubkey: pubkey,
+        net_pubkey: net_pubkey,
+        owner: owner_id,
+        fee: fee,
+        fee_type: fee_type,
+        stake: stake,
+        created_at: timestamp,
+        updated_at: timestamp
+      }
+      |> Map.merge(MapUtil.to_atoms(map_filter))
+      |> MapUtil.validate_url(:avatar)
+
+    validator
+    |> Validator.to_list()
+    |> ValidatorStore.insert_sync()
+
+    PubSub.broadcast(@pubsub_server, "validator", {"new", validator})
   end
 
   @spec update(Source.t(), number(), map()) :: result()
@@ -176,16 +182,24 @@ defmodule Ippan.Func.Validator do
     end
   end
 
-  @spec delete(Source.t(), term) :: result()
-  def delete(%{id: account_id}, id) do
+  def pre_delete(%{id: account_id, hash: hash, round: round, timestamp: timestamp}, id) do
+    validator = ValidatorStore.lookup([id])
+
     cond do
-      not Global.owner?(account_id) and not ValidatorStore.owner?(id, account_id) ->
+      not Global.owner?(account_id) or validator.owner != account_id ->
         raise IppanError, "Invalid owner"
 
       true ->
-        ValidatorStore.delete([id])
-
-        PubSub.broadcast(@pubsub_server, "validator", {"delete", id})
+        MessageStore.approve_df(round, timestamp, hash)
     end
+  end
+
+  @spec delete(Source.t(), term) :: result()
+  def delete(%{id: account_id, timestamp: timestamp}, id) do
+    validator = ValidatorStore.lookup([id])
+    BalanceStore.income(account_id, @token, validator.stake, timestamp)
+    ValidatorStore.delete([id])
+
+    PubSub.broadcast(@pubsub_server, "validator", {"delete", id})
   end
 end

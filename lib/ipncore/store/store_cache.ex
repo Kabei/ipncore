@@ -177,9 +177,9 @@ defmodule Store.Cache do
         :ets.delete(@table)
       end
 
-      defp get_key([key]), do: key
-      defp get_key(params) when is_list(params), do: Enum.take(params, @keypos)
-      defp get_key(key), do: key
+      # defp get_key([key]), do: key
+      # defp get_key(params) when is_list(params), do: Enum.take(params, @keypos)
+      # defp get_key(key), do: key
     end
   end
 end

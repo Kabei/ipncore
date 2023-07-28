@@ -1,4 +1,6 @@
 defmodule Global do
+  import Ippan.Utils, only: [to_atom: 1]
+
   defmacro miner do
     quote do
       Default.get(:miner)
@@ -45,5 +47,18 @@ defmodule Global do
     quote do
       Default.get(:vid)
     end
+  end
+
+  @token Application.compile_env(:ipncore, :token)
+  def update do
+    token = TokenStore.lookup_map(@token)
+
+    GlobalConst.new(Default, %{
+      owner: token.owner,
+      miner: System.get_env("MINER") |> to_atom(),
+      pubkey: Application.get_env(:ipncore, :pubkey),
+      privkey: Application.get_env(:ipncore, :privkey),
+      vid: Application.get_env(:ipncore, :vid)
+    })
   end
 end

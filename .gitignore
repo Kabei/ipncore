@@ -28,9 +28,9 @@ ipncore-*.tar
 
 /.elixir_ls/
 /.vscode/
-
 mix.lock
 
+/priv
 env_file
 
 *.app

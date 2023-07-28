@@ -31,9 +31,9 @@ defmodule BalanceStore do
       DO UPDATE SET amount = amount + ?3, updated_at = ?4
       WHERE id = ?1 AND token = ?2",
       lock:
-        "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token =?2 AND amount >= ?3",
+        "UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
       unlock:
-        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token =?2 AND locked >= ?3"
+        "UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token = ?2 AND locked >= ?3"
     }
 
   # def count_last_activity(timestamp) do
@@ -101,59 +101,59 @@ defmodule BalanceStore do
     call({:call, fun})
   end
 
-  def deferred(id, type, from, to, token, amount, timestamp, hash, round) do
-    fun = fn %{conn: conn, stmt: stmt} = state ->
-      case Sqlite3NIF.bind_step_changes(conn, stmt.send, [
-             from,
-             token,
-             amount,
-             timestamp
-           ]) do
-        1 ->
-          case Sqlite3NIF.bind_and_step(conn, stmt.deferred, [
-                 id,
-                 type,
-                 from,
-                 token,
-                 to,
-                 amount,
-                 timestamp,
-                 hash,
-                 round
-               ]) do
-            {:row, [ret_from, ret_token, ret_amount]} = r ->
-              IO.inspect(r)
+  # def deferred(id, type, from, to, token, amount, timestamp, hash, round) do
+  #   fun = fn %{conn: conn, stmt: stmt} = state ->
+  #     case Sqlite3NIF.bind_step_changes(conn, stmt.send, [
+  #            from,
+  #            token,
+  #            amount,
+  #            timestamp
+  #          ]) do
+  #       1 ->
+  #         case Sqlite3NIF.bind_and_step(conn, stmt.deferred, [
+  #                id,
+  #                type,
+  #                from,
+  #                token,
+  #                to,
+  #                amount,
+  #                timestamp,
+  #                hash,
+  #                round
+  #              ]) do
+  #           {:row, [ret_from, ret_token, ret_amount]} = r ->
+  #             IO.inspect(r)
 
-              if ret_from != from do
-                Sqlite3NIF.bind_and_step(conn, stmt.income, [
-                  ret_from,
-                  ret_token,
-                  ret_amount,
-                  timestamp
-                ])
-              end
+  #             if ret_from != from do
+  #               Sqlite3NIF.bind_and_step(conn, stmt.income, [
+  #                 ret_from,
+  #                 ret_token,
+  #                 ret_amount,
+  #                 timestamp
+  #               ])
+  #             end
 
-              {:reply, :ok, state}
+  #             {:reply, :ok, state}
 
-            _ ->
-              # rollback
-              Sqlite3NIF.bind_and_step(conn, stmt.income, [
-                from,
-                token,
-                amount,
-                timestamp
-              ])
+  #           _ ->
+  #             # rollback
+  #             Sqlite3NIF.bind_and_step(conn, stmt.income, [
+  #               from,
+  #               token,
+  #               amount,
+  #               timestamp
+  #             ])
 
-              {:reply, 0, state}
-          end
+  #             {:reply, 0, state}
+  #         end
 
-        _ ->
-          {:reply, :error, state}
-      end
-    end
+  #       _ ->
+  #         {:reply, :error, state}
+  #     end
+  #   end
 
-    call({:call, fun})
-  end
+  #   call({:call, fun})
+  # end
 
   @spec send_fees(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
           :ok | :error
@@ -277,21 +277,21 @@ defmodule BalanceStore do
     end
   end
 
-  def balance2(address, token, amount, token2, amount2) do
-    case call({:execute_step, :balance, [address, token, amount]}) do
-      {:row, [1]} ->
-        case call({:execute_step, :balance, [address, token2, amount2]}) do
-          {:row, [1]} ->
-            true
+  # def balance2(address, token, amount, token2, amount2) do
+  #   case call({:execute_step, :balance, [address, token, amount]}) do
+  #     {:row, [1]} ->
+  #       case call({:execute_step, :balance, [address, token2, amount2]}) do
+  #         {:row, [1]} ->
+  #           true
 
-          _ ->
-            false
-        end
+  #         _ ->
+  #           false
+  #       end
 
-      _ ->
-        false
-    end
-  end
+  #     _ ->
+  #       false
+  #   end
+  # end
 
   def receive(conn, recv_stmt, to_id, token, amount, timestamp)
       when is_reference(conn) do

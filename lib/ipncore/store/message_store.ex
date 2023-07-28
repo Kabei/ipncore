@@ -48,6 +48,7 @@ defmodule MessageStore do
     # size INTEGER
     stmt: %{
       "all_df" => ~c"SELECT * FROM #{@table_df}",
+      "all_hash" => ~c"SELECT * FROM #{@table_hash}",
       "select" =>
         ~c"SELECT hash, timestamp, type, account_id, validator_id, node_id, args, message, signature, size, ROWID
         FROM (SELECT sum(size) OVER (ORDER BY ROWID) as total, ROWID, *  FROM #{@table})
@@ -75,6 +76,10 @@ defmodule MessageStore do
 
   def all_df do
     call({:fetch, "all_df", []})
+  end
+
+  def all_df do
+    call({:fetch, "all_hash", []})
   end
 
   def select(size, validator_id) do

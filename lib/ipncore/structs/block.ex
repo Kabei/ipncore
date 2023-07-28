@@ -160,7 +160,7 @@ defmodule Ippan.Block do
   end
 
   def cluster_decode_url(hostname, creator_id, height) do
-    "http://#{hostname}:8080/v1/download/block-decode/#{creator_id}/#{height}"
+    "http://#{hostname}:8080/v1/download/block/decoded/#{creator_id}/#{height}"
   end
 
   def encode_file!(content) do

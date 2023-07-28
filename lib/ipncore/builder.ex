@@ -1,7 +1,7 @@
 defmodule Builder do
   require Global
   alias Ippan.Address
-  alias Ippan.RequestHandler
+  require Logger
 
   # {pk, sk, pk2, sk2, address, address2} = Builder.test()
   def test do
@@ -18,6 +18,7 @@ defmodule Builder do
     {pk, sk, pk2, sk2, address, address2}
   end
 
+  # {fpk1, fskf1, faddress1, fpk2, fsk2, faddress2} = Builder.test_falcon()
   def test_falcon do
     seed1 =
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
@@ -47,63 +48,62 @@ defmodule Builder do
 
   BlockBuilderWork.sync_all()
   """
-  require Logger
 
-  @spec bench_send(integer()) :: no_return()
-  def bench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
-    spawn(fn ->
-      {_pk, _sk, _pk2, sk1, address, address1} = Builder.test()
+  # @spec bench_send(integer()) :: no_return()
+  # def bench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
+  #   spawn(fn ->
+  #     {_pk, _sk, _pk2, sk1, address, address1} = Builder.test()
 
-      chunks = div(n, cpus)
+  #     chunks = div(n, cpus)
 
-      list =
-        for _ <- 1..n do
-          Builder.tx_send(sk1, address1, address, "IPN", 10 + :rand.uniform(10000))
-        end
-        |> Enum.chunk_every(chunks)
+  #     list =
+  #       for _ <- 1..n do
+  #         Builder.tx_send(sk1, address1, address, "IPN", 10 + :rand.uniform(10000))
+  #       end
+  #       |> Enum.chunk_every(chunks)
 
-      # tstream =
-      Enum.each(list, fn data ->
-        spawn(fn ->
-          start_time = :os.system_time(:microsecond)
-          run_list(data)
-          end_time = :os.system_time(:microsecond)
-          IO.puts("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
-        end)
-      end)
-    end)
+  #     # tstream =
+  #     Enum.each(list, fn data ->
+  #       spawn(fn ->
+  #         start_time = :os.system_time(:microsecond)
+  #         run_list(data)
+  #         end_time = :os.system_time(:microsecond)
+  #         IO.puts("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
+  #       end)
+  #     end)
+  #   end)
 
-    # Enum.to_list(tstream)
+  # Enum.to_list(tstream)
 
-    # end_time = :os.system_time(:microsecond)
+  # end_time = :os.system_time(:microsecond)
 
-    # IO.puts("Time elapsed: #{end_time - start_time} µs")
-  end
+  # IO.puts("Time elapsed: #{end_time - start_time} µs")
+  # end
 
   # Builder.fbench_send(10_000)
-  def fbench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
-    spawn(fn ->
-      {_pk2, sk2, address2, _pk3, _sk3, address3} = Builder.test_falcon()
+  # def fbench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
+  #   spawn(fn ->
+  #     {_pk2, sk2, address2, _pk3, _sk3, address3} = Builder.test_falcon()
 
-      chunks = div(n, cpus)
+  #     chunks = div(n, cpus)
 
-      list =
-        for _ <- 1..n do
-          Builder.tx_send(sk2, address2, address3, "IPN", 10 + :rand.uniform(50000))
-        end
-        |> Enum.chunk_every(chunks)
+  #     list =
+  #       for _ <- 1..n do
+  #         Builder.tx_send(sk2, address2, address3, "IPN", 10 + :rand.uniform(50000))
+  #       end
+  #       |> Enum.chunk_every(chunks)
 
-      # tstream =
-      Enum.each(list, fn data ->
-        spawn(fn ->
-          start_time = :os.system_time(:microsecond)
-          run_list(data)
-          end_time = :os.system_time(:microsecond)
-          IO.puts("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
-        end)
-      end)
-    end)
-  end
+  #     # tstream =
+  #     Enum.each(list, fn data ->
+  #       spawn(fn ->
+  #         start_time = :os.system_time(:microsecond)
+  #         run_list(data)
+  #         end_time = :os.system_time(:microsecond)
+  #         IO.puts("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
+  #       end)
+  #     end)
+  #   end)
+  # end
 
   def build_request({body, sig}) do
     IO.puts(body)
@@ -114,54 +114,54 @@ defmodule Builder do
     IO.puts(body)
   end
 
-  def run_list([]), do: :ok
+  # def run_list([]), do: :ok
 
-  def run_list([first | rest]) do
-    run(first)
-    run_list(rest)
-  end
+  # def run_list([first | rest]) do
+  #   run(first)
+  #   run_list(rest)
+  # end
 
-  def run({body, sig}) do
-    try do
-      hash = Blake3.hash(body)
-      sig = Fast64.decode64(sig)
-      size = byte_size(body) + byte_size(sig)
-      {event, msg} = RequestHandler.valid!(hash, body, size, sig, Global.validator_id())
+  # def run({body, sig}) do
+  #   try do
+  #     hash = Blake3.hash(body)
+  #     sig = Fast64.decode64(sig)
+  #     size = byte_size(body) + byte_size(sig)
+  #     {event, msg} = RequestHandler.valid!(hash, body, size, sig, Global.validator_id())
 
-      case event do
-        %{deferred: false} ->
-          MessageStore.insert_sync(msg)
+  #     case event do
+  #       %{deferred: false} ->
+  #         MessageStore.insert_sync(msg)
 
-        %{deferred: true} ->
-          MessageStore.insert_df(msg)
-      end
-    rescue
-      e ->
-        Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-    end
-  end
+  #       %{deferred: true} ->
+  #         MessageStore.insert_df(msg)
+  #     end
+  #   rescue
+  #     e ->
+  #       Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+  #   end
+  # end
 
-  def run(body) do
-    try do
-      hash = Blake3.hash(body)
-      size = byte_size(body)
-      # [type, timestamp | args] = Jason.decode!(body)
-      # RequestHandler.handle!(hash, type, timestamp, nil, nil, size, args)
-      {event, msg} = RequestHandler.valid!(hash, body, size)
-      IO.inspect(msg)
+  # def run(body) do
+  #   try do
+  #     hash = Blake3.hash(body)
+  #     size = byte_size(body)
+  #     # [type, timestamp | args] = Jason.decode!(body)
+  #     # RequestHandler.handle!(hash, type, timestamp, nil, nil, size, args)
+  #     {event, msg} = RequestHandler.valid!(hash, body, size)
+  #     IO.inspect(msg)
 
-      case event do
-        %{deferred: false} ->
-          MessageStore.insert_sync(msg)
+  #     case event do
+  #       %{deferred: false} ->
+  #         MessageStore.insert_sync(msg)
 
-        %{deferred: true} ->
-          MessageStore.insert_df(msg)
-      end
-    rescue
-      e ->
-        Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-    end
-  end
+  #       %{deferred: true} ->
+  #         MessageStore.insert_df(msg)
+  #     end
+  #   rescue
+  #     e ->
+  #       Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+  #   end
+  # end
 
   # {pk, sk, address} = Builder.gen_ed25519()
   def gen_ed25519 do
@@ -306,7 +306,7 @@ defmodule Builder do
     {body, sig}
   end
 
-  # Builder.validator_new(sk, address, 0, address, "ippan.net", "net core", pkv, 1, 5.0) |> Builder.build_request()
+  # Builder.validator_new(sk, address, 0, address, "ippan.net", "net core", pkv, 1, 5.0, 100, %{"avatar" => "https://avatar.com"}) |> Builder.build_request()
   def validator_new(
         secret,
         address,
@@ -317,7 +317,9 @@ defmodule Builder do
         pubkey,
         net_pubkey,
         fee_type,
-        fee
+        fee,
+        stake,
+        opts \\ %{}
       )
       when is_float(fee) and fee_type in 0..2 do
     body =
@@ -332,7 +334,9 @@ defmodule Builder do
         Fast64.encode64(pubkey),
         Fast64.encode64(net_pubkey),
         fee_type,
-        fee
+        fee,
+        stake,
+        opts
       ]
       |> Jason.encode!()
 

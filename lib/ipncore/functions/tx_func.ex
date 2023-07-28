@@ -59,7 +59,7 @@ defmodule Ippan.Func.Tx do
 
   def coinbase(%{id: account_id, hash: hash, timestamp: timestamp}, token, outputs)
       when length(outputs) > 0 do
-    hash16 = Base.encode16(hash)
+    hash16 = Base.encode16(hash, case: :lower)
 
     case TokenStore.step("owner_props", [token, account_id, "%coinbase%"]) do
       {:row, [1]} ->

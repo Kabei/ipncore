@@ -4,7 +4,7 @@ defmodule Ippan.Func.Token do
 
   @type result :: Ippan.Request.result()
   @max_number 9_223_372_036_854_775_807
-  # @token Application.compile_env(:ipncore, :token)
+  @token Application.compile_env(:ipncore, :token)
 
   def pre_new(
         %{id: account_id, hash: hash, round: round, timestamp: timestamp},
@@ -98,12 +98,22 @@ defmodule Ippan.Func.Token do
         raise IppanError, "Invalid option field"
 
       true ->
+        result =
         MapUtil.to_atoms(map_filter)
         |> MapUtil.validate_length_range(:name, 1..100)
         |> MapUtil.validate_url(:avatar)
         |> MapUtil.validate_account(:owner)
         |> Map.put(:updated_at, timestamp)
         |> TokenStore.update(id: id, owner: account_id)
+
+        case result do
+          1 ->
+            if @token == id do
+              Global.update()
+            end
+            _ ->
+              raise IppanError, "Invalid operation"
+        end
     end
   end
 

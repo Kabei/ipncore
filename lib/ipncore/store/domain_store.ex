@@ -1,6 +1,8 @@
 defmodule DomainStore do
   @table "domain"
 
+  @every div(86400, Application.compile_env(:ipncore, :block_interval))
+
   use Store.Sqlite2,
     base: :domain,
     table: @table,
@@ -17,6 +19,7 @@ defmodule DomainStore do
       updated_at BIGINT NOT NULL
       ) WITHOUT ROWID",
     stmt: %{
+      "delete_expiry" => ~c"DELETE FROM #{@table} WHERE renewed_at < ?",
       owner: ~c"SELECT 1 FROM #{@table} WHERE name = ?1 AND owner = ?2",
       insert: ~c"INSERT INTO #{@table} VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
       lookup: ~c"SELECT * FROM #{@table} WHERE name = ?1",
@@ -28,5 +31,12 @@ defmodule DomainStore do
 
   def renew(name, account_id, millis, timestamp) do
     call({:execute_changes, :renew, [name, account_id, millis, timestamp]})
+  end
+
+  def delete_expiry(round, timestamp) do
+    if rem(round, @every) == 0 do
+      call({:step, "delete_expiry", [timestamp]})
+      sync()
+    end
   end
 end

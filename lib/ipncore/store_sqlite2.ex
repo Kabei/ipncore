@@ -21,7 +21,7 @@ defmodule Store.Sqlite2 do
       use GenServer
 
       def child_spec(opts) do
-        {:ok, state} = start(opts)
+        state = start(opts)
 
         %{
           id: __MODULE__,
@@ -30,7 +30,7 @@ defmodule Store.Sqlite2 do
       end
 
       def start_link(path) when is_binary(path) do
-        {:ok, state} = start(path)
+        state = start(path)
         GenServer.start_link(__MODULE__, state, hibernate_after: 5_000, name: @base)
       end
 
@@ -50,13 +50,13 @@ defmodule Store.Sqlite2 do
         end
       end
 
-      defp start(path) when is_binary(path) do
+      def start(path) when is_binary(path) do
         {:ok, conn} = open(path)
 
         start(conn)
       end
 
-      defp start(conn) when is_reference(conn) do
+      def start(conn) when is_reference(conn) do
         :ok = create(conn)
 
         statements =
@@ -68,8 +68,10 @@ defmodule Store.Sqlite2 do
         check_version(conn)
         attach(conn)
 
-        {:ok, %{conn: conn, stmt: statements}}
+        %{conn: conn, stmt: statements}
       end
+
+      def start(%{conn: conn, stmt: statements} = state), do: state
 
       defp attach(conn) do
         for {key, path} <- @attach do
@@ -90,9 +92,7 @@ defmodule Store.Sqlite2 do
         |> File.mkdir_p()
 
         # flags = [:sqlite_open_sharedcache]
-        flags = []
-
-        {:ok, conn} = Sqlite3.open(path, flags)
+        {:ok, conn} = Sqlite3.open(path, [])
         Sqlite3NIF.execute(conn, ~c"PRAGMA journal_mode = WAL")
         Sqlite3NIF.execute(conn, ~c"PRAGMA synchronous = 0")
         Sqlite3NIF.execute(conn, ~c"PRAGMA cache_size = 1000000")

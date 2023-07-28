@@ -20,8 +20,6 @@ defmodule Ippan.RequestHandler do
   def valid!(hash, msg, size) do
     [type, timestamp | args] = @json.decode!(msg)
 
-    # check_timestamp!(timestamp)
-
     event = %{auth: false, deferred: deferred} = Events.lookup(type)
 
     result =
@@ -30,10 +28,10 @@ defmodule Ippan.RequestHandler do
           key = hd(args) |> to_string()
 
           [
+            hash,
+            timestamp,
             key,
             type,
-            timestamp,
-            hash,
             nil,
             nil,
             Global.validator_id(),
@@ -45,8 +43,8 @@ defmodule Ippan.RequestHandler do
 
         _false ->
           [
-            timestamp,
             hash,
+            timestamp,
             type,
             nil,
             nil,
@@ -90,10 +88,10 @@ defmodule Ippan.RequestHandler do
           key = hd(args) |> to_string()
 
           [
+            hash,
+            timestamp,
             key,
             type,
-            timestamp,
-            hash,
             from,
             wallet_validator,
             node_validator_id,
@@ -105,8 +103,8 @@ defmodule Ippan.RequestHandler do
 
         _false ->
           [
-            timestamp,
             hash,
+            timestamp,
             type,
             from,
             wallet_validator,

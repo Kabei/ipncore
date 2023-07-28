@@ -16,7 +16,7 @@ defmodule Ippan.Env do
   end
 
   def to_tuple(x) do
-    {x.name, x.value, x.timestamp}
+    {x.name, :erlang.binary_to_term(x.value), x.timestamp}
   end
 
   def to_map({name, value, timestamp}) do

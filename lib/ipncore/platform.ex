@@ -17,12 +17,8 @@ defmodule Platform do
         init(role)
 
       token ->
-        wallet_owner = token.owner
-        {_id, wallet_pubkey, _wallet_validator, _created_at} = WalletStore.lookup(wallet_owner)
-
         GlobalConst.new(Default, %{
-          owner: wallet_owner,
-          owner_pubkey: wallet_pubkey,
+          owner: token.owner,
           native_token: token,
           pubkey: Application.get_env(:ipncore, :pubkey),
           privkey: Application.get_env(:ipncore, :privkey),
@@ -108,12 +104,12 @@ defmodule Platform do
         address,
         "IPPAN",
         "https://avatar.com",
-        9,
+        6,
         "Þ",
         true,
         0,
         0,
-        42_000_000_000_000_000,
+        42_000_000_000_000,
         @json.encode!(["coinbase", "lock", "burn"]),
         # @json.encode!(["burn"]),
         timestamp,
@@ -158,7 +154,6 @@ defmodule Platform do
 
     GlobalConst.new(Default, %{
       owner: address,
-      owner_pubkey: pk,
       miner: System.get_env("MINER") |> to_atom(),
       pubkey: Application.get_env(:ipncore, :pubkey),
       privkey: Application.get_env(:ipncore, :privkey),

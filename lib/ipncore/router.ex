@@ -33,6 +33,9 @@ defmodule Ipncore.Router do
 
       [_, timestamp | _] = msg
 
+      IO.inspect(hash)
+      IO.inspect(timestamp)
+
       case MessageStore.insert_hash(hash, timestamp) do
         1 ->
           case event do

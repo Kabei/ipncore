@@ -1,7 +1,7 @@
 defmodule DomainStore do
   @table "domain"
 
-  @every div(86400, Application.compile_env(:ipncore, :block_interval))
+  @every div(:timer.hours(24), Application.compile_env(:ipncore, :block_interval))
 
   use Store.Sqlite2,
     base: :domain,
@@ -34,7 +34,7 @@ defmodule DomainStore do
   end
 
   def delete_expiry(round, timestamp) do
-    if rem(round, @every) == 0 do
+    if round != 0 and rem(round, @every) == 0 do
       call({:step, "delete_expiry", [timestamp]})
       sync()
     end

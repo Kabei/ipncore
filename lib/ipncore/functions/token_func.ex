@@ -32,10 +32,12 @@ defmodule Ippan.Func.Token do
       map_filter != opts ->
         raise IppanError, "Invalid options parameter"
 
-      Global.has_owner?() and not Global.owner?(account_id) ->
-        raise IppanError, "Invalid operation"
+      # Global.has_owner?() and not Global.owner?(account_id) ->
+      #   raise IppanError, "Invalid operation"
 
       true ->
+        price = EnvStore.token_price()
+
         %Token{
           id: id,
           owner: owner_id,
@@ -48,12 +50,22 @@ defmodule Ippan.Func.Token do
         |> MapUtil.validate_url(:avatar)
         |> MapUtil.validate_any(:opts, Token.props())
 
-        MessageStore.approve_df(round, timestamp, hash)
+        case BalanceStore.balance(
+               account_id,
+               @token,
+               price
+             ) do
+          :ok ->
+            MessageStore.approve_df(round, timestamp, hash)
+
+          _ ->
+            raise IppanError, "Insufficient balance"
+        end
     end
   end
 
   def new(
-        %{timestamp: timestamp},
+        %{account_id: account_id, imestamp: timestamp},
         id,
         owner_id,
         name,
@@ -81,6 +93,8 @@ defmodule Ippan.Func.Token do
       |> MapUtil.validate_url(:avatar)
       |> MapUtil.validate_any(:opts, Token.props())
 
+    1 = BalanceStore.burn(account_id, @token, EnvStore.token_price(), timestamp)
+
     token
     |> Token.to_list()
     |> TokenStore.insert_sync()
@@ -99,20 +113,21 @@ defmodule Ippan.Func.Token do
 
       true ->
         result =
-        MapUtil.to_atoms(map_filter)
-        |> MapUtil.validate_length_range(:name, 1..100)
-        |> MapUtil.validate_url(:avatar)
-        |> MapUtil.validate_account(:owner)
-        |> Map.put(:updated_at, timestamp)
-        |> TokenStore.update(id: id, owner: account_id)
+          MapUtil.to_atoms(map_filter)
+          |> MapUtil.validate_length_range(:name, 1..100)
+          |> MapUtil.validate_url(:avatar)
+          |> MapUtil.validate_account(:owner)
+          |> Map.put(:updated_at, timestamp)
+          |> TokenStore.update(id: id, owner: account_id)
 
         case result do
           1 ->
             if @token == id do
               Global.update()
             end
-            _ ->
-              raise IppanError, "Invalid operation"
+
+          _ ->
+            raise IppanError, "Invalid operation"
         end
     end
   end

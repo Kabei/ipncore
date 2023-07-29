@@ -51,10 +51,7 @@ defmodule Ippan.Func.Validator do
       not Match.hostname?(hostname) ->
         raise IppanError, "Invalid hostname"
 
-      # not Global.owner?(account_id) ->
-      #   raise IppanError, "Invalid operation"
-
-      stake != EnvStore.get("STAKE", 0) ->
+      stake != EnvStore.validator_stake() ->
         raise IppanError, "Invalid stake amount"
 
       true ->

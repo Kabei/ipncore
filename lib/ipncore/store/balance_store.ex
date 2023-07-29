@@ -267,6 +267,8 @@ defmodule BalanceStore do
     call({:execute_changes, :unlock, [id, token, amount]})
   end
 
+  def balance(_address, _token, 0), do: :ok
+
   def balance(address, token, amount) do
     case call({:execute_step, :balance, [address, token, amount]}) do
       {:row, [1]} ->

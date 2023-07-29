@@ -24,4 +24,18 @@ defmodule EnvStore do
     table: :env,
     mod: Env,
     mode: "full"
+
+  def token_price do
+    case get("TOKEN.PRICE") do
+      x when is_integer(x) and x >= 0 -> x
+      _ -> 50000
+    end
+  end
+
+  def validator_stake do
+    case get("VALIDATOR.STAKE") do
+      x when is_integer(x) and x >= 0 -> x
+      _ -> 100000
+    end
+  end
 end

@@ -66,6 +66,8 @@ defmodule Store.Cache do
           :ets.delete(@table, key)
           cast({:step, :delete, [key]})
         end
+
+        defoverridable get: 2, put: 2
       end
 
       if @partial do

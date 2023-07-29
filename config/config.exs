@@ -25,7 +25,7 @@ config :ipncore, :note_max_size, 1_000_000_000_000_000
 # config :ipncore, :last_activity, :timer.hours(24)
 config :ipncore, :timeout_refund, :timer.hours(72)
 config :ipncore, :message_timeout, :timer.seconds(5)
-config :ipncore, :max_validators, 4000
+config :ipncore, :max_validators, 1000
 config :ipncore, :max_tokens, 10_000
 
 # P2P client

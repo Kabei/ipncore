@@ -66,7 +66,7 @@ defmodule Ippan.Func.Token do
   end
 
   def new(
-        %{id: account_id, imestamp: timestamp},
+        %{id: account_id, timestamp: timestamp},
         id,
         owner_id,
         name,

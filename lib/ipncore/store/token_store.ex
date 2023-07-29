@@ -35,7 +35,8 @@ defmodule TokenStore do
       exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?",
       delete:
         ~c"DELETE FROM #{@table} WHERE id = ?1 AND owner = ?2 AND supply = 0 AND burned = 0",
-      owner: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2"
+      owner: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
+      total: ~c"SELECT COUNT(1) FROM #{@table}"
     }
 
   use Store.Cache,
@@ -50,5 +51,10 @@ defmodule TokenStore do
 
   def sum_burned(token, total) do
     call({:step, "sum_burned", [token, total]})
+  end
+
+  def total do
+    {_, [total]} = call({:step, :total, []})
+    total
   end
 end

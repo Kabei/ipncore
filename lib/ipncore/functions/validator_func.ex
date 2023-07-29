@@ -8,6 +8,7 @@ defmodule Ippan.Func.Validator do
   @type result :: Ippan.Request.result()
   @pubsub_server :verifiers
   @token Application.compile_env(:ipncore, :token)
+  @max_validators Application.compile_env(:ipncore, :max_validators)
 
   def pre_new(
         %{id: account_id, hash: hash, round: round, timestamp: timestamp},
@@ -53,6 +54,9 @@ defmodule Ippan.Func.Validator do
 
       stake != EnvStore.validator_stake() ->
         raise IppanError, "Invalid stake amount"
+
+      @max_validators < ValidatorStore.total() ->
+        raise IppanError, "Maximum tokens exceeded"
 
       true ->
         %Validator{

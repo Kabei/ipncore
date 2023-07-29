@@ -5,6 +5,7 @@ defmodule Ippan.Func.Token do
   @type result :: Ippan.Request.result()
   @max_number 9_223_372_036_854_775_807
   @token Application.compile_env(:ipncore, :token)
+  @max_tokens Application.compile_env(:ipncore, :max_tokens)
 
   def pre_new(
         %{id: account_id, hash: hash, round: round, timestamp: timestamp},
@@ -32,8 +33,8 @@ defmodule Ippan.Func.Token do
       map_filter != opts ->
         raise IppanError, "Invalid options parameter"
 
-      # Global.has_owner?() and not Global.owner?(account_id) ->
-      #   raise IppanError, "Invalid operation"
+      @max_tokens < TokenStore.total() ->
+        raise IppanError, "Maximum tokens exceeded"
 
       true ->
         price = EnvStore.token_price()

@@ -122,7 +122,7 @@ defmodule Ippan.Func.Domain do
   end
 
   def update(
-        %{id: account_id, validator: validator_id, timestamp: timestamp},
+        %{id: account_id, validator: validator_id, size: size, timestamp: timestamp},
         domain_name,
         opts \\ %{}
       ) do
@@ -140,8 +140,7 @@ defmodule Ippan.Func.Domain do
 
       true ->
         validator = ValidatorStore.lookup([validator_id])
-        fees = EnvStore.get("fee_update", 500)
-        :ok = BalanceStore.send_fees(account_id, validator.owner, fees, timestamp)
+        :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
 
         1 =
           MapUtil.to_atoms(map_filter)

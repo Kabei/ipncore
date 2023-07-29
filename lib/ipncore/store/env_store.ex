@@ -35,7 +35,14 @@ defmodule EnvStore do
   def validator_stake do
     case get("VALIDATOR.STAKE") do
       x when is_integer(x) and x >= 0 -> x
-      _ -> 100000
+      _ -> 100_000
+    end
+  end
+
+  def jackpot_reward do
+    case get("JACKPOT.REWARD") do
+      x when is_integer(x) and x > 0 -> x
+      _ -> 1_000
     end
   end
 end

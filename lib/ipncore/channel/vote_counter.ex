@@ -77,7 +77,7 @@ defmodule VoteCounter do
         %{minimum: minimum, round: round_number, validator_id: me} = state
       )
       when round >= round_number and me != creator_id do
-    Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
+    # Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
 
     validator = ValidatorStore.lookup([creator_id])
 

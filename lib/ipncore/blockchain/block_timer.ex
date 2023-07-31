@@ -262,7 +262,7 @@ defmodule BlockTimer do
 
       Task.async(fn ->
         :poolboy.transaction(
-          pool,
+          pool_server,
           fn worker_pid ->
             GenServer.call(worker_pid, {:remote, pid, block})
           end,

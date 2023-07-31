@@ -260,7 +260,7 @@ defmodule BlockTimer do
     if round == next_round and unique_block_id not in blocks do
       IO.inspect("import block pool")
 
-      Task.async(fn ->
+      r =
         :poolboy.transaction(
           pool_server,
           fn worker_pid ->
@@ -268,7 +268,8 @@ defmodule BlockTimer do
           end,
           :infinity
         )
-      end)
+
+      IO.inspect(r)
 
       {:noreply, %{state | blocks: :lists.append(blocks, [unique_block_id])}}
     else

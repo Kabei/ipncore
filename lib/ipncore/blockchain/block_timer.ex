@@ -18,7 +18,7 @@ defmodule BlockTimer do
   @block_interval Application.compile_env(@otp_app, :block_interval)
   @block_max_size Application.compile_env(@otp_app, :block_max_size)
   @block_data_max_size Application.compile_env(@otp_app, :block_data_max_size)
-  @block_version Application.compile_env(@otp_app, :block_version)
+  @blockchain_version Application.compile_env(@otp_app, :version)
 
   def start_link(opts) do
     GenServer.start_link(@module, opts, name: @module, hibernate_after: 5_000)
@@ -378,7 +378,7 @@ defmodule BlockTimer do
       hash = Round.compute_hash(current_round, prev_round, hashes)
       {:row, [timestamp]} = BlockStore.avg_round_time(current_round)
 
-      RoundStore.insert([current_round, hash, prev_round, count, timestamp])
+      RoundStore.insert([current_round, hash, prev_round, count, timestamp, @blockchain_version])
 
       task_jackpot =
         Task.async(fn ->
@@ -405,10 +405,10 @@ defmodule BlockTimer do
   def mine_fun(requests, height, round, creator_id, prev_hash, block_timestamp, format) do
     block_path = Block.block_path(creator_id, height)
 
-    events =
+    {events, error} =
       case format do
         :local ->
-          Enum.reduce(requests, %{}, fn
+          Enum.reduce_while(requests, %{}, fn
             [
               hash,
               timestamp,
@@ -438,12 +438,12 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, [message, signature])
+                {:cont, Map.put_new(acc, hash, [message, signature])}
               rescue
                 # block failed
                 e ->
                   Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-                  acc
+                  {:halt, {acc, true}}
               end
 
             [
@@ -476,17 +476,18 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, if(signature, do: [message, signature], else: message))
+                {:cont,
+                 Map.put_new(acc, hash, if(signature, do: [message, signature], else: message))}
               rescue
                 # block failed
                 e ->
                   Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-                  acc
+                  {:cont, acc}
               end
           end)
 
         _import ->
-          Enum.reduce(requests, %{}, fn
+          Enum.reduce_while(requests, %{}, fn
             [
               hash,
               timestamp,
@@ -515,12 +516,12 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, [message, signature])
+                {:cont, Map.put_new(acc, hash, [message, signature])}
               rescue
                 # tx failed
                 e ->
                   Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-                  acc
+                  {:halt, {acc, true}}
               end
 
             [
@@ -553,17 +554,22 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, if(signature, do: [message, signature], else: message))
+                {:cont,
+                 Map.put_new(acc, hash, if(signature, do: [message, signature], else: message))}
               rescue
                 # tx failed
                 e ->
                   MessageStore.delete_df(hash)
                   Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-                  acc
+                  {:cont, acc}
               end
           end)
       end
       |> :maps.values()
+      |> case do
+        {events, error} -> {events, error}
+        events -> {events, false}
+      end
 
     ev_count = length(events)
     empty = ev_count == 0
@@ -590,7 +596,7 @@ defmodule BlockTimer do
         timestamp: block_timestamp,
         ev_count: ev_count,
         size: block_size,
-        vsn: @block_version
+        error: error
       }
       |> put_hash()
       |> put_signature()

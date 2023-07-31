@@ -9,8 +9,8 @@ defmodule Ippan.Block do
           signature: binary(),
           timestamp: non_neg_integer(),
           ev_count: non_neg_integer(),
-          vsn: non_neg_integer(),
-          size: non_neg_integer()
+          size: non_neg_integer(),
+          error: boolean()
         }
 
   @file_extension "mpk"
@@ -25,7 +25,7 @@ defmodule Ippan.Block do
     :timestamp,
     ev_count: 0,
     size: 0,
-    vsn: 0
+    error: false
   ]
 
   def to_list(x) do
@@ -40,13 +40,13 @@ defmodule Ippan.Block do
       x.timestamp,
       x.ev_count,
       x.size,
-      x.vsn
+      x.error
     ]
   end
 
   def to_tuple(x) do
     {{x.creator, x.height}, x.hash, x.prev, x.hashfile, x.signature, x.round, x.timestamp,
-     x.ev_count, x.size, x.vsn}
+     x.ev_count, x.size, x.error}
   end
 
   def to_map([
@@ -60,7 +60,7 @@ defmodule Ippan.Block do
         timestamp,
         ev_count,
         size,
-        vsn
+        error
       ]) do
     %{
       height: height,
@@ -72,14 +72,14 @@ defmodule Ippan.Block do
       timestamp: timestamp,
       round: round,
       ev_count: ev_count,
-      vsn: vsn,
+      error: error,
       size: size
     }
   end
 
   def to_map(
         {{creator, height}, hash, prev, hashfile, signature, round, timestamp, ev_count, size,
-         vsn}
+         error}
       ) do
     %{
       height: height,
@@ -91,7 +91,7 @@ defmodule Ippan.Block do
       round: round,
       timestamp: timestamp,
       ev_count: ev_count,
-      vsn: vsn,
+      error: error,
       size: size
     }
   end
@@ -165,12 +165,12 @@ defmodule Ippan.Block do
 
   def encode_file!(content) do
     # :erlang.term_to_binary(content)
-    :msgpack.pack(content, [use_nil: true])
+    :msgpack.pack(content, use_nil: true)
   end
 
   def decode_file!(content) do
     # :erlang.binary_to_term(content, [:safe])
-    :msgpack.unpack(content, [use_nil: true])
+    :msgpack.unpack(content, use_nil: true)
     |> elem(1)
   end
 

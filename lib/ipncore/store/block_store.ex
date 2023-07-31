@@ -19,9 +19,9 @@ defmodule BlockStore do
         timestamp BIGINT NOT NULL,
         ev_count INTEGER DEFAULT 0,
         size BIGINT DEFAULT 0,
-        vsn SMALLINT NOT NULL,
+        error BOOLEAN DEFAULT FALSE,
         PRIMARY KEY(height, creator)
-      );
+      ) WITHOUT ROWID;
       """,
       """
       CREATE TABLE IF NOT EXISTS #{@table_bft}(
@@ -31,7 +31,7 @@ defmodule BlockStore do
         round BIGINT NOT NULL,
         hash BLOB NOT NULL,
         PRIMARY KEY(creator_id, height, validator_id)
-      );
+      ) WITHOUT ROWID;
       """
     ],
     stmt: %{

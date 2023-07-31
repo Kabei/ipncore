@@ -85,6 +85,7 @@ defmodule VoteCounter do
       winner_id = {creator_id, height}
       vote_id = {creator_id, height, validator_id}
       candidate_unique_id = {creator_id, height, hash}
+      IO.inspect("[VoteCounter] #{inspect(candidate_unique_id)}")
 
       # emit vote if not exists
       case :ets.insert_new(@votes, {vote_id, round}) do

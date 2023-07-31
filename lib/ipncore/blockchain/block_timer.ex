@@ -28,7 +28,7 @@ defmodule BlockTimer do
   def init(_args) do
     validator_id = Global.validator_id()
 
-    {:ok, pool} =
+    {:ok, pool_server} =
       :poolboy.start_link(
         worker_module: MinerWorker,
         size: 5,
@@ -69,7 +69,7 @@ defmodule BlockTimer do
        validator_id: validator_id,
        wait_to_mine: false,
        wait_to_sync: false,
-       pool: pool
+       pool: pool_server
      }, {:continue, {:continue, block_round}}}
   end
 
@@ -250,7 +250,7 @@ defmodule BlockTimer do
           blocks: blocks,
           next_round: next_round,
           validator_id: me,
-          pool: pool
+          pool: pool_server
         } = state
       )
       when creator_id != me do
@@ -258,7 +258,7 @@ defmodule BlockTimer do
     unique_block_id = {creator_id, height}
 
     if round == next_round and unique_block_id not in blocks do
-      IO.inspect("import block")
+      IO.inspect("import block pool")
 
       Task.async(fn ->
         :poolboy.transaction(

@@ -52,17 +52,17 @@ defmodule Ipncore.Application do
           Sqlite3Tools.init()
 
           [
-            {MessageStore, Path.join(data_dir, "requests/messages.db")},
-            {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
-            {EnvStore, Path.join(data_dir, "env/env.db")},
-            {ValidatorStore, Path.join(data_dir, "validator/validator.db")},
-            {TokenStore, Path.join(data_dir, "token/token.db")},
-            {BalanceStore, Path.join(data_dir, "txs/balance.db")},
-            {RefundStore, Path.join(data_dir, "txs/refund.db")},
-            {DomainStore, Path.join(data_dir, "domain/domain.db")},
-            {DnsStore, Path.join(data_dir, "dns/dns.db")},
-            {BlockStore, Path.join(data_dir, "chain/block.db")},
-            {RoundStore, Path.join(data_dir, "chain/round.db")},
+            {MessageStore, Path.join(data_dir, "store/messages.db")},
+            {WalletStore, Path.join(data_dir, "store/wallet.db")},
+            {EnvStore, Path.join(data_dir, "store/env.db")},
+            {ValidatorStore, Path.join(data_dir, "store/validator.db")},
+            {TokenStore, Path.join(data_dir, "store/token.db")},
+            {BalanceStore, Path.join(data_dir, "store/balance.db")},
+            {RefundStore, Path.join(data_dir, "store/refund.db")},
+            {DomainStore, Path.join(data_dir, "store/domain.db")},
+            {DnsStore, Path.join(data_dir, "store/dns.db")},
+            {BlockStore, Path.join(data_dir, "store/block.db")},
+            {RoundStore, Path.join(data_dir, "store/round.db")},
             Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts},
               id: :verifiers
             ),

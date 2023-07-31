@@ -13,7 +13,7 @@ defmodule Ippan.Block do
           size: non_neg_integer()
         }
 
-  @file_extension "erl"
+  @file_extension "mpk"
   defstruct [
     :height,
     :creator,
@@ -164,11 +164,14 @@ defmodule Ippan.Block do
   end
 
   def encode_file!(content) do
-    :erlang.term_to_binary(content)
+    # :erlang.term_to_binary(content)
+    :msgpack.pack(content)
   end
 
   def decode_file!(content) do
-    :erlang.binary_to_term(content, [:safe])
+    # :erlang.binary_to_term(content, [:safe])
+    :msgpack.unpack(content)
+    |> elem(1)
   end
 
   @hash_module Blake3.Native

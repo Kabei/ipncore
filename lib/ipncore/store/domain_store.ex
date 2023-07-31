@@ -7,7 +7,7 @@ defmodule DomainStore do
     base: :domain,
     table: @table,
     mod: Ippan.Domain,
-    create: "CREATE TABLE IF NOT EXISTS #{@table}(
+    create: ["CREATE TABLE IF NOT EXISTS #{@table}(
       name TEXT PRIMARY KEY NOT NULL,
       owner BLOB NOT NULL,
       email TEXT,
@@ -17,7 +17,7 @@ defmodule DomainStore do
       created_at BIGINT NOT NULL,
       renewed_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL
-      ) WITHOUT ROWID",
+      ) WITHOUT ROWID", "CREATE UNIQUE INDEX idx_domain_renew ON #{@table} (renewed_at);"],
     stmt: %{
       "delete_expiry" => ~c"DELETE FROM #{@table} WHERE renewed_at < ?",
       owner: ~c"SELECT 1 FROM #{@table} WHERE name = ?1 AND owner = ?2",

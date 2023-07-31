@@ -59,8 +59,9 @@ defmodule Ippan.P2P.Server do
       case decode!(data, sharedkey) do
         %{id: id, msg: msg} ->
           case msg do
-            {"new_recv", rest} ->
-              send(VoteCounter, {"new_recv", from, rest})
+            ["new_recv", rest] ->
+              block = MapUtil.to_existing_atoms(rest)
+              send(VoteCounter, {"new_recv", from, block})
               @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
 
             # {"vote", rest} ->

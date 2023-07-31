@@ -82,6 +82,8 @@ defmodule Ippan.Events do
       base: :validator,
       mod: Validator,
       fun: :update,
+      before: :pre_update,
+      deferred: true,
       auth: true
     }
 
@@ -92,6 +94,8 @@ defmodule Ippan.Events do
       base: :validator,
       mod: Validator,
       fun: :delete,
+      before: :pre_delete,
+      deferred: true,
       auth: true
     }
 

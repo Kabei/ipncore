@@ -28,6 +28,13 @@ defmodule BlockTimer do
   def init(_args) do
     validator_id = Global.validator_id()
 
+    {:ok, pool} =
+      :poolboy.start_link(
+        worker_module: MinerWorker,
+        size: 5,
+        max_overflow: 0
+      )
+
     # fetch last round
     {round_id, round_hash} =
       case RoundStore.last() do
@@ -61,7 +68,8 @@ defmodule BlockTimer do
        validators: ValidatorStore.total(),
        validator_id: validator_id,
        wait_to_mine: false,
-       wait_to_sync: false
+       wait_to_sync: false,
+       pool: pool
      }, {:continue, {:continue, block_round}}}
   end
 
@@ -241,14 +249,24 @@ defmodule BlockTimer do
         %{
           blocks: blocks,
           next_round: next_round,
-          validator_id: me
+          validator_id: me,
+          pool: pool
         } = state
       )
       when creator_id != me do
     unique_block_id = {creator_id, height}
 
     if round == next_round and unique_block_id not in blocks do
-      spawn_remote_block_worker(self(), block)
+      Task.async(fn ->
+        :poolboy.transaction(
+          pool,
+          fn pid ->
+            GenServer.call(pid, {:remote, self(), block})
+          end,
+          :infinity
+        )
+      end)
+
       {:noreply, %{state | blocks: :lists.append(blocks, [unique_block_id])}}
     else
       {:noreply, state}
@@ -316,7 +334,7 @@ defmodule BlockTimer do
           :local
         )
 
-      P2P.push({"new_recv", new_block})
+      P2P.push(["new_recv", new_block])
 
       MessageStore.delete_all(last_row_id)
       MessageStore.delete_all_df(last_row_id_df)
@@ -384,40 +402,8 @@ defmodule BlockTimer do
     end)
   end
 
-  # Create a block file from decode block file
-  defp spawn_remote_block_worker(
-         pid,
-         %{
-           creator: creator_id,
-           height: height,
-           prev: prev_hash,
-           round: round,
-           timestamp: timestamp,
-           ev_count: ev_count
-         } = block
-       ) do
-    spawn_link(fn ->
-      decode_path = Block.decode_path(creator_id, height)
-      Logger.debug("#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import")
-
-      requests =
-        if ev_count != 0 do
-          # IO.inspect("import block file")
-          {:ok, content} = File.read(decode_path)
-          decode_file!(content)
-        else
-          # IO.inspect("import block empty")
-          []
-        end
-
-      mine_fun(requests, height, round, creator_id, prev_hash, timestamp, :import)
-
-      GenServer.cast(pid, {:complete, :import, block})
-    end)
-  end
-
   # Create a block file and register transactions
-  defp mine_fun(requests, height, round, creator_id, prev_hash, block_timestamp, format) do
+  def mine_fun(requests, height, round, creator_id, prev_hash, block_timestamp, format) do
     block_path = Block.block_path(creator_id, height)
 
     events =
@@ -453,7 +439,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, {message, signature})
+                Map.put_new(acc, hash, [message, signature])
               rescue
                 # block failed
                 e ->
@@ -491,7 +477,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, if(signature, do: {message, signature}, else: message))
+                Map.put_new(acc, hash, if(signature, do: [message, signature], else: message))
               rescue
                 # block failed
                 e ->
@@ -530,7 +516,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, {message, signature})
+                Map.put_new(acc, hash, [message, signature])
               rescue
                 # tx failed
                 e ->
@@ -568,7 +554,7 @@ defmodule BlockTimer do
                   round
                 )
 
-                Map.put_new(acc, hash, if(signature, do: {message, signature}, else: message))
+                Map.put_new(acc, hash, if(signature, do: [message, signature], else: message))
               rescue
                 # tx failed
                 e ->

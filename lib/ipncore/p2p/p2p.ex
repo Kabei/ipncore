@@ -22,7 +22,8 @@ defmodule Ippan.P2P do
       tag,
       false
     )
-    |> :erlang.binary_to_term([:safe])
+    |> :msgpack.unpack()
+    |> elem(1)
   end
 
   def decode!(packet, _sharedkey), do: packet
@@ -31,7 +32,8 @@ defmodule Ippan.P2P do
     # IO.inspect("encode")
     # IO.inspect(Base.encode16(sharedkey), limit: :infinity)
     # IO.inspect(msg, limit: :infinity)
-    bin = :erlang.term_to_binary(msg)
+    # bin = :erlang.term_to_binary(msg)
+    bin = :msgpack.pack(msg)
     iv = :crypto.strong_rand_bytes(@iv_bytes)
 
     {ciphertext, tag} =

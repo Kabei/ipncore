@@ -143,7 +143,7 @@ defmodule Store.Sqlite do
         {:ok, conn} = Sqlite3.open(path, flags)
         Sqlite3NIF.execute(conn, ~c"PRAGMA journal_mode = WAL")
         Sqlite3NIF.execute(conn, ~c"PRAGMA synchronous = 0")
-        Sqlite3NIF.execute(conn, ~c"PRAGMA cache_size = 1000000")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA cache_size = -100000000")
         Sqlite3NIF.execute(conn, ~c"PRAGMA temp_store = memory")
         Sqlite3NIF.execute(conn, ~c"PRAGMA mmap_size = 30000000000")
         Sqlite3NIF.execute(conn, ~c"PRAGMA case_sensitive_like = ON")

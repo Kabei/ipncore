@@ -131,8 +131,11 @@ defmodule Ippan.Func.Validator do
     PubSub.broadcast(@pubsub_server, "validator", {"new", validator})
   end
 
-  @spec update(Source.t(), number(), map()) :: result()
-  def update(%{id: account_id, timestamp: timestamp}, id, opts \\ %{}) do
+  def pre_update(
+        %{id: account_id, hash: hash, round: round, timestamp: timestamp},
+        id,
+        opts \\ %{}
+      ) do
     map_filter = Map.take(opts, Validator.editable())
 
     cond do
@@ -146,41 +149,52 @@ defmodule Ippan.Func.Validator do
         raise IppanError, "Invalid owner"
 
       true ->
-        MapUtil.to_atoms(map_filter)
-        |> MapUtil.validate_hostname(:hostname)
-        |> MapUtil.validate_length_range(:name, 1..20)
-        |> MapUtil.validate_url(:url)
-        |> MapUtil.validate_value(:fee, :gt, 0)
-        |> MapUtil.validate_range(:fee_type, 0..2)
-        |> MapUtil.transform(
-          :pubkey,
-          fn x ->
-            case Fast64.decode64(x) do
-              j when byte_size(j) > 897 ->
-                raise IppanError, "Invalid pubkey"
+        map =
+          MapUtil.to_atoms(map_filter)
+          |> MapUtil.validate_hostname(:hostname)
+          |> MapUtil.validate_length_range(:name, 1..20)
+          |> MapUtil.validate_url(:url)
+          |> MapUtil.validate_value(:fee, :gt, 0)
+          |> MapUtil.validate_range(:fee_type, 0..2)
+          |> MapUtil.transform(
+            :pubkey,
+            fn x ->
+              case Fast64.decode64(x) do
+                j when byte_size(j) > 897 ->
+                  raise IppanError, "Invalid pubkey"
 
-              j ->
-                j
+                j ->
+                  j
+              end
             end
-          end
-        )
-        |> MapUtil.transform(
-          :net_pubkey,
-          fn x ->
-            case Fast64.decode64(x) do
-              j when byte_size(j) > 897 ->
-                raise IppanError, "Invalid net_pubkey"
+          )
+          |> MapUtil.transform(
+            :net_pubkey,
+            fn x ->
+              case Fast64.decode64(x) do
+                j when byte_size(j) > 897 ->
+                  raise IppanError, "Invalid net_pubkey"
 
-              j ->
-                j
+                j ->
+                  j
+              end
             end
-          end
+          )
+          |> Map.put(:updated_at, timestamp)
+
+        MessageStore.update(%{round: round, args: :erlang.term_to_binary(map)},
+          hash: hash,
+          timestamp: timestamp
         )
-        |> Map.put(:updated_at, timestamp)
-        |> ValidatorStore.update(id: id)
 
         PubSub.broadcast(@pubsub_server, "validator", {"update", id, opts})
     end
+  end
+
+  def update(_, id, map) do
+    ValidatorStore.update(map, id: id)
+
+    PubSub.broadcast(@pubsub_server, "validator", {"update", id, map})
   end
 
   def pre_delete(%{id: account_id, hash: hash, round: round, timestamp: timestamp}, id) do

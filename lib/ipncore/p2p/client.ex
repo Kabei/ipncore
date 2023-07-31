@@ -256,7 +256,7 @@ defmodule Ippan.P2P.Client do
         |> case do
           {:ok, data} ->
             for block <- data do
-              P2P.push(vid, {"new_recv", Block.to_map(block)})
+              P2P.push(vid, ["new_recv", Block.to_map(block)])
             end
 
           _ ->

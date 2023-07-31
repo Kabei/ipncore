@@ -77,16 +77,14 @@ defmodule VoteCounter do
         %{minimum: minimum, round: round_number, validator_id: me} = state
       )
       when round >= round_number and me != creator_id do
-    Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
+    # Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
 
-    IO.inspect(block)
     validator = ValidatorStore.lookup([creator_id])
 
     if BlockTimer.verify(block, validator.pubkey) != :error do
       winner_id = {creator_id, height}
       vote_id = {creator_id, height, validator_id}
       candidate_unique_id = {creator_id, height, hash}
-      IO.inspect("[VoteCounter] #{inspect(candidate_unique_id)}")
 
       # emit vote if not exists
       case :ets.insert_new(@votes, {vote_id, round}) do
@@ -109,18 +107,17 @@ defmodule VoteCounter do
               case :ets.insert_new(@winners, {winner_id, round}) do
                 true ->
                   # create block
-                  t =
-                    Task.async(fn ->
-                      if ev_count > 0 do
-                        # send task to a verifier node
-                        push_fetch(self(), block, validator)
-                      else
-                        # block empty
-                        send(BlockTimer, {:import, block})
-                      end
-                    end)
 
-                  Task.await(t, :infinity)
+                  Task.async(fn ->
+                    if ev_count > 0 do
+                      # send task to a verifier node
+                      push_fetch(self(), block, validator)
+                    else
+                      # block empty
+                      send(BlockTimer, {:import, block})
+                    end
+                  end)
+                  |> Task.await(:infinity)
 
                 _ ->
                   :ok

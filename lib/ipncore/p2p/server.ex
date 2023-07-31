@@ -57,25 +57,12 @@ defmodule Ippan.P2P.Server do
       from = %{id: vid, pubkey: pubkey}
 
       case decode!(data, sharedkey) do
-        %{id: id, msg: msg} ->
+        %{"id" => id, "msg" => msg} ->
           case msg do
             ["new_recv", rest] ->
               block = MapUtil.to_existing_atoms(rest)
               send(VoteCounter, {"new_recv", from, block})
               @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
-
-            # {"vote", rest} ->
-            #   send(VoteCounter, {"vote", from, rest})
-            #   @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
-
-            # {"get_status", nil} ->
-            #   # P2P.request(vid, {"status", block_state}, 1)
-            #   block_state = :sys.get_state(BlockTimer)
-            #   @adapter.send(socket, encode({"status", block_state}, sharedkey))
-
-            # {"status", block_state} ->
-            #   block_state = :sys.get_state(BlockTimer)
-            #   BlockTimer.check_status(block_state, from)
 
             _ ->
               Logger.debug(inspect(msg))
@@ -86,8 +73,6 @@ defmodule Ippan.P2P.Server do
           Logger.debug(inspect(result))
           :ok
       end
-
-      # PubSub.local_broadcast(:verifiers, "block", {action, from, rest})
     rescue
       e ->
         # Logger.error(inspect(e))

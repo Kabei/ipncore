@@ -165,12 +165,12 @@ defmodule Ippan.Block do
 
   def encode_file!(content) do
     # :erlang.term_to_binary(content)
-    :msgpack.pack(content)
+    :msgpack.pack(content, [use_nil: true])
   end
 
   def decode_file!(content) do
     # :erlang.binary_to_term(content, [:safe])
-    :msgpack.unpack(content)
+    :msgpack.unpack(content, [use_nil: true])
     |> elem(1)
   end
 

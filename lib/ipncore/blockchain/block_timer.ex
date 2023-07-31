@@ -258,13 +258,15 @@ defmodule BlockTimer do
     unique_block_id = {creator_id, height}
 
     if round == next_round and unique_block_id not in blocks do
-      :poolboy.transaction(
-        pool_server,
-        fn worker_pid ->
-          GenServer.cast(worker_pid, {:remote, pid, block})
-        end,
-        :infinity
-      )
+      spawn(fn ->
+        :poolboy.transaction(
+          pool_server,
+          fn worker_pid ->
+            GenServer.cast(worker_pid, {:remote, pid, block})
+          end,
+          :infinity
+        )
+      end)
 
       {:noreply, %{state | blocks: :lists.append(blocks, [unique_block_id])}}
     else
@@ -296,12 +298,9 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def terminate(_reason, %{tRef: tRef}) do
+  def terminate(reason, %{tRef: tRef, pool: pool_server}) do
     :timer.cancel(tRef)
-    PubSub.unsubscribe(@pubsub_verifiers, "event")
-  end
-
-  def terminate(_reason, _state) do
+    GenServer.stop(pool_server, reason)
     PubSub.unsubscribe(@pubsub_verifiers, "event")
   end
 
@@ -567,7 +566,7 @@ defmodule BlockTimer do
       end
       |> :maps.values()
       |> case do
-        {events, error} -> {events, error}
+        {events, true} -> {events, true}
         events -> {events, false}
       end
 

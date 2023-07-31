@@ -57,18 +57,18 @@ defmodule Ippan.P2P do
     PubSub.local_broadcast(@pubsub_server, "echo", msg)
   end
 
-  @spec push_except(term(), list()) :: :ok
-  def push_except(msg, vids) do
-    id = :rand.uniform(1_000_000_000)
-    msg = %{id: id, msg: msg}
-    PubSub.local_broadcast(@pubsub_server, "echo", {msg, vids})
-  end
-
   @spec push(term, term()) :: :ok
   def push(vid, msg) do
     id = :rand.uniform(1_000_000_000)
     msg = %{id: id, msg: msg}
     PubSub.local_broadcast(@pubsub_server, "echo:#{vid}", msg)
+  end
+
+  @spec push_except(term(), list()) :: :ok
+  def push_except(msg, vids) do
+    id = :rand.uniform(1_000_000_000)
+    msg = %{id: id, msg: msg}
+    PubSub.local_broadcast(@pubsub_server, "echo", {msg, vids})
   end
 
   def push_only(vid, msg) do

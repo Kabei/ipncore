@@ -132,12 +132,11 @@ defmodule Ippan.P2P.Client do
   end
 
   # receved a message from pubsub
+  # send message to p2p network
   def handle_info(
         msg,
         %{conn: conn, id: vid, mailbox: mailbox} = state
       ) do
-    # IO.inspect("send a msg #{inspect(msg)}")
-
     continue =
       case msg do
         {_, except} ->

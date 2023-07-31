@@ -34,9 +34,6 @@ defmodule Ipncore.Router do
 
       [_, timestamp | _] = msg
 
-      IO.inspect(hash)
-      IO.inspect(timestamp)
-
       case MessageStore.insert_hash(hash, timestamp) do
         1 ->
           case event do
@@ -78,7 +75,7 @@ defmodule Ipncore.Router do
 
   get "/v1/download/block/:vid/:height" do
     data_dir = Application.get_env(:ipncore, :data_dir)
-    block_path = Path.join([data_dir, "blocks", "#{vid}.#{height}.", @file_extension])
+    block_path = Path.join([data_dir, "blocks", "#{vid}.#{height}.#{@file_extension}"])
 
     if File.exists?(block_path) do
       conn
@@ -109,7 +106,7 @@ defmodule Ipncore.Router do
 
   get "/v1/download/block/decoded/:vid/:height" do
     decode_dir = Application.get_env(:ipncore, :decode_dir)
-    block_path = Path.join([decode_dir, "#{vid}.#{height}.", @file_extension])
+    block_path = Path.join([decode_dir, "#{vid}.#{height}.#{@file_extension}"])
 
     if File.exists?(block_path) do
       conn

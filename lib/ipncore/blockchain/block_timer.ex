@@ -258,15 +258,13 @@ defmodule BlockTimer do
     unique_block_id = {creator_id, height}
 
     if round == next_round and unique_block_id not in blocks do
-      spawn(fn ->
-        :poolboy.transaction(
-          pool_server,
-          fn worker_pid ->
-            GenServer.call(worker_pid, {:remote, pid, block})
-          end,
-          :infinity
-        )
-      end)
+      :poolboy.transaction(
+        pool_server,
+        fn worker_pid ->
+          GenServer.cast(worker_pid, {:remote, pid, block})
+        end,
+        :infinity
+      )
 
       {:noreply, %{state | blocks: :lists.append(blocks, [unique_block_id])}}
     else

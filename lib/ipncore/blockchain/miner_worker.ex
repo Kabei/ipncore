@@ -7,10 +7,6 @@ defmodule MinerWorker do
     GenServer.start_link(__MODULE__, nil, [])
   end
 
-  def mine(server, block) do
-    GenServer.call(server, {:mine, block}, :infinity)
-  end
-
   @impl true
   def init(args) do
     {:ok, args}
@@ -18,7 +14,7 @@ defmodule MinerWorker do
 
   # Create a block file from decode block file
   @impl true
-  def handle_call(
+  def handle_cast(
         {:remote, from_pid,
          %{
            creator: creator_id,
@@ -28,7 +24,6 @@ defmodule MinerWorker do
            timestamp: timestamp,
            ev_count: ev_count
          } = block},
-        _from,
         state
       ) do
     decode_path = Block.decode_path(creator_id, height)
@@ -48,6 +43,6 @@ defmodule MinerWorker do
 
     GenServer.cast(from_pid, {:complete, :import, block})
 
-    {:reply, :ok, state}
+    {:noreply, state}
   end
 end

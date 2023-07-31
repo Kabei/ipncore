@@ -1,6 +1,6 @@
 defmodule MessageStore do
   @table "msg"
-  @table_df "msg_df"
+  @table_df "msgd"
   @table_hash "hashmap"
 
   @expiry_time :timer.hours(24)

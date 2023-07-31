@@ -19,7 +19,7 @@ defmodule MinerWorker do
   # Create a block file from decode block file
   @impl true
   def handle_call(
-        {:remote, pid,
+        {:remote, from_pid,
          %{
            creator: creator_id,
            height: height,
@@ -46,7 +46,7 @@ defmodule MinerWorker do
 
     BlockTimer.mine_fun(requests, height, round, creator_id, prev_hash, timestamp, :import)
 
-    GenServer.cast(pid, {:complete, :import, block})
+    GenServer.cast(from_pid, {:complete, :import, block})
 
     {:reply, :ok, state}
   end

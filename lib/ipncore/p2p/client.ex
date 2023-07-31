@@ -89,7 +89,7 @@ defmodule Ippan.P2P.Client do
         %{sharedkey: sharedkey} = state
       ) do
     case decode!(packet, sharedkey) do
-      %{id: id} = msg -> PubSub.local_broadcast(@pubsub_server, "res:#{id}", msg)
+      %{"id" => id} = msg -> PubSub.local_broadcast(@pubsub_server, "res:#{id}", msg)
       _ -> :ok
     end
 
@@ -157,7 +157,7 @@ defmodule Ippan.P2P.Client do
 
         true ->
           case msg do
-            %{id: id} ->
+            %{"id" => id} ->
               # IO.inspect("set in mailbox")
               save_mailbox(vid, id, msg)
               mailbox = Map.put(mailbox, id, msg)

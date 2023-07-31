@@ -53,21 +53,21 @@ defmodule Ippan.P2P do
   @spec push(term()) :: :ok
   def push(msg) do
     id = :rand.uniform(1_000_000_000)
-    msg = %{id: id, msg: msg}
+    msg = %{"id" => id, "msg" => msg}
     PubSub.local_broadcast(@pubsub_server, "echo", msg)
   end
 
   @spec push(term, term()) :: :ok
   def push(vid, msg) do
     id = :rand.uniform(1_000_000_000)
-    msg = %{id: id, msg: msg}
+    msg = %{"id" => id, "msg" => msg}
     PubSub.local_broadcast(@pubsub_server, "echo:#{vid}", msg)
   end
 
   @spec push_except(term(), list()) :: :ok
   def push_except(msg, vids) do
     id = :rand.uniform(1_000_000_000)
-    msg = %{id: id, msg: msg}
+    msg = %{"id" => id, "msg" => msg}
     PubSub.local_broadcast(@pubsub_server, "echo", {msg, vids})
   end
 
@@ -80,7 +80,7 @@ defmodule Ippan.P2P do
     id = :rand.uniform(1_000_000_000)
     to = "echo:#{vid}"
     topic_callback = "res:#{id}"
-    msg = %{id: id, msg: msg}
+    msg = %{"id" => id, "msg" => msg}
 
     PubSub.subscribe(@pubsub_server, topic_callback)
     PubSub.local_broadcast(@pubsub_server, to, msg)

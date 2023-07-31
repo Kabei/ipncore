@@ -298,12 +298,4 @@ defmodule VoteCounter do
       end
     end)
   end
-
-  # :ets.fun2ms(fn {_, x} = y when x <= 10 -> y end)
-  # defp commit(round_number, hash) do
-  # :ets.select(@votes, [{{:_, :"$1"}, [{:==, :"$1", round_number}], [:"$_"]}])
-  # |> Enum.each(fn {{creator_id, height, validator_id}, round} ->
-  #   BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
-  # end)
-  # end
 end

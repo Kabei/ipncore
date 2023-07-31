@@ -212,7 +212,11 @@ defmodule Ippan.Func.Validator do
   @spec delete(Source.t(), term) :: result()
   def delete(%{id: account_id, timestamp: timestamp}, id) do
     validator = ValidatorStore.lookup([id])
-    BalanceStore.income(account_id, @token, validator.stake, timestamp)
+
+    if validator.stake > 0 do
+      BalanceStore.income(account_id, @token, validator.stake, timestamp)
+    end
+
     ValidatorStore.delete([id])
 
     PubSub.broadcast(@pubsub_server, "validator", {"delete", id})

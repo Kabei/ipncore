@@ -254,6 +254,7 @@ defmodule BlockTimer do
         } = state
       )
       when creator_id != me do
+    process = self()
     unique_block_id = {creator_id, height}
 
     if round == next_round and unique_block_id not in blocks do
@@ -261,7 +262,7 @@ defmodule BlockTimer do
         :poolboy.transaction(
           pool,
           fn pid ->
-            GenServer.call(pid, {:remote, self(), block})
+            GenServer.call(pid, {:remote, process, block})
           end,
           :infinity
         )

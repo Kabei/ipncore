@@ -78,10 +78,12 @@ defmodule Ippan.P2P.Server do
             #   BlockTimer.check_status(block_state, from)
 
             _ ->
+              Logger.debug(inspect(msg))
               :ok
           end
 
-        _ ->
+        result ->
+          Logger.debug(inspect(result))
           :ok
       end
 

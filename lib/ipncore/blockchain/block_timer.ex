@@ -334,9 +334,9 @@ defmodule BlockTimer do
 
       P2P.push(["new_recv", new_block])
 
+      MessageStore.sync()
       MessageStore.delete_all(last_row_id)
       MessageStore.delete_all_df(last_row_id_df)
-      MessageStore.sync()
 
       GenServer.cast(pid, {:complete, :block, next_block + 1, validator_id, new_block.hash})
     end)
@@ -387,13 +387,14 @@ defmodule BlockTimer do
         end)
 
       MessageStore.sync()
+      BlockStore.sync()
       RoundStore.sync()
-      Task.await(task_jackpot, :infinity)
 
       if requests != [] do
         commit()
       end
 
+      Task.await(task_jackpot, :infinity)
       checkpoint_commit()
 
       GenServer.cast(pid, {:complete, :round, current_round + 1, current_round, hash})
@@ -605,7 +606,7 @@ defmodule BlockTimer do
     Block.to_list(block)
     |> BlockStore.insert_sync()
 
-    BlockStore.sync()
+    # BlockStore.sync()
 
     Logger.debug(
       "Block #{creator_id}.#{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}"

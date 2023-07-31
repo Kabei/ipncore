@@ -11,11 +11,12 @@ defmodule EventMinerChannel do
       1 ->
         MessageStore.insert_sync(body)
         PubSub.direct_broadcast(from, :verifiers, "event", {"recv", hash, :ok})
-        {:noreply, state}
 
       _ ->
         PubSub.direct_broadcast(from, :verifiers, "event", {"recv", hash, :error})
     end
+
+    {:noreply, state}
   end
 
   def handle_info({"valid_df", from, [hash, timestamp | _] = body}, state) do

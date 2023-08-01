@@ -272,10 +272,8 @@ defmodule Store.Sqlite2 do
                Sqlite3NIF.release(conn, stmt)
              end)
 
-             r = Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
-             r2 = Sqlite3NIF.execute(conn, ~c"VACUUM")
-             IO.inspect(r)
-             IO.inspect(r2)
+             Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
+             Sqlite3NIF.execute(conn, ~c"VACUUM")
 
              statements =
                for {name, sql} <- @stmts, into: %{} do
@@ -283,8 +281,7 @@ defmodule Store.Sqlite2 do
                  {name, statement}
                end
 
-             r3 = Sqlite3NIF.execute(conn, ~c"BEGIN")
-             IO.inspect(r3)
+             Sqlite3NIF.execute(conn, ~c"BEGIN")
              {:reply, :ok, Map.put(state, :stmt, statements)}
            end}
         )

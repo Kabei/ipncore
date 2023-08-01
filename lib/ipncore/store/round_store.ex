@@ -2,7 +2,7 @@ defmodule RoundStore do
   @table "round"
   @table_jackpot "jackpot"
 
-  use Store.Sqlite,
+  use Store.Sqlite2,
     base: :round,
     table: @table,
     mod: Ippan.Round,
@@ -23,18 +23,18 @@ defmodule RoundStore do
     ) WITHOUT ROWID;
     "],
     stmt: %{
-      insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6)",
-      lookup: "SELECT * FROM #{@table} WHERE id = ?",
-      exists: "SELECT 1 FROM #{@table} WHERE id = ?",
-      last: "SELECT * FROM #{@table} ORDER BY id DESC LIMIT 1",
-      delete: "DELETE FROM #{@table} WHERE id = ?",
-      insert_winner: "INSERT INTO #{@table_jackpot} values(?, ?)",
-      has_winner: "SELECT 1 FROM #{@table_jackpot} WHERE id = ?",
-      total: "SELECT COUNT(1) FROM #{@table}"
+      insert: ~c"INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6)",
+      lookup: ~c"SELECT * FROM #{@table} WHERE id = ?",
+      exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?",
+      last: ~c"SELECT * FROM #{@table} ORDER BY id DESC LIMIT 1",
+      delete: ~c"DELETE FROM #{@table} WHERE id = ?",
+      insert_winner: ~c"INSERT INTO #{@table_jackpot} values(?, ?)",
+      has_winner: ~c"SELECT 1 FROM #{@table_jackpot} WHERE id = ?",
+      total: ~c"SELECT COUNT(1) FROM #{@table}"
     }
 
   def last do
-    call({:execute_step, :last, []})
+    call({:step, :last, []})
   end
 
   def last_id do
@@ -45,15 +45,15 @@ defmodule RoundStore do
   end
 
   def insert_winner(round_id, winner_id) do
-    call({:execute_step, :insert_winner, [round_id, winner_id]})
+    call({:step, :insert_winner, [round_id, winner_id]})
   end
 
   def has_winner?(round_id) do
-    {:row, [1]} == call({:execute_step, :insert_winner, [round_id]})
+    {:row, [1]} == call({:step, :insert_winner, [round_id]})
   end
 
   def total do
-    {_, [total]} = call({:execute_step, :total, []})
+    {_, [total]} = call({:step, :total, []})
     total
   end
 end

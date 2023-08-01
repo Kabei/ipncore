@@ -37,7 +37,7 @@ defmodule ValidatorStore do
     size: 10_000_000
 
   def total do
-    {_, [total]} = call({:execute_step, :total, []})
+    {_, [total]} = call({:step, :total, []})
     total
   end
 end

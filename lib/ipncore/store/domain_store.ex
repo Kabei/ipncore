@@ -30,7 +30,7 @@ defmodule DomainStore do
     }
 
   def renew(name, account_id, millis, timestamp) do
-    call({:execute_changes, :renew, [name, account_id, millis, timestamp]})
+    call({:changes, :renew, [name, account_id, millis, timestamp]})
   end
 
   def delete_expiry(round, timestamp) do

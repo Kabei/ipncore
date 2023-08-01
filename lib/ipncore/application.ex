@@ -52,7 +52,7 @@ defmodule Ipncore.Application do
           Sqlite3Tools.init()
 
           [
-            {MessageStore, Path.join(data_dir, "store/messages.db")},
+            {MessageStore, Path.join(data_dir, "store/priv/messages.db")},
             {WalletStore, Path.join(data_dir, "store/wallet.db")},
             {EnvStore, Path.join(data_dir, "store/env.db")},
             {ValidatorStore, Path.join(data_dir, "store/validator.db")},
@@ -83,8 +83,8 @@ defmodule Ipncore.Application do
           end
 
           [
-            {MessageStore, Path.join(data_dir, "requests/messages.db")},
-            {WalletStore, Path.join(data_dir, "wallet/wallet.db")},
+            {MessageStore, Path.join(data_dir, "store/priv/messages.db")},
+            {WalletStore, Path.join(data_dir, "store/wallet.db")},
             Supervisor.child_spec({Phoenix.PubSub, pubsub_verifiers_opts},
               id: :verifiers
             ),
@@ -100,8 +100,8 @@ defmodule Ipncore.Application do
 
         "test" ->
           [
-            {MessageStore, Path.join(data_dir, "requests/messages.db")},
-            {WalletStore, Path.join(data_dir, "wallet/wallet.db")}
+            {MessageStore, Path.join(data_dir, "store/priv/messages.db")},
+            {WalletStore, Path.join(data_dir, "store/wallet.db")}
           ]
       end
 

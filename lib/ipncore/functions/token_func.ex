@@ -75,30 +75,36 @@ defmodule Ippan.Func.Token do
         max_supply,
         opts \\ %{}
       ) do
-    map_filter =
-      opts
-      |> Map.take(Token.optionals())
+    cond do
+      @max_tokens < TokenStore.total() ->
+        raise IppanError, "Maximum tokens exceeded"
 
-    token =
-      %Token{
-        id: id,
-        owner: owner_id,
-        name: name,
-        decimal: decimal,
-        symbol: symbol,
-        max_supply: max_supply,
-        created_at: timestamp,
-        updated_at: timestamp
-      }
-      |> Map.merge(MapUtil.to_atoms(map_filter))
-      |> MapUtil.validate_url(:avatar)
-      |> MapUtil.validate_any(:opts, Token.props())
+      true ->
+        map_filter =
+          opts
+          |> Map.take(Token.optionals())
 
-    1 = BalanceStore.burn(account_id, @token, EnvStore.token_price(), timestamp)
+        token =
+          %Token{
+            id: id,
+            owner: owner_id,
+            name: name,
+            decimal: decimal,
+            symbol: symbol,
+            max_supply: max_supply,
+            created_at: timestamp,
+            updated_at: timestamp
+          }
+          |> Map.merge(MapUtil.to_atoms(map_filter))
+          |> MapUtil.validate_url(:avatar)
+          |> MapUtil.validate_any(:opts, Token.props())
 
-    token
-    |> Token.to_list()
-    |> TokenStore.insert_sync()
+        1 = BalanceStore.burn(account_id, @token, EnvStore.token_price(), timestamp)
+
+        token
+        |> Token.to_list()
+        |> TokenStore.insert_sync()
+    end
   end
 
   def update(%{id: account_id, timestamp: timestamp}, id, opts \\ %{})

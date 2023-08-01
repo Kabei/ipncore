@@ -25,18 +25,6 @@ defmodule Global do
     end
   end
 
-  defmacro has_owner? do
-    quote do
-      case Default.get(:owner, false) do
-        false ->
-          false
-
-        _ ->
-          true
-      end
-    end
-  end
-
   defmacro owner?(id) do
     quote do
       Default.get(:owner, nil) == unquote(id)

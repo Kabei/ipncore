@@ -6,8 +6,8 @@
 ## Requirements
 #
 * Processor: 4 CPUs
-* Memory: 4 GB
-* HDD Space: +20 GB
+* Memory: 4 GB RAM
+* Storage: 20 GB
 * Bandwitch: 1 Gbps
 * Public IPv4 / IPv6
 

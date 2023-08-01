@@ -9,6 +9,7 @@ defmodule Ippan.Func.Validator do
   @pubsub_server :verifiers
   @token Application.compile_env(:ipncore, :token)
   @max_validators Application.compile_env(:ipncore, :max_validators)
+  @topic "validator"
 
   def pre_new(
         %{id: account_id, hash: hash, round: round, timestamp: timestamp},
@@ -56,7 +57,7 @@ defmodule Ippan.Func.Validator do
         raise IppanError, "Invalid stake amount"
 
       @max_validators < ValidatorStore.total() ->
-        raise IppanError, "Maximum tokens exceeded"
+        raise IppanError, "Maximum validators exceeded"
 
       true ->
         %Validator{
@@ -101,34 +102,40 @@ defmodule Ippan.Func.Validator do
         stake,
         opts \\ %{}
       ) do
-    map_filter = Map.take(opts, Validator.optionals())
-    pubkey = Fast64.decode64(pubkey)
-    net_pubkey = Fast64.decode64(net_pubkey)
+    cond do
+      @max_validators < ValidatorStore.total() ->
+        raise IppanError, "Maximum validators exceeded"
 
-    1 = BalanceStore.burn(account_id, @token, stake, timestamp)
+      true ->
+        map_filter = Map.take(opts, Validator.optionals())
+        pubkey = Fast64.decode64(pubkey)
+        net_pubkey = Fast64.decode64(net_pubkey)
 
-    validator =
-      %Validator{
-        id: id,
-        hostname: hostname,
-        name: name,
-        pubkey: pubkey,
-        net_pubkey: net_pubkey,
-        owner: owner_id,
-        fee: fee,
-        fee_type: fee_type,
-        stake: stake,
-        created_at: timestamp,
-        updated_at: timestamp
-      }
-      |> Map.merge(MapUtil.to_atoms(map_filter))
-      |> MapUtil.validate_url(:avatar)
+        1 = BalanceStore.burn(account_id, @token, stake, timestamp)
 
-    validator
-    |> Validator.to_list()
-    |> ValidatorStore.insert_sync()
+        validator =
+          %Validator{
+            id: id,
+            hostname: hostname,
+            name: name,
+            pubkey: pubkey,
+            net_pubkey: net_pubkey,
+            owner: owner_id,
+            fee: fee,
+            fee_type: fee_type,
+            stake: stake,
+            created_at: timestamp,
+            updated_at: timestamp
+          }
+          |> Map.merge(MapUtil.to_atoms(map_filter))
+          |> MapUtil.validate_url(:avatar)
 
-    PubSub.broadcast(@pubsub_server, "validator", {"new", validator})
+        validator
+        |> Validator.to_list()
+        |> ValidatorStore.insert_sync()
+
+        PubSub.broadcast(@pubsub_server, "validator", {"new", validator})
+    end
   end
 
   def pre_update(
@@ -187,14 +194,14 @@ defmodule Ippan.Func.Validator do
           timestamp: timestamp
         )
 
-        PubSub.broadcast(@pubsub_server, "validator", {"update", id, opts})
+        PubSub.broadcast(@pubsub_server, @topic, {"update", id, opts})
     end
   end
 
-  def update(_, id, map) do
+  def update(_source, id, map) do
     ValidatorStore.update(map, id: id)
 
-    PubSub.broadcast(@pubsub_server, "validator", {"update", id, map})
+    PubSub.broadcast(@pubsub_server, @topic, {"update", id, map})
   end
 
   def pre_delete(%{id: account_id, hash: hash, round: round, timestamp: timestamp}, id) do
@@ -219,6 +226,6 @@ defmodule Ippan.Func.Validator do
 
     ValidatorStore.delete([id])
 
-    PubSub.broadcast(@pubsub_server, "validator", {"delete", id})
+    PubSub.broadcast(@pubsub_server, @topic, {"delete", id})
   end
 end

@@ -205,7 +205,7 @@ defmodule Ippan.Func.Validator do
   end
 
   def pre_delete(%{id: account_id, hash: hash, round: round, timestamp: timestamp}, id) do
-    validator = ValidatorStore.lookup([id])
+    validator = ValidatorStore.lookup_map(id)
 
     cond do
       not Global.owner?(account_id) or validator.owner != account_id ->
@@ -218,7 +218,7 @@ defmodule Ippan.Func.Validator do
 
   @spec delete(Source.t(), term) :: result()
   def delete(%{id: account_id, timestamp: timestamp}, id) do
-    validator = ValidatorStore.lookup([id])
+    validator = ValidatorStore.lookup_map(id)
 
     if validator.stake > 0 do
       BalanceStore.income(account_id, @token, validator.stake, timestamp)

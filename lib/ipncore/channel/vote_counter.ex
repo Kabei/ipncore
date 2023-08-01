@@ -79,7 +79,7 @@ defmodule VoteCounter do
       when round >= round_number and me != creator_id do
     # Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
 
-    validator = ValidatorStore.lookup([creator_id])
+    validator = ValidatorStore.lookup_map(creator_id)
 
     if BlockTimer.verify(block, validator.pubkey) != :error do
       winner_id = {creator_id, height}

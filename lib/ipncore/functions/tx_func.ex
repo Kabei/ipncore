@@ -25,7 +25,7 @@ defmodule Ippan.Func.Tx do
       )
       when amount <= @max_tx_amount and account_id != to do
     %{fee: fee, fee_type: fee_type, owner: validator_owner} =
-      ValidatorStore.lookup([validator_id])
+      ValidatorStore.lookup_map(validator_id)
 
     fee_amount = Utils.calc_fees!(fee_type, fee, amount, size)
 
@@ -47,7 +47,7 @@ defmodule Ippan.Func.Tx do
 
     %{id: account_id, hash: hash, timestamp: timestamp} = source
 
-    RefundStore.replace([
+    RefundStore.insert([
       hash,
       account_id,
       to,
@@ -140,7 +140,7 @@ defmodule Ippan.Func.Tx do
       when byte_size(hash16) == 64 do
     hash = Base.decode16!(hash16, case: :mixed)
 
-    [sender_id, token, refund_amount] = RefundStore.lookup([hash, account_id, timestamp])
+    [sender_id, token, refund_amount] = RefundStore.one([hash, account_id, timestamp])
 
     case BalanceStore.send(account_id, sender_id, token, refund_amount, timestamp) do
       :ok ->

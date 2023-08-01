@@ -51,7 +51,7 @@ defmodule Ippan.Func.Domain do
         |> MapUtil.validate_url(:avatar)
         |> MapUtil.validate_email(:email)
 
-        %{fee: fee, fee_type: fee_type} = ValidatorStore.lookup([validator_id])
+        %{fee: fee, fee_type: fee_type} = ValidatorStore.lookup_map(validator_id)
 
         fee_amount = Utils.calc_fees!(fee_type, fee, amount, size)
 
@@ -97,7 +97,7 @@ defmodule Ippan.Func.Domain do
       |> Domain.to_list()
 
     %{fee: fee, fee_type: fee_type, owner: validator_owner} =
-      ValidatorStore.lookup([validator_id])
+      ValidatorStore.lookup_map(validator_id)
 
     fee_amount = Utils.calc_fees!(fee_type, fee, amount, size)
 
@@ -139,7 +139,7 @@ defmodule Ippan.Func.Domain do
         raise IppanError, "Invalid owner"
 
       true ->
-        validator = ValidatorStore.lookup([validator_id])
+        validator = ValidatorStore.lookup_map(validator_id)
         :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
 
         1 =

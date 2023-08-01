@@ -36,7 +36,7 @@ defmodule Ippan.Func.Dns do
         raise IppanError, "DNS resource error"
 
       true ->
-        case ValidatorStore.lookup([validator_id]) do
+        case ValidatorStore.lookup_map(validator_id) do
           nil ->
             raise IppanError, "Invalid validator"
 
@@ -75,7 +75,7 @@ defmodule Ippan.Func.Dns do
         raise IppanError, "Invalid owner"
 
       true ->
-        case ValidatorStore.lookup([validator_id]) do
+        case ValidatorStore.lookup_map(validator_id) do
           nil ->
             raise IppanError, "Invalid validator"
 

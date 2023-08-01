@@ -1,7 +1,7 @@
 defmodule RefundStore do
   @table "refunds"
 
-  use Store.Sqlite,
+  use Store.Sqlite2,
     base: :refund,
     table: @table,
     create: """
@@ -15,13 +15,12 @@ defmodule RefundStore do
     ) WITHOUT ROWID;
     """,
     stmt: %{
-      "delete_expiry" => "DELETE FROM #{@table} WHERE expiry_in < ?1",
-      insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6)",
-      replace: "REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6)",
+      "delete_expiry" => ~c"DELETE FROM #{@table} WHERE expiry_in < ?1",
+      insert: ~c"REPLACE INTO #{@table} values(?1,?2,?3,?4,?5,?6)",
       lookup:
-        "SELECT sender, token, amount FROM #{@table} WHERE hash = ?1 AND `to` = ?2 AND expiry_in > ?3",
-      exists: "SELECT 1 FROM #{@table} WHERE hash = ?1 AND `to` = ?2 AND expiry_in > ?3",
-      delete: "DELETE FROM #{@table} WHERE hash = ?"
+        ~c"SELECT sender, token, amount FROM #{@table} WHERE hash = ?1 AND `to` = ?2 AND expiry_in > ?3",
+      exists: ~c"SELECT 1 FROM #{@table} WHERE hash = ?1 AND `to` = ?2 AND expiry_in > ?3",
+      delete: ~c"DELETE FROM #{@table} WHERE hash = ?"
     }
 
   # "DELETE FROM #{@table} WHERE hash = ?1 AND `to` = ?2 AND expiry_in > ?3 RETURNING sender, token, amount",

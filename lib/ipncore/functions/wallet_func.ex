@@ -95,7 +95,7 @@ defmodule Ippan.Func.Wallet do
         %{id: account_id, timestamp: timestamp, size: size},
         new_validator_id
       ) do
-    validator = ValidatorStore.lookup([new_validator_id])
+    validator = ValidatorStore.lookup_map(new_validator_id)
     # fee amount is tx size
     :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
     WalletStore.update(%{validator: new_validator_id}, id: account_id)

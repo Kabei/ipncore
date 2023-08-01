@@ -1,7 +1,7 @@
 defmodule ValidatorStore do
   @table "validator"
 
-  use Store.Sqlite,
+  use Store.Sqlite2,
     base: :validator,
     cache: true,
     mod: Ippan.Validator,
@@ -22,13 +22,19 @@ defmodule ValidatorStore do
       updated_at BIGINT NOT NULL
       );",
     stmt: %{
-      "owner" => "SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
-      insert: "INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
-      lookup: "SELECT * FROM #{@table} WHERE id = ?1",
-      exists: "SELECT 1 FROM #{@table} WHERE id = ?1",
-      delete: "DELETE FROM #{@table} WHERE id = ?1",
-      total: "SELECT COUNT(1) FROM #{@table}"
+      "owner" => ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND owner = ?2",
+      insert: ~c"INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+      lookup: ~c"SELECT * FROM #{@table} WHERE id = ?1",
+      exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?1",
+      delete: ~c"DELETE FROM #{@table} WHERE id = ?1",
+      total: ~c"SELECT COUNT(1) FROM #{@table}"
     }
+
+  use Store.Cache,
+    table: :validator,
+    mod: Ippan.Validator,
+    mode: "partial",
+    size: 10_000_000
 
   def total do
     {_, [total]} = call({:execute_step, :total, []})

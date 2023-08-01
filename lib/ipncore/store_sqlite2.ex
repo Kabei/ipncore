@@ -263,7 +263,7 @@ defmodule Store.Sqlite2 do
       end
 
       def checkpoint do
-        %{conn: conn, stmts: stmts} = :sys.get_state(@base)
+        %{conn: conn, stmt: stmts} = :sys.get_state(@base)
 
         Sqlite3NIF.execute(conn, ~c"COMMIT")
 

@@ -246,6 +246,10 @@ defmodule Store.Sqlite2 do
         Sqlite3NIF.changes(conn)
       end
 
+      def run(fun) do
+        call({:call, fun})
+      end
+
       def savepoint(id) do
         call({:execute, ~c"SAVEPOINT #{id}"})
       end

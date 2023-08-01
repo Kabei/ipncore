@@ -63,7 +63,7 @@ defmodule Ippan.Func.Tx do
 
     case TokenStore.step("owner_props", [token, account_id, "%coinbase%"]) do
       {:row, [1]} ->
-        BalanceStore.launch(fn %{conn: conn, stmt: stmt} = state ->
+        BalanceStore.run(fn %{conn: conn, stmt: stmt} = state ->
           try do
             Sqlite3NIF.execute(conn, ~c"SAVEPOINT #{hash16}")
             statment = Map.get(stmt, :income)

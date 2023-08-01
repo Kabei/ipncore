@@ -262,8 +262,9 @@ defmodule Store.Sqlite2 do
         call(:sync)
       end
 
+      alias Exqlite.Sqlite3NIF
       def checkpoint do
-        %{conn: conn, stmt: stmts} = :sys.get_state(@base)
+        %{conn: conn, stmt: stmts} = :sys.get_state(:round)
 
         Sqlite3NIF.execute(conn, ~c"COMMIT")
 
@@ -271,8 +272,8 @@ defmodule Store.Sqlite2 do
           Sqlite3NIF.release(conn, stmt)
         end)
 
-        Sqlite3NIF.execute(conn, ~c"VACUUM")
         Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
+        Sqlite3NIF.execute(conn, ~c"VACUUM")
 
         statements =
           for {name, sql} <- @stmts, into: %{} do
@@ -372,7 +373,7 @@ defmodule Store.Sqlite2 do
       end
 
       def handle_call({:stmt, stmts}, _from, state) do
-        {:reply, Map.put(state, :stmt, stmts), state}
+        {:reply, :ok, Map.put(state, :stmt, stmts)}
       end
 
       def handle_call(

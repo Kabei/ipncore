@@ -262,28 +262,29 @@ defmodule Store.Sqlite2 do
         call(:sync)
       end
 
-      alias Exqlite.Sqlite3NIF
       def checkpoint do
-        %{conn: conn, stmt: stmts} = :sys.get_state(:round)
+        call(
+          {:call,
+           fn %{conn: conn, stmt: stmts} = state ->
+             Sqlite3NIF.execute(conn, ~c"COMMIT")
 
-        Sqlite3NIF.execute(conn, ~c"COMMIT")
+             Enum.each(stmts, fn {_, stmt} ->
+               Sqlite3NIF.release(conn, stmt)
+             end)
 
-        Enum.each(stmts, fn {_, stmt} ->
-          Sqlite3NIF.release(conn, stmt)
-        end)
+             Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
+             Sqlite3NIF.execute(conn, ~c"VACUUM")
 
-        Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
-        Sqlite3NIF.execute(conn, ~c"VACUUM")
+             statements =
+               for {name, sql} <- @stmts, into: %{} do
+                 {:ok, statement} = Sqlite3NIF.prepare(conn, sql)
+                 {name, statement}
+               end
 
-        statements =
-          for {name, sql} <- @stmts, into: %{} do
-            {:ok, statement} = Sqlite3NIF.prepare(conn, sql)
-            {name, statement}
-          end
-
-        call({:stmt, statements})
-
-        Sqlite3NIF.execute(conn, ~c"BEGIN")
+             Sqlite3NIF.execute(conn, ~c"BEGIN")
+             {:reply, :ok, Map.put(state, :stmt, statements)}
+           end}
+        )
       end
 
       def drop do
@@ -370,10 +371,6 @@ defmodule Store.Sqlite2 do
           _ex ->
             {:reply, :error, state}
         end
-      end
-
-      def handle_call({:stmt, stmts}, _from, state) do
-        {:reply, :ok, Map.put(state, :stmt, stmts)}
       end
 
       def handle_call(

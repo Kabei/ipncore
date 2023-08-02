@@ -565,10 +565,9 @@ defmodule BlockTimer do
               end
           end)
       end
-      |> :maps.values()
       |> case do
-        {events, true} -> {events, true}
-        events -> {events, false}
+        {events, true} -> {:maps.values(events), true}
+        events -> {:maps.values(events), false}
       end
 
     ev_count = length(events)

@@ -736,7 +736,7 @@ defmodule BlockTimer do
       Enum.map(
         events,
         fn
-          {body, signature} ->
+          [body, signature] ->
             hash = Blake3.hash(body)
             size = byte_size(body) + byte_size(signature)
 

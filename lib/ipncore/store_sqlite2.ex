@@ -409,9 +409,9 @@ defmodule Store.Sqlite2 do
           Sqlite3NIF.release(conn, stmt)
         end)
 
+        Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
         Sqlite3NIF.execute(conn, ~c"VACUUM")
         Sqlite3NIF.execute(conn, ~c"PRAGMA optimize")
-        Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
 
         Sqlite3NIF.close(conn)
       end

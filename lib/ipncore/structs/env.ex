@@ -7,23 +7,19 @@ defmodule Ippan.Env do
 
   defstruct [:name, :value, :timestamp]
 
-  def to_list(x) do
+  def encode_list(x) do
     [
       x.name,
-      x.value,
+      :erlang.term_to_binary(x.value),
       x.timestamp
     ]
   end
 
-  def to_tuple(x) do
+  def decode_ets(x) do
     {x.name, :erlang.binary_to_term(x.value), x.timestamp}
   end
 
-  def to_map({name, value, timestamp}) do
-    %{name: name, value: value, timestamp: timestamp}
-  end
-
-  def to_map([name, value, timestamp]) do
-    %{name: name, value: value, timestamp: timestamp}
+  def decode_map([name, value, timestamp]) do
+    %{name: name, value: :erlang.binary_to_term(value), timestamp: timestamp}
   end
 end

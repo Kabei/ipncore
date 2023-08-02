@@ -37,7 +37,7 @@ defmodule Store.Cache do
           Sqlite3NIF.release(conn, statement)
 
           for item <- data do
-            :ets.insert(@table, @mod.to_tuple(item))
+            :ets.insert(@table, @mod.decode_ets(item))
           end
 
           {:noreply, state}

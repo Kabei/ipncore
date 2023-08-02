@@ -32,21 +32,21 @@ defmodule EnvStore do
 
   def token_price do
     case get("TOKEN.PRICE") do
-      x when is_integer(x) and x >= 0 -> x
+      {_name, x, _} when is_integer(x) and x >= 0 -> x
       _ -> 50000
     end
   end
 
   def validator_stake do
     case get("VALIDATOR.STAKE") do
-      x when is_integer(x) and x >= 0 -> x
+      {_name, x, _} when is_integer(x) and x >= 0 -> x
       _ -> 100_000
     end
   end
 
   def jackpot_reward do
     case get("JACKPOT.REWARD") do
-      x when is_integer(x) and x > 0 -> x
+      {_name, x, _} when is_integer(x) and x > 0 -> x
       _ -> 1_000
     end
   end

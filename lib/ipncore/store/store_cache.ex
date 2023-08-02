@@ -52,7 +52,7 @@ defmodule Store.Cache do
             [] ->
               default
 
-            [{_k, val} | _] ->
+            [val | _] ->
               val
           end
         end

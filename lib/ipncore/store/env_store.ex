@@ -25,6 +25,11 @@ defmodule EnvStore do
     mod: Env,
     mode: "full"
 
+  def put(name, value, timestamp) do
+    :ets.insert(:env, {name, value, timestamp})
+    cast({:step, :insert, [name, :erlang.term_to_binary(value), timestamp]})
+  end
+
   def token_price do
     case get("TOKEN.PRICE") do
       x when is_integer(x) and x >= 0 -> x

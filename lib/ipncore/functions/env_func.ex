@@ -13,8 +13,7 @@ defmodule Ippan.Func.Env do
   end
 
   def set(%{timestamp: timestamp}, name, value) do
-    bin = :erlang.term_to_binary(value)
-    EnvStore.insert([name, bin, timestamp])
+    EnvStore.put(name, value, timestamp)
   end
 
   def pre_delete(%{id: account_id, hash: hash, round: round, timestamp: timestamp}, name)

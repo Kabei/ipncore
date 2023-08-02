@@ -15,8 +15,8 @@ defmodule Ippan.Env do
     ]
   end
 
-  def decode_ets(x) do
-    {x.name, :erlang.binary_to_term(x.value), x.timestamp}
+  def decode_ets([name, value, timestamp]) do
+    {name, :erlang.binary_to_term(value), timestamp}
   end
 
   def decode_map([name, value, timestamp]) do

@@ -33,8 +33,27 @@ defmodule BlockStore do
         PRIMARY KEY(creator_id, height, validator_id)
       ) WITHOUT ROWID;
       """
+      # """
+      # CREATE TABLE IF NOT EXISTS #{@table_candidates}(
+      #   height BIGINT NOT NULL,
+      #   creator BIGINT NOT NULL,
+      #   hash BLOB NOT NULL,
+      #   prev BLOB,
+      #   hashfile BLOB,
+      #   signature BLOB NOT NULL,
+      #   round BIGINT NOT NULL,
+      #   timestamp BIGINT NOT NULL,
+      #   ev_count INTEGER DEFAULT 0,
+      #   size BIGINT DEFAULT 0,
+      #   error BOOLEAN DEFAULT FALSE,
+      #   votes integer DEFAULT 0,
+      #   PRIMARY KEY(height, creator),
+      # ) WITHOUT ROWID;
+      # """
     ],
     stmt: %{
+      "last_block_by_creator" =>
+        ~c"SELECT * FROM #{@table} WHERE creator = ? ORDER BY height DESC",
       "fetch_between" =>
         ~c"SELECT * FROM #{@table} WHERE creator = ?1 AND height BETWEEN ?2 AND ?3 ORDER BY height ASC",
       "fetch_uniques" =>
@@ -103,5 +122,12 @@ defmodule BlockStore do
 
   def sum_votes(round, hash, creator) do
     call({:step, "count_votes", [round, hash, creator]})
+  end
+
+  def last_block_by_creator(creator) do
+    case call({:step, "last_block_by_creator", [creator]}) do
+      {:row, data} -> data
+      _ -> nil
+    end
   end
 end

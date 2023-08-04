@@ -1,6 +1,7 @@
 defmodule RoundStore do
   @table "round"
   @table_jackpot "jackpot"
+  @table_snapshot "snapshot"
 
   use Store.Sqlite2,
     base: :round,
@@ -17,19 +18,26 @@ defmodule RoundStore do
     ) WITHOUT ROWID;
     ", "
     CREATE TABLE IF NOT EXISTS #{@table_jackpot}(
-      id BIGINT NOT NULL,
+      round_id BIGINT NOT NULL,
       winner_id BLOB,
-      PRIMARY KEY(id, winner_id)
+      amount BIGINT DEFAULT 0,
+      PRIMARY KEY(round_id, winner_id)
     ) WITHOUT ROWID;
-    "],
+    ", "
+    CREATE TABLE IF NOT EXISTS #{@table_snapshot}(
+      round_id BIGINT PRIMARY KEY NOT NULL,
+      hash BLOB NOT NULL,
+      size BIGINT NOT NULL
+    ) WITHOUT ROWID;"],
     stmt: %{
+      "has_winner" => ~c"SELECT 1 FROM #{@table_jackpot} WHERE round_id = ?",
+      "insert_winner" => ~c"INSERT INTO #{@table_jackpot} values(?, ?, ?)",
+      "insert_snap" => ~c"INSERT INTO #{@table_snapshot} values(?, ?, ?)",
       insert: ~c"INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6)",
       lookup: ~c"SELECT * FROM #{@table} WHERE id = ?",
       exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?",
       last: ~c"SELECT * FROM #{@table} ORDER BY id DESC LIMIT 1",
       delete: ~c"DELETE FROM #{@table} WHERE id = ?",
-      insert_winner: ~c"INSERT INTO #{@table_jackpot} values(?, ?)",
-      has_winner: ~c"SELECT 1 FROM #{@table_jackpot} WHERE id = ?",
       total: ~c"SELECT COUNT(1) FROM #{@table}"
     }
 
@@ -44,12 +52,12 @@ defmodule RoundStore do
     end
   end
 
-  def insert_winner(round_id, winner_id) do
-    call({:step, :insert_winner, [round_id, winner_id]})
+  def insert_winner(round_id, winner_id, amount) do
+    call({:step, "insert_winner", [round_id, winner_id, amount]})
   end
 
   def has_winner?(round_id) do
-    {:row, [1]} == call({:step, :insert_winner, [round_id]})
+    {:row, [1]} == call({:step, "has_winner", [round_id]})
   end
 
   def total do

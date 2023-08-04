@@ -3,12 +3,13 @@ defmodule BalanceStore do
   alias Exqlite.Sqlite3NIF
 
   @token Application.compile_env(:ipncore, :token)
+  @maximum_amount 9_223_372_036_854_775_807
 
   use Store.Sqlite2,
     base: :balance,
     table: @table,
     mod: Ippan.Balance,
-    create: "CREATE TABLE IF NOT EXISTS #{@table}(
+    create: ["CREATE TABLE IF NOT EXISTS #{@table}(
       id TEXT NOT NULL,
       token VARCHAR(20) NOT NULL,
       amount BIGINT DEFAULT 0,
@@ -16,7 +17,23 @@ defmodule BalanceStore do
       created_at BIGINT NOT NULL,
       updated_at BIGINT NOT NULL,
       PRIMARY KEY (id, token)
-    ) WITHOUT ROWID",
+    ) WITHOUT ROWID", "CREATE TRIGGER IF NOT EXISTS tg_balance_insert_max_amount
+    BEFORE INSERT ON #{@table}
+    BEGIN
+        SELECT CASE WHEN NEW.amount > #{@maximum_amount}
+        THEN RAISE(ABORT, 'Max value of amount exceeded')
+        WHEN NEW.locked > #{@maximum_amount}
+        THEN RAISE(ABORT, 'Max value of locked exceeded')
+        END;
+    END;", "CREATE TRIGGER IF NOT EXISTS tg_balance_update_max_amount
+    BEFORE UPDATE ON #{@table}
+    BEGIN
+        SELECT CASE WHEN NEW.amount > #{@maximum_amount}
+        THEN RAISE(ABORT, 'Max value of amount exceeded')
+        WHEN NEW.locked > #{@maximum_amount}
+        THEN RAISE(ABORT, 'Max value of locked exceeded')
+        END;
+    END;"],
     stmt: %{
       insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
       balance: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2 AND amount >= ?3",

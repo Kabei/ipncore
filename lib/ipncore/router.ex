@@ -23,23 +23,20 @@ defmodule Ipncore.Router do
       {event, msg} =
         case get_req_header(conn, "auth") do
           [sig] ->
+            vid = Global.validator_id()
             sig = Fast64.decode64(sig)
             size = byte_size(body) + byte_size(sig)
-            RequestHandler.valid!(hash, body, size, sig, Global.validator_id())
+            RequestHandler.valid!(hash, body, size, sig, vid)
 
           _ ->
             size = byte_size(body)
             RequestHandler.valid!(hash, body, size)
         end
 
-      [_, timestamp | _] = msg
-
-      case MessageStore.insert_hash(hash, timestamp) do
-        1 ->
-          case event do
-            %{deferred: false} ->
-              MessageStore.insert(msg)
-
+      case event do
+        %{deferred: false} ->
+          case MessageStore.insert(msg) do
+            :done ->
               PubSub.direct_broadcast(
                 Global.miner(),
                 :verifiers,
@@ -47,21 +44,27 @@ defmodule Ipncore.Router do
                 {"valid", node(), msg}
               )
 
-            %{deferred: true} ->
-              MessageStore.insert_df(msg)
+              json(conn, %{"hash" => Base.encode16(hash, case: :lower)})
 
+            _ ->
+              send_resp(conn, 400, "Transaction already exists")
+          end
+
+        %{deferred: true} ->
+          case MessageStore.insert_df(msg) do
+            :done ->
               PubSub.direct_broadcast(
                 Global.miner(),
                 :verifiers,
                 "event",
                 {"valid_df", node(), msg}
               )
+
+              json(conn, %{"hash" => Base.encode16(hash, case: :lower)})
+
+            _ ->
+              send_resp(conn, 400, "Transaction already exists")
           end
-
-          json(conn, %{"hash" => Base.encode16(hash, case: :lower)})
-
-        _ ->
-          send_resp(conn, 400, "Transaction already exists")
       end
     rescue
       e in [IppanError] ->

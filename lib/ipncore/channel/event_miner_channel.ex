@@ -4,12 +4,11 @@ defmodule EventMinerChannel do
     topic: "event"
 
   @impl true
-  def handle_info({"valid", from, [hash, timestamp | _] = body}, state) do
+  def handle_info({"valid", from, [hash | _] = body}, state) do
     Logger.debug("valid #{Base.encode16(hash)}")
 
-    case MessageStore.insert_hash(hash, timestamp) do
-      1 ->
-        MessageStore.insert_sync(body)
+    case MessageStore.insert(body) do
+      :done ->
         PubSub.direct_broadcast(from, :verifiers, "event", {"recv", hash, :ok})
 
       _ ->
@@ -19,12 +18,14 @@ defmodule EventMinerChannel do
     {:noreply, state}
   end
 
-  def handle_info({"valid_df", from, [hash, timestamp | _] = body}, state) do
+  def handle_info(
+        {"valid_df", from, [hash | _] = body},
+        state
+      ) do
     Logger.debug("valid_df #{Base.encode16(hash)}")
 
-    case MessageStore.insert_hash(hash, timestamp) do
-      1 ->
-        MessageStore.insert_df(body)
+    case MessageStore.insert_df(body) do
+      :done ->
         PubSub.direct_broadcast(from, :verifiers, "event", {"recv", hash, :ok})
 
       _ ->

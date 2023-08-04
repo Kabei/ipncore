@@ -5,7 +5,7 @@ defmodule Ippan.Func.Tx do
 
   @max_tx_amount Application.compile_env(:ipncore, :max_tx_amount)
   @refund_timeout :timer.hours(72)
-  # @note_max_size Application.compile_env(:ipncore, :note_max_size)
+  @note_max_size Application.compile_env(:ipncore, :note_max_size)
 
   def send(_, token, outputs)
       when byte_size(token) <= 10 and is_list(outputs) do
@@ -21,9 +21,12 @@ defmodule Ippan.Func.Tx do
         },
         to,
         token,
-        amount
+        amount,
+        note \\ <<>>
       )
-      when amount <= @max_tx_amount and account_id != to do
+      when amount <= @max_tx_amount and
+             account_id != to and
+             byte_size(note) <= @note_max_size do
     %{fee: fee, fee_type: fee_type, owner: validator_owner} =
       ValidatorStore.lookup_map(validator_id)
 

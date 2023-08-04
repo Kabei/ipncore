@@ -344,7 +344,8 @@ defmodule BlockTimer do
 
   defp spawn_round_worker(pid, %{next_round: current_round, prev_round: prev_round}) do
     spawn_link(fn ->
-      {:ok, requests} = MessageStore.delete_all_df_approved(current_round)
+      {:ok, requests} = MessageStore.select_all_df_approved(current_round)
+      MessageStore.delete_all_df_approved(current_round)
 
       Enum.each(requests, fn [
                                hash,
@@ -386,13 +387,7 @@ defmodule BlockTimer do
           DomainStore.delete_expiry(current_round, timestamp)
         end)
 
-      MessageStore.sync()
-      BlockStore.sync()
-      RoundStore.sync()
-
-      if requests != [] do
-        commit()
-      end
+      commit()
 
       Task.await(task_jackpot, :infinity)
       checkpoint_commit()
@@ -539,23 +534,32 @@ defmodule BlockTimer do
             ] = msg,
             acc ->
               try do
-                MessageStore.insert_df(msg)
-                args = decode_term(args)
+                case MessageStore.insert_df(msg) do
+                  :done ->
+                    args = decode_term(args)
 
-                RequestHandler.handle!(
-                  hash,
-                  type,
-                  timestamp,
-                  account_id,
-                  validator_id,
-                  node_id,
-                  size,
-                  args,
-                  round
-                )
+                    RequestHandler.handle!(
+                      hash,
+                      type,
+                      timestamp,
+                      account_id,
+                      validator_id,
+                      node_id,
+                      size,
+                      args,
+                      round
+                    )
 
-                {:cont,
-                 Map.put_new(acc, hash, if(signature, do: [message, signature], else: message))}
+                    {:cont,
+                     Map.put_new(
+                       acc,
+                       hash,
+                       if(signature, do: [message, signature], else: message)
+                     )}
+
+                  _ ->
+                    {:cont, acc}
+                end
               rescue
                 # tx failed
                 e ->
@@ -732,24 +736,32 @@ defmodule BlockTimer do
     events = decode_file!(content)
 
     decode_events =
-      Enum.map(
+      Enum.reduce(
+        %{},
         events,
         fn
-          [body, signature] ->
+          [body, signature], acc ->
             hash = Blake3.hash(body)
             size = byte_size(body) + byte_size(signature)
 
-            RequestHandler.valid!(hash, body, size, signature, creator_id)
-            |> elem(1)
+            msg =
+              RequestHandler.valid!(hash, body, size, signature, creator_id)
+              |> elem(1)
 
-          body ->
+            Map.put_new(acc, hash, msg)
+
+          body, acc ->
             hash = Blake3.hash(body)
             size = byte_size(body)
 
-            RequestHandler.valid!(hash, body, size)
-            |> elem(1)
+            msg =
+              RequestHandler.valid!(hash, body, size)
+              |> elem(1)
+
+            Map.put_new(acc, hash, msg)
         end
       )
+      |> Map.values()
 
     if ev_count != length(decode_events) do
       raise(IppanError, "Invalid block size and valid events size")
@@ -777,21 +789,23 @@ defmodule BlockTimer do
       position = rem(num, count) + 1
       winner_id = WalletStore.jackpot(position)
       amount = EnvStore.jackpot_reward()
-      RoundStore.insert_winner(round_id, winner_id)
+      RoundStore.insert_winner(round_id, winner_id, amount)
       TokenStore.sum_suppy(@token, amount)
       BalanceStore.income(winner_id, @token, amount, round_timestamp)
       BalanceStore.sync()
-      Logger.debug("[Jackpot] Winner: #{winner_id}")
+      Logger.debug("[Jackpot] Winner: #{winner_id} | #{amount}")
       :ok
     else
       Logger.debug("[Jackpot] No winner")
-      RoundStore.insert_winner(round_id, nil)
       :none
     end
   end
 
   defp commit do
     Logger.debug("commit")
+    MessageStore.sync()
+    BlockStore.sync()
+    RoundStore.sync()
     WalletStore.sync()
     BalanceStore.sync()
     ValidatorStore.sync()

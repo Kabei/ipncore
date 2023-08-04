@@ -86,4 +86,13 @@ defmodule Ippan.Utils do
   def get_random_node_verifier do
     Node.list() |> Enum.random() |> to_string() |> String.split("@") |> hd
   end
+
+  def delete_oldest_file(dir) do
+    dir
+    |> Path.expand()
+    |> File.ls!()
+    |> Enum.sort_by(&File.stat!(&1).mtime)
+    |> List.first()
+    |> File.rm!()
+  end
 end

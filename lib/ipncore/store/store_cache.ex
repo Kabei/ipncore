@@ -90,7 +90,7 @@ defmodule Store.Cache do
                   :ets.insert(@table, @mod.to_tuple(data))
 
                   if :ets.info(@table, :size) > @size do
-                    :ets.delete_all_objects(@table)
+                    :ets.delete(@table, :ets.first(@table))
                   end
 
                   @mod.to_tuple(data)
@@ -112,7 +112,7 @@ defmodule Store.Cache do
                   :ets.insert(@table, @mod.to_tuple(data))
 
                   if :ets.info(@table, :size) > @size do
-                    :ets.delete_all_objects(@table)
+                    :ets.delete(@table, :ets.first(@table))
                   end
 
                   data
@@ -134,7 +134,7 @@ defmodule Store.Cache do
                   :ets.insert(@table, @mod.to_tuple(data))
 
                   if :ets.info(@table, :size) > @size do
-                    :ets.delete_all_objects(@table)
+                    :ets.delete(@table, :ets.first(@table))
                   end
 
                   @mod.to_map(data)

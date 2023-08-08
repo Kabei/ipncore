@@ -95,4 +95,14 @@ defmodule Ippan.Utils do
     |> List.first()
     |> File.rm!()
   end
+
+  def delete_files(dir, timestamp) do
+    dir
+    |> Path.expand()
+    |> File.ls!()
+    |> Enum.filter(&(File.stat!(&1).mtime < timestamp))
+    |> Enum.each(fn path ->
+      File.rm(path)
+    end)
+  end
 end

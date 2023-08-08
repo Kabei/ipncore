@@ -153,7 +153,9 @@ defmodule Ippan.Func.Domain do
   end
 
   def delete(%{id: account_id}, domain_name) do
-    1 = DomainStore.step_change(:delete, [domain_name, account_id])
+    result = 1 = DomainStore.step_change(:delete, [domain_name, account_id])
+    DnsStore.delete([domain_name])
+    result
   end
 
   def renew(%{id: account_id, timestamp: timestamp}, name, days)

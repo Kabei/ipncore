@@ -1,4 +1,5 @@
 defmodule Ippan.Block do
+  require Global
   @type t :: %__MODULE__{
           height: non_neg_integer(),
           creator: non_neg_integer(),
@@ -132,13 +133,13 @@ defmodule Ippan.Block do
 
   @spec sign(binary()) :: {:ok, binary()} | {:error, term()}
   def sign(hash) do
-    privkey = Application.get_env(:ipncore, :privkey)
+    privkey = Global.privkey()
     Cafezinho.Impl.sign(hash, privkey)
   end
 
-  def sign_vote(hash, vote) do
-    privkey = Application.get_env(:ipncore, :privkey)
-    Cafezinho.Impl.sign("#{hash}#{vote}", privkey)
+  def sign_block_confirm(hash) do
+    privkey = Global.privkey()
+    Cafezinho.Impl.sign("#{hash} is valid", privkey)
   end
 
   def block_path(validator_id, height) do

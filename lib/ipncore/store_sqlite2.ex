@@ -2,17 +2,13 @@ defmodule Store.Sqlite2 do
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
       @base opts[:base]
-      @pool opts[:pool]
       @table opts[:table]
-      @mod opts[:mod]
       @create opts[:create]
       @alter opts[:alter] || []
       @attach opts[:attach] || []
       @version opts[:version] || 0
-      @keys opts[:keys] || 1
-      @cache opts[:cache] || false
-      @max_cache_size opts[:cache_size] || 10_000_000
       @stmts opts[:stmt]
+      @foreign_key opts[:foreign] || ~c"OFF"
 
       require Logger
       alias Exqlite.Sqlite3NIF
@@ -50,6 +46,8 @@ defmodule Store.Sqlite2 do
         end
       end
 
+      def table_name, do: @table
+
       def start(path) when is_binary(path) do
         {:ok, conn} = open(path)
 
@@ -59,6 +57,8 @@ defmodule Store.Sqlite2 do
       def start(conn) when is_reference(conn) do
         :ok = create(conn)
 
+        attach(conn)
+
         statements =
           for {name, sql} <- @stmts, into: %{} do
             {:ok, statement} = Sqlite3NIF.prepare(conn, sql)
@@ -66,7 +66,6 @@ defmodule Store.Sqlite2 do
           end
 
         check_version(conn)
-        attach(conn)
 
         %{conn: conn, stmt: statements}
       end
@@ -93,6 +92,7 @@ defmodule Store.Sqlite2 do
 
         # flags = [:sqlite_open_sharedcache]
         {:ok, conn} = Sqlite3.open(path, [])
+        Sqlite3NIF.execute(conn, ~c"PRAGMA foreign_keys = #{@foreign_key}")
         Sqlite3NIF.execute(conn, ~c"PRAGMA journal_mode = WAL")
         Sqlite3NIF.execute(conn, ~c"PRAGMA synchronous = 0")
         Sqlite3NIF.execute(conn, ~c"PRAGMA cache_size = -100000000")

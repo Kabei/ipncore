@@ -2,7 +2,7 @@ defmodule Ippan.P2P.Client do
   use GenServer
   import Ippan.P2P, only: [decode!: 2, encode: 2]
   alias Phoenix.PubSub
-  alias Ippan.{Address, Block, P2P}
+  alias Ippan.{Address, P2P}
   require Global
   require Logger
 
@@ -71,6 +71,9 @@ defmodule Ippan.P2P.Client do
       case connect(state) do
         {:ok, new_state} ->
           {:noreply, new_state}
+
+        :halt ->
+          {:stop, :normal, state}
 
         _error ->
           :timer.send_after(@time_to_reconnect, :reconnect)
@@ -200,16 +203,23 @@ defmodule Ippan.P2P.Client do
 
       {:ok, socket} = @adapter.connect(ip_addr, port, @tcp_opts)
       :inet.setopts(socket, active: false)
-      {:ok, sharedkey} = handshake(socket, state)
-      {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
-      :ok = :inet.setopts(socket, active: true)
 
-      new_state =
-        Map.merge(state, %{conn: true, socket: socket, sharedkey: sharedkey, tRef: tRef})
+      case handshake(socket, state) do
+        {:ok, sharedkey} ->
+          {:ok, sharedkey}
+          {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
+          :ok = :inet.setopts(socket, active: true)
 
-      Logger.debug("#{hostname}:#{port} | connected")
+          new_state =
+            Map.merge(state, %{conn: true, socket: socket, sharedkey: sharedkey, tRef: tRef})
 
-      {:ok, check_mailbox(new_state)}
+          Logger.debug("#{hostname}:#{port} | connected")
+
+          {:ok, check_mailbox(new_state)}
+
+        error ->
+          error
+      end
     rescue
       _error ->
         {:error, state}
@@ -226,6 +236,9 @@ defmodule Ippan.P2P.Client do
         authtext = encode(state.pubkey <> <<id::64>> <> signature, sharedkey)
         @adapter.send(socket, "THX" <> ciphertext <> authtext)
         {:ok, sharedkey}
+
+      {:error, :closed} ->
+        :halt
 
       error ->
         error
@@ -245,23 +258,23 @@ defmodule Ippan.P2P.Client do
       File.rm(file_path)
 
       # IO.inspect("mailbox sent")
-    else
-      me = Global.validator_id()
-      b1 = BlockStore.count(vid)
-      b2 = BlockStore.count(me)
+      # else
+      #   me = Global.validator_id()
+      #   b1 = BlockStore.count(vid)
+      #   b2 = BlockStore.count(me)
 
-      if b2 > b1 do
-        BlockStore.fetch_between(me, b1, b2)
-        |> case do
-          {:ok, data} ->
-            for block <- data do
-              P2P.push(vid, ["new_recv", Block.to_map(block)])
-            end
+      #   if b2 > b1 do
+      #     BlockStore.fetch_between(me, b1, b2)
+      #     |> case do
+      #       {:ok, data} ->
+      #         for block <- data do
+      #           P2P.push(vid, ["new_recv", Block.to_map(block)])
+      #         end
 
-          _ ->
-            :ok
-        end
-      end
+      #       _ ->
+      #         :ok
+      #     end
+      #   end
     end
 
     %{state | mailbox: %{}}

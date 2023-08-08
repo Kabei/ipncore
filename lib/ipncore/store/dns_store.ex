@@ -13,7 +13,7 @@ defmodule DnsStore do
       ttl INTEGER DEFAULT 0,
       hash BLOB NOT NULL,
       PRIMARY KEY(domain, hash)
-    )",
+    ) WITHOUT ROWID",
     stmt: %{
       "delete_hash" => ~c"DELETE FROM #{@table} WHERE domain = ?1 AND name=?2 AND hash=?3",
       "delete_type" => ~c"DELETE FROM #{@table} WHERE domain = ?1 AND name=?2 AND type=?3",

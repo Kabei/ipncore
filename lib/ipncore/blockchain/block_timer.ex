@@ -15,6 +15,7 @@ defmodule BlockTimer do
   @pubsub_verifiers :verifiers
   @topic_block "block"
   @topic_round "round"
+  @topic_jackpot "jackpot"
   @block_interval Application.compile_env(@otp_app, :block_interval)
   @block_max_size Application.compile_env(@otp_app, :block_max_size)
   @block_data_max_size Application.compile_env(@otp_app, :block_data_max_size)
@@ -794,6 +795,7 @@ defmodule BlockTimer do
       BalanceStore.income(winner_id, @token, amount, round_timestamp)
       BalanceStore.sync()
       Logger.debug("[Jackpot] Winner: #{winner_id} | #{amount}")
+      PubSub.broadcast(@pubsub_verifiers, @topic_jackpot, %{winner: winner_id, amount: amount})
       :ok
     else
       Logger.debug("[Jackpot] No winner")

@@ -61,7 +61,7 @@ defmodule Ippan.P2P.Server do
           case msg do
             ["new_recv", rest] ->
               block = MapUtil.to_existing_atoms(rest)
-              send(VoteCounter, {"new_recv", from, block})
+              send(VoteCounter, {"new_recv", from, true, block})
               @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
 
             _ ->
@@ -120,7 +120,7 @@ defmodule Ippan.P2P.Server do
               :ok ->
                 case ValidatorStore.lookup_map(id) do
                   nil ->
-                    Logger.debug("[Server connection] validator not exists")
+                    Logger.error("validator not exists #{id}")
                     {:close, state}
 
                   %{hostname: hostname, name: name, pubkey: pubkey} ->

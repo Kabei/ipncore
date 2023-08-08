@@ -46,8 +46,6 @@ defmodule VoteCounter do
     round = RoundStore.total()
     minimum = calc_minimum(validators)
 
-    load_votes(round, minimum)
-
     PubSub.subscribe(:verifiers, "block")
 
     {:ok,
@@ -56,68 +54,94 @@ defmodule VoteCounter do
        minimum: minimum,
        round: round,
        validator_id: Global.validator_id()
-     }}
+     }, {:continue, :load}}
+  end
+
+  @impl true
+  def handle_continue(:load, %{round: round} = state) do
+    pid = self()
+
+    for [validator_id, data] <- BlockStore.fetch_bft(round) do
+      send(pid, {"new_recv", %{id: validator_id}, false, data})
+    end
+
+    {:noreply, state}
   end
 
   @impl true
   def handle_info(
-        {"new_recv", %{id: validator_id},
+        {"new_recv", %{id: validator_id, pubkey: validator_pubkey}, check,
          %{
            hash: hash,
-           prev: _prev,
+           prev: prev,
            height: height,
            round: round,
            creator: creator_id,
            ev_count: ev_count,
            size: _size,
-           signature: _signature,
-           hashfile: _hashfile,
-           timestamp: _timestamp
-         } = block},
+           signature: signature,
+           hashfile: hashfile,
+           timestamp: timestamp
+         } = msg},
         %{minimum: minimum, round: round_number, validator_id: me} = state
       )
       when round >= round_number and me != creator_id do
-    # Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
+    Logger.debug("block.new_recv #{Base.encode16(hash)} | from #{validator_id}")
 
-    validator = ValidatorStore.lookup_map(creator_id)
+    check_auth = creator_id != validator_id
+    # is_creator = validator_id == creator_id
 
-    if BlockTimer.verify(block, validator.pubkey) != :error do
-      winner_id = {creator_id, height}
+    if check == false or
+         (Block.compute_hash(height, creator_id, round, prev, hashfile, timestamp) != hash and
+            Cafezinho.Impl.verify(signature, hash, validator_pubkey) == :ok and
+            (not check_auth or
+               Cafezinho.Impl.verify(msg[:auth], "#{hash} is valid", msg[:pubkey]) == :ok)) do
+      winner_id = {creator_id, hash}
       vote_id = {creator_id, height, validator_id}
       candidate_unique_id = {creator_id, height, hash}
 
       # emit vote if not exists
       case :ets.insert_new(@votes, {vote_id, round}) do
         true ->
-          # retransmit message
-          P2P.push_except(["new_recv", block], [validator_id, creator_id])
-          # save vote
-          BlockStore.insert_vote(creator_id, height, validator_id, round, hash)
-          # BlockStore.sync()
+          if check do
+            # retransmit message
+            my_auth = Block.sign_block_confirm(hash)
+
+            new_msg =
+              msg
+              |> Map.put(:auth, my_auth)
+              |> Map.put(:pubkey, Global.pubkey())
+
+            P2P.push_except(["new_recv", new_msg], [validator_id, creator_id])
+            # save bft message
+            BlockStore.insert_bft(validator_id, round, creator_id, height, msg)
+          end
 
           # vote count by candidate
           case :ets.update_counter(
                  @candidates,
                  candidate_unique_id,
                  {4, 1},
-                 {candidate_unique_id, round, block, 0}
+                 {candidate_unique_id, round, msg, 0}
                ) do
             count when count == minimum ->
               # it's a winner if the count is mayor than minimum required
-              case :ets.insert_new(@winners, {winner_id, round}) do
+              case :ets.insert_new(@winners, {winner_id, nil}) do
                 true ->
-                  # create block
-
-                  Task.async(fn ->
-                    if ev_count > 0 do
-                      # send task to a verifier node
-                      push_fetch(self(), block, validator)
-                    else
-                      # block empty
-                      send(BlockTimer, {:import, block})
-                    end
-                  end)
-                  |> Task.await(:infinity)
+                  # create block if round is the same
+                  if round_number == round do
+                    Task.async(fn ->
+                      if ev_count > 0 do
+                        # send task to a verifier node
+                        creator = ValidatorStore.lookup_map(creator_id)
+                        push_fetch(self(), msg, creator)
+                      else
+                        # block empty
+                        send(BlockTimer, {:import, msg})
+                      end
+                    end)
+                    |> Task.await(:infinity)
+                  end
 
                 _ ->
                   :ok
@@ -170,25 +194,30 @@ defmodule VoteCounter do
     {:noreply, %{state | valdiators: validators + n, minimum: minimum}}
   end
 
-  # :ets.fun2ms(fn {_, x, _} when x <= old_round -> true end)
+  def handle_cast({:snapshot, %{round: round} = _data}, state) do
+    BlockStore.delete_bft(round)
+
+    {:noreply, state}
+  end
+
   # :ets.fun2ms(fn {_, x} when x <= old_round -> true end)
-  # :ets.fun2ms(fn {_, x, _, _, _} when x <= 10 -> true end)
+  # :ets.fun2ms(fn {_, x, _} when x <= old_round -> true end)
   @impl true
   def handle_call({:reset, new_round}, _from, %{round: old_round} = state)
-      when old_round <= new_round do
+      when old_round < new_round do
     # delete old round
     :ets.select_delete(@winners, [{{:_, :"$1"}, [{:"=<", :"$1", old_round}], [true]}])
-    :ets.select_delete(@candidates, [{{:_, :"$1", :_}, [{:"=<", :"$1", old_round}], [true]}])
     :ets.select_delete(@votes, [{{:_, :"$1", :_}, [{:"=<", :"$1", old_round}], [true]}])
+    :ets.select_delete(@candidates, [{{:_, :"$1", :_}, [{:"=<", :"$1", old_round}], [true]}])
 
     {:reply, :ok, %{state | round: new_round}}
   end
 
   @impl true
   def terminate(_reason, _state) do
+    :ets.delete(@winners)
     :ets.delete(@votes)
     :ets.delete(@candidates)
-    :ets.delete(@winners)
     PubSub.unsubscribe(:verifiers, "block")
   end
 
@@ -200,11 +229,6 @@ defmodule VoteCounter do
   @spec reset(number()) :: :ok
   def reset(round) do
     GenServer.call(@module, {:reset, round}, :infinity)
-  end
-
-  def make_vote(%{hash: hash} = block, validator_id, value) do
-    {:ok, signature} = Ippan.Block.sign_vote(hash, value)
-    Map.merge(block, %{vote: value, signature: signature, validator_id: validator_id})
   end
 
   defp download_block_from_cluster!(node_verifier, creator_id, height) do
@@ -258,43 +282,5 @@ defmodule VoteCounter do
     rescue
       _ -> send(pid, {"invalid", block})
     end
-  end
-
-  defp load_votes(round, minimum) do
-    votes =
-      BlockStore.fetch_votes(round)
-
-    # set votes
-    Enum.each(votes, fn [creator_id, height, validator_id, round, _hash] ->
-      :ets.insert(@votes, {{creator_id, height, validator_id}, round})
-    end)
-
-    # set candidates
-    Enum.group_by(
-      votes,
-      fn [creator_id, height, _validator_id, round, hash] ->
-        {creator_id, height, hash, round}
-      end,
-      fn _ ->
-        1
-      end
-    )
-    |> Enum.each(fn {{creator_id, height, hash, round}, list_n} ->
-      candidate_unique_id = {creator_id, height, hash}
-
-      case :ets.update_counter(
-             @candidates,
-             candidate_unique_id,
-             {4, length(list_n)},
-             {candidate_unique_id, round, %{}, 0}
-           ) do
-        count when count == minimum ->
-          # set winners
-          :ets.insert(@winners, {{creator_id, height}, round})
-
-        _ ->
-          :ok
-      end
-    end)
   end
 end

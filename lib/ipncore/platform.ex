@@ -22,6 +22,8 @@ defmodule Platform do
           native_token: token,
           pubkey: Application.get_env(:ipncore, :pubkey),
           privkey: Application.get_env(:ipncore, :privkey),
+          net_pubkey: Application.get_env(:ipncore, :net_pubkey),
+          net_privkey: Application.get_env(:ipncore, :net_privkey),
           vid: Application.get_env(:ipncore, :vid)
         })
     end

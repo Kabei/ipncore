@@ -1,12 +1,4 @@
 defmodule Global do
-  import Ippan.Utils, only: [to_atom: 1]
-
-  defmacro miner do
-    quote do
-      Default.get(:miner)
-    end
-  end
-
   defmacro owner do
     quote do
       Default.get(:owner)
@@ -22,6 +14,18 @@ defmodule Global do
   defmacro privkey do
     quote do
       Default.get(:privkey)
+    end
+  end
+
+  defmacro net_pubkey do
+    quote do
+      Default.get(:net_pubkey)
+    end
+  end
+
+  defmacro net_privkey do
+    quote do
+      Default.get(:net_privkey)
     end
   end
 
@@ -43,10 +47,11 @@ defmodule Global do
 
     GlobalConst.new(Default, %{
       owner: token.owner,
-      miner: System.get_env("MINER") |> to_atom(),
-      pubkey: Application.get_env(:ipncore, :pubkey),
-      privkey: Application.get_env(:ipncore, :privkey),
-      vid: Application.get_env(:ipncore, :vid)
+      pubkey: Default.get(:pubkey),
+      privkey: Default.get(:privkey),
+      net_pubkey: Default.get(:net_pubkey),
+      net_privkey: Default.get(:net_privkey),
+      vid: Default.get(:vid)
     })
   end
 end

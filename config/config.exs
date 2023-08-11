@@ -20,9 +20,9 @@ config :ipncore, :version, 0
 config :ipncore, :block_max_size, 10_485_760
 config :ipncore, :block_data_max_size, 10_000_000
 config :ipncore, :block_interval, :timer.seconds(5)
+config :ipncore, :block_file_ext, "mpk"
 config :ipncore, :note_max_size, 255
-config :ipncore, :note_max_size, 1_000_000_000_000_000
-# config :ipncore, :last_activity, :timer.hours(24)
+config :ipncore, :max_tx_amount, 1_000_000_000_000_000
 config :ipncore, :timeout_refund, :timer.hours(72)
 config :ipncore, :message_timeout, :timer.seconds(5)
 config :ipncore, :max_validators, 1000

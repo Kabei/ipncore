@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS $round(
+    id BIGINT PRIMARY KEY NOT NULL,
+    hash BLOB NOT NULL,
+    prev BLOB,
+    blocks BIGINT NOT NULL,
+    timestamp BIGINT NOT NULL,
+    vsn TINTYINT NOT NULL
+) WITHOUT ROWID;
+    
+CREATE TABLE IF NOT EXISTS $jackpot(
+    round_id BIGINT NOT NULL,
+    winner_id BLOB,
+    amount BIGINT DEFAULT 0,
+    PRIMARY KEY(round_id, winner_id)
+) WITHOUT ROWID;
+    
+CREATE TABLE IF NOT EXISTS $snapshot(
+    round_id BIGINT PRIMARY KEY NOT NULL,
+    hash BLOB NOT NULL,
+    size BIGINT NOT NULL
+) WITHOUT ROWID;

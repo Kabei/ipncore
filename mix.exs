@@ -39,7 +39,7 @@ defmodule Ipncore.MixProject do
       do: raise(RuntimeError, "OTP invalid version. Required minimum v#{@min_otp}")
 
     # load env file
-    System.get_env("ENV_FILE", "env_file") |> load_ini_file()
+    System.get_env("ENV_FILE", "env_file") |> load_env_file()
 
     [
       extra_applications: [:crypto, :syntax_tools, :logger],
@@ -80,7 +80,7 @@ defmodule Ipncore.MixProject do
     ]
   end
 
-  defp load_ini_file(path) do
+  defp load_env_file(path) do
     File.stream!(path, [], :line)
     |> Enum.each(fn text ->
       text

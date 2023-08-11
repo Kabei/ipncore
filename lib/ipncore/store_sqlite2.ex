@@ -2,7 +2,7 @@ defmodule Store.Sqlite2 do
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
       @base opts[:base]
-      @table opts[:table]
+      @name opts[:base] |> to_string()
       @create opts[:create]
       @alter opts[:alter] || []
       @attach opts[:attach] || []
@@ -46,7 +46,9 @@ defmodule Store.Sqlite2 do
         end
       end
 
-      def table_name, do: @table
+      def name, do: @name
+
+      def statments, do: @stmts
 
       def start(path) when is_binary(path) do
         {:ok, conn} = open(path)
@@ -94,7 +96,7 @@ defmodule Store.Sqlite2 do
         {:ok, conn} = Sqlite3.open(path, [])
         Sqlite3NIF.execute(conn, ~c"PRAGMA foreign_keys = #{@foreign_key}")
         Sqlite3NIF.execute(conn, ~c"PRAGMA journal_mode = WAL")
-        Sqlite3NIF.execute(conn, ~c"PRAGMA synchronous = 0")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA synchronous = 1")
         Sqlite3NIF.execute(conn, ~c"PRAGMA cache_size = -100000000")
         Sqlite3NIF.execute(conn, ~c"PRAGMA temp_store = memory")
         Sqlite3NIF.execute(conn, ~c"PRAGMA mmap_size = 30000000000")
@@ -165,16 +167,16 @@ defmodule Store.Sqlite2 do
       end
 
       def insert(params) do
-        cast({:step, :insert, params})
+        cast({:step, "insert", params})
       end
 
       @spec insert_sync(list()) :: integer() | :busy | {:error, term()}
       def insert_sync(params) do
-        call({:step, :insert, params})
+        call({:step, "insert", params})
       end
 
       def one(key) when is_list(key) do
-        case call({:step, :lookup, key}) do
+        case call({:step, "lookup", key}) do
           {:row, []} -> nil
           {:row, data} -> data
           _ -> nil
@@ -182,7 +184,7 @@ defmodule Store.Sqlite2 do
       end
 
       def one(key) do
-        case call({:step, :lookup, [key]}) do
+        case call({:step, "lookup", [key]}) do
           {:row, []} -> nil
           {:row, data} -> data
           _ -> nil
@@ -190,23 +192,19 @@ defmodule Store.Sqlite2 do
       end
 
       def exists?(key) do
-        {:row, [1]} == call({:step, :exists, [key]})
+        {:row, [1]} == call({:step, "exists", [key]})
       end
 
       def owner?(key, owner) do
         {:row, [1]} == call({:step, "owner", [key, owner]})
       end
 
-      @spec all() :: {:ok, [any()]} | {:error, term()}
-      def all do
-        call({:execute, :fetch, ~c"SELECT * FROM #{@table}", []})
-      end
-
       def delete(params) do
-        call({:step, :delete, params})
+        call({:step, "delete", params})
       end
 
-      @spec update(map() | Keyword.t(), Keyword.t()) :: non_neg_integer() | {:error, term()}
+      @spec update(map(), Keyword.t()) ::
+              non_neg_integer() | {:error, term()}
       def update(map_set_fields, map_where) do
         {fields, values} = Utils.rows_to_columns(map_set_fields)
         {w_fields, w_values} = Utils.rows_to_columns(map_where)
@@ -223,11 +221,7 @@ defmodule Store.Sqlite2 do
           end
           |> Enum.join(" AND ")
 
-        call({:update, set_fields, where, values ++ w_values})
-      end
-
-      def delete_all do
-        call({:execute, ~c"DELETE FROM #{@table}"})
+        call({:update, @name, set_fields, where, values ++ w_values})
       end
 
       def step(name, params) do
@@ -236,6 +230,10 @@ defmodule Store.Sqlite2 do
 
       def fetch(name, params) do
         call({:fetch, name, params})
+      end
+
+      def all do
+        call({:fetch, "all", []})
       end
 
       def step_change(name, params) do
@@ -291,8 +289,8 @@ defmodule Store.Sqlite2 do
         )
       end
 
-      def drop do
-        call({:execute, ~c"DROP TABLE #{@table}"})
+      def get_state do
+        call(:state)
       end
 
       @impl true
@@ -302,6 +300,13 @@ defmodule Store.Sqlite2 do
           ) do
         statement = Map.get(stmt, stmt_name)
         Sqlite3NIF.bind_and_step(conn, statement, params)
+        {:noreply, state}
+      end
+
+      def handle_cast({:execute, sql, params}, %{conn: conn} = state) do
+        {:ok, statement} = Sqlite3NIF.prepare(conn, sql)
+        Sqlite3NIF.bind_and_step(conn, statement, params)
+        Sqlite3NIF.release(conn, statement)
         {:noreply, state}
       end
 
@@ -378,12 +383,12 @@ defmodule Store.Sqlite2 do
       end
 
       def handle_call(
-            {:update, set_fields, where, values_list},
+            {:update, table, set_fields, where, values_list},
             _from,
             %{conn: conn} = state
           ) do
         {:ok, statement} =
-          Sqlite3NIF.prepare(conn, ~c"UPDATE #{@table} SET #{set_fields} WHERE #{where}")
+          Sqlite3NIF.prepare(conn, ~c"UPDATE #{table} SET #{set_fields} WHERE #{where}")
 
         n = Sqlite3NIF.bind_step_changes(conn, statement, values_list)
         Sqlite3NIF.release(conn, statement)
@@ -395,6 +400,10 @@ defmodule Store.Sqlite2 do
         Sqlite3NIF.execute(conn, ~c"COMMIT")
         Sqlite3NIF.execute(conn, ~c"BEGIN")
         {:reply, :ok, state}
+      end
+
+      def handle_call(:state, _from, %{conn: conn, stmt: stmts} = state) do
+        {:reply, {conn, stmts}, state}
       end
 
       @impl true
@@ -410,8 +419,9 @@ defmodule Store.Sqlite2 do
         end)
 
         Sqlite3NIF.execute(conn, ~c"PRAGMA wal_checkpoint(TRUNCATE)")
-        Sqlite3NIF.execute(conn, ~c"VACUUM")
-        Sqlite3NIF.execute(conn, ~c"PRAGMA optimize")
+        Sqlite3NIF.execute(conn, ~c"VACUUM;")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA analysis_limit=400;")
+        Sqlite3NIF.execute(conn, ~c"PRAGMA optimize;")
 
         Sqlite3NIF.close(conn)
       end
@@ -424,7 +434,6 @@ defmodule Store.Sqlite2 do
                      insert_sync: 1,
                      update: 2,
                      delete: 1,
-                     delete_all: 0,
                      exists?: 1,
                      owner?: 2,
                      alter: 2,

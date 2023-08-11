@@ -3,54 +3,19 @@ defmodule BalanceStore do
   alias Exqlite.Sqlite3NIF
 
   @token Application.compile_env(:ipncore, :token)
-  @maximum_amount 9_223_372_036_854_775_807
+  @maximum_amount 9_223_372_036_854_775_807 |> to_string()
+
+  @args %{
+    "table" => @table,
+    "maximum_amount" => @maximum_amount
+  }
 
   use Store.Sqlite2,
     base: :balance,
     table: @table,
     mod: Ippan.Balance,
-    create: ["CREATE TABLE IF NOT EXISTS #{@table}(
-      id TEXT NOT NULL,
-      token VARCHAR(20) NOT NULL,
-      amount BIGINT DEFAULT 0,
-      locked BIGINT DEFAULT 0,
-      created_at BIGINT NOT NULL,
-      updated_at BIGINT NOT NULL,
-      PRIMARY KEY (id, token)
-    ) WITHOUT ROWID", "CREATE TRIGGER IF NOT EXISTS tg_balance_insert_max_amount
-    BEFORE INSERT ON #{@table}
-    BEGIN
-        SELECT CASE WHEN NEW.amount > #{@maximum_amount}
-        THEN RAISE(ABORT, 'Max value of amount exceeded')
-        WHEN NEW.locked > #{@maximum_amount}
-        THEN RAISE(ABORT, 'Max value of locked exceeded')
-        END;
-    END;", "CREATE TRIGGER IF NOT EXISTS tg_balance_update_max_amount
-    BEFORE UPDATE ON #{@table}
-    BEGIN
-        SELECT CASE WHEN NEW.amount > #{@maximum_amount}
-        THEN RAISE(ABORT, 'Max value of amount exceeded')
-        WHEN NEW.locked > #{@maximum_amount}
-        THEN RAISE(ABORT, 'Max value of locked exceeded')
-        END;
-    END;"],
-    stmt: %{
-      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4,?5,?6)",
-      balance: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2 AND amount >= ?3",
-      lookup: ~c"SELECT * FROM #{@table} WHERE id = ?1 AND token = ?2",
-      exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?1 AND token = ?2",
-      delete: ~c"DELETE FROM #{@table} WHERE id = ?1 AND token = ?2",
-      send:
-        ~c"UPDATE #{@table} SET amount = amount - ?3, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
-      income: ~c"INSERT INTO #{@table} (id,token,amount,created_at,updated_at)
-      VALUES(?1, ?2, ?3, ?4, ?4) ON CONFLICT (id, token)
-      DO UPDATE SET amount = amount + ?3, updated_at = ?4
-      WHERE id = ?1 AND token = ?2",
-      lock:
-        ~c"UPDATE #{@table} SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token = ?2 AND amount >= ?3",
-      unlock:
-        ~c"UPDATE #{@table} SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token = ?2 AND locked >= ?3"
-    }
+    create: SQL.readFile!("lib/sql/balance.sql", @args),
+    stmt: SQL.readFileStmt!("lib/sql/balance.stmt.sql", @args)
 
   # def count_last_activity(timestamp) do
   #   call({:fetch, :count_last_activity, [@token, timestamp]})
@@ -93,14 +58,14 @@ defmodule BalanceStore do
           :ok | :error
   def send(from_id, to_id, token_id, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
-      case Sqlite3NIF.bind_step_changes(conn, stmt.send, [
+      case Sqlite3NIF.bind_step_changes(conn, Map.get(stmt, "send"), [
              from_id,
              token_id,
              amount,
              timestamp
            ]) do
         1 ->
-          Sqlite3NIF.bind_and_step(conn, stmt.income, [
+          Sqlite3NIF.bind_and_step(conn, Map.get(stmt, "income"), [
             to_id,
             token_id,
             amount,
@@ -121,14 +86,14 @@ defmodule BalanceStore do
           :ok | :error
   def send_fees(from_id, validator_owner, amount, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
-      case Sqlite3NIF.bind_step_changes(conn, stmt.send, [
+      case Sqlite3NIF.bind_step_changes(conn, Map.get(stmt, "send"), [
              from_id,
              @token,
              amount,
              timestamp
            ]) do
         1 ->
-          Sqlite3NIF.bind_and_step(conn, stmt.income, [
+          Sqlite3NIF.bind_and_step(conn, Map.get(stmt, "income"), [
             validator_owner,
             @token,
             amount,
@@ -147,8 +112,8 @@ defmodule BalanceStore do
 
   def transaction(from_id, to_id, token, amount, validator_owner, fees, timestamp) do
     fun = fn %{conn: conn, stmt: stmt} = state ->
-      send_stmt = stmt.send
-      income_stmt = stmt.income
+      send_stmt = Map.get(stmt, "send")
+      income_stmt = Map.get(stmt, "income")
 
       ret =
         if token == @token do

@@ -69,7 +69,7 @@ defmodule Ippan.Func.Tx do
         BalanceStore.run(fn %{conn: conn, stmt: stmt} = state ->
           try do
             Sqlite3NIF.execute(conn, ~c"SAVEPOINT #{hash16}")
-            statment = Map.get(stmt, :income)
+            statment = Map.get(stmt, "income")
 
             total =
               Enum.reduce(outputs, 0, fn [account_id, amount], acc ->

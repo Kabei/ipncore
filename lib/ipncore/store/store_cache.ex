@@ -59,12 +59,12 @@ defmodule Store.Cache do
 
         def put(key, value) do
           :ets.insert(@table, {key, value})
-          cast({:step, :insert, [key, value]})
+          cast({:step, "insert", [key, value]})
         end
 
         def delete(key) do
           :ets.delete(@table, key)
-          cast({:step, :delete, [key]})
+          cast({:step, "delete", [key]})
         end
 
         defoverridable get: 2, put: 2
@@ -147,7 +147,7 @@ defmodule Store.Cache do
 
         def delete(key) do
           :ets.delete(@table, key)
-          call({:step, :delete, [key]})
+          call({:step, "delete", [key]})
         end
       end
 
@@ -171,7 +171,7 @@ defmodule Store.Cache do
           end
           |> Enum.join(" AND ")
 
-        call({:update, set_fields, where, values ++ w_values})
+        call({:update, @table, set_fields, where, values ++ w_values})
       end
 
       def terminate(_reason, %{conn: conn, stmt: stmts} = state) do

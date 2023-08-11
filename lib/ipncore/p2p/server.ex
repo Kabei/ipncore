@@ -48,29 +48,50 @@ defmodule Ippan.P2P.Server do
     {:continue, state}
   end
 
+  # event data | id method data
   def handle_data(
-        data,
+        packet,
         socket,
         %{id: vid, pubkey: pubkey, sharedkey: sharedkey} = state
       ) do
     try do
-      from = %{id: vid, pubkey: pubkey}
+      case decode!(packet, sharedkey) do
+        %{"event" => event, "data" => data} ->
+          from = %{id: vid, pubkey: pubkey}
+          handle_event(event, from, data)
 
-      case decode!(data, sharedkey) do
-        %{"id" => id, "msg" => msg} ->
-          case msg do
-            ["new_recv", rest] ->
-              block = MapUtil.to_existing_atoms(rest)
-              send(VoteCounter, {"new_recv", from, true, block})
-              @adapter.send(socket, encode(%{id: id, status: :ok}, sharedkey))
+        %{"id" => id, "method" => method, "data" => data} ->
+          case handle_request(method, data) do
+            :not_found ->
+              @adapter.send(
+                socket,
+                encode(%{"id" => id, "status" => "error", "data" => 404}, sharedkey)
+              )
 
-            _ ->
-              Logger.debug(inspect(msg))
-              :ok
+            response ->
+              @adapter.send(
+                socket,
+                encode(%{"id" => id, "status" => "ok", "data" => response}, sharedkey)
+              )
+          end
+
+        %{"id" => id, "method" => method} ->
+          case handle_request(method) do
+            :not_found ->
+              @adapter.send(
+                socket,
+                encode(%{"id" => id, "status" => "error", "data" => 404}, sharedkey)
+              )
+
+            response ->
+              @adapter.send(
+                socket,
+                encode(%{"id" => id, "status" => "ok", "data" => response}, sharedkey)
+              )
           end
 
         result ->
-          Logger.debug(inspect(result))
+          Logger.warning(inspect(result))
           :ok
       end
     rescue
@@ -156,5 +177,26 @@ defmodule Ippan.P2P.Server do
         # IO.inspect(error)
         {:close, state}
     end
+  end
+
+  defp handle_event("block_msg", from, data) do
+    block = MapUtil.to_existing_atoms(data)
+    send(VoteCounter, {"new_recv", from, true, block})
+  end
+
+  defp handle_event(_, _, _), do: :ok
+
+  defp handle_request("get_state") do
+    BlockTimer.get_state()
+  end
+
+  defp handle_request(_), do: :not_found
+
+  defp handle_request("get_block_messages", %{"round" => _round}) do
+    :ok
+  end
+
+  defp handle_request(_, _) do
+    :not_found
   end
 end

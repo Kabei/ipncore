@@ -5,7 +5,7 @@ defmodule Platform do
   @token Application.compile_env(:ipncore, :token)
   @json Application.compile_env(:ipncore, :json)
 
-  def start(role) when role != "test" do
+  def start do
     data_dir = Application.get_env(:ipncore, :data_dir)
     {:ok, pid} = TokenStore.start_link(Path.join(data_dir, "store/token.db"))
     {:ok, pid2} = WalletStore.start_link(Path.join(data_dir, "store/wallet.db"))
@@ -14,7 +14,7 @@ defmodule Platform do
     # load native token data
     case TokenStore.lookup_map(@token) do
       nil ->
-        init(role)
+        init()
 
       token ->
         GlobalConst.new(Default, %{
@@ -31,16 +31,9 @@ defmodule Platform do
     GenServer.stop(pid3, :normal)
   end
 
-  # def start("verifier" = role) do
-  #   data_dir = Application.get_env(:ipncore, :data_dir)
-  #   {:ok, pid} = WalletStore.start_link(Path.join(data_dir, "wallet/wallet.db"))
-  #   init(role)
-  #   GenServer.stop(pid, :normal)
-  # end
-
   def start(_), do: :ok
 
-  defp init(role) do
+  defp init do
     pk =
       <<133, 210, 110, 113, 239, 43, 61, 189, 153, 31, 241, 205, 62, 28, 241, 50, 184, 225, 166,
         252, 172, 96, 246, 11, 32, 130, 167, 194, 57, 206, 148, 104>>
@@ -98,57 +91,55 @@ defmodule Platform do
 
     WalletStore.insert_sync([address, pk, 0, timestamp])
 
-    if role == "miner" do
-      TokenStore.insert_sync([
-        @token,
-        address,
-        "IPPAN",
-        "https://avatar.com",
-        6,
-        "Þ",
-        true,
-        0,
-        0,
-        42_000_000_000_000,
-        @json.encode!(["coinbase", "lock", "burn"]),
-        # @json.encode!(["burn"]),
-        timestamp,
-        timestamp
-      ])
+    TokenStore.insert_sync([
+      @token,
+      address,
+      "IPPAN",
+      "https://avatar.com",
+      6,
+      "Þ",
+      true,
+      0,
+      0,
+      42_000_000_000_000,
+      @json.encode!(["coinbase", "lock", "burn"]),
+      # @json.encode!(["burn"]),
+      timestamp,
+      timestamp
+    ])
 
-      ValidatorStore.insert_sync([
-        0,
-        "visurpay.com",
-        "Speedy",
-        address,
-        pk,
-        pkf,
-        nil,
-        2,
-        1,
-        0,
-        timestamp,
-        timestamp
-      ])
+    ValidatorStore.insert_sync([
+      0,
+      "visurpay.com",
+      "Speedy",
+      address,
+      pk,
+      pkf,
+      nil,
+      2,
+      1,
+      0,
+      timestamp,
+      timestamp
+    ])
 
-      ValidatorStore.insert_sync([
-        1,
-        "ippan.co.uk",
-        "Raptor",
-        address,
-        pk,
-        pkf,
-        nil,
-        2,
-        1,
-        0,
-        timestamp,
-        timestamp
-      ])
+    ValidatorStore.insert_sync([
+      1,
+      "ippan.co.uk",
+      "Raptor",
+      address,
+      pk,
+      pkf,
+      nil,
+      2,
+      1,
+      0,
+      timestamp,
+      timestamp
+    ])
 
-      TokenStore.sync()
-      ValidatorStore.sync()
-    end
+    TokenStore.sync()
+    ValidatorStore.sync()
 
     WalletStore.sync()
 

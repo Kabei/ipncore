@@ -1,29 +1,16 @@
 defmodule WalletStore do
-  @table "wallet"
-
   alias Ippan.Wallet
+
+  @table "wallet"
+  @args %{"table" => @table}
 
   use Store.Sqlite2,
     base: :wallet,
     table: @table,
     cache: true,
     mod: Ippan.Wallet,
-    create: ["CREATE TABLE IF NOT EXISTS #{@table}(
-      id TEXT PRIMARY KEY NOT NULL,
-      pubkey BLOB NOT NULL,
-      validator BIGINT NOT NULL,
-      created_at BIGINT NOT NULL
-    ) WITHOUT ROWID"],
-    stmt: %{
-      insert: ~c"INSERT INTO #{@table} VALUES(?1,?2,?3,?4)",
-      validator: ~c"SELECT pubkey, validator FROM #{@table} WHERE id=?1 AND validator=?2",
-      lookup: ~c"SELECT * FROM #{@table} WHERE id=?",
-      exists: ~c"SELECT 1 FROM #{@table} WHERE id=?",
-      delete: ~c"DELETE FROM #{@table} WHERE id=?",
-      jackpot:
-        ~c"SELECT pos, id FROM (SELECT ROW_NUMBER() OVER () AS pos, id FROM #{@table} ORDER BY created_at ASC) WHERE pos = ?",
-      total: ~c"SELECT count(1) FROM #{@table}"
-    }
+    create: SQL.readFile!("lib/sql/wallet.sql", @args),
+    stmt: SQL.readFileStmt!("lib/sql/wallet.stmt.sql", @args)
 
   use Store.Cache,
     table: :wallet,

@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS $table(
+  id VARCHAR(20) PRIMARY KEY NOT NULL,
+  owner BLOB NOT NULL,
+  name TEXT NOT NULL,
+  avatar TEXT,
+  decimal TINYINT DEFAULT 0,
+  symbol VARCHAR(5) NOT NULL,
+  enabled BOOLEAN,
+  supply BIGINT DEFAULT 0,
+  burned BIGINT DEFAULT 0,
+  max_supply BIGINT DEFAULT 0,
+  props BLOB,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+) WITHOUT ROWID;

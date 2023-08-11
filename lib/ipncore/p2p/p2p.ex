@@ -76,17 +76,18 @@ defmodule Ippan.P2P do
   end
 
   @spec request(binary, term, integer, integer) :: {:ok, term} | {:error, term}
-  def request(vid, msg, timeout \\ 10_000, retry \\ 0) do
+  def request(vid, method, timeout \\ 10_000, retry \\ 0) do
     id = :rand.uniform(1_000_000_000)
     to = "echo:#{vid}"
     topic_callback = "res:#{id}"
-    msg = %{"id" => id, "msg" => msg}
+    msg = %{"id" => id, "method" => method}
 
     PubSub.subscribe(@pubsub_server, topic_callback)
     PubSub.local_broadcast(@pubsub_server, to, msg)
 
     receive do
       result ->
+        PubSub.unsubscribe(@pubsub_server, topic_callback)
         {:ok, result}
     after
       timeout ->

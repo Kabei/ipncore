@@ -57,6 +57,7 @@ defmodule BlockTimer do
 
     {:ok,
      %{
+       state: :sync,
        block_sync: false,
        blocks: block_unique_ids,
        mined: length(block_unique_ids),
@@ -113,8 +114,8 @@ defmodule BlockTimer do
     GenServer.cast(@module, "ignore_mine")
   end
 
-  def check_state(state) do
-    GenServer.call(BlockTimer, {:check_state, state})
+  def get_state do
+    GenServer.call(BlockTimer, :state)
   end
 
   @impl true
@@ -218,8 +219,14 @@ defmodule BlockTimer do
     {:reply, id, state}
   end
 
-  def handle_call(:state, _from, state) do
-    {:reply, state, state}
+  def handle_call(
+        :state,
+        _from,
+        %{next_round: next_round, next_block: next_block, prev_round: prev_round, status: status} =
+          state
+      ) do
+    {:reply, %{round: next_round - 1, hash: prev_round, height: next_block - 1, status: status},
+     state}
   end
 
   @doc """
@@ -388,7 +395,7 @@ defmodule BlockTimer do
           DomainStore.delete_expiry(current_round, timestamp)
         end)
 
-      commit()
+      GenStore.commit_all()
 
       Task.await(task_jackpot, :infinity)
       checkpoint_commit()
@@ -586,7 +593,7 @@ defmodule BlockTimer do
         :ok = File.write(block_path, content)
         hashfile = hash_file(block_path)
         block_size = File.stat!(block_path).size
-        commit()
+        GenStore.commit_all()
         {hashfile, block_size}
       end
 
@@ -801,21 +808,6 @@ defmodule BlockTimer do
       Logger.debug("[Jackpot] No winner")
       :none
     end
-  end
-
-  defp commit do
-    Logger.debug("commit")
-    MessageStore.sync()
-    BlockStore.sync()
-    RoundStore.sync()
-    WalletStore.sync()
-    BalanceStore.sync()
-    ValidatorStore.sync()
-    TokenStore.sync()
-    DomainStore.sync()
-    DnsStore.sync()
-    EnvStore.sync()
-    RefundStore.sync()
   end
 
   defp checkpoint_commit do

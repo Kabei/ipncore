@@ -25,16 +25,16 @@ defmodule Ippan.Func.Token do
 
     cond do
       not Match.token?(id) ->
-        raise IppanError, "Invalid token ID"
+        raise IppanHighError, "Invalid token ID"
 
       not Match.account?(owner_id) ->
-        raise IppanError, "Invalid owner"
+        raise IppanHighError, "Invalid owner"
 
       map_filter != opts ->
-        raise IppanError, "Invalid options parameter"
+        raise IppanHighError, "Invalid options parameter"
 
       @max_tokens < TokenStore.total() ->
-        raise IppanError, "Maximum tokens exceeded"
+        raise IppanHighError, "Maximum tokens exceeded"
 
       true ->
         price = EnvStore.token_price()

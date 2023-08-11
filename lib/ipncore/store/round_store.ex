@@ -1,48 +1,21 @@
 defmodule RoundStore do
   @table "round"
-  @table_jackpot "jackpot"
-  @table_snapshot "snapshot"
+
+  @args %{
+    "round" => "round",
+    "jackpot" => "jackpot",
+    "snapshot" => "snapshot"
+  }
 
   use Store.Sqlite2,
     base: :round,
     table: @table,
     mod: Ippan.Round,
-    create: ["
-    CREATE TABLE IF NOT EXISTS #{@table}(
-      id BIGINT PRIMARY KEY NOT NULL,
-      hash BLOB NOT NULL,
-      prev BLOB,
-      blocks BIGINT NOT NULL,
-      timestamp BIGINT NOT NULL,
-      vsn TINTYINT NOT NULL
-    ) WITHOUT ROWID;
-    ", "
-    CREATE TABLE IF NOT EXISTS #{@table_jackpot}(
-      round_id BIGINT NOT NULL,
-      winner_id BLOB,
-      amount BIGINT DEFAULT 0,
-      PRIMARY KEY(round_id, winner_id)
-    ) WITHOUT ROWID;
-    ", "
-    CREATE TABLE IF NOT EXISTS #{@table_snapshot}(
-      round_id BIGINT PRIMARY KEY NOT NULL,
-      hash BLOB NOT NULL,
-      size BIGINT NOT NULL
-    ) WITHOUT ROWID;"],
-    stmt: %{
-      "has_winner" => ~c"SELECT 1 FROM #{@table_jackpot} WHERE round_id = ?",
-      "insert_winner" => ~c"INSERT INTO #{@table_jackpot} values(?, ?, ?)",
-      "insert_snap" => ~c"INSERT INTO #{@table_snapshot} values(?, ?, ?)",
-      insert: ~c"INSERT INTO #{@table} values(?1,?2,?3,?4,?5,?6)",
-      lookup: ~c"SELECT * FROM #{@table} WHERE id = ?",
-      exists: ~c"SELECT 1 FROM #{@table} WHERE id = ?",
-      last: ~c"SELECT * FROM #{@table} ORDER BY id DESC LIMIT 1",
-      delete: ~c"DELETE FROM #{@table} WHERE id = ?",
-      total: ~c"SELECT COUNT(1) FROM #{@table}"
-    }
+    create: SQL.readFile!("lib/sql/round.sql", @args),
+    stmt: SQL.readFileStmt!("lib/sql/round.stmt.sql", @args)
 
   def last do
-    call({:step, :last, []})
+    call({:step, "last", []})
   end
 
   def last_id do
@@ -61,7 +34,7 @@ defmodule RoundStore do
   end
 
   def total do
-    {_, [total]} = call({:step, :total, []})
+    {_, [total]} = call({:step, "total", []})
     total
   end
 end

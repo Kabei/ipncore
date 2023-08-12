@@ -32,11 +32,9 @@ defmodule Sqlite3Tools do
 
   def init do
     unless File.exists?(@filepath) do
-      zip_file = @priv_dir <> Path.basename(@url)
+      zip_file = Path.join(@priv_dir, Path.basename(@url))
 
-      unless File.exists?(zip_file) do
-        :ok = Curl.download(@url, zip_file)
-      end
+      :ok = Download.from(@url, zip_file)
 
       if hash_file(zip_file) != @hash do
         raise RuntimeError, "Sqlite3 Zipfile hash not match"

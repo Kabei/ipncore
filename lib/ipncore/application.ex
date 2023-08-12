@@ -1,7 +1,6 @@
 defmodule Ipncore.Application do
   @moduledoc false
   use Application
-  require Logger
   import Ippan.Utils, only: [my_ip: 0]
 
   @otp_app :ipncore
@@ -11,7 +10,7 @@ defmodule Ipncore.Application do
 
   @impl true
   def start(_type, _args) do
-    Logger.debug("Starting application")
+    IO.puts("Starting application")
 
     p2p_opts = Application.get_env(@otp_app, :P2P)
     data_dir = Application.get_env(@otp_app, :data_dir)
@@ -31,7 +30,8 @@ defmodule Ipncore.Application do
     Platform.start()
 
     # Get sqlite tools
-    Sqlite3Tools.init()
+    # t = Task.async(fn -> Sqlite3Tools.init() end)
+    # Task.await(t, :infinity)
 
     # services
     children =
@@ -62,7 +62,7 @@ defmodule Ipncore.Application do
 
     case Supervisor.start_link(children, @opts) do
       {:ok, _pid} = result ->
-        Logger.info("Running IPNcore P2P with port #{p2p_opts[:port]}")
+        IO.puts("Running IPNcore P2P with port #{p2p_opts[:port]}")
 
         result
 
@@ -73,7 +73,7 @@ defmodule Ipncore.Application do
 
   @impl true
   def stop(_state) do
-    Logger.info("Stopping application")
+    IO.puts("Stopping application")
   end
 
   # create all folders by role

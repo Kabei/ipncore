@@ -45,7 +45,7 @@ defmodule BalanceStore do
       end
     end
 
-    call({:call, fun})
+    call({:run, fun})
   end
 
   @spec burn(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
@@ -79,7 +79,7 @@ defmodule BalanceStore do
       end
     end
 
-    call({:call, fun})
+    call({:run, fun})
   end
 
   @spec send_fees(String.t(), String.t(), non_neg_integer(), non_neg_integer()) ::
@@ -107,7 +107,7 @@ defmodule BalanceStore do
       end
     end
 
-    call({:call, fun})
+    call({:run, fun})
   end
 
   def transaction(from_id, to_id, token, amount, validator_owner, fees, timestamp) do
@@ -181,7 +181,7 @@ defmodule BalanceStore do
       end
     end
 
-    call({:call, fun})
+    call({:run, fun})
   end
 
   @spec lock(binary, String.t(), non_neg_integer()) :: integer()

@@ -245,7 +245,7 @@ defmodule Store.Sqlite2 do
       end
 
       def run(fun) do
-        call({:call, fun})
+        call({:run, fun})
       end
 
       def savepoint(id) do
@@ -266,7 +266,7 @@ defmodule Store.Sqlite2 do
 
       def checkpoint do
         call(
-          {:call,
+          {:run,
            fn %{conn: conn, stmt: stmts} = state ->
              Sqlite3NIF.execute(conn, ~c"COMMIT")
 
@@ -373,7 +373,7 @@ defmodule Store.Sqlite2 do
         {:reply, result, state}
       end
 
-      def handle_call({:call, fun}, _from, state) do
+      def handle_call({:run, fun}, _from, state) do
         try do
           fun.(state)
         rescue

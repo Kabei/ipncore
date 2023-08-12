@@ -1,15 +1,12 @@
 defmodule BlockStore do
-  @table "block"
-  @table_bft "bft"
-
   @args %{
-    "block" => @table,
-    "msg_block" => @table_bft
+    "block" => "block",
+    "msg_block" => "msg_block"
   }
 
   use Store.Sqlite2,
     base: :block,
-    table: @table,
+    table: "block",
     create: SQL.readFile!("lib/sql/block.sql", @args),
     stmt: SQL.readFileStmt!("lib/sql/block.stmt.sql", @args)
 

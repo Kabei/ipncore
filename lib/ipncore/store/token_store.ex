@@ -1,22 +1,17 @@
 defmodule TokenStore do
-  @table "token"
-
   @args %{
-    "table" => @table
+    "table" => "token"
   }
-
-  alias Ippan.Token
 
   use Store.Sqlite2,
     base: :token,
-    mod: Ippan.Token,
-    table: @table,
+    table: "token",
     create: SQL.readFile!("lib/sql/token.sql", @args),
     stmt: SQL.readFileStmt!("lib/sql/token.stmt.sql", @args)
 
   use Store.Cache,
     table: :token,
-    mod: Token,
+    mod: Ippan.Token,
     mode: "partial",
     size: 10_000_000
 

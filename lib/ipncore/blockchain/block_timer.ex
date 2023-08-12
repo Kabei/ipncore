@@ -17,7 +17,7 @@ defmodule BlockTimer do
   @topic_round "round"
   @topic_jackpot "jackpot"
   @block_interval Application.compile_env(@otp_app, :block_interval)
-  @block_max_size Application.compile_env(@otp_app, :block_max_size)
+  @max_block_size Application.compile_env(@otp_app, :max_block_size)
   @block_data_max_size Application.compile_env(@otp_app, :block_data_max_size)
   @blockchain_version Application.compile_env(@otp_app, :version)
 
@@ -713,18 +713,18 @@ defmodule BlockTimer do
     filename = Path.basename(output_path)
 
     unless file_exists do
-      :ok = Curl.download_block(remote_url, output_path)
+      :ok = Download.from(remote_url, output_path, @max_block_size)
     else
       {:ok, filestat} = File.stat(output_path)
 
       if filestat.size != size do
-        :ok = Curl.download_block(remote_url, output_path)
+        :ok = Download.from(remote_url, output_path, @max_block_size)
       end
     end
 
     {:ok, filestat} = File.stat(output_path)
 
-    if filestat.size > @block_max_size or filestat.size != size do
+    if filestat.size > @max_block_size or filestat.size != size do
       raise IppanError, "Invalid block size"
     end
 

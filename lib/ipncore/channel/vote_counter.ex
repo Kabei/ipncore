@@ -16,6 +16,7 @@ defmodule VoteCounter do
     read_concurrency: true,
     write_concurrency: true
   ]
+  @max_block_size Application.compile_env(:ipncore, :max_block_size)
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__, hibernate_after: 5_000)
@@ -235,7 +236,7 @@ defmodule VoteCounter do
     hostname = node_verifier |> to_string() |> String.split("@") |> List.last()
     url = Block.cluster_decode_url(hostname, creator_id, height)
     decode_path = Block.decode_path(creator_id, height)
-    :ok = Curl.download(url, decode_path)
+    :ok = Download.from(url, decode_path, @max_block_size)
   end
 
   defp push_fetch(pid, block, validator), do: push_fetch(pid, block, validator, 1)

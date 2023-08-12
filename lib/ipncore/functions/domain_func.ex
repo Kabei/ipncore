@@ -1,7 +1,7 @@
 defmodule Ippan.Func.Domain do
-  require Global
   alias Ippan.Domain
   alias Ippan.Utils
+  require Global
   @fullname_max_size 255
   @token Application.compile_env(:ipncore, :token)
   @one_day :timer.hours(24)

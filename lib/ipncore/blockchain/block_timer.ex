@@ -306,9 +306,9 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def terminate(reason, %{tRef: tRef, pool: pool_server}) do
+  def terminate(_reason, %{tRef: tRef, pool: pool_server}) do
     :timer.cancel(tRef)
-    GenServer.stop(pool_server, reason)
+    :poolboy.stop(pool_server)
     PubSub.unsubscribe(@pubsub_verifiers, "event")
   end
 

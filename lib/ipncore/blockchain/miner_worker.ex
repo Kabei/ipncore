@@ -4,7 +4,7 @@ defmodule MinerWorker do
   require Logger
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, nil, [])
+    GenServer.start_link(__MODULE__, nil, hibernate_after: 10_000)
   end
 
   @impl true

@@ -1,11 +1,10 @@
-defmodule Ipncore.SSE do
+defmodule SSE do
   require Logger
   alias Phoenix.PubSub
   import Plug.Conn, only: [chunk: 2, halt: 1, put_resp_header: 3, send_chunked: 2]
-  @pubsub_server :events
   @timeout 120_000
 
-  def stream(conn, topic, timeout \\ @timeout) do
+  def stream(conn, pubsub, topic, timeout \\ @timeout) do
     conn =
       conn
       |> put_resp_header("cache-control", "no-cache")
@@ -13,7 +12,7 @@ defmodule Ipncore.SSE do
       |> put_resp_header("connection", "keep-alive")
       |> send_chunked(200)
 
-    subscribe(topic)
+    PubSub.subscribe(pubsub, topic)
     Process.flag(:trap_exit, true)
 
     {_, adapter} = conn.adapter
@@ -21,75 +20,74 @@ defmodule Ipncore.SSE do
     transport = adapter.socket.transport_module
 
     transport.controlling_process(socket, self())
-    transport.setopts(socket, [{:active, :once}])
+    transport.setopts(socket, [{:active, false}])
 
-    loop(conn, topic, timeout)
+    loop(conn, pubsub, topic, timeout)
   end
 
-  def shutdown(conn, topic) do
-    unsubscribe(topic)
+  def shutdown(conn, pubsub, topic) do
+    PubSub.unsubscribe(pubsub, topic)
     halt(conn)
   end
 
-  defp loop(conn, topic, timeout) do
+  defp loop(conn, pubsub, topic, timeout) do
     receive do
       {:cont, %{"status" => _} = message} ->
         Logger.debug(message)
 
         conn
-        |> chunk("event: message\ndata: #{Jason.encode!(message)}\n\n")
+        |> chunk("event: #{topic}\ndata: #{Jason.encode!(message)}\n\n")
         |> case do
           {:ok, conn} ->
-            loop(conn, topic, timeout)
+            loop(conn, pubsub, topic, timeout)
 
           _error ->
-            shutdown(conn, topic)
+            shutdown(conn, pubsub, topic)
         end
 
       {:halt, %{"status" => _status} = message} ->
         Logger.debug(message)
 
         conn
-        |> chunk("event: message\ndata: #{Jason.encode!(message)}\n\n")
+        |> chunk("event: #{topic}\ndata: #{Jason.encode!(message)}\n\n")
         |> case do
           {:ok, conn} ->
-            send_close(conn, topic, :end)
+            send_close(conn, pubsub, topic, :end)
 
           _error ->
-            shutdown(conn, topic)
+            shutdown(conn, pubsub, topic)
         end
 
       {:tcp_closed, _socket} ->
         Logger.debug("TCP closed")
-        shutdown(conn, topic)
+        shutdown(conn, pubsub, topic)
 
       {:tcp_error, _socket, _reason} ->
         Logger.debug("TCP error")
-        shutdown(conn, topic)
+        shutdown(conn, pubsub, topic)
 
       {:plug_conn, _msg} ->
-        loop(conn, topic, timeout)
+        loop(conn, pubsub, topic, timeout)
 
       {:EXIT, _from, _reason} ->
-        unsubscribe(topic)
+        PubSub.unsubscribe(pubsub, topic)
         Process.exit(conn.owner, :normal)
 
       {:DOWN, _reference, :process, _pid, _type} ->
-        unsubscribe(topic)
-        nil
+        PubSub.unsubscribe(pubsub, topic)
 
       other ->
         Logger.debug("other #{inspect(other)}")
-        send_close(conn, topic, :unknow)
+        send_close(conn, pubsub, topic, :shutdown)
     after
       timeout ->
-        send_close(conn, topic, :timeout)
+        send_close(conn, pubsub, topic, :timeout)
     end
   end
 
-  defp send_close(conn, topic, reason) do
+  defp send_close(conn, pubsub, topic, reason) do
     Logger.debug("close")
-    unsubscribe(topic)
+    PubSub.unsubscribe(pubsub, topic)
 
     conn
     |> chunk("event: close\ndata: #{reason}\n\n")
@@ -100,13 +98,5 @@ defmodule Ipncore.SSE do
       _error ->
         halt(conn)
     end
-  end
-
-  defp subscribe(topic) do
-    :ok = PubSub.subscribe(@pubsub_server, topic)
-  end
-
-  defp unsubscribe(topic) do
-    :ok = PubSub.unsubscribe(@pubsub_server, topic)
   end
 end

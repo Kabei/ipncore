@@ -2,16 +2,14 @@ defmodule SQL do
   def readFile!(filename, args \\ %{}) do
     File.read!(filename)
     |> String.trim()
-    |> String.replace(~r/\t/, "")
     |> put_args(args)
-    |> String.split(~r/;\s\s/, trim: true)
+    |> String.split(~r/;\n\n/, trim: true)
   end
 
   def readFileStmt!(filename, args \\ %{}) do
     data =
       File.read!(filename)
       |> String.trim()
-      |> String.replace(~r/\t/, "")
       |> put_args(args)
       |> String.split("\n", trim: true)
 
@@ -23,15 +21,14 @@ defmodule SQL do
     values =
       data
       |> Enum.filter(fn txt ->
-        String.trim(txt) |> String.starts_with?("--name:") |> Kernel.not()
+        String.trim(txt) |> String.starts_with?("--") |> Kernel.not()
       end)
       |> Enum.join()
-      |> String.replace(~r/\t/, "")
       |> String.split(~r/;/, trim: true)
       |> Enum.map(fn x -> String.to_charlist(x) end)
 
     Enum.zip([keys, values])
-    |> Enum.into(%{})
+    |> Map.new()
   end
 
   defp put_args(txt, args) do

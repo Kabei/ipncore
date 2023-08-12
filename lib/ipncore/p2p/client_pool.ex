@@ -34,7 +34,7 @@ defmodule Ippan.P2P.ClientPool do
         nil -> false
         _ -> true
       end)
-      |> Enum.into(%{})
+      |> Map.new()
 
     subscribe()
 

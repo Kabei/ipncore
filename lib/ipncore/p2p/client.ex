@@ -311,7 +311,7 @@ defmodule Ippan.P2P.Client do
           :ignored -> false
           _ -> true
         end)
-        |> Enum.into(%{})
+        |> Map.new()
 
       if result != %{} do
         File.rm(file_path)

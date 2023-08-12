@@ -86,7 +86,7 @@ defmodule Ipncore.MixProject do
       text
       |> String.trim()
       |> String.replace(~r/\n|\r|#.+/, "")
-      |> String.split("=", parts: 2)
+      |> String.split("=", parts: 2, trim: true)
       |> case do
         [key, value] ->
           System.put_env(key, value)

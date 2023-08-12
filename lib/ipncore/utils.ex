@@ -10,6 +10,12 @@ defmodule Ippan.Utils do
   def to_atom(nil), do: nil
   def to_atom(text), do: String.to_atom(text)
 
+  # def to_decimal(text_number, 0), do: text_number
+  # def to_decimal(text_number, decimals) do
+  #   {a, b} = String.split_at(text_number, -decimals)
+  #   :erlang.iolist_to_binary([a, ~c".", b])
+  # end
+
   # def to_decimal(number, 0), do: number
 
   # def to_decimal(number, decimals) do

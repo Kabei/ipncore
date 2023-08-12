@@ -40,7 +40,10 @@ defmodule Sqlite3Tools do
         raise RuntimeError, "Sqlite3 Zipfile hash not match"
       end
 
-      {_, 0} = System.cmd("unzip", ["-q", zip_file], cd: @priv_dir)
+      {:ok, _} =
+        String.to_charlist(zip_file)
+        |> :zip.unzip(cwd: :code.priv_dir(:ipncore))
+
       File.rm(zip_file)
     end
   end

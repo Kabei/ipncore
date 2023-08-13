@@ -30,7 +30,6 @@ ipncore-*.tar
 /.vscode/
 mix.lock
 
-/priv
 env_file
 
 *.app

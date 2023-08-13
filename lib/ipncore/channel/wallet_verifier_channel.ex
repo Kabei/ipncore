@@ -2,7 +2,7 @@ defmodule WalletVerifierChannel do
   alias Ippan.Wallet
 
   use Channel,
-    server: :verifiers,
+    server: :cluster,
     topic: "wallet"
 
   def init(args) do

@@ -233,7 +233,7 @@ defmodule Store.Sqlite2 do
       end
 
       def all do
-        call({:fetch, "all", []})
+        call({:execute, :fetch, ~c"SELECT * FROM #{@name}", []})
       end
 
       def step_change(name, params) do

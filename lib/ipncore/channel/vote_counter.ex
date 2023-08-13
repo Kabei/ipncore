@@ -47,7 +47,7 @@ defmodule VoteCounter do
     round = RoundStore.total()
     minimum = calc_minimum(validators)
 
-    PubSub.subscribe(:verifiers, "block")
+    PubSub.subscribe(:cluster, "block")
 
     {:ok,
      %{
@@ -219,7 +219,7 @@ defmodule VoteCounter do
     :ets.delete(@winners)
     :ets.delete(@votes)
     :ets.delete(@candidates)
-    PubSub.unsubscribe(:verifiers, "block")
+    PubSub.unsubscribe(:cluster, "block")
   end
 
   def put_validators(n) do
@@ -262,7 +262,7 @@ defmodule VoteCounter do
 
               PubSub.direct_broadcast(
                 node_atom,
-                :verifiers,
+                :cluster,
                 "block",
                 {"fetch", block, validator}
               )

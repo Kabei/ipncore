@@ -7,7 +7,7 @@ defmodule Ippan.P2P.ClientPool do
   alias Phoenix.PubSub
 
   @port Application.compile_env(:ipncore, :port, 5815)
-  @pubsub_server :verifiers
+  @pubsub_server :cluster
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, hibernate_after: 10_000)

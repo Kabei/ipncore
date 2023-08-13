@@ -1,6 +1,6 @@
 defmodule EventMinerChannel do
   use Channel,
-    server: :verifiers,
+    server: :cluster,
     topic: "event"
 
   @impl true
@@ -9,10 +9,10 @@ defmodule EventMinerChannel do
 
     case MessageStore.insert(body) do
       :done ->
-        PubSub.direct_broadcast(from, :verifiers, "event", {"recv", hash, :ok})
+        PubSub.direct_broadcast(from, :cluster, "event", {"recv", hash, :ok})
 
       _ ->
-        PubSub.direct_broadcast(from, :verifiers, "event", {"recv", hash, :error})
+        PubSub.direct_broadcast(from, :cluster, "event", {"recv", hash, :error})
     end
 
     {:noreply, state}
@@ -26,10 +26,10 @@ defmodule EventMinerChannel do
 
     case MessageStore.insert_df(body) do
       :done ->
-        PubSub.direct_broadcast(from, :verifiers, "event", {"recv", hash, :ok})
+        PubSub.direct_broadcast(from, :cluster, "event", {"recv", hash, :ok})
 
       _ ->
-        PubSub.direct_broadcast(from, :verifiers, "event", {"recv", hash, :error})
+        PubSub.direct_broadcast(from, :cluster, "event", {"recv", hash, :error})
     end
 
     {:noreply, state}

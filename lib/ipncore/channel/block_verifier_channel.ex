@@ -1,6 +1,6 @@
 defmodule BlockVerifierChannel do
   use Channel,
-    server: :verifiers,
+    server: :cluster,
     topic: "block"
 
   def init(args) do

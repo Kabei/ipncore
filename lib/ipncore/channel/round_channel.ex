@@ -2,7 +2,7 @@ defmodule RoundChannel do
   use GenServer
   alias Phoenix.PubSub
 
-  @pubsub_server :verifiers
+  @pubsub_server :cluster
   @topic "round"
 
   def start_link(opts) do

@@ -12,7 +12,7 @@ defmodule BlockTimer do
   @otp_app :ipncore
   @module __MODULE__
   @token Application.compile_env(:ipncore, :token)
-  @pubsub_verifiers :verifiers
+  @pubsub_verifiers :cluster
   @topic_block "block"
   @topic_round "round"
   @topic_jackpot "jackpot"
@@ -27,7 +27,7 @@ defmodule BlockTimer do
 
   @impl true
   def init(_args) do
-    validator_id = Global.validator_id()
+    %{vid: validator_id} = Platform.start()
 
     {:ok, pool_server} =
       :poolboy.start_link(

@@ -6,7 +6,7 @@ defmodule Ippan.Func.Validator do
   alias Ippan.Request.Source
 
   @type result :: Ippan.Request.result()
-  @pubsub_server :verifiers
+  @pubsub_server :cluster
   @token Application.compile_env(:ipncore, :token)
   @max_validators Application.compile_env(:ipncore, :max_validators)
   @topic "validator"

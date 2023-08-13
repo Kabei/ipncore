@@ -27,8 +27,6 @@ defmodule Ipncore.Application do
     Ippan.P2P.Server.load_kem()
     Ippan.P2P.Server.load_key()
 
-    Platform.start()
-
     # Get sqlite tools
     # t = Task.async(fn -> Sqlite3Tools.init() end)
     # Task.await(t, :infinity)
@@ -47,11 +45,8 @@ defmodule Ipncore.Application do
         {DnsStore, Path.join(data_dir, "store/dns.db")},
         {BlockStore, Path.join(data_dir, "store/block.db")},
         {RoundStore, Path.join(data_dir, "store/round.db")},
-        Supervisor.child_spec({Phoenix.PubSub, [name: :verifiers]},
-          id: :verifiers
-        ),
+        Supervisor.child_spec({Phoenix.PubSub, [name: :cluster]}, id: :cluster),
         Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
-        # Supervisor.child_spec({Phoenix.PubSub, name: :miner}, id: :miner),
         {EventMinerChannel, []},
         {ThousandIsland, p2p_opts},
         {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :key_dir)},

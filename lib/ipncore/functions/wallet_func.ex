@@ -3,7 +3,7 @@ defmodule Ippan.Func.Wallet do
   alias Ippan.{Address, Wallet}
 
   @token Application.compile_env(:ipncore, :token)
-  @pubsub :verifiers
+  @pubsub :cluster
   @topic "wallet"
 
   def pre_new(%{timestamp: timestamp, hash: hash, round: round}, pubkey, validator_id)

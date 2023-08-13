@@ -2,7 +2,7 @@ defmodule ValidatorVerifierChannel do
   alias Ippan.Validator
 
   use Channel,
-    server: :verifiers,
+    server: :cluster,
     topic: "validator"
 
   def init(args) do

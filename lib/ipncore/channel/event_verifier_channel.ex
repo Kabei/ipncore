@@ -1,6 +1,6 @@
 defmodule EventVerifierChannel do
   use Channel,
-    server: :verifiers,
+    server: :cluster,
     topic: "event"
 
   def init(args) do
@@ -14,7 +14,7 @@ defmodule EventVerifierChannel do
     hash16 = Base.encode16(hash, case: :lower)
     Logger.debug("recv #{hash16}")
     MessageStore.delete(hash)
-    PubSub.local_broadcast(:verifiers, "event:#{hash16}", status)
+    PubSub.local_broadcast(:cluster, "event:#{hash16}", status)
     {:noreply, state}
   end
 
@@ -22,7 +22,7 @@ defmodule EventVerifierChannel do
     hash16 = Base.encode16(hash, case: :lower)
     Logger.debug("recv_df #{hash16}")
     MessageStore.delete_df(hash)
-    PubSub.local_broadcast(:verifiers, "event:#{hash16}", status)
+    PubSub.local_broadcast(:cluster, "event:#{hash16}", status)
     {:noreply, state}
   end
 

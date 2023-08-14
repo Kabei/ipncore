@@ -39,12 +39,12 @@ DELETE FROM $table_df WHERE ROWID <= ?1 AND round IS NULL;
 DELETE FROM $table_df WHERE timestamp = ? AND hash = ?;
 
 --name: approve_df
-UPDATE $table_df SET round=?1 WHERE timestamp = ?2 AND hash = ?3;
+UPDATE $table_df SET round=?1 WHERE timestamp = ?2 AND hash = ?3 LIMIT 1;
 
 --name: insert_df
 INSERT INTO $table_df (hash,timestamp,key,type,account_id,validator_id,node_id,args,message,signature,size) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)
     ON CONFLICT (key,type) DO UPDATE SET timestamp=?3, hash=?4, account_id=?5, validator_id=?6, node_id=?7, args=?8, message=?9, signature=?10, size=?11
-    WHERE timestamp > EXCLUDED.timestamp OR timestamp = EXCLUDED.timestamp AND hash > EXCLUDED.hash;
+    WHERE timestamp > EXCLUDED.timestamp OR timestamp = EXCLUDED.timestamp AND hash > EXCLUDED.hash LIMIT 1;
 
 --name: delete_expiry
 DELETE FROM $table_hash WHERE timestamp < (? - $expiry_time);

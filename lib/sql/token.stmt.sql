@@ -1,8 +1,8 @@
 --name: sum_supply
-UPDATE $table SET supply = supply + ?2 WHERE id = ?1 AND (max_supply = 0 OR max_supply >= supply + ?2);
+UPDATE $table SET supply = supply + ?2 WHERE id = ?1 AND (max_supply = 0 OR max_supply >= supply + ?2) LIMIT 1;
 
 --name: sum_burned
-UPDATE $table SET burned = burned + ?2, supply = supply - ?2 WHERE id = ?1;
+UPDATE $table SET burned = burned + ?2, supply = supply - ?2 WHERE id = ?1 LIMIT 1;
 
 --name: owner_props
 SELECT 1 FROM $table WHERE id = ?1 AND owner = ?2 AND props LIKE ?3;

@@ -1,4 +1,6 @@
 defmodule Store.Sqlite2 do
+  alias Exqlite.Sqlite3NIF
+
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
       @base opts[:base]
@@ -232,12 +234,12 @@ defmodule Store.Sqlite2 do
         call({:fetch, name, params})
       end
 
-      def all do
-        call({:execute, :fetch, ~c"SELECT * FROM #{@name}", []})
+      def all(limit \\ 100, offset \\ 0) do
+        call({:execute, :fetch, ~c"SELECT * FROM #{@name} LIMIT ? OFFSET ?", [limit, offset]})
       end
 
       def step_change(name, params) do
-        call({:changes, name, params})
+        call({:change, name, params})
       end
 
       def changes(conn) do
@@ -299,13 +301,13 @@ defmodule Store.Sqlite2 do
             %{conn: conn, stmt: stmt} = state
           ) do
         statement = Map.get(stmt, stmt_name)
-        Sqlite3NIF.bind_and_step(conn, statement, params)
+        Sqlite3NIF.bind_step(conn, statement, params)
         {:noreply, state}
       end
 
       def handle_cast({:execute, sql, params}, %{conn: conn} = state) do
         {:ok, statement} = Sqlite3NIF.prepare(conn, sql)
-        Sqlite3NIF.bind_and_step(conn, statement, params)
+        Sqlite3NIF.bind_step(conn, statement, params)
         Sqlite3NIF.release(conn, statement)
         {:noreply, state}
       end
@@ -322,7 +324,7 @@ defmodule Store.Sqlite2 do
             %{conn: conn, stmt: stmt} = state
           ) do
         statement = Map.get(stmt, stmt_name)
-        {:reply, Sqlite3NIF.bind_and_step(conn, statement, params), state}
+        {:reply, Sqlite3NIF.bind_step(conn, statement, params), state}
       end
 
       def handle_call(
@@ -337,7 +339,7 @@ defmodule Store.Sqlite2 do
       end
 
       def handle_call(
-            {:changes, stmt_name, params},
+            {:change, stmt_name, params},
             _from,
             %{conn: conn, stmt: stmt} = state
           ) do
@@ -350,26 +352,25 @@ defmodule Store.Sqlite2 do
         {:reply, :ok, state}
       end
 
-      def handle_call({:execute, operator, query, args}, _from, %{conn: conn, stmt: stmt} = state) do
+      def handle_call({:execute, command, query, args}, _from, %{conn: conn, stmt: stmt} = state) do
         {:ok, statement} = Sqlite3NIF.prepare(conn, query)
 
         result =
-          case operator do
+          case command do
             :step ->
-              Sqlite3NIF.bind_and_step(conn, statement, args)
+              Sqlite3NIF.bind_step(conn, statement, args)
 
             :fetch ->
-              if args != [] do
-                Sqlite3NIF.bind(conn, statement, args)
-              end
-
+              Sqlite3NIF.bind(conn, statement, args)
               Sqlite3.fetch_all(conn, statement)
 
             :change ->
-              Sqlite3NIF.bind_step_changes(conn, statement, args)
+              Sqlite3NIF.bind_step(conn, statement, args)
+              Sqlite3NIF.changes(conn)
           end
 
         Sqlite3NIF.release(conn, statement)
+
         {:reply, result, state}
       end
 
@@ -429,7 +430,7 @@ defmodule Store.Sqlite2 do
       defoverridable init: 1,
                      stop: 2,
                      one: 1,
-                     all: 0,
+                     all: 2,
                      insert: 1,
                      insert_sync: 1,
                      update: 2,

@@ -11,7 +11,7 @@ defmodule DomainStore do
     stmt: SQL.readFileStmt!("lib/sql/domain.stmt.sql", @args)
 
   def renew(name, account_id, millis, timestamp) do
-    call({:changes, :renew, [name, account_id, millis, timestamp]})
+    call({:change, :renew, [name, account_id, millis, timestamp]})
   end
 
   def delete_expiry(round, timestamp) do

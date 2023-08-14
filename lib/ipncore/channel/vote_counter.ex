@@ -22,18 +22,9 @@ defmodule VoteCounter do
     GenServer.start_link(__MODULE__, args, name: __MODULE__, hibernate_after: 5_000)
   end
 
-  defmacrop calc_minimum(validators) do
+  defmacro calc_minimum(validators) do
     quote do
-      cond do
-        unquote(validators) > 50 ->
-          round(unquote(validators) / 3)
-
-        unquote(validators) > 2 ->
-          round(unquote(validators) / 2)
-
-        true ->
-          1
-      end
+      round(div(unquote(validators), 2))
     end
   end
 

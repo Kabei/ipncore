@@ -15,7 +15,6 @@ defmodule Ipncore.Application do
     p2p_opts = Application.get_env(@otp_app, :P2P)
     data_dir = Application.get_env(@otp_app, :data_dir)
     http_opts = Application.get_env(@otp_app, :http)
-
     node_str = System.get_env("NODE")
     cookie = System.get_env("COOKIE")
     start_node(node_str, cookie)

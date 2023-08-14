@@ -57,7 +57,7 @@ defmodule Ipncore.MixProject do
       {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
       {:sntp, "~> 0.2.0"},
       {:jason, "~> 1.4"},
-      {:msgpack, "~> 0.8.1"},
+      {:cbor, "~> 1.0"},
       {:bandit, ">= 0.7.7"},
       {:phoenix_pubsub_redis, "~> 3.0.1"},
       {:httpoison, "~> 2.0"},

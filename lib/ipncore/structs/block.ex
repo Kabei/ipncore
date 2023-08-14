@@ -1,5 +1,6 @@
 defmodule Ippan.Block do
   require Global
+
   @type t :: %__MODULE__{
           height: non_neg_integer(),
           creator: non_neg_integer(),
@@ -166,12 +167,12 @@ defmodule Ippan.Block do
 
   def encode_file!(content) do
     # :erlang.term_to_binary(content)
-    :msgpack.pack(content, use_nil: true)
+    CBOR.encode(content)
   end
 
   def decode_file!(content) do
     # :erlang.binary_to_term(content, [:safe])
-    :msgpack.unpack(content, use_nil: true)
+    CBOR.decode(content)
     |> elem(1)
   end
 

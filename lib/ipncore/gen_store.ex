@@ -61,14 +61,14 @@ defmodule GenStore do
               Map.get(dict, module)
 
             statement = Map.get(stmts, stmt_name)
-            Sqlite3NIF.bind_and_step(conn, statement, params)
+            Sqlite3NIF.bind_step(conn, statement, params)
 
           {"r", module, sql, params} ->
             {conn, _stmts} =
               Map.get(dict, module)
 
             {:ok, statement} = Sqlite3NIF.prepare(conn, sql)
-            Sqlite3NIF.bind_and_step(conn, statement, params)
+            Sqlite3NIF.bind_step(conn, statement, params)
             Sqlite3NIF.release(conn, statement)
         end)
         |> Stream.run()

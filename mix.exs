@@ -59,7 +59,7 @@ defmodule Ipncore.MixProject do
       {:jason, "~> 1.4"},
       {:cbor, "~> 1.0"},
       {:bandit, ">= 0.7.7"},
-      {:phoenix_pubsub_redis, "~> 3.0.1"},
+      {:phoenix_pubsub, "~> 2.1"},
       {:httpoison, "~> 2.0"},
       {:cafezinho, "~> 0.4.0"},
       {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},

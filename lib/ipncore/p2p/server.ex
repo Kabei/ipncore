@@ -1,16 +1,12 @@
 defmodule Ippan.P2P.Server do
   use ThousandIsland.Handler
-  import Ippan.P2P, only: [decode!: 2, encode: 2]
   alias Ippan.P2P
-  # alias Phoenix.PubSub
+  import Ippan.P2P, only: [decode!: 2, encode: 2]
   require Logger
+  require Global
 
   @otp_app :ipncore
   @adapter ThousandIsland.Socket
-  @version P2P.version()
-  @handshake_timeout P2P.handshake_timeout()
-  @timeout 60_000
-  # @pubsub_server :network
 
   @spec load_kem :: :ok
   def load_kem do
@@ -40,7 +36,7 @@ defmodule Ippan.P2P.Server do
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
     # Logger.debug("handle_connection #{inspect(state)}")
-    handshake(socket, state)
+    P2P.server_handshake(socket, state, ValidatorStore)
   end
 
   @impl ThousandIsland.Handler
@@ -124,59 +120,6 @@ defmodule Ippan.P2P.Server do
   def handle_timeout(_socket, _state) do
     Logger.debug("handle timeout")
     :ok
-  end
-
-  defp handshake(socket, state) do
-    msg = "WEL" <> @version <> Application.get_env(@otp_app, :net_pubkey)
-    @adapter.send(socket, msg)
-
-    case @adapter.recv(socket, 0, @handshake_timeout) do
-      {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
-        case NtruKem.dec(Application.get_env(@otp_app, :net_privkey), ciphertext) do
-          {:ok, sharedkey} ->
-            <<clientPubkey::bytes-size(32), id::64, signature::binary>> =
-              decode!(encodeText, sharedkey)
-
-            case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
-              :ok ->
-                case ValidatorStore.lookup_map(id) do
-                  nil ->
-                    Logger.error("validator not exists #{id}")
-                    {:close, state}
-
-                  %{hostname: hostname, name: name, pubkey: pubkey} ->
-                    if pubkey != clientPubkey do
-                      Logger.debug("[Server connection] Invalid handshake pubkey")
-                      {:close, state}
-                    else
-                      Logger.debug("[Server connection] #{name} connected")
-
-                      {:continue,
-                       %{
-                         id: id,
-                         hostname: hostname,
-                         net_pubkey: clientPubkey,
-                         pubkey: pubkey,
-                         sharedkey: sharedkey
-                       }, @timeout}
-                    end
-                end
-
-              _ ->
-                Logger.debug("Invalid signature authentication")
-                {:close, state}
-            end
-
-          _error ->
-            Logger.debug("Invalid ntrukem ciphertext authentication")
-            {:close, state}
-        end
-
-      _error ->
-        Logger.debug("Invalid handshake")
-        # IO.inspect(error)
-        {:close, state}
-    end
   end
 
   defp handle_event("block_msg", from, data) do

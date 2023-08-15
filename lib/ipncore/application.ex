@@ -1,12 +1,11 @@
 defmodule Ipncore.Application do
   @moduledoc false
+  alias Phoenix.PubSub
   use Application
   import Ippan.Utils, only: [my_ip: 0]
 
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
-  @compile :native
-  @compile {:hipe, [:verbose, :o3]}
 
   @impl true
   def start(_type, _args) do
@@ -44,20 +43,19 @@ defmodule Ipncore.Application do
         {DnsStore, Path.join(data_dir, "store/dns.db")},
         {BlockStore, Path.join(data_dir, "store/block.db")},
         {RoundStore, Path.join(data_dir, "store/round.db")},
-        Supervisor.child_spec({Phoenix.PubSub, [name: :cluster]}, id: :cluster),
-        Supervisor.child_spec({Phoenix.PubSub, name: :network}, id: :network),
+        Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
+        Supervisor.child_spec({PubSub, name: :network}, id: :network),
+        {BlockTimer, []},
         {EventMinerChannel, []},
         {ThousandIsland, p2p_opts},
-        {Ippan.P2P.ClientPool, Application.get_env(@otp_app, :key_dir)},
+        {Ippan.P2P.PeerManager, Application.get_env(@otp_app, :key_dir)},
         {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts},
-        {BlockTimer, []},
         {VoteCounter, []}
       ]
 
     case Supervisor.start_link(children, @opts) do
       {:ok, _pid} = result ->
         IO.puts("Running IPNcore P2P with port #{p2p_opts[:port]}")
-
         result
 
       error ->

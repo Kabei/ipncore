@@ -1,5 +1,5 @@
-defmodule Ippan.P2P.Client do
-  use GenServer
+defmodule Ippan.P2P.PeerClient do
+  use GenServer, restart: :transient
   import Ippan.P2P, only: [decode!: 2, encode: 2]
   alias Phoenix.PubSub
   alias Ippan.{Address, P2P}
@@ -8,14 +8,18 @@ defmodule Ippan.P2P.Client do
 
   @module __MODULE__
   @adapter :gen_tcp
-  @version P2P.version()
-  @handshake_timeout P2P.handshake_timeout()
   @time_to_reconnect 3_000
   @ping_interval 45_000
   @pubsub_server :network
   @tcp_opts Application.compile_env(:ipncore, :p2p_client)
 
-  def start_link({hostname, port, vid, key_path}) do
+  # def start_link(_, args) do
+  #   start_link(args)
+  # end
+
+  def start_link(_, %{hostname: hostname, port: port, vid: vid, key_path: key_path} = args) do
+    IO.inspect(args)
+
     seed =
       if File.regular?(key_path) do
         File.read!(key_path)
@@ -36,8 +40,6 @@ defmodule Ippan.P2P.Client do
 
   @impl true
   def init({hostname, port, pubkey, vid, privkey}) do
-    Process.flag(:trap_exit, true)
-
     address = Address.hash(0, pubkey)
 
     subscribe(vid)
@@ -51,7 +53,7 @@ defmodule Ippan.P2P.Client do
        pubkey: pubkey,
        privkey: privkey,
        conn: false,
-       mailbox: load_mailbox(vid)
+       inbox: load_inbox(vid)
      }, {:continue, :connect}}
   end
 
@@ -130,15 +132,15 @@ defmodule Ippan.P2P.Client do
     {:stop, reason, state}
   end
 
-  def handle_info({:mailbox, %{id: id} = msg}, %{mailbox: mailbox} = state) do
-    {:noreply, %{state | mailbox: Map.put(mailbox, id, msg)}}
+  def handle_info({:inbox, %{id: id} = msg}, %{inbox: inbox} = state) do
+    {:noreply, %{state | inbox: Map.put(inbox, id, msg)}}
   end
 
   # receved a message from pubsub
   # send message to p2p network
   def handle_info(
         msg,
-        %{conn: conn, id: vid, mailbox: mailbox} = state
+        %{conn: conn, id: vid, inbox: inbox} = state
       ) do
     continue =
       case msg do
@@ -161,10 +163,10 @@ defmodule Ippan.P2P.Client do
         true ->
           case msg do
             %{"id" => id} ->
-              # IO.inspect("set in mailbox")
-              save_mailbox(vid, id, msg)
-              mailbox = Map.put(mailbox, id, msg)
-              %{state | mailbox: mailbox}
+              # IO.inspect("set in inbox")
+              save_inbox(vid, id, msg)
+              inbox = Map.put(inbox, id, msg)
+              %{state | inbox: inbox}
 
             _ ->
               state
@@ -179,22 +181,22 @@ defmodule Ippan.P2P.Client do
   end
 
   @impl true
-  def terminate(_reason, %{id: vid, scoket: socket}) do
-    unsubscribe(vid)
-    @adapter.close(socket)
-  end
-
-  def terminate(_reason, %{id: vid}) do
-    unsubscribe(vid)
-  end
-
-  @impl true
   def handle_call(:get_socket, _from, %{socket: socket} = state) do
     {:reply, socket, state}
   end
 
   def handle_call(:stop, _from, state) do
     {:stop, :normal, state}
+  end
+
+  @impl true
+  def terminate(_reason, %{id: vid, scoket: socket}) do
+    @adapter.close(socket)
+    unsubscribe(vid)
+  end
+
+  def terminate(_reason, %{id: vid}) do
+    unsubscribe(vid)
   end
 
   defp connect(%{hostname: hostname, port: port} = state) do
@@ -204,7 +206,7 @@ defmodule Ippan.P2P.Client do
       {:ok, socket} = @adapter.connect(ip_addr, port, @tcp_opts)
       :inet.setopts(socket, active: false)
 
-      case handshake(socket, state) do
+      case P2P.client_handshake(socket, state) do
         {:ok, sharedkey} ->
           {:ok, sharedkey}
           {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
@@ -215,7 +217,7 @@ defmodule Ippan.P2P.Client do
 
           Logger.debug("#{hostname}:#{port} | connected")
 
-          {:ok, check_mailbox(new_state)}
+          {:ok, check_inbox(new_state)}
 
         error ->
           error
@@ -226,63 +228,25 @@ defmodule Ippan.P2P.Client do
     end
   end
 
-  defp handshake(socket, state) do
-    case @adapter.recv(socket, 0, @handshake_timeout) do
-      {:ok, "WEL" <> @version <> pubkey} ->
-        {:ok, ciphertext, sharedkey} = NtruKem.enc(pubkey)
+  defp check_inbox(%{id: vid, inbox: inbox, socket: socket, sharedkey: sharedkey} = state) do
+    # IO.inspect(inbox)
 
-        id = Global.validator_id()
-        {:ok, signature} = Cafezinho.Impl.sign(sharedkey, state.privkey)
-        authtext = encode(state.pubkey <> <<id::64>> <> signature, sharedkey)
-        @adapter.send(socket, "THX" <> ciphertext <> authtext)
-        {:ok, sharedkey}
-
-      {:error, :closed} ->
-        :halt
-
-      error ->
-        error
-    end
-  end
-
-  defp check_mailbox(%{id: vid, mailbox: mailbox, socket: socket, sharedkey: sharedkey} = state) do
-    # IO.inspect(mailbox)
-
-    if mailbox != %{} do
-      for {_, msg} <- mailbox do
+    if inbox != %{} do
+      for {_, msg} <- inbox do
         @adapter.send(socket, encode(msg, sharedkey))
       end
 
       data_dir = Application.get_env(:ipncore, :data_dir)
-      file_path = Path.join(data_dir, "mailbox.#{vid}.tmp")
+      file_path = Path.join(data_dir, "inbox.#{vid}.tmp")
       File.rm(file_path)
-
-      # IO.inspect("mailbox sent")
-      # else
-      #   me = Global.validator_id()
-      #   b1 = BlockStore.count(vid)
-      #   b2 = BlockStore.count(me)
-
-      #   if b2 > b1 do
-      #     BlockStore.fetch_between(me, b1, b2)
-      #     |> case do
-      #       {:ok, data} ->
-      #         for block <- data do
-      #           P2P.push(vid, ["new_recv", Block.to_map(block)])
-      #         end
-
-      #       _ ->
-      #         :ok
-      #     end
-      #   end
     end
 
-    %{state | mailbox: %{}}
+    %{state | inbox: %{}}
   end
 
-  defp save_mailbox(vid, id, value) do
+  defp save_inbox(vid, id, value) do
     data_dir = Application.get_env(:ipncore, :data_dir)
-    file_path = Path.join(data_dir, "mailbox.#{vid}.tmp")
+    file_path = Path.join(data_dir, "inbox.#{vid}.tmp")
     value = :erlang.term_to_binary(value) |> Fast64.encode64()
 
     {:ok, file} = File.open(file_path, [:append])
@@ -290,9 +254,9 @@ defmodule Ippan.P2P.Client do
     File.close(file)
   end
 
-  defp load_mailbox(vid) do
+  defp load_inbox(vid) do
     data_dir = Application.get_env(:ipncore, :data_dir)
-    file_path = Path.join(data_dir, "mailbox.#{vid}.tmp")
+    file_path = Path.join(data_dir, "inbox.#{vid}.tmp")
 
     if File.exists?(file_path) do
       result =

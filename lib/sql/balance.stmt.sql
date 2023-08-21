@@ -11,19 +11,19 @@ SELECT * FROM $table WHERE id = ?1 AND token = ?2 LIMIT 1;
 SELECT 1 FROM $table WHERE id = ?1 AND token = ?2 LIMIT 1;
 
 --name: delete
-DELETE FROM $table WHERE id = ?1 AND token = ?2 LIMIT 1;
+DELETE FROM $table WHERE id = ?1 AND token = ?2;
 
 --name: send
-UPDATE $table SET amount = amount - ?3, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3 LIMIT 1;
+UPDATE $table SET amount = amount - ?3, updated_at = ?4 WHERE id = ?1 AND token = ?2 AND amount >= ?3;
 
 --name: income
 INSERT INTO $table (id,token,amount,created_at,updated_at)
 VALUES(?1, ?2, ?3, ?4, ?4) ON CONFLICT (id, token)
 DO UPDATE SET amount = amount + ?3, updated_at = ?4
-WHERE id = ?1 AND token = ?2 LIMIT 1;
+WHERE id = ?1 AND token = ?2;
 
 --name: lock
-UPDATE $table SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token = ?2 AND amount >= ?3 LIMIT 1;
+UPDATE $table SET amount = amount - ?3, locked = locked + ?3 WHERE id = ?1 AND token = ?2 AND amount >= ?3;
 
 --name: unlock
-UPDATE $table SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token = ?2 AND locked >= ?3 LIMIT 1;
+UPDATE $table SET amount = amount + ?3, locked = locked - ?3 WHERE id = ?1 AND token = ?2 AND locked >= ?3;

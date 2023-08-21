@@ -1,7 +1,7 @@
 defmodule BlockTimer do
   use GenServer
   alias Phoenix.PubSub
-  alias Ippan.{Block, Round, RequestHandler, P2P}
+  alias Ippan.{Block, Round, Command, P2P}
 
   import Ippan.Block,
     only: [decode_file!: 1, encode_file!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
@@ -368,7 +368,7 @@ defmodule BlockTimer do
                                _signature,
                                size
                              ] ->
-        RequestHandler.handle_post!(
+        Command.handle_post!(
           hash,
           type,
           timestamp,
@@ -429,7 +429,7 @@ defmodule BlockTimer do
               try do
                 args = decode_term(args)
 
-                RequestHandler.handle!(
+                Command.handle!(
                   hash,
                   type,
                   timestamp,
@@ -467,7 +467,7 @@ defmodule BlockTimer do
               try do
                 args = decode_term(args)
 
-                RequestHandler.handle!(
+                Command.handle!(
                   hash,
                   type,
                   timestamp,
@@ -507,7 +507,7 @@ defmodule BlockTimer do
               try do
                 args = decode_term(args)
 
-                RequestHandler.handle!(
+                Command.handle!(
                   hash,
                   type,
                   timestamp,
@@ -546,7 +546,7 @@ defmodule BlockTimer do
                   :done ->
                     args = decode_term(args)
 
-                    RequestHandler.handle!(
+                    Command.handle!(
                       hash,
                       type,
                       timestamp,
@@ -582,8 +582,8 @@ defmodule BlockTimer do
         events -> {:maps.values(events), false}
       end
 
-    ev_count = length(events)
-    empty = ev_count == 0
+    count = length(events)
+    empty = count == 0
 
     {hashfile, block_size} =
       if empty do
@@ -605,7 +605,7 @@ defmodule BlockTimer do
         hashfile: hashfile,
         round: round,
         timestamp: block_timestamp,
-        ev_count: ev_count,
+        count: count,
         size: block_size,
         error: error
       }
@@ -620,7 +620,7 @@ defmodule BlockTimer do
     # BlockStore.sync()
 
     Logger.debug(
-      "Block #{creator_id}.#{height} | events: #{ev_count} | hash: #{Base.encode16(block.hash)}"
+      "Block #{creator_id}.#{height} | events: #{count} | hash: #{Base.encode16(block.hash)}"
     )
 
     PubSub.broadcast(@pubsub_verifiers, @topic_block, {"new", block})
@@ -637,10 +637,10 @@ defmodule BlockTimer do
           creator: creator,
           hash: hash,
           height: height,
-          ev_count: 0,
+          count: 0,
           hashfile: hashfile,
           prev: prev,
-          round: round,
+          round: _round,
           size: size,
           signature: signature,
           timestamp: timestamp
@@ -654,7 +654,7 @@ defmodule BlockTimer do
       0 != size ->
         :error
 
-      Block.compute_hash(height, creator, round, prev, hashfile, timestamp) != hash ->
+      Block.compute_hash(height, creator, prev, hashfile, timestamp) != hash ->
         :error
 
       Cafezinho.Impl.verify(signature, hash, creator_pubkey) != :ok ->
@@ -668,7 +668,7 @@ defmodule BlockTimer do
   def verify(
         %{
           creator: creator,
-          round: round,
+          round: _round,
           prev: prev,
           hash: hash,
           height: height,
@@ -682,7 +682,7 @@ defmodule BlockTimer do
       Cafezinho.Impl.verify(signature, hash, creator_pubkey) != :ok ->
         :error
 
-      Block.compute_hash(height, creator, round, prev, hashfile, timestamp) != hash ->
+      Block.compute_hash(height, creator, prev, hashfile, timestamp) != hash ->
         :error
 
       true ->
@@ -696,13 +696,13 @@ defmodule BlockTimer do
         %{
           height: height,
           hash: hash,
-          round: round,
+          round: _round,
           hashfile: hashfile,
           creator: creator_id,
           prev: prev,
           signature: signature,
           timestamp: timestamp,
-          ev_count: ev_count,
+          count: count,
           size: size
         } = block,
         %{hostname: hostname, pubkey: pubkey}
@@ -728,7 +728,7 @@ defmodule BlockTimer do
       raise IppanError, "Invalid block size"
     end
 
-    if hash != Block.compute_hash(height, creator_id, round, prev, hashfile, timestamp) do
+    if hash != Block.compute_hash(height, creator_id, prev, hashfile, timestamp) do
       raise(IppanError, "Invalid block hash")
     end
 
@@ -747,32 +747,21 @@ defmodule BlockTimer do
       Enum.reduce(
         %{},
         events,
-        fn
-          [body, signature], acc ->
-            hash = Blake3.hash(body)
-            size = byte_size(body) + byte_size(signature)
+        fn [body, signature], acc ->
+          hash = Blake3.hash(body)
+          size = byte_size(body) + byte_size(signature)
 
-            msg =
-              RequestHandler.valid!(hash, body, size, signature, creator_id)
-              |> elem(1)
+          msg =
+            Command.valid!(hash, body, size, signature, creator_id)
+            |> elem(1)
 
-            Map.put_new(acc, hash, msg)
-
-          body, acc ->
-            hash = Blake3.hash(body)
-            size = byte_size(body)
-
-            msg =
-              RequestHandler.valid!(hash, body, size)
-              |> elem(1)
-
-            Map.put_new(acc, hash, msg)
+          Map.put_new(acc, hash, msg)
         end
       )
       |> Map.values()
 
-    if ev_count != length(decode_events) do
-      raise(IppanError, "Invalid block size and valid events size")
+    if count != length(decode_events) do
+      raise(IppanError, "Invalid block size and valid messages size")
     end
 
     export_path =

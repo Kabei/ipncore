@@ -17,8 +17,12 @@ defmodule Ippan.P2P.PeerClient do
   #   start_link(args)
   # end
 
-  def start_link(_, %{hostname: hostname, port: port, vid: vid, key_path: key_path} = args) do
-    IO.inspect(args)
+  def start_link(
+        _,
+        %{hostname: hostname, port: port, vid: vid, key_path: key_path, net_pubkey: net_pubkey} =
+          args
+      ) do
+    Logger.debug(args)
 
     seed =
       if File.regular?(key_path) do
@@ -31,7 +35,7 @@ defmodule Ippan.P2P.PeerClient do
     {:ok, {pubkey, privkey}} = Cafezinho.Impl.keypair_from_seed(seed)
 
     {:ok, pid} =
-      GenServer.start_link(@module, {hostname, port, pubkey, vid, privkey},
+      GenServer.start_link(@module, {hostname, port, pubkey, vid, privkey, net_pubkey},
         hibernate_after: 5_000
       )
 
@@ -39,7 +43,7 @@ defmodule Ippan.P2P.PeerClient do
   end
 
   @impl true
-  def init({hostname, port, pubkey, vid, privkey}) do
+  def init({hostname, port, pubkey, vid, privkey, net_pubkey}) do
     address = Address.hash(0, pubkey)
 
     subscribe(vid)
@@ -52,6 +56,7 @@ defmodule Ippan.P2P.PeerClient do
        address: address,
        pubkey: pubkey,
        privkey: privkey,
+       net_pubkey: net_pubkey,
        conn: false,
        inbox: load_inbox(vid)
      }, {:continue, :connect}}
@@ -202,7 +207,6 @@ defmodule Ippan.P2P.PeerClient do
   defp connect(%{hostname: hostname, port: port} = state) do
     try do
       {:ok, ip_addr} = :inet_udp.getaddr(String.to_charlist(hostname))
-
       {:ok, socket} = @adapter.connect(ip_addr, port, @tcp_opts)
       :inet.setopts(socket, active: false)
 

@@ -7,7 +7,7 @@ defmodule HashTest do
 
     Benchee.run(%{
       "blake3" => fn ->
-        Blake3..hash(data)
+        Blake3.hash(data)
       end,
       "sha256" => fn ->
         :crypto.hash(:sha256, data)
@@ -17,6 +17,9 @@ defmodule HashTest do
       end,
       "blake2b" => fn ->
         :crypto.hash(:blake2b, data)
+      end,
+      "xxhash" => fn ->
+        XXHash.xxh64(data, 2_148_456_111)
       end
     })
   end

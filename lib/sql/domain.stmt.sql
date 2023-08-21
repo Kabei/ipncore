@@ -14,7 +14,7 @@ SELECT * FROM $table WHERE name = ?1;
 SELECT 1 FROM $table WHERE name = ?1;
 
 --name: renew
-UPDATE $table SET renewed_at = renewed_at + ?3, updated_at = ?4 WHERE name=?1 AND owner=?2 LIMIT 1;
+UPDATE $table SET renewed_at = renewed_at + ?3, updated_at = ?4 WHERE name=?1 AND owner=?2;
 
 --name: delete
 DELETE FROM $table WHERE name = ?1 AND owner =?2;

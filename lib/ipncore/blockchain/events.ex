@@ -16,27 +16,23 @@ defmodule Ippan.Events do
   def lookup(n = 0),
     do: %Event{
       id: n,
-      name: "wallet.new",
+      name: "wallet.sub",
       base: :wallet,
       mod: Wallet,
-      fun: :new,
-      before: :pre_new,
+      fun: :subscribe,
+      before: :pre_sub,
       deferred: true,
-      validator: false,
-      auth: false
+      validator: false
     }
 
   def lookup(n = 1),
     do: %Event{
       id: n,
-      name: "wallet.subscribe",
+      name: "wallet.unsub",
       base: :wallet,
       mod: Wallet,
-      before: :pre_sub,
-      fun: :subscribe,
-      deferred: true,
-      validator: false,
-      auth: true
+      fun: :unsubscribe,
+      deferred: false
     }
 
   def lookup(n = 50),
@@ -47,8 +43,7 @@ defmodule Ippan.Events do
       mod: Env,
       fun: :set,
       before: :pre_set,
-      deferred: true,
-      auth: true
+      deferred: true
     }
 
   def lookup(n = 51),
@@ -59,8 +54,7 @@ defmodule Ippan.Events do
       mod: Env,
       before: :pre_delete,
       fun: :delete,
-      deferred: true,
-      auth: true
+      deferred: true
     }
 
   def lookup(n = 100),
@@ -71,8 +65,7 @@ defmodule Ippan.Events do
       mod: Validator,
       fun: :new,
       before: :pre_new,
-      deferred: true,
-      auth: true
+      deferred: true
     }
 
   def lookup(n = 101),
@@ -83,8 +76,7 @@ defmodule Ippan.Events do
       mod: Validator,
       fun: :update,
       before: :pre_update,
-      deferred: true,
-      auth: true
+      deferred: true
     }
 
   def lookup(n = 102),
@@ -95,8 +87,7 @@ defmodule Ippan.Events do
       mod: Validator,
       fun: :delete,
       before: :pre_delete,
-      deferred: true,
-      auth: true
+      deferred: true
     }
 
   def lookup(n = 200),
@@ -107,8 +98,7 @@ defmodule Ippan.Events do
       mod: Token,
       fun: :new,
       before: :pre_new,
-      deferred: true,
-      auth: true
+      deferred: true
     }
 
   def lookup(n = 201),
@@ -117,8 +107,7 @@ defmodule Ippan.Events do
       name: "token.update",
       base: :token,
       mod: Token,
-      fun: :update,
-      auth: true
+      fun: :update
     }
 
   def lookup(n = 202),
@@ -127,8 +116,7 @@ defmodule Ippan.Events do
       name: "token.delete",
       base: :token,
       mod: Token,
-      fun: :delete,
-      auth: true
+      fun: :delete
     }
 
   def lookup(n = 250),
@@ -137,8 +125,7 @@ defmodule Ippan.Events do
       name: "balance.lock",
       base: :balance,
       mod: Balance,
-      fun: :lock,
-      auth: true
+      fun: :lock
     }
 
   def lookup(n = 251),
@@ -147,8 +134,7 @@ defmodule Ippan.Events do
       name: "balance.unlock",
       base: :balance,
       mod: Balance,
-      fun: :unlock,
-      auth: true
+      fun: :unlock
     }
 
   def lookup(n = 300),
@@ -157,8 +143,7 @@ defmodule Ippan.Events do
       name: "tx.coinbase",
       base: :tx,
       mod: Tx,
-      fun: :coinbase,
-      auth: true
+      fun: :coinbase
     }
 
   def lookup(n = 301),
@@ -167,8 +152,7 @@ defmodule Ippan.Events do
       name: "tx.send",
       base: :tx,
       mod: Tx,
-      fun: :send,
-      auth: true
+      fun: :send
     }
 
   def lookup(n = 302),
@@ -177,8 +161,7 @@ defmodule Ippan.Events do
       name: "tx.burn",
       base: :tx,
       mod: Tx,
-      fun: :burn,
-      auth: true
+      fun: :burn
     }
 
   def lookup(n = 303),
@@ -187,8 +170,7 @@ defmodule Ippan.Events do
       name: "tx.refund",
       mod: Tx,
       base: :tx,
-      fun: :refund,
-      auth: true
+      fun: :refund
     }
 
   def lookup(n = 304),
@@ -197,8 +179,7 @@ defmodule Ippan.Events do
       name: "tx.refundable",
       mod: Tx,
       base: :tx,
-      fun: :send_refundable,
-      auth: true
+      fun: :send_refundable
     }
 
   def lookup(n = 400),
@@ -209,8 +190,7 @@ defmodule Ippan.Events do
       base: :domain,
       fun: :new,
       before: :pre_new,
-      deferred: true,
-      auth: true
+      deferred: true
     }
 
   def lookup(n = 401),
@@ -219,8 +199,7 @@ defmodule Ippan.Events do
       name: "domain.update",
       base: :domain,
       mod: Domain,
-      fun: :update,
-      auth: true
+      fun: :update
     }
 
   def lookup(n = 402),
@@ -229,8 +208,7 @@ defmodule Ippan.Events do
       name: "domain.delete",
       base: :domain,
       mod: Domain,
-      fun: :delete,
-      auth: true
+      fun: :delete
     }
 
   def lookup(n = 403),
@@ -239,21 +217,8 @@ defmodule Ippan.Events do
       name: "domain.renew",
       base: :domain,
       mod: Domain,
-      fun: :renew,
-      auth: true
+      fun: :renew
     }
-
-  # def lookup(n = 404),
-  #   do: %Event{
-  #     id: n,
-  #     name: "domain.expiry",
-  #     base: :domain,
-  #     mod: Domain,
-  #     fun: :expiry,
-  #
-  #     system: true,
-  #     auth: false
-  #   }
 
   def lookup(n = 500),
     do: %Event{
@@ -261,8 +226,7 @@ defmodule Ippan.Events do
       name: "dns.new",
       base: :dns,
       mod: Dns,
-      fun: :new,
-      auth: true
+      fun: :new
     }
 
   def lookup(n = 501),
@@ -271,8 +235,7 @@ defmodule Ippan.Events do
       name: "dns.update",
       base: :dns,
       mod: Dns,
-      fun: :update,
-      auth: true
+      fun: :update
     }
 
   def lookup(n = 502),
@@ -281,57 +244,8 @@ defmodule Ippan.Events do
       name: "dns.delete",
       base: :dns,
       mod: Dns,
-      fun: :delete,
-      auth: true
+      fun: :delete
     }
-
-  # def lookup(n = 900),
-  #   do: %Event{
-  #     id: n,
-  #     name: "block.new",
-  #     base: :block,
-  #     mod: Block,
-  #     fun: :new,
-  #
-  #     system: true,
-  #     auth: false
-  #   }
-
-  # def lookup(n = 901),
-  #   do: %Event{
-  #     id: n,
-  #     name: "block.received",
-  #     base: :block,
-  #     mod: Block,
-  #     fun: :received,
-  #
-  #     system: true,
-  #     auth: false
-  #   }
-
-  # def lookup(n = 990),
-  #   do: %Event{
-  #     id: n,
-  #     name: "round.start",
-  #     base: :round,
-  #     mod: Round,
-  #     fun: :start,
-  #
-  #     system: true,
-  #     auth: false
-  #   }
-
-  # def lookup(n = 999),
-  #   do: %Event{
-  #     id: n,
-  #     name: "round.end",
-  #     base: :round,
-  #     mod: Round,
-  #     fun: :end,
-  #
-  #     system: true,
-  #     auth: false
-  #   }
 
   def lookup(_), do: :undefined
 end

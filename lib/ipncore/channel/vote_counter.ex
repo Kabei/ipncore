@@ -69,7 +69,7 @@ defmodule VoteCounter do
            height: height,
            round: round,
            creator: creator_id,
-           ev_count: ev_count,
+           count: _count,
            size: _size,
            signature: signature,
            hashfile: hashfile,
@@ -84,7 +84,7 @@ defmodule VoteCounter do
     # is_creator = validator_id == creator_id
 
     if check == false or
-         (Block.compute_hash(height, creator_id, round, prev, hashfile, timestamp) != hash and
+         (Block.compute_hash(height, creator_id, prev, hashfile, timestamp) != hash and
             Cafezinho.Impl.verify(signature, hash, validator_pubkey) == :ok and
             (not check_auth or
                Cafezinho.Impl.verify(msg[:auth], "#{hash} is valid", msg[:pubkey]) == :ok)) do
@@ -123,7 +123,7 @@ defmodule VoteCounter do
                   # create block if round is the same
                   if round_number == round do
                     Task.async(fn ->
-                      if ev_count > 0 do
+                      if count > 0 do
                         # send task to a verifier node
                         creator = ValidatorStore.lookup_map(creator_id)
                         push_fetch(self(), msg, creator)

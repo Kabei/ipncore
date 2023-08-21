@@ -2,6 +2,7 @@ defmodule Ippan.P2P do
   alias Phoenix.PubSub
   require Logger
   require Global
+  require BigNumber
 
   @version <<0::16>>
   @seconds <<0>>
@@ -14,15 +15,18 @@ defmodule Ippan.P2P do
   @server_ping_timeout 60_000
 
   def client_handshake(socket, state) do
-    case @client_adapter.recv(socket, 0, @handshake_timeout) do
-      {:ok, "WEL" <> @version <> pubkey} ->
-        {:ok, ciphertext, sharedkey} = NtruKem.enc(pubkey)
+    {:ok, ciphertext, sharedkey} = NtruKem.enc(state.net_pubkey)
+    {:ok, signature} = Cafezinho.Impl.sign(sharedkey, state.privkey)
+    id = Global.validator_id()
+    authtext = encode(signature <> <<id::unsigned-size(64)>>, sharedkey)
+    @client_adapter.send(socket, "HI" <> @version <> ciphertext <> authtext)
 
-        id = Global.validator_id()
-        {:ok, signature} = Cafezinho.Impl.sign(sharedkey, state.privkey)
-        authtext = encode(state.pubkey <> <<id::64>> <> signature, sharedkey)
-        @client_adapter.send(socket, "THX" <> ciphertext <> authtext)
+    case @client_adapter.recv(socket, 0, @handshake_timeout) do
+      {:ok, "WELCOME"} ->
         {:ok, sharedkey}
+
+      {:ok, _wrong} ->
+        :halt
 
       {:error, :closed} ->
         :halt
@@ -33,43 +37,34 @@ defmodule Ippan.P2P do
   end
 
   def server_handshake(socket, state, store_mod) do
-    msg = "WEL" <> @version <> Global.net_pubkey()
-    @server_adapter.send(socket, msg)
-
     case @server_adapter.recv(socket, 0, @handshake_timeout) do
-      {:ok, "THX" <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
+      {:ok, "HI" <> @version <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
         case NtruKem.dec(Global.net_privkey(), ciphertext) do
           {:ok, sharedkey} ->
-            <<clientPubkey::bytes-size(32), id::64, signature::binary>> =
-              decode!(encodeText, sharedkey)
+            <<signature::bytes-size(64), id::unsigned-size(64)>> = decode!(encodeText, sharedkey)
 
-            case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
-              :ok ->
-                case apply(store_mod, :lookup_map, [id]) do
-                  nil ->
-                    Logger.error("validator not exists #{id}")
+            case apply(store_mod, :lookup_map, [id]) do
+              %{hostname: hostname, name: name, pubkey: clientPubkey} ->
+                case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
+                  :ok ->
+                    Logger.debug("[Server connection] #{name} connected")
+                    @server_adapter.send(socket, "WELCOME")
+
+                    {:continue,
+                     %{
+                       id: id,
+                       hostname: hostname,
+                       pubkey: clientPubkey,
+                       sharedkey: sharedkey
+                     }, @server_ping_timeout}
+
+                  _ ->
+                    Logger.debug("Invalid signature authentication")
                     {:close, state}
-
-                  %{hostname: hostname, name: name, pubkey: pubkey} ->
-                    if pubkey != clientPubkey do
-                      Logger.debug("[Server connection] Invalid handshake pubkey")
-                      {:close, state}
-                    else
-                      Logger.debug("[Server connection] #{name} connected")
-
-                      {:continue,
-                       %{
-                         id: id,
-                         hostname: hostname,
-                         net_pubkey: clientPubkey,
-                         pubkey: pubkey,
-                         sharedkey: sharedkey
-                       }, @server_ping_timeout}
-                    end
                 end
 
               _ ->
-                Logger.debug("Invalid signature authentication")
+                Logger.debug("validator not exists #{id}")
                 {:close, state}
             end
 
@@ -98,18 +93,14 @@ defmodule Ippan.P2P do
       tag,
       false
     )
-    |> CBOR.decode()
-    |> elem(1)
+    |> CBOR.Decoder.decode()
+    |> elem(0)
   end
 
   def decode!(packet, _sharedkey), do: packet
 
   def encode(msg, sharedkey) do
-    # IO.inspect("encode")
-    # IO.inspect(Base.encode16(sharedkey), limit: :infinity)
-    # IO.inspect(msg, limit: :infinity)
-    # bin = :erlang.term_to_binary(msg)
-    bin = CBOR.encode(msg)
+    bin = CBOR.Encoder.encode_into(msg, <<>>)
     iv = :crypto.strong_rand_bytes(@iv_bytes)
 
     {ciphertext, tag} =

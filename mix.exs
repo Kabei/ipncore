@@ -2,7 +2,7 @@ defmodule Ipncore.MixProject do
   use Mix.Project
 
   @app :ipncore
-  @version "0.4.0"
+  @version "0.5.0"
   @min_otp 25
 
   def project do
@@ -47,39 +47,6 @@ defmodule Ipncore.MixProject do
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
-  defp deps do
-    [
-      {:benchee, "~> 1.0", only: [:dev, :test]},
-      {:bakeware, "~> 0.2.4", runtime: false},
-      {:globalconst, "~> 0.3.2"},
-      {:poolboy, "~> 1.5.2"},
-      {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
-      {:sntp, "~> 0.2.0"},
-      {:jason, "~> 1.4"},
-      {:cbor, "~> 1.0"},
-      {:bandit, ">= 0.7.7"},
-      {:phoenix_pubsub, "~> 2.1"},
-      {:httpoison, "~> 2.0"},
-      {:cafezinho, "~> 0.4.0"},
-      {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
-      {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},
-      {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},
-      {:ntrukem, git: "https://kabei@github.com/kabei/ntrukem.git", branch: "master"},
-      {:fast64, git: "https://kabei@github.com/kabei/fast64_elixir.git", branch: "master"}
-    ]
-  end
-
-  def package do
-    [
-      name: @app,
-      description: "IPPAN Core",
-      maintainers: ["Kambei Sapote"],
-      licenses: ["MIT"],
-      files: ["lib/*", "mix.exs", "README*", "LICENSE*"]
-    ]
-  end
-
   defp load_env_file(path) do
     File.stream!(path, [], :line)
     |> Enum.each(fn text ->
@@ -95,5 +62,39 @@ defmodule Ipncore.MixProject do
           :ignored
       end
     end)
+  end
+
+  def package do
+    [
+      name: @app,
+      maintainers: ["Kambei Sapote"],
+      licenses: ["MIT"],
+      files: ["lib/*", "mix.exs", "README*", "LICENSE*"]
+    ]
+  end
+
+  # Run "mix help deps" to learn about dependencies.
+  defp deps do
+    [
+      {:benchee, "~> 1.0", only: [:dev, :test]},
+      {:bakeware, "~> 0.2.4", runtime: false},
+      {:globalconst, "~> 0.3.2"},
+      {:poolboy, "~> 1.5.2"},
+      {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
+      {:sntp, "~> 0.2.0"},
+      {:jason, "~> 1.4"},
+      {:cbor, "~> 1.0"},
+      {:bandit, ">= 0.7.7"},
+      {:phoenix_pubsub, "~> 2.1"},
+      {:httpoison, "~> 2.0"},
+      {:manifold, "~> 1.0"},
+      {:cafezinho, "~> 0.4.0"},
+      {:paged_file, "~> 1.1"},
+      {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
+      {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},
+      {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},
+      {:ntrukem, git: "https://kabei@github.com/kabei/ntrukem.git", branch: "master"},
+      {:fast64, git: "https://kabei@github.com/kabei/fast64_elixir.git", branch: "master"}
+    ]
   end
 end

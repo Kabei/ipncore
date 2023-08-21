@@ -57,9 +57,9 @@ config :ipncore, :http,
     compress: false
   ],
   thousand_island_options: [
-    num_acceptors: num_acceptors,
+    num_acceptors: 10,
     read_timeout: 60_000,
-    num_connections: num_connections,
+    num_connections: 4096,
     max_connections_retry_count: 5,
     max_connections_retry_wait: 1000,
     shutdown_timeout: 60_000,
@@ -75,21 +75,21 @@ config :ipncore, :http,
 
 # NTP servers
 config :ipncore, :ntp_servers, [
-  '0.north-america.pool.ntp.org',
-  '1.north-america.pool.ntp.org',
-  '2.north-america.pool.ntp.org',
-  '0.europe.pool.ntp.org',
-  '1.europe.pool.ntp.org',
-  '2.europe.pool.ntp.org',
-  '0.asia.pool.ntp.org',
-  '1.asia.pool.ntp.org',
-  '2.asia.pool.ntp.org',
-  '0.oceania.pool.ntp.org',
-  '0.africa.pool.ntp.org',
-  'hora.roa.es',
-  'time.google.com',
-  'time.cloudflare.com',
-  'time.windows.com'
+  ~c"0.north-america.pool.ntp.org",
+  ~c"1.north-america.pool.ntp.org",
+  ~c"2.north-america.pool.ntp.org",
+  ~c"0.europe.pool.ntp.org",
+  ~c"1.europe.pool.ntp.org",
+  ~c"2.europe.pool.ntp.org",
+  ~c"0.asia.pool.ntp.org",
+  ~c"1.asia.pool.ntp.org",
+  ~c"2.asia.pool.ntp.org",
+  ~c"0.oceania.pool.ntp.org",
+  ~c"0.africa.pool.ntp.org",
+  ~c"hora.roa.es",
+  ~c"time.google.com",
+  ~c"time.cloudflare.com",
+  ~c"time.windows.com"
 ]
 
 config :ipncore, :dns_resolve,

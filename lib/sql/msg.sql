@@ -29,6 +29,23 @@ CREATE TABLE IF NOT EXISTS $table_df(
   UNIQUE(key, type)
 );
 
+CREATE TABLE IF NOT EXISTS msgd_approved(
+  hash BLOB,
+  timestamp BIGINT,
+  key BLOB,
+  type INTEGER,
+  account_id BLOB,
+  validator_id BIGINT,
+  node_id BIGINT,
+  args BLOB,
+  message BLOB,
+  signature BLOB,
+  size INTEGER DEFAULT 0,
+  round BIGINT,
+  PRIMARY KEY(timestamp, hash),
+  UNIQUE(key, type)
+);
+
 CREATE TABLE IF NOT EXISTS $table_hash(
   hash BLOB NOT NULL,
   validator_id BIGINT NOT NULL,

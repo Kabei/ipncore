@@ -6,11 +6,6 @@ defmodule Ippan.P2P.PeerSupervisor do
   end
 
   def start_child(args) do
-    spec = %{
-      id: nil,
-      start: {Ippan.P2P.PeerClient, :start_link, [args]}
-    }
-
     DynamicSupervisor.start_child(__MODULE__, {Ippan.P2P.PeerClient, args})
   end
 

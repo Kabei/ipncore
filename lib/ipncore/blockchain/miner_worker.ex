@@ -22,15 +22,15 @@ defmodule MinerWorker do
            prev: prev_hash,
            round: round,
            timestamp: timestamp,
-           ev_count: ev_count
+           count: count
          } = block},
         state
       ) do
     decode_path = Block.decode_path(creator_id, height)
-    Logger.debug("#{creator_id}.#{height} Events: #{ev_count} | #{decode_path} Mine import")
+    Logger.debug("#{creator_id}.#{height} Events: #{count} | #{decode_path} Mine import")
 
     requests =
-      if ev_count != 0 do
+      if count != 0 do
         # IO.inspect("import block file")
         {:ok, content} = File.read(decode_path)
         Block.decode_file!(content)

@@ -16,15 +16,22 @@ defmodule Store.Sqlite2 do
       alias Exqlite.Sqlite3NIF
       alias Exqlite.Sqlite3
       alias Ippan.Utils
-      use GenServer
+      use GenServer, restart: :transient
 
       def child_spec(opts) do
         state = start(opts)
 
         %{
           id: __MODULE__,
-          start: {__MODULE__, :start_link, [state]}
+          start: {__MODULE__, :start_link, [state]},
+          restart: :transient
         }
+      end
+
+      def start_link(_, path) when is_binary(path) do
+        state = start(path)
+
+        GenServer.start_link(__MODULE__, state, hibernate_after: 5_000, name: @base)
       end
 
       def start_link(path) when is_binary(path) do

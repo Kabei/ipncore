@@ -1,69 +1,15 @@
-defmodule Ippan.RequestHandler do
-  require Logger
-  require Global
+defmodule Ippan.Command do
   alias Ippan.Events
-  # alias Phoenix.PubSub
 
-  # @timeout Application.compile_env(:ipncore, :message_timeout)
   # @libsecp256k1 ExSecp256k1.Impl
   @json Application.compile_env(:ipncore, :json)
-
-  defmacrop check_timestamp!(timestamp) do
-    quote do
-      if :os.system_time(:millisecond) not in (unquote(timestamp) - @timeout)..(unquote(timestamp) +
-                                                                                  @timeout),
-         do: raise(IppanError, "Invalid timestamp")
-    end
-  end
-
-  @spec valid!(binary, binary, non_neg_integer()) :: any
-  def valid!(hash, msg, size) do
-    [type, timestamp | args] = @json.decode!(msg)
-
-    event = %{auth: false, deferred: deferred} = Events.lookup(type)
-
-    result =
-      case deferred do
-        true ->
-          key = hd(args) |> to_string()
-
-          [
-            hash,
-            timestamp,
-            key,
-            type,
-            nil,
-            nil,
-            Global.validator_id(),
-            :erlang.term_to_binary(args),
-            msg,
-            nil,
-            size
-          ]
-
-        _false ->
-          [
-            hash,
-            timestamp,
-            type,
-            nil,
-            nil,
-            Global.validator_id(),
-            :erlang.term_to_binary(args),
-            msg,
-            nil,
-            size
-          ]
-      end
-
-    {event, result}
-  end
 
   @spec valid!(binary, binary, non_neg_integer(), binary, non_neg_integer()) :: any
   def valid!(hash, msg, size, sig_with_flag, node_validator_id) do
     [type, timestamp, from | args] = @json.decode!(msg)
 
-    # check_timestamp!(timestamp)
+    # if :os.system_time(:millisecond) < timestamp,
+    # do: raise(IppanError, "Invalid timestamp")
 
     event = %{auth: true, validator: valid_validator, deferred: deferred} = Events.lookup(type)
 
@@ -84,13 +30,10 @@ defmodule Ippan.RequestHandler do
 
     result =
       case deferred do
-        true ->
-          key = hd(args) |> to_string()
-
+        false ->
           [
             hash,
             timestamp,
-            key,
             type,
             from,
             wallet_validator,
@@ -101,10 +44,13 @@ defmodule Ippan.RequestHandler do
             size
           ]
 
-        _false ->
+        _true ->
+          key = hd(args) |> to_string()
+
           [
             hash,
             timestamp,
+            key,
             type,
             from,
             wallet_validator,
@@ -121,48 +67,24 @@ defmodule Ippan.RequestHandler do
 
   # ======================================================
 
-  def handle!(hash, type, timestamp, account_id, validator_id, node_id, size, nil, round) do
-    event = Events.lookup(type)
-
-    source = %{
-      id: account_id,
-      type: type,
-      validator: validator_id,
-      node: node_id,
-      hash: hash,
-      round: round,
-      timestamp: timestamp,
-      size: size
-    }
-
-    case event do
-      %{deferred: false} ->
-        apply(event.mod, event.fun, [source])
-
-      %{deferred: true} ->
-        apply(event.mod, event.before, [source])
-    end
-  end
-
   def handle!(hash, type, timestamp, account_id, validator_id, node_id, size, args, round) do
-    event = Events.lookup(type)
-
-    case event do
-      %{deferred: false} ->
+    case Events.lookup(type) do
+      %{deferred: false, mod: module, fun: fun} ->
         source = %{
           id: account_id,
           type: type,
           validator: validator_id,
           node: node_id,
           hash: hash,
-          round: round,
+          # round: round,
           timestamp: timestamp,
           size: size
         }
 
-        apply(event.mod, event.fun, [source | args])
+        apply(module, fun, [source | args])
 
-      %{deferred: true} ->
+      # deferred transactions
+      %{mod: module, before: before} ->
         source = %{
           id: account_id,
           type: type,
@@ -175,12 +97,13 @@ defmodule Ippan.RequestHandler do
           size: size
         }
 
-        apply(event.mod, event.before, [source | args])
+        apply(module, before, [source | args])
     end
   end
 
+  # only deferred transactions
   def handle_post!(hash, type, timestamp, account_id, validator_id, node_id, size, args) do
-    event = Events.lookup(type)
+    %{mod: module, fun: fun} = Events.lookup(type)
 
     source = %{
       id: account_id,
@@ -193,7 +116,7 @@ defmodule Ippan.RequestHandler do
       size: size
     }
 
-    apply(event.mod, event.fun, [source | args])
+    apply(module, fun, [source | args])
   end
 
   # check signature by type

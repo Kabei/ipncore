@@ -37,13 +37,13 @@ defmodule Builder do
   @doc """
   Builder.init()
   {pk, sk, pk1, sk1, address, address1} = Builder.test()
-  Builder.wallet_new(pk1, 0) |> Builder.run()
+  Builder.wallet_sub(pk1, 0) |> Builder.run()
   Builder.tx_coinbase(sk, address, "IPN", [[address1, 50000000000]]) |> Builder.run()
 
   # falcon
   {pk2, sk2, address2, pk3, sk3, address3} = Builder.test_falcon()
-  Builder.wallet_new(pk2, 0) |> Builder.run()
-  Builder.wallet_new(pk3, 0) |> Builder.run()
+  Builder.wallet_sub(pk2, 0) |> Builder.run()
+  Builder.wallet_sub(pk3, 0) |> Builder.run()
   Builder.tx_coinbase(sk, address, "IPN", [[address2, 50000000000]]) |> Builder.run()
 
   BlockBuilderWork.sync_all()
@@ -197,16 +197,24 @@ defmodule Builder do
   #   {pk, Address.hash(2, pk)}
   # end
 
-  # Builder.wallet_new(pk, 0) |> Builder.build_request
-  def wallet_new(pk, validator_id) do
-    [0, :os.system_time(:millisecond), Fast64.encode64(pk), validator_id]
-    |> Jason.encode!()
+  # Builder.wallet_sub(sk, pk, 0, 0) |> Builder.build_request
+  def wallet_sub(secret, pk, validator_id, sig_type) do
+    body =
+      [0, :os.system_time(:millisecond), Fast64.encode64(pk), validator_id, sig_type]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+    address = Address.hash(sig_type, pk)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
   end
 
-  # Builder.wallet_subscribe(sk, address, 1) |> Builder.build_request
-  def wallet_subscribe(secret, address, validator_id) do
+  # Builder.wallet_unsub(sk, address) |> Builder.build_request
+  def wallet_unsub(secret, address) do
     body =
-      [1, :os.system_time(:millisecond), address, validator_id]
+      [1, :os.system_time(:millisecond), address]
       |> Jason.encode!()
 
     hash = hash_fun(body)

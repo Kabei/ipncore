@@ -32,17 +32,7 @@ defmodule Ipncore.Application do
     # services
     children =
       [
-        {MessageStore, Path.join(data_dir, "store/priv/messages.db")},
-        {WalletStore, Path.join(data_dir, "store/wallet.db")},
-        {EnvStore, Path.join(data_dir, "store/env.db")},
-        {ValidatorStore, Path.join(data_dir, "store/validator.db")},
-        {TokenStore, Path.join(data_dir, "store/token.db")},
-        {BalanceStore, Path.join(data_dir, "store/balance.db")},
-        {RefundStore, Path.join(data_dir, "store/refund.db")},
-        {DomainStore, Path.join(data_dir, "store/domain.db")},
-        {DnsStore, Path.join(data_dir, "store/dns.db")},
-        {BlockStore, Path.join(data_dir, "store/block.db")},
-        {RoundStore, Path.join(data_dir, "store/round.db")},
+        {Ippan.StoreSupervisor, [data_dir]},
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
         Supervisor.child_spec({PubSub, name: :network}, id: :network),
         {BlockTimer, []},
@@ -73,14 +63,14 @@ defmodule Ipncore.Application do
     # catch routes
     data_dir = Application.get_env(@otp_app, :data_dir)
     block_dir = Path.join(data_dir, "blocks")
-    block_decode_dir = Path.join(data_dir, "blocks/decoded")
+    decode_dir = Path.join(data_dir, "blocks/decoded")
     # set variable
     Application.put_env(@otp_app, :block_dir, block_dir)
-    Application.put_env(@otp_app, :decode_dir, block_decode_dir)
+    Application.put_env(@otp_app, :decode_dir, decode_dir)
     # make folders
     File.mkdir(data_dir)
     File.mkdir(block_dir)
-    File.mkdir(block_decode_dir)
+    File.mkdir(decode_dir)
   end
 
   defp start_node(name, cookie) when is_nil(name) or is_nil(cookie) do

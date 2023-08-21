@@ -1,33 +1,31 @@
 defmodule Ippan.Func.Wallet do
-  alias Phoenix.PubSub
+  require Global
+  # alias Phoenix.PubSub
   alias Ippan.{Address, Wallet}
 
-  @token Application.compile_env(:ipncore, :token)
-  @pubsub :cluster
-  @topic "wallet"
+  # @pubsub :cluster
+  # @topic "wallet"
 
-  def pre_new(%{timestamp: timestamp, hash: hash, round: round}, pubkey, validator_id)
+  def pre_sub(%{timestamp: timestamp, hash: hash, round: round}, pubkey, validator_id, sig_type)
       when is_integer(validator_id) do
     pubkey = Fast64.decode64(pubkey)
 
-    case byte_size(pubkey) do
-      32 ->
-        :ok
+    cond do
+      sig_type not in 0..2 ->
+        raise IppanError, "Invalid signature type"
 
-      65 ->
-        :ok
-
-      897 ->
-        :ok
-
-      _ ->
+      byte_size(pubkey) > 897 ->
         raise IppanError, "Invalid pubkey size"
-    end
 
-    MessageStore.approve_df(round, timestamp, hash)
+      WalletStore.exists?(Address.hash(sig_type, pubkey)) ->
+        raise IppanError, "Already exists"
+
+      true ->
+        MessageStore.approve_df(round, timestamp, hash)
+    end
   end
 
-  def new(%{timestamp: timestamp}, pubkey, validator_id) do
+  def subscribe(%{timestamp: timestamp}, pubkey, validator_id) do
     pubkey = Fast64.decode64(pubkey)
 
     wallet =
@@ -64,17 +62,13 @@ defmodule Ippan.Func.Wallet do
     |> Wallet.to_list()
     |> WalletStore.insert()
 
-    PubSub.broadcast(@pubsub, @topic, {"new", wallet})
+    # PubSub.local_broadcast(@pubsub, @topic, {"subscribe", wallet})
   end
 
-  def pre_sub(
+  def unsubscribe(
         %{
           id: account_id,
-          hash: hash,
-          validator: validator_id,
-          round: round,
-          timestamp: timestamp,
-          size: size
+          validator: validator_id
         },
         new_validator_id
       ) do
@@ -86,24 +80,15 @@ defmodule Ippan.Func.Wallet do
         raise IppanError, "Validator not exists"
 
       true ->
-        :ok = BalanceStore.balance(account_id, @token, size)
-        MessageStore.approve_df(round, timestamp, hash)
+        WalletStore.delete([account_id])
+
+        # if Global.validator_id() == new_validator_id do
+        #   PubSub.local_broadcast(
+        #     @pubsub,
+        #     @topic,
+        #     {"unsubscribe", %{id: account_id, validator: new_validator_id}}
+        #   )
+        # end
     end
-  end
-
-  def subscribe(
-        %{id: account_id, timestamp: timestamp, size: size},
-        new_validator_id
-      ) do
-    validator = ValidatorStore.lookup_map(new_validator_id)
-    # fee amount is tx size
-    :ok = BalanceStore.send_fees(account_id, validator.owner, size, timestamp)
-    WalletStore.update(%{validator: new_validator_id}, id: account_id)
-
-    PubSub.broadcast(
-      @pubsub,
-      @topic,
-      {"sub", %{id: account_id, validator: new_validator_id}}
-    )
   end
 end

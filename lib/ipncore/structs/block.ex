@@ -10,9 +10,10 @@ defmodule Ippan.Block do
           prev: binary() | nil,
           signature: binary(),
           timestamp: non_neg_integer(),
-          ev_count: non_neg_integer(),
+          count: non_neg_integer(),
           size: non_neg_integer(),
-          error: boolean()
+          error: boolean(),
+          vsn: integer()
         }
 
   @file_extension "mpk"
@@ -25,9 +26,10 @@ defmodule Ippan.Block do
     :prev,
     :signature,
     :timestamp,
-    ev_count: 0,
+    count: 0,
     size: 0,
-    error: false
+    error: false,
+    vsn: 0
   ]
 
   def to_list(x) do
@@ -40,7 +42,7 @@ defmodule Ippan.Block do
       x.signature,
       x.round,
       x.timestamp,
-      x.ev_count,
+      x.count,
       x.size,
       x.error
     ]
@@ -48,7 +50,7 @@ defmodule Ippan.Block do
 
   def to_tuple(x) do
     {{x.creator, x.height}, x.hash, x.prev, x.hashfile, x.signature, x.round, x.timestamp,
-     x.ev_count, x.size, x.error}
+     x.count, x.size, x.error}
   end
 
   def to_map([
@@ -60,7 +62,7 @@ defmodule Ippan.Block do
         signature,
         round,
         timestamp,
-        ev_count,
+        count,
         size,
         error
       ]) do
@@ -73,15 +75,14 @@ defmodule Ippan.Block do
       signature: signature,
       timestamp: timestamp,
       round: round,
-      ev_count: ev_count,
+      count: count,
       error: error,
       size: size
     }
   end
 
   def to_map(
-        {{creator, height}, hash, prev, hashfile, signature, round, timestamp, ev_count, size,
-         error}
+        {{creator, height}, hash, prev, hashfile, signature, round, timestamp, count, size, error}
       ) do
     %{
       height: height,
@@ -92,7 +93,7 @@ defmodule Ippan.Block do
       signature: signature,
       round: round,
       timestamp: timestamp,
-      ev_count: ev_count,
+      count: count,
       error: error,
       size: size
     }
@@ -103,13 +104,12 @@ defmodule Ippan.Block do
         block = %{
           creator: creator,
           height: height,
-          round: round,
           prev: prev,
           hashfile: hashfile,
           timestamp: timestamp
         }
       ) do
-    Map.put(block, :hash, compute_hash(height, creator, round, prev, hashfile, timestamp))
+    Map.put(block, :hash, compute_hash(height, creator, prev, hashfile, timestamp))
   end
 
   @spec put_signature(term()) :: term()
@@ -118,12 +118,12 @@ defmodule Ippan.Block do
     Map.put(block, :signature, sig)
   end
 
-  @spec compute_hash(integer(), integer(), integer(), binary(), binary(), integer()) :: binary
-  def compute_hash(height, creator, round, prev, hashfile, timestamp) do
+  @spec compute_hash(integer(), integer(), binary(), binary(), integer()) :: binary
+  def compute_hash(height, creator, prev, hashfile, timestamp) do
     [
       to_string(creator),
       to_string(height),
-      to_string(round),
+      # to_string(round),
       normalize(prev),
       normalize(hashfile),
       to_string(timestamp)
@@ -166,14 +166,11 @@ defmodule Ippan.Block do
   end
 
   def encode_file!(content) do
-    # :erlang.term_to_binary(content)
-    CBOR.encode(content)
+    CBOR.Encoder.encode_into(content, <<>>)
   end
 
   def decode_file!(content) do
-    # :erlang.binary_to_term(content, [:safe])
-    CBOR.decode(content)
-    |> elem(1)
+    elem(CBOR.Decoder.decode(content), 0)
   end
 
   @hash_module Blake3.Native

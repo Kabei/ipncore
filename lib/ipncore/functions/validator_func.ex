@@ -38,7 +38,7 @@ defmodule Ippan.Func.Validator do
       fee_type == 2 and fee < 1 ->
         raise IppanError, "Invalid fee config"
 
-      byte_size(net_pubkey) > 897 ->
+      byte_size(net_pubkey) > 1278 ->
         raise IppanError, "Invalid net_pubkey size #{byte_size(net_pubkey)}"
 
       byte_size(pubkey) > 897 ->

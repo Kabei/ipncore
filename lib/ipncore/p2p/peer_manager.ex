@@ -1,7 +1,7 @@
 defmodule Ippan.P2P.PeerManager do
   use GenServer
   alias Ippan.Validator
-  alias Ippan.P2P.{PeerSupervisor, PeerClient}
+  alias Ippan.P2P.PeerSupervisor
   alias Phoenix.PubSub
   require Logger
   require Global
@@ -32,6 +32,7 @@ defmodule Ippan.P2P.PeerManager do
               hostname: hostname,
               port: @port,
               vid: validator_id,
+              net_pubkey: validator.net_pubkey,
               key_path: key_path
             })
 
@@ -64,7 +65,14 @@ defmodule Ippan.P2P.PeerManager do
 
     if Global.validator_id() != validator_id and not Map.has_key?(peers, validator_id) do
       hostname = validator.hostname
-      {:ok, pid} = PeerClient.start_link({hostname, @port, validator_id, key_path})
+
+      {:ok, pid} =
+        PeerSupervisor.start_child(%{
+          hostname: hostname,
+          port: @port,
+          vid: validator_id,
+          key_path: key_path
+        })
 
       new_state = Map.put(peers, validator_id, %{pid: pid, hostname: hostname})
       {:noreply, new_state}
@@ -80,7 +88,15 @@ defmodule Ippan.P2P.PeerManager do
     if Global.validator_id() != validator_id do
       %{pid: old_pid} = Map.get(peers, validator_id)
       GenServer.stop(old_pid, :normal)
-      {:ok, pid} = PeerClient.start_link({new_hostname, @port, validator_id, key_path})
+
+      {:ok, pid} =
+        PeerSupervisor.start_child(%{
+          hostname: new_hostname,
+          port: @port,
+          vid: validator_id,
+          key_path: key_path
+        })
+
       {:noreply, Map.put(peers, validator_id, %{pid: pid, hostname: new_hostname}), :hibernate}
     else
       {:noreply, state, :hibernate}

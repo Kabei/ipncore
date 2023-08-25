@@ -2,7 +2,7 @@ defmodule Ipncore.Application do
   @moduledoc false
   alias Phoenix.PubSub
   use Application
-  import Ippan.Utils, only: [my_ip: 0]
+  import Ippan.Utils, only: [to_atom: 1]
 
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
@@ -12,35 +12,28 @@ defmodule Ipncore.Application do
     IO.puts("Starting application")
 
     p2p_opts = Application.get_env(@otp_app, :P2P)
-    data_dir = Application.get_env(@otp_app, :data_dir)
-    http_opts = Application.get_env(@otp_app, :http)
-    node_str = System.get_env("NODE")
-    cookie = System.get_env("COOKIE")
-    start_node(node_str, cookie)
+    # start erlang node
+    start_node()
 
     # create folders
     make_folders()
 
     # load falcon keys
-    Ippan.P2P.Server.load_kem()
-    Ippan.P2P.Server.load_key()
-
-    # Get sqlite tools
-    # t = Task.async(fn -> Sqlite3Tools.init() end)
-    # Task.await(t, :infinity)
+    load_keys()
 
     # services
     children =
       [
-        {Ippan.StoreSupervisor, [data_dir]},
+        {MemTables, []},
+        {MainStore, []},
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
         Supervisor.child_spec({PubSub, name: :network}, id: :network),
-        {BlockTimer, []},
-        {EventMinerChannel, []},
+        # {BlockTimer, []},
+        # {EventMinerChannel, []},
         {ThousandIsland, p2p_opts},
-        {Ippan.P2P.PeerManager, Application.get_env(@otp_app, :key_dir)},
-        {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ http_opts},
-        {VoteCounter, []}
+        # {Ippan.P2P.PeerManager, Application.get_env(@otp_app, :key_dir)},
+        {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
+        # {VoteCounter, []}
       ]
 
     case Supervisor.start_link(children, @opts) do
@@ -58,30 +51,46 @@ defmodule Ipncore.Application do
     IO.puts("Stopping application")
   end
 
-  # create all folders by role
+  defp start_node do
+    name = System.get_env("NODE") |> to_atom()
+    cookie = System.get_env("COOKIE") |> to_atom()
+
+    Node.start(name)
+    Node.set_cookie(name, cookie)
+  end
+
+  defp load_keys do
+    seed_kem = System.get_env("CLUSTER_KEY") |> Fast64.decode64()
+    seed = System.get_env("SECRET_KEY") |> Fast64.decode64()
+
+    {:ok, net_pubkey, net_privkey} = NtruKem.gen_key_pair_from_seed(seed_kem)
+    {:ok, {pubkey, privkey}} = Cafezinho.Impl.keypair_from_seed(seed)
+
+    :persistent_term.put(:pubkey, pubkey)
+    :persistent_term.put(:privkey, privkey)
+    :persistent_term.put(:net_pubkey, net_pubkey)
+    :persistent_term.put(:net_privkey, net_privkey)
+  end
+
+  # create all folders
   defp make_folders do
     # catch routes
-    data_dir = Application.get_env(@otp_app, :data_dir)
+    data_dir = System.get_env("data_dir", "data")
     block_dir = Path.join(data_dir, "blocks")
     decode_dir = Path.join(data_dir, "blocks/decoded")
-    # set variable
-    Application.put_env(@otp_app, :block_dir, block_dir)
-    Application.put_env(@otp_app, :decode_dir, decode_dir)
+    store_dir = Path.join(data_dir, "store")
+    save_dir = Path.join(data_dir, "store/save")
+    # set variables
+    :persistent_term.put(:data_dir, data_dir)
+    :persistent_term.put(:block_dir, block_dir)
+    :persistent_term.put(:decode_dir, decode_dir)
+    :persistent_term.put(:store_dir, store_dir)
+    :persistent_term.put(:save_dir, save_dir)
     # make folders
     File.mkdir(data_dir)
+    File.mkdir(store_dir)
     File.mkdir(block_dir)
     File.mkdir(decode_dir)
-  end
-
-  defp start_node(name, cookie) when is_nil(name) or is_nil(cookie) do
-    raise IppanError, "Set NODE and COOKIE variables"
-  end
-
-  defp start_node(name, cookie) do
-    name = String.to_atom(name)
-    Node.start(name)
-    Node.set_cookie(name, String.to_atom(cookie))
-    Application.put_env(@otp_app, :hostname, my_ip())
-    name
+    File.mkdir(save_dir)
   end
 end

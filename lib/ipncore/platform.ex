@@ -1,32 +1,27 @@
 defmodule Platform do
-  import Ippan.Utils, only: [to_atom: 1]
   alias Ippan.{Env, Token, Wallet, Validator}
+  require SqliteStore
 
   @token Application.compile_env(:ipncore, :token)
 
   def start do
-    result =
-      case TokenStore.lookup_map(@token) do
-        nil ->
-          load_genesis_file()
+    vid = Application.get_env(:ipncore, :vid)
+    conn = :persistent_term.get(:asset_conn)
+    stmts = :persistent_term.get(:asset_stmt)
+    :persistent_term.put(:vid, vid)
 
-        token ->
-          %{
-            native_token: token,
-            net_privkey: Application.get_env(:ipncore, :net_privkey),
-            net_pubkey: Application.get_env(:ipncore, :net_pubkey),
-            owner: token.owner,
-            privkey: Application.get_env(:ipncore, :privkey),
-            pubkey: Application.get_env(:ipncore, :pubkey),
-            vid: Application.get_env(:ipncore, :vid)
-          }
-      end
+    case SqliteStore.lookup_map(:token, conn, stmts, "get_token", @token, Token) do
+      nil ->
+        load_genesis_file(conn, stmts)
 
-    GlobalConst.new(Default, result)
-    result
+      token ->
+        :persistent_term.put(:owner, token.owner)
+    end
+
+    %{vid: vid}
   end
 
-  defp load_genesis_file do
+  defp load_genesis_file(conn, stmts) do
     {data = %{"tokens" => _, "validators" => _, "wallets" => _}, _binding} =
       Path.join(:code.priv_dir(:ipncore), "genesis.exs")
       |> Code.eval_file()
@@ -34,35 +29,32 @@ defmodule Platform do
     for {key, values} <- data do
       case key do
         "wallets" ->
-          Enum.each(values, fn x -> WalletStore.insert(Wallet.to_list(x)) end)
+          Enum.each(values, fn x ->
+            SqliteStore.step(conn, stmts, "insert_wallet", Wallet.to_list(x))
+          end)
 
         "tokens" ->
-          Enum.each(values, fn x -> TokenStore.insert(Token.to_list(x)) end)
+          Enum.each(values, fn x ->
+            SqliteStore.step(conn, stmts, "insert_token", Token.to_list(x))
+          end)
 
         "validators" ->
-          Enum.each(values, fn x -> ValidatorStore.insert(Validator.to_list(x)) end)
+          Enum.each(values, fn x ->
+            SqliteStore.step(conn, stmts, "insert_validator", Validator.to_list(x))
+          end)
 
         "env" ->
-          Enum.each(values, fn x -> EnvStore.insert(Env.encode_list(x)) end)
+          Enum.each(values, fn x ->
+            SqliteStore.step(conn, stmts, "insert_env", Env.encode_list(x))
+          end)
       end
     end
 
-    %{owner: owner} = TokenStore.lookup_map(@token)
+    %{owner: owner} = SqliteStore.lookup_map(:token, conn, stmts, "get_token", @token, Token)
 
     # save all
-    TokenStore.sync()
-    ValidatorStore.sync()
-    WalletStore.sync()
-    EnvStore.sync()
+    SqliteStore.sync(conn)
 
-    %{
-      miner: System.get_env("MINER") |> to_atom(),
-      net_privkey: Application.get_env(:ipncore, :net_privkey),
-      net_pubkey: Application.get_env(:ipncore, :net_pubkey),
-      owner: owner,
-      privkey: Application.get_env(:ipncore, :privkey),
-      pubkey: Application.get_env(:ipncore, :pubkey),
-      vid: Application.get_env(:ipncore, :vid)
-    }
+    :persistent_term.put(:owner, owner)
   end
 end

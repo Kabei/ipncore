@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS msg_round(
+  id BIGINT NOT NULL,
+  creator BIGINT NOT NULL,
+  data BLOB NOT NULL,
+  PRIMARY KEY(id, creator)
+) WITHOUT ROWID;
+
+CREATE TABLE IF NOT EXISTS msg_block(
+  creator BIGINT NOT NULL,
+  height BIGINT NOT NULL,
+  data BLOB NOT NULL,
+  PRIMARY KEY(creator, height)
+) WITHOUT ROWID;

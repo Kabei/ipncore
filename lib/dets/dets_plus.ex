@@ -400,9 +400,13 @@ defmodule DetsPlus do
 
   Notice that the order of objects returned is unspecified. In particular, the order in which objects were inserted is not reflected.
   """
-  @spec lookup(pid(), any) :: [tuple() | map()] | {:error, atom()}
+  @spec lookup(pid(), any) :: nil | any() | {:error, atom()}
   def lookup(pid, key) do
     call(pid, {:lookup, key, default_hash(key)})
+  end
+
+  def lookup(pid, key, default) do
+    call(pid, {:lookup, key, default_hash(key)}) || default
   end
 
   @doc """
@@ -682,8 +686,8 @@ defmodule DetsPlus do
   defp do_lookup(key, hash, state = %State{ets: ets, sync: nil}) do
     case :ets.lookup(ets, key) do
       [] -> file_lookup(state, key, hash)
-      [{_key, :delete}] -> []
-      [{_key, object}] -> [object]
+      [{_key, :delete}] -> nil
+      [{_key, object}] -> object
     end
   end
 
@@ -692,15 +696,15 @@ defmodule DetsPlus do
       [] ->
         case :ets.lookup(ets, key) do
           [] -> file_lookup(state, key, hash)
-          [{_key, :delete}] -> []
-          [{_key, object}] -> [object]
+          [{_key, :delete}] -> nil
+          [{_key, object}] -> object
         end
 
       [{_key, :delete}] ->
-        []
+        nil
 
       [{_key, object}] ->
-        [object]
+        object
     end
   end
 
@@ -1296,7 +1300,7 @@ defmodule DetsPlus do
     Map.get(table_offsets, table_idx)
   end
 
-  defp file_lookup(%State{file_entries: 0}, _key, _hash), do: []
+  defp file_lookup(%State{file_entries: 0}, _key, _hash), do: nil
 
   defp file_lookup(state = %State{slot_counts: slot_counts}, key, hash) do
     table_idx = table_idx(hash)
@@ -1310,7 +1314,7 @@ defmodule DetsPlus do
 
       ret
     else
-      []
+      nil
     end
   end
 
@@ -1370,7 +1374,7 @@ defmodule DetsPlus do
     |> case do
       nil ->
         if len < batch_size do
-          {[], n}
+          {nil, n}
         else
           file_lookup_slot_loop(
             state,
@@ -1384,7 +1388,7 @@ defmodule DetsPlus do
         end
 
       entry ->
-        {[entry], n}
+        {entry, n}
     end
   end
 

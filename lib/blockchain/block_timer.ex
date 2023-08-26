@@ -1,14 +1,13 @@
 defmodule BlockTimer do
   use GenServer
-  require SqliteStore
   # alias Ippan.Validator
   alias Phoenix.PubSub
+  require SqliteStore
+  require Logger
   # alias Ippan.{Block, Round, Command, P2P}
 
   # import Ippan.Block,
   #   only: [decode_file!: 1, encode_file!: 1, hash_file: 1, put_hash: 1, put_signature: 1]
-
-  require Logger
 
   @otp_app :ipncore
   @module __MODULE__
@@ -25,8 +24,6 @@ defmodule BlockTimer do
   def start_link(opts) do
     GenServer.start_link(@module, opts, name: @module, hibernate_after: 5_000)
   end
-
-  require SqliteStore
 
   def get_last_block(conn, stmts, validator_id) do
     case SqliteStore.step(conn, stmts, "last_block", [validator_id]) do
@@ -57,15 +54,16 @@ defmodule BlockTimer do
 
     total_validators = SqliteStore.total(conn, stmts, "total_validator")
 
-    my_block_candidate = :persistent_term.get(:candidate)
+    my_last_candidate = :persistent_term.get(:candidate)
 
     # SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", , Validator)
+    cpus = System.schedulers_online()
 
     {:ok, pool_server} =
       :poolboy.start_link(
         worker_module: MinerWorker,
-        size: 5,
-        max_overflow: 0
+        size: trunc(cpus * 0.6),
+        max_overflow: trunc(cpus * 0.2)
       )
 
     {:ok,
@@ -77,7 +75,7 @@ defmodule BlockTimer do
        prev_block: block_hash,
        prev_round: round_hash,
        validators: total_validators,
-       candidate: my_block_candidate,
+       candidate: my_last_candidate,
        pool: pool_server,
        mined: 0,
        wait_to_sync: false
@@ -194,11 +192,10 @@ defmodule BlockTimer do
         :sync,
         %{
           sync: false,
-          validators: validators,
-          mined: mined
+          validators: _validators,
+          mined: _mined
         } = state
-      )
-      when mined == validators do
+      ) do
     # IO.inspect("sync")
     # IO.inspect(state)
 
@@ -210,6 +207,10 @@ defmodule BlockTimer do
     # IO.inspect("sync ELSE")
     # IO.inspect(state)
     {:noreply, %{state | wait_to_sync: true}}
+  end
+
+  def handle_info({:candidate, block}, state) do
+    {:noreply, %{state | candidate: block}}
   end
 
   @impl true

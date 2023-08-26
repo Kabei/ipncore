@@ -19,7 +19,7 @@ defmodule Ippan.Func.Token do
         opts \\ %{}
       ) do
     cond do
-      SqliteStore.exists?(conn, stmts, "exists_token", id) ->
+      SqliteStore.exists?(:token, conn, stmts, "exists_token", id) ->
         :error
 
       @max_tokens > SqliteStore.total(conn, stmts, "total_token") ->

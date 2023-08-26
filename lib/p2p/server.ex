@@ -1,15 +1,31 @@
 defmodule Ippan.P2P.Server do
   use ThousandIsland.Handler
   alias Ippan.P2P
-  import Ippan.P2P, only: [decode!: 2, encode: 2]
   require Logger
-
-  @adapter ThousandIsland.Socket
 
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
     # Logger.debug("handle_connection #{inspect(state)}")
-    P2P.server_handshake(socket, state, ValidatorStore)
+    tcp_socket = socket.transport_module
+
+    case P2P.server_handshake(
+           tcp_socket,
+           :persistent_term.get(:net_privkey),
+           &NetworkNode.fetch/1
+         ) do
+      {:ok, id, hostname, sharedkey, net_pubkey, timeout} ->
+        NetworkNode.on_connect(id, %{
+          socket: tcp_socket,
+          sharedkey: sharedkey,
+          hostname: hostname,
+          net_pubkey: net_pubkey
+        })
+
+        {:continue, %{id: id, sharedkey: sharedkey}, timeout}
+
+      :error ->
+        {:close, state}
+    end
   end
 
   @impl ThousandIsland.Handler
@@ -21,98 +37,101 @@ defmodule Ippan.P2P.Server do
   def handle_data(
         packet,
         socket,
-        %{id: vid, pubkey: pubkey, sharedkey: sharedkey} = state
+        %{id: id, sharedkey: sharedkey} = state
       ) do
-    try do
-      case decode!(packet, sharedkey) do
-        %{"event" => event, "data" => data} ->
-          from = %{id: vid, pubkey: pubkey}
-          handle_event(event, from, data)
+    NetworkNode.on_message(id, socket.transport_module, packet, sharedkey)
 
-        %{"id" => id, "method" => method, "data" => data} ->
-          case handle_request(method, data) do
-            :not_found ->
-              @adapter.send(
-                socket,
-                encode(%{"id" => id, "status" => "error", "data" => 404}, sharedkey)
-              )
+    # try do
+    #   case decode!(packet, sharedkey) do
+    #     %{"event" => event, "data" => data} ->
+    #       from = %{id: vid, pubkey: pubkey}
+    #       handle_event(event, from, data)
 
-            response ->
-              @adapter.send(
-                socket,
-                encode(%{"id" => id, "status" => "ok", "data" => response}, sharedkey)
-              )
-          end
+    #     %{"id" => id, "method" => method, "data" => data} ->
+    #       case handle_request(method, data) do
+    #         :not_found ->
+    #           @adapter.send(
+    #             socket,
+    #             encode(%{"id" => id, "status" => "error", "data" => 404}, sharedkey)
+    #           )
 
-        %{"id" => id, "method" => method} ->
-          case handle_request(method) do
-            :not_found ->
-              @adapter.send(
-                socket,
-                encode(%{"id" => id, "status" => "error", "data" => 404}, sharedkey)
-              )
+    #         response ->
+    #           @adapter.send(
+    #             socket,
+    #             encode(%{"id" => id, "status" => "ok", "data" => response}, sharedkey)
+    #           )
+    #       end
 
-            response ->
-              @adapter.send(
-                socket,
-                encode(%{"id" => id, "status" => "ok", "data" => response}, sharedkey)
-              )
-          end
+    #     %{"id" => id, "method" => method} ->
+    #       case handle_request(method) do
+    #         :not_found ->
+    #           @adapter.send(
+    #             socket,
+    #             encode(%{"id" => id, "status" => "error", "data" => 404}, sharedkey)
+    #           )
 
-        result ->
-          Logger.warning(inspect(result))
-          :ok
-      end
-    rescue
-      e ->
-        # Logger.error(inspect(e))
-        Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-    catch
-      :exit, msg ->
-        Logger.debug(inspect(msg))
-    end
+    #         response ->
+    #           @adapter.send(
+    #             socket,
+    #             encode(%{"id" => id, "status" => "ok", "data" => response}, sharedkey)
+    #           )
+    #       end
+
+    #     result ->
+    #       Logger.warning(inspect(result))
+    #       :ok
+    #   end
+    # rescue
+    #   e ->
+    #     # Logger.error(inspect(e))
+    #     Logger.debug(Exception.format(:error, e, __STACKTRACE__))
+    # catch
+    #   :exit, msg ->
+    #     Logger.debug(inspect(msg))
+    # end
 
     {:continue, state}
   end
 
   @impl ThousandIsland.Handler
-  def handle_close(_socket, _state) do
+  def handle_close(_socket, %{id: id}) do
     Logger.debug("handle close socket")
 
-    :ok
+    NetworkNode.on_disconnect(id)
   end
 
   @impl ThousandIsland.Handler
-  def handle_shutdown(_socket, _state) do
+  def handle_shutdown(_socket, %{id: id}) do
     Logger.debug("handle shutdown")
 
-    :ok
+    NetworkNode.on_disconnect(id)
   end
 
   @impl ThousandIsland.Handler
-  def handle_timeout(_socket, _state) do
+  def handle_timeout(_socket, %{id: id}) do
     Logger.debug("handle timeout")
-    :ok
+
+    NetworkNode.on_disconnect(id)
   end
 
-  defp handle_event("block_msg", from, data) do
-    block = MapUtil.to_existing_atoms(data)
-    send(VoteCounter, {"new_recv", from, true, block})
-  end
+  # defp handle_event("block_msg", from, data) do
+  #   block = MapUtil.to_existing_atoms(data)
+  #   send(VoteCounter, {"new_recv", from, true, block})
+  # end
 
-  defp handle_event(_, _, _), do: :ok
+  # defp handle_event(_, _, _), do: :ok
 
-  defp handle_request("get_state") do
-    BlockTimer.get_state()
-  end
+  # defp handle_request("get_state") do
+  #   BlockTimer.get_state()
+  # end
 
-  defp handle_request(_), do: :not_found
+  # defp handle_request(_), do: :not_found
 
-  defp handle_request("get_block_messages", %{"round" => _round}) do
-    :ok
-  end
+  # defp handle_request("get_block_messages", %{"round" => _round}) do
+  #   :ok
+  # end
 
-  defp handle_request(_, _) do
-    :not_found
-  end
+  # defp handle_request(_, _) do
+  #   :not_found
+  # end
 end

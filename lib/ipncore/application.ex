@@ -52,6 +52,7 @@ defmodule Ipncore.Application do
   end
 
   defp start_node do
+    :persistent_term.put(:vid, String.to_integer(System.get_env("VID", "0")))
     name = System.get_env("NODE") |> to_atom()
     cookie = System.get_env("COOKIE") |> to_atom()
 

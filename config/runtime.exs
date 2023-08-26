@@ -6,33 +6,8 @@ cpus = System.schedulers_online()
 # Environment variables setup
 port = System.get_env("PORT", "5815") |> String.to_integer()
 http_port = System.get_env("HTTP_PORT", "8080") |> String.to_integer()
-data_dir = System.get_env("DATA_DIR", "data")
-kem_dir = System.get_env("KEM_DIR", "priv/kem.key")
-falcon_dir = System.get_env("FALCON_DIR", "priv/falcon.key")
-key_dir = System.get_env("KEY_DIR", "priv/secret.key")
-role = System.get_env("ROLE", "verifier")
-is_miner = role == "miner"
-
-# Folders setup
-config :ipncore, :data_dir, data_dir
-
-# Folder cert
-config :ipncore, :kem_dir, kem_dir
-config :ipncore, :falcon_dir, falcon_dir
-config :ipncore, :key_dir, key_dir
-
-# Node setup
-config :ipncore, :role, role
-config :ipncore, :vid, System.get_env("VID", "0") |> String.to_integer()
 
 # Network setup
-{num_acceptors, num_connections} =
-  if is_miner do
-    {max(cpus, 10), 4096}
-  else
-    {100, 16_384}
-  end
-
 # P2P server
 config :ipncore, :P2P,
   handler_module: Ippan.P2P.Server,

@@ -26,7 +26,7 @@ defmodule Ippan.Func.Validator do
         opts \\ %{}
       ) do
     cond do
-      SqliteStore.exists?(conn, stmts, "exists_validator", id) ->
+      SqliteStore.exists?(:validator, conn, stmts, "exists_validator", id) ->
         :error
 
       @max_validators > SqliteStore.total(conn, stmts, "total_validator") ->

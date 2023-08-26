@@ -62,7 +62,6 @@ defmodule DetsPlus do
       :auto_save,
       :bloom_size,
       :bloom,
-      # :in_transaction,
       :creation_stats,
       :ets,
       :file_entries,
@@ -678,8 +677,7 @@ defmodule DetsPlus do
     end
   end
 
-  def handle_call(:sync, from, state = %State{sync: sync, sync_waiters: sync_waiters})
-      when is_pid(sync) do
+  def handle_call(:sync, from, state = %State{sync_waiters: sync_waiters}) do
     {:noreply, %State{state | sync_waiters: [from | sync_waiters]}}
   end
 
@@ -768,20 +766,6 @@ defmodule DetsPlus do
   def handle_cast({:sync_complete, _sync_pid, _new_filename, _new_state}, state = %State{}) do
     {:noreply, state}
   end
-
-  # def handle_cast(
-  #       :commit_begin,
-  #       state
-  #     ) do
-  #   {:noreply, %{state }}
-  # end
-
-  # def handle_cast(
-  #       :commit_complete,
-  #       state
-  #     ) do
-  #   {:noreply, %{state | in_transaction: false}}
-  # end
 
   @impl true
   def handle_info(:auto_save, state = %State{sync: sync, ets: ets}) do

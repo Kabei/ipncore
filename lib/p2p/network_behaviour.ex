@@ -9,11 +9,12 @@ defmodule NetworkBehaviour do
   @callback info(node_id :: term()) :: map() | nil
   @callback list() :: [term()]
   @callback alive?(node :: term()) :: boolean()
+  @callback count() :: pos_integer()
   @callback cast(node :: term(), message :: term) :: :ok | :disconnect
   @callback call(node :: term(), message :: term) :: {:ok, term()} | {:error, term()}
   @callback broadcast(message :: term()) :: :ok
   # @callback broadcast(message :: term(), role :: binary()) :: :ok
   @callback broadcast_except(message :: term(), ids :: list()) :: :ok
-  @callback handle_response(method :: binary(), data :: map()) :: map()
-  @callback handle_message(message :: term()) :: any()
+  @callback handle_request(method :: binary(), from :: term(), data :: map()) :: term()
+  @callback handle_message(event :: binary(), from :: term(), data :: term()) :: any()
 end

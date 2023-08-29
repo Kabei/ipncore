@@ -14,7 +14,6 @@ defmodule Ippan.Func.Validator do
 
   def new(
         %{id: account_id, conn: conn, dets: dets, stmts: stmts, timestamp: timestamp},
-        id,
         owner_id,
         hostname,
         name,
@@ -26,7 +25,7 @@ defmodule Ippan.Func.Validator do
         opts \\ %{}
       ) do
     cond do
-      SqliteStore.exists?(:validator, conn, stmts, "exists_validator", id) ->
+      SqliteStore.exists?(:validator, conn, stmts, "exists_host_validator", hostname) ->
         :error
 
       @max_validators > SqliteStore.total(conn, stmts, "total_validator") ->
@@ -42,9 +41,11 @@ defmodule Ippan.Func.Validator do
             :error
 
           _ ->
+            next_id = SqliteStore.total(conn, stmts, "next_id_validator")
+
             validator =
               %Validator{
-                id: id,
+                id: next_id,
                 hostname: hostname,
                 name: name,
                 pubkey: pubkey,

@@ -1,4 +1,4 @@
-defmodule Ippan.P2P.PeerSupervisor do
+defmodule Ippan.NetworkSup do
   use DynamicSupervisor
 
   def start_link(children) do
@@ -6,7 +6,7 @@ defmodule Ippan.P2P.PeerSupervisor do
   end
 
   def start_child(args) do
-    DynamicSupervisor.start_child(__MODULE__, {Ippan.P2P.PeerClient, args})
+    DynamicSupervisor.start_child(__MODULE__, {Ippan.NetworkClient, args})
   end
 
   @impl true

@@ -111,4 +111,14 @@ defmodule Ippan.Utils do
       File.rm(path)
     end)
   end
+
+  def getaddr(hostname) do
+    cond do
+      Match.host_or_ipv4?(hostname) ->
+        :inet_udp.getaddr(String.to_charlist(hostname))
+
+      true ->
+        :inet6_udp.getaddr(String.to_charlist(hostname))
+    end
+  end
 end

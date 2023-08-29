@@ -59,6 +59,10 @@ defmodule VoteCounter do
     {:noreply, state}
   end
 
+  def new_round(data) do
+    :gen_server.cast(@module, {:round, data})
+  end
+
   @impl true
   def handle_info(
         {"new_recv", %{id: validator_id, pubkey: validator_pubkey}, check,
@@ -179,6 +183,8 @@ defmodule VoteCounter do
   end
 
   @impl true
+
+
   def handle_cast({:validators, n}, %{validators: validators} = state) do
     minimum = calc_minimum(validators)
 

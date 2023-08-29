@@ -313,13 +313,12 @@ defmodule Builder do
     {body, sig}
   end
 
-  # Builder.validator_new(sk, address, 0, address, "ippan.net", "net core", pkv, 1, 5.0, 100, %{"avatar" => "https://avatar.com"}) |> Builder.build_request()
+  # Builder.validator_new(sk, address, "ippan.net", address, "net core", pkv, 1, 5.0, 100, %{"avatar" => "https://avatar.com"}) |> Builder.build_request()
   def validator_new(
         secret,
         address,
-        id,
-        owner,
         hostname,
+        owner,
         name,
         pubkey,
         net_pubkey,
@@ -334,9 +333,8 @@ defmodule Builder do
         100,
         :os.system_time(:millisecond),
         address,
-        id,
-        owner,
         hostname,
+        owner,
         name,
         Fast64.encode64(pubkey),
         Fast64.encode64(net_pubkey),

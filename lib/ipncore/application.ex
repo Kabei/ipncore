@@ -1,6 +1,8 @@
 defmodule Ipncore.Application do
   @moduledoc false
+  alias IO.ANSI
   alias Phoenix.PubSub
+  alias Ippan.NetworkNode
   use Application
   import Ippan.Utils, only: [to_atom: 1]
 
@@ -30,6 +32,7 @@ defmodule Ipncore.Application do
         Supervisor.child_spec({PubSub, name: :network}, id: :network),
         # {BlockTimer, []},
         # {EventMinerChannel, []},
+        {NetworkNode, []},
         {ThousandIsland, p2p_opts},
         # {Ippan.P2P.PeerManager, Application.get_env(@otp_app, :key_dir)},
         {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
@@ -38,7 +41,10 @@ defmodule Ipncore.Application do
 
     case Supervisor.start_link(children, @opts) do
       {:ok, _pid} = result ->
-        IO.puts("Running IPNcore P2P with port #{p2p_opts[:port]}")
+        IO.puts(
+          "Running #{ANSI.red()}IPNCORE#{ANSI.reset()} P2P with port #{ANSI.yellow()}#{p2p_opts[:port]}#{ANSI.reset()}"
+        )
+
         result
 
       error ->
@@ -56,7 +62,7 @@ defmodule Ipncore.Application do
     name = System.get_env("NODE") |> to_atom()
     cookie = System.get_env("COOKIE") |> to_atom()
 
-    Node.start(name)
+    {:ok, _} = Node.start(name)
     Node.set_cookie(name, cookie)
   end
 

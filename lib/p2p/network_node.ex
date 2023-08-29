@@ -1,9 +1,10 @@
-defmodule NetworkNode do
+defmodule Ippan.NetworkNode do
   use GenServer
   import Ippan.P2P, only: [encode: 2, decode!: 2]
+  alias Ippan.Utils
   alias Ippan.Func.Validator
   alias Phoenix.PubSub
-  alias Ippan.P2P
+  alias Ippan.{P2P, NetworkSup}
   require SqliteStore
 
   @behaviour NetworkBehaviour
@@ -14,7 +15,8 @@ defmodule NetworkNode do
   @port 5815
   @tcp_opts Application.compile_env(:ipncore, :p2p_client)
   @pubsub :network
-  @topic "p2p"
+  @topic "network"
+  @time_to_reconnect 1_000
 
   def start_link(args) do
     GenServer.start_link(@module, args, hibernate_after: 5_000)
@@ -36,7 +38,7 @@ defmodule NetworkNode do
         ref
     end
 
-    {:ok, sup} = Ippan.P2P.PeerSupervisor.start_link([])
+    {:ok, sup} = NetworkSup.start_link([])
 
     PubSub.subscribe(@pubsub, @topic)
 
@@ -88,12 +90,15 @@ defmodule NetworkNode do
         PubSub.local_broadcast(@pubsub, "call:#{id}", data)
 
       %{"_id" => id, "method" => method, "data" => data} ->
-        response = handle_response(method, data)
+        response = handle_request(method, node_id, data)
         bin = encode(%{"_id" => id, "data" => response}, sharedkey)
         @adapter.send(socket, bin)
 
-      msg ->
-        handle_message(Map.put(msg, "from", node_id))
+      %{"event" => event, "data" => data} ->
+        handle_message(event, node_id, data)
+
+      _ ->
+        :ok
     end
   end
 
@@ -103,16 +108,15 @@ defmodule NetworkNode do
         opts \\ []
       ) do
     retry = Keyword.get(opts, :retry, 0)
-    reconnect = Keyword.get(opts, :reconnect, 0)
 
-    {:ok, ip_addr} = :inet_udp.getaddr(String.to_charlist(hostname))
+    {:ok, ip_addr} = Utils.getaddr(hostname)
     {:ok, socket} = @adapter.connect(ip_addr, @port, @tcp_opts)
 
     unless alive?(node_id) do
       case P2P.client_handshake(socket, node_id, net_pubkey, :persistent_term.get(:privkey)) do
         {:ok, sharedkey} ->
           {:ok, pid} =
-            Ippan.P2P.PeerSupervisor.start_child(%{
+            NetworkSup.start_child(%{
               adapter: @adapter,
               mod: @module,
               id: node_id,
@@ -133,11 +137,12 @@ defmodule NetworkNode do
             error == :halt ->
               error
 
-            reconnect > 0 ->
-              :timer.sleep(reconnect)
+            retry == :infinity ->
+              :timer.sleep(@time_to_reconnect)
               connect(node, opts)
 
             retry > 0 ->
+              :timer.sleep(@time_to_reconnect)
               connect(node, Keyword.put(opts, :retry, retry - 1))
 
             true ->
@@ -184,6 +189,11 @@ defmodule NetworkNode do
   @impl NetworkBehaviour
   def alive?(node_id) do
     :ets.member(@table, node_id)
+  end
+
+  @impl NetworkBehaviour
+  def count do
+    :ets.info(@table, :size)
   end
 
   @impl NetworkBehaviour
@@ -257,12 +267,25 @@ defmodule NetworkNode do
   end
 
   @impl NetworkBehaviour
-  def handle_response(_method, _data) do
-    %{}
+  def handle_request("get_msg_rounds", _from, data) do
+    conn = :persistent_term.get(:net_conn)
+    stmts = :persistent_term.get(:net_stmt)
+    limit = Map.get(data, "limit", 50) |> min(100) |> trunc()
+    offset = Map.get(data, "offset", 0)
+    SqliteStore.fetch_all(conn, stmts, "get_msg_rounds", limit, offset)
   end
 
+  def handle_request(_method, _from, _data), do: "not found"
+
   @impl NetworkBehaviour
-  def handle_message(_message) do
+  def handle_message("msg_round", _from, _data) do
+    # BlockTimer.new_round(data, from)
+
+    # if from == BlockTimer.who_is_on_duty(data.id) do
+    #   broadcast_except(%{"event" => "msg_round", "data" => data}, [from])
+    # end
     :ok
   end
+
+  def handle_message(_event, _from, _data), do: :ok
 end

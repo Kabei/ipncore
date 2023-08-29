@@ -1,6 +1,7 @@
-defmodule Ippan.P2P.Server do
+defmodule Ippan.NetworkServer do
   use ThousandIsland.Handler
   alias Ippan.P2P
+  alias Ippan.NetworkNode
   require Logger
 
   @impl ThousandIsland.Handler

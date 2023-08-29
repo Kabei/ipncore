@@ -119,7 +119,10 @@ SELECT count(1) FROM blockchain.block WHERE round = ?;
 
 
 --name: insert_validator
-INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12);
+INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
+
+-- name: get_players
+SELECT * FROM blockchain.validator WHERE failures < 6;
 
 --name: get_validator
 SELECT * FROM blockchain.validator WHERE id = ?1;
@@ -127,11 +130,17 @@ SELECT * FROM blockchain.validator WHERE id = ?1;
 --name: exists_validator
 SELECT 1 FROM blockchain.validator WHERE id = ?1;
 
+--name: exists_host_validator
+SELECT 1 FROM blockchain.validator WHERE hostname = ?1;
+
 --name: owner_validator
 SELECT 1 FROM blockchain.validator WHERE id = ?1 AND owner = ?2;
 
 --name: total_validator
 SELECT COUNT(1) FROM blockchain.validator;
+
+--name: next_id_validator
+SELECT COALESCE((SELECT id FROM blockchain.validator ORDER BY id DESC LIMIT 1) + 1, 0);
 
 --name: delete_validator
 DELETE FROM blockchain.validator WHERE id = ?1;

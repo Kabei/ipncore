@@ -39,7 +39,7 @@ defmodule SqliteStore do
     end
   end
 
-  defmacro step(conn, stmts, name, args) do
+  defmacro step(conn, stmts, name, args \\ []) do
     quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args] do
       Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args)
     end
@@ -153,17 +153,23 @@ defmodule SqliteStore do
   end
 
   defmacro fetch_all(conn, stmts, name, limit \\ 100, offset \\ 0) do
-    quote do
-      Sqlite3.fetch_all(unquote(conn), Map.get(unquote(stmts), unquote(name)), [
-        unquote(limit),
-        unquote(offset)
-      ])
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, limit: limit, offset: offset] do
+      stmt = Map.get(stmts, name)
+      Sqlite3NIF.bind(conn, stmt, [limit, offset])
+
+      case Sqlite3.fetch_all(conn, stmt, 100) do
+        {:ok, data} -> data
+        _ -> []
+      end
     end
   end
 
   defmacro all(conn, stmts, name) do
-    quote do
-      Sqlite3.fetch_all(unquote(conn), Map.get(unquote(stmts), unquote(name)), [])
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name] do
+      case Sqlite3.fetch_all(conn, Map.get(stmts, name), 100) do
+        {:ok, data} -> data
+        _ -> []
+      end
     end
   end
 
@@ -240,7 +246,7 @@ defmodule SqliteStore do
 
     for {name, filename} <- attaches do
       path = Path.join(base, filename)
-      IO.inspect(path)
+      # IO.inspect(path)
       creation = Map.get(creations, name, [])
       {:ok, conn} = Sqlite3.open(path, [])
 

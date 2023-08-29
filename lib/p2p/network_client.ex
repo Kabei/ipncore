@@ -1,4 +1,4 @@
-defmodule Ippan.P2P.PeerClient do
+defmodule Ippan.NetworkClient do
   use GenServer, restart: :transient
   require Logger
 

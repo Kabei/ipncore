@@ -1,4 +1,4 @@
-defmodule MainStore do
+defmodule NetStore do
   use GenServer
   alias Exqlite.Sqlite3NIF
   require SqliteStore
@@ -6,31 +6,23 @@ defmodule MainStore do
   @version 0
 
   @creations %{
-    "account" => SQL.readFile!("lib/sql/accounts.sql"),
-    "assets" => SQL.readFile!("lib/sql/assets.sql"),
-    "blockchain" => SQL.readFile!("lib/sql/blockchain.sql"),
-    "dns" => SQL.readFile!("lib/sql/dns.sql"),
-    "main" => SQL.readFile!("lib/sql/main.sql")
+    "network" => SQL.readFile!("lib/sql/network.sql")
   }
 
-  @statements SQL.readStmtFile!("lib/sql/main.stmt.sql")
+  @statements SQL.readStmtFile!("lib/sql/network.stmt.sql")
 
   # SQL.readStmtFile!("lib/sql/assets_alter.stmt.sql")
   @alter []
 
   # databases
   @attaches %{
-    "account" => "accounts.db",
-    "assets" => "assets.db",
-    "dns" => "dns.db",
-    "blockchain" => "blockchain.db",
-    "network" => "file:network.db?mode=ro"
+    "network" => "network.db"
   }
 
-  @name "main"
-  @filename "main.db"
-  @key_conn :asset_conn
-  @key_stmt :asset_stmt
+  @name "network"
+  @filename "network.db"
+  @key_conn :net_conn
+  @key_stmt :net_stmt
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)

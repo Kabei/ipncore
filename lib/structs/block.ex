@@ -10,8 +10,8 @@ defmodule Ippan.Block do
           timestamp: non_neg_integer(),
           count: non_neg_integer(),
           size: non_neg_integer(),
-          error: boolean(),
-          vsn: integer()
+          errors: pos_integer(),
+          vsn: pos_integer()
         }
 
   @file_extension "mpk"
@@ -26,7 +26,7 @@ defmodule Ippan.Block do
     :timestamp,
     count: 0,
     size: 0,
-    error: false,
+    errors: 0,
     vsn: 0
   ]
 
@@ -42,13 +42,13 @@ defmodule Ippan.Block do
       x.timestamp,
       x.count,
       x.size,
-      x.error
+      x.errors
     ]
   end
 
   def to_tuple(x) do
     {{x.creator, x.height}, x.hash, x.prev, x.hashfile, x.signature, x.round, x.timestamp,
-     x.count, x.size, x.error}
+     x.count, x.size, x.errors}
   end
 
   def to_map([
@@ -62,7 +62,7 @@ defmodule Ippan.Block do
         timestamp,
         count,
         size,
-        error
+        errors
       ]) do
     %{
       height: height,
@@ -74,13 +74,14 @@ defmodule Ippan.Block do
       timestamp: timestamp,
       round: round,
       count: count,
-      error: error,
+      errors: errors,
       size: size
     }
   end
 
   def to_map(
-        {{creator, height}, hash, prev, hashfile, signature, round, timestamp, count, size, error}
+        {{creator, height}, hash, prev, hashfile, signature, round, timestamp, count, size,
+         errors}
       ) do
     %{
       height: height,
@@ -92,7 +93,7 @@ defmodule Ippan.Block do
       round: round,
       timestamp: timestamp,
       count: count,
-      error: error,
+      errors: errors,
       size: size
     }
   end

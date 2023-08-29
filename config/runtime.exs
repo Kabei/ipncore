@@ -10,7 +10,7 @@ http_port = System.get_env("HTTP_PORT", "8080") |> String.to_integer()
 # Network setup
 # P2P server
 config :ipncore, :P2P,
-  handler_module: Ippan.P2P.Server,
+  handler_module: Ippan.NetworkServer,
   transport_module: ThousandIsland.Transports.TCP,
   num_acceptors: max(cpus, 10),
   port: port,
@@ -22,7 +22,7 @@ config :ipncore, :P2P,
     send_timeout_close: true,
     reuseaddr: true,
     packet: 2,
-    packet_size: 9_000
+    packet_size: 16_000
   ]
 
 # HTTP server

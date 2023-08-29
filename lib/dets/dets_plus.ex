@@ -320,13 +320,16 @@ defmodule DetsPlus do
   end
 
   @doc """
-    Inserts one or more objects into the table. If there already exists an object with a key matching the key of some of the given objects, the old object will be replaced.
+    Inserts one object into the table. If there already exists an object with a key matching the key of some of the given objects, the old object will be replaced.
   """
   @spec insert(pid(), tuple() | map()) :: :ok | {:error, atom()}
   def insert(pid, object) do
     cast(pid, {:insert, {keyfun(object), object}})
   end
 
+  @doc """
+    Inserts one or more objects into the table. If there already exists an object with a key matching the key of some of the given objects, the old object will be replaced.
+  """
   @spec multi_insert(pid(), [tuple() | map()]) :: :ok | {:error, atom()}
   def multi_insert(pid, objects) do
     objects =
@@ -353,6 +356,28 @@ defmodule DetsPlus do
       |> Enum.map(fn object -> {keyfun(object), hashfun(object), object} end)
 
     call(pid, {:insert_new, objects})
+  end
+
+  @spec map_put(pid() | atom(), binary, binary, map) :: :ok
+  def map_put(pid, key, index, value) do
+    case call(pid, {:lookup, key, default_hash(key)}) do
+      nil ->
+        cast(pid, {:insert, {key, %{index => value}}})
+
+      x ->
+        cast(pid, {:insert, {key, Map.put(x, index, value)}})
+    end
+  end
+
+  @spec update(pid() | atom(), binary, map) :: :ok
+  def update(pid, key, value) do
+    case call(pid, {:lookup, key, default_hash(key)}) do
+      nil ->
+        cast(pid, {:insert, {key, value}})
+
+      x ->
+        cast(pid, {:insert, {key, Map.merge(x, value)}})
+    end
   end
 
   @doc """

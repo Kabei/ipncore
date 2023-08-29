@@ -3,7 +3,8 @@ defmodule Match do
   @url ~r/^(https?):\/\/[a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1}\.[a-z]{1,}[-a-zA-Z0-9+&@#\/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#\/%=~_|]$/
   @phone ~r/^\+{1}[0-9]{11,15}$/
   @hostname ~r/^([a-zA-Z0-9][a-zA-Z0-9\-]{0,61}\.)*[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]\.[a-zA-Z0-9]{2,}$/
-  # @wallet_address ~r/(1x)[1-9A-HJ-NP-Za-km-z]+$/
+  @ipv4 ~r/^((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])$/
+  @host_ipv4 ~r/^(([a-zA-Z0-9][a-zA-Z0-9\-]{0,61}\.)*[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]\.[a-zA-Z0-9]{2,})|(((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/
   @wallet_address ~r/(0x|1x)[1-9A-HJ-NP-Za-km-z]+$/
   @domain ~r/^[A-Za-z0-9][A-Za-z0-9-]{1,61}[A-Za-z0-9]\.[A-Za-z]{1,}$/
   @subdomain ~r/^([a-z0-9]{1}[a-z0-9-]?){0,62}[a-z0-9]{1}.$/
@@ -32,6 +33,8 @@ defmodule Match do
   def username?(x), do: Regex.match?(@username, x)
   def token?(x), do: Regex.match?(@token, x)
   def no_binary(x), do: Regex.match?(@no_binary, x)
+  def ipv4(x), do: Regex.match?(@ipv4, x)
+  def host_or_ipv4?(x), do: Regex.match?(@host_ipv4, x)
 
   def account?(x) do
     Regex.match?(@wallet_address, x)

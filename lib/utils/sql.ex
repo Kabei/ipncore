@@ -1,4 +1,4 @@
-defmodule SQL do
+ defmodule SQL do
   def readFile!(filename, args \\ %{}) do
     File.read!(filename)
     |> String.trim()

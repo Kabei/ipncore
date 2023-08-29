@@ -1,7 +1,3 @@
-# auth_type
-# 0. None
-# 1. Falcon-512
-# 2. Hash entangled signature: Sha3-256 and poly-1305/blake3
 defmodule Ippan.Event do
   @type t :: %__MODULE__{
           id: non_neg_integer(),
@@ -10,11 +6,9 @@ defmodule Ippan.Event do
           mod: module(),
           fun: atom() | function() | nil,
           deferred: boolean(),
-          system: boolean(),
           auth: boolean(),
           validator: boolean(),
-          before: atom() | function() | nil,
-          after: atom() | function() | nil
+          before: atom() | function() | nil
         }
 
   @enforce_keys [:id, :name, :base, :mod, :fun]
@@ -24,11 +18,9 @@ defmodule Ippan.Event do
     :base,
     :mod,
     :fun,
-    :after,
     :before,
     deferred: false,
     validator: true,
-    auth: true,
-    system: false
+    auth: true
   ]
 end

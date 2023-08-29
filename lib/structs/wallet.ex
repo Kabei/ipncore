@@ -1,4 +1,5 @@
 defmodule Ippan.Wallet do
+  @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: String.t(),
           pubkey: binary,
@@ -8,22 +9,22 @@ defmodule Ippan.Wallet do
 
   defstruct [:id, :pubkey, :validator, :created_at]
 
-  def to_list({id, pubkey, validator, created_at}) do
-    [id, pubkey, validator, created_at]
-  end
-
+  @impl true
   def to_list(x) do
     [x.id, x.pubkey, x.validator, x.created_at]
   end
 
-  def to_tuple([id, pubkey, validator, created_at]) do
-    {id, pubkey, validator, created_at}
+  @impl true
+  def list_to_tuple([id | _] = x) do
+    {id, list_to_map(x)}
   end
 
+  @impl true
   def to_tuple(x) do
-    {x.id, x.pubkey, x.validator, x.created_at}
+    {x.id, x}
   end
 
+  @impl true
   def to_map({id, pubkey, validator, created_at}) do
     %{
       id: id,
@@ -33,7 +34,8 @@ defmodule Ippan.Wallet do
     }
   end
 
-  def to_map([id, pubkey, validator, created_at]) do
+  @impl true
+  def list_to_map([id, pubkey, validator, created_at]) do
     %{
       id: id,
       pubkey: pubkey,

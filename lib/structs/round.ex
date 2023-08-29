@@ -1,4 +1,5 @@
 defmodule Ippan.Round do
+  @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: non_neg_integer(),
           hash: binary(),
@@ -10,15 +11,23 @@ defmodule Ippan.Round do
 
   defstruct [:id, :hash, :prev, :creator, :blocks, :timestamp]
 
+  @impl true
   def to_list(x) do
     [x.id, x.hash, x.prev, x.creator, x.blocks, x.timestamp]
   end
 
+  @impl true
   def to_tuple(x) do
-    {x.id, x.hash, x.prev, x.creator, x.blocks, x.timestamp}
+    {x.id, x}
   end
 
-  def to_map({id, hash, prev, creator, blocks, timestamp}) do
+  @impl true
+  def list_to_tuple([id | _] = x) do
+    {id, list_to_map(x)}
+  end
+
+  @impl true
+  def list_to_map([id, hash, prev, creator, blocks, timestamp]) do
     %{
       id: id,
       hash: hash,
@@ -29,17 +38,8 @@ defmodule Ippan.Round do
     }
   end
 
-  def to_map([id, hash, prev, creator, blocks, timestamp, vsn]) do
-    %{
-      id: id,
-      hash: hash,
-      prev: prev,
-      creator: creator,
-      blocks: blocks,
-      timestamp: timestamp,
-      vsn: vsn
-    }
-  end
+  @impl true
+  def to_map({_id, map}), do: map
 
   def compute_hash(round, prev, creator, hashes) do
     ([

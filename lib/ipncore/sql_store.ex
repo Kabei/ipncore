@@ -91,33 +91,6 @@ defmodule SqliteStore do
     end
   end
 
-  defmacro lookup(table, conn, stmts, name, id) do
-    quote bind_quoted: [table: table, conn: conn, stmts: stmts, name: name, id: id] do
-      case :ets.lookup(table, id) do
-        [x] ->
-          x
-
-        [] ->
-          case Sqlite3NIF.bind_step(conn, Map.get(stmts, name), [id]) do
-            {:row, []} ->
-              nil
-
-            {:row, data} ->
-              :ets.insert(table, List.to_tuple(data))
-
-              if :ets.info(table, :size) > 10_000_000 do
-                :ets.delete(table, :ets.first(table))
-              end
-
-              data
-
-            _ ->
-              nil
-          end
-      end
-    end
-  end
-
   defmacro lookup_map(table, conn, stmts, name, id, mod_format) do
     quote bind_quoted: [
             table: table,
@@ -128,22 +101,25 @@ defmodule SqliteStore do
             mod_format: mod_format
           ] do
       case :ets.lookup(table, id) do
-        [x] ->
-          mod_format.to_map(x)
+        [{_, map}] ->
+          map
 
         [] ->
-          case Sqlite3NIF.bind_step(conn, Map.get(stmts, name), [id]) do
+          args = if(is_tuple(id), do: Tuple.to_list(id), else: id)
+
+          case Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args) do
             {:row, []} ->
               nil
 
             {:row, data} ->
-              :ets.insert(table, List.to_tuple(data))
+              {_, map} = result = mod_format.list_to_tuple(data)
+              :ets.insert(table, result)
 
               if :ets.info(table, :size) > 10_000_000 do
                 :ets.delete(table, :ets.first(table))
               end
 
-              mod_format.to_map(data)
+              map
 
             _ ->
               nil

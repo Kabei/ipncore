@@ -91,13 +91,13 @@ DELETE FROM dns.dns WHERE domain = ?1;
 INSERT INTO blockchain.block values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12);
 
 --name: get_block
-SELECT * FROM blockchain.block WHERE height = ?;
+SELECT * FROM blockchain.block WHERE creator=? AND height=?;
 
 --name: get_hash_block
 SELECT hash FROM blockchain.block WHERE creator = ?1 AND height BETWEEN ?2 AND ?3 ORDER BY height ASC;
 
 --name: delete_block
-DELETE FROM blockchain.block WHERE height = ?;
+DELETE FROM blockchain.block WHERE creator=? AND height=?;
 
 --name: total_block
 SELECT count(1) FROM blockchain.block WHERE creator=?;

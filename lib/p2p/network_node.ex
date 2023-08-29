@@ -19,7 +19,7 @@ defmodule Ippan.NetworkNode do
   @time_to_reconnect 1_000
 
   def start_link(args) do
-    GenServer.start_link(@module, args, hibernate_after: 5_000)
+    GenServer.start_link(@module, args, hibernate_after: 5_000, name: __MODULE__)
   end
 
   @impl true

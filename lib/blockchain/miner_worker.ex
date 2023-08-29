@@ -42,7 +42,7 @@ defmodule MinerWorker do
       end
 
     conn = :persistent_term.get(:asset_conn)
-    stmts = :persistent_term.get(:asset_stmts)
+    stmts = :persistent_term.get(:asset_stmt)
     dets = :persistent_term.get(:dets_balance)
 
     mine_fun(messages, conn, stmts, dets, creator_id, current_round)
@@ -60,7 +60,7 @@ defmodule MinerWorker do
 
   defp mine_fun(messages, conn, stmts, dets, creator_id, round) do
     validator =
-      SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", [creator_id], Validator)
+      SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", creator_id, Validator)
 
     for [hash, timestamp, type, from, args, size] <- messages do
       Command.handle!(

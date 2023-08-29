@@ -1,4 +1,5 @@
 defmodule Ippan.Balance do
+  @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: binary(),
           token: binary(),
@@ -10,8 +11,6 @@ defmodule Ippan.Balance do
           updated_at: integer()
         }
 
-  use Ippan.Struct
-
   defstruct id: nil,
             token: nil,
             amount: 0,
@@ -21,53 +20,39 @@ defmodule Ippan.Balance do
             created_at: nil,
             updated_at: nil
 
+  @impl true
   def to_list(x) do
     [
       x.id,
       x.token,
       x.amount,
       x.locked,
-      # x.deferred,
-      # x.tx_count,
       x.created_at,
       x.updated_at
     ]
   end
 
+  @impl true
+  def list_to_tuple(x) do
+    map = list_to_map(x)
+    {{map.id, map.token}, map}
+  end
+
+  @impl true
   def to_tuple(x) do
-    {
-      x.id,
-      x.token,
-      x.amount,
-      x.locked,
-      # x.deferred,
-      # x.tx_count,
-      x.created_at,
-      x.updated_at
-    }
+    {{x.id, x.token}, x}
   end
 
-  def to_map({id, token, amount, locked, created_at, updated_at}) do
+  @impl true
+  def to_map({_id_token, map}), do: map
+
+  @impl true
+  def list_to_map([id, token, amount, locked, created_at, updated_at]) do
     %{
       id: id,
       token: token,
       amount: amount,
       locked: locked,
-      # deferred: deferred,
-      # tx_count: tx_count,
-      created_at: created_at,
-      updated_at: updated_at
-    }
-  end
-
-  def to_map([id, token, amount, locked, created_at, updated_at]) do
-    %{
-      id: id,
-      token: token,
-      amount: amount,
-      locked: locked,
-      # deferred: deferred,
-      # tx_count: tx_count,
       created_at: created_at,
       updated_at: updated_at
     }

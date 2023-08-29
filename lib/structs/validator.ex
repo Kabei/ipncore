@@ -1,4 +1,5 @@
 defmodule Ippan.Validator do
+  @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: non_neg_integer(),
           hostname: String.t(),
@@ -31,11 +32,12 @@ defmodule Ippan.Validator do
     :updated_at
   ]
 
-  use Ippan.Struct
+  @impl true
   def editable, do: ~w(hostname name avatar pubkey net_pubkey fee fee_type owner)
-
+  @impl true
   def optionals, do: ~w(avatar)
 
+  @impl true
   def to_list(x) do
     [
       x.id,
@@ -54,15 +56,18 @@ defmodule Ippan.Validator do
     ]
   end
 
-  def to_tuple([id | _] = x) do
-    {id, to_map(x)}
+  @impl true
+  def list_to_tuple([id | _] = x) do
+    {id, list_to_map(x)}
   end
 
+  @impl true
   def to_tuple(x) do
     {x.id, x}
   end
 
-  def to_map([
+  @impl true
+  def list_to_map([
         id,
         hostname,
         name,
@@ -92,5 +97,10 @@ defmodule Ippan.Validator do
       created_at: created_at,
       updated_at: updated_at
     }
+  end
+
+  @impl true
+  def to_map({_id, x}) do
+    x
   end
 end

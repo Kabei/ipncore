@@ -1,4 +1,5 @@
 defmodule Ippan.Domain do
+  @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           name: String.t(),
           owner: binary(),
@@ -11,10 +12,10 @@ defmodule Ippan.Domain do
           updated_at: non_neg_integer()
         }
 
-  use Ippan.Struct
-
+  @impl true
   def optionals, do: ~w(email avatar)
 
+  @impl true
   def editable, do: ~w(owner email avatar)
 
   @doc "Return subdomain and domain in a tuple from hostname or list hostname"
@@ -70,11 +71,12 @@ defmodule Ippan.Domain do
             renewed_at: nil,
             updated_at: nil
 
+  @impl true
   def to_tuple(x) do
-    {x.name, x.owner, x.email, x.avatar, x.records, x.enabled, x.created_at, x.renewed_at,
-     x.updated_at}
+    {x.name, x}
   end
 
+  @impl true
   def to_list(x) do
     [
       x.name,
@@ -89,7 +91,22 @@ defmodule Ippan.Domain do
     ]
   end
 
-  def to_map({name, owner, email, avatar, records, enabled, created_at, renewed_at, updated_at}) do
+  @impl true
+  def to_map({_name, map}), do: map
+
+  @impl true
+
+  def list_to_map([
+        name,
+        owner,
+        email,
+        avatar,
+        records,
+        enabled,
+        created_at,
+        renewed_at,
+        updated_at
+      ]) do
     %{
       name: name,
       owner: owner,
@@ -103,17 +120,8 @@ defmodule Ippan.Domain do
     }
   end
 
-  def to_map([name, owner, email, avatar, records, enabled, created_at, renewed_at, updated_at]) do
-    %{
-      name: name,
-      owner: owner,
-      email: email,
-      avatar: avatar,
-      records: records,
-      enabled: enabled,
-      created_at: created_at,
-      renewed_at: renewed_at,
-      updated_at: updated_at
-    }
+  @impl true
+  def list_to_tuple([name | _] = x) do
+    {name, list_to_map(x)}
   end
 end

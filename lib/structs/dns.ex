@@ -1,19 +1,20 @@
 defmodule Ippan.DNS do
+  @behaviour Ippan.Struct
   @type t :: %__MODULE__{
-          hash: binary(),
           domain: String.t(),
+          hash: binary(),
           name: String.t(),
           type: non_neg_integer(),
           data: String.t(),
           ttl: non_neg_integer()
         }
 
-  use Ippan.Struct
+  defstruct domain: nil, hash: nil, name: nil, type: nil, data: nil, ttl: 3600
 
-  defstruct domain: nil, name: nil, type: nil, data: nil, ttl: 3600, hash: nil
-
+  @impl true
   def editable, do: ~w(data ttl)
 
+  @impl true
   def to_list(x) do
     [
       x.domain,
@@ -25,28 +26,22 @@ defmodule Ippan.DNS do
     ]
   end
 
+  @impl true
   def to_tuple(x) do
-    {
-      {x.domain, x.hash},
-      x.name,
-      x.type,
-      x.data,
-      x.ttl
-    }
+    {{x.domain, x.hash}, x}
   end
 
-  def to_map({{domain, hash}, name, type, data, ttl}) do
-    %{
-      domain: domain,
-      name: name,
-      type: type,
-      data: data,
-      ttl: ttl,
-      hash: hash
-    }
+  @impl true
+  def to_map({_domain_hash, map}), do: map
+
+  @impl true
+  def list_to_tuple(x) do
+    map = list_to_map(x)
+    {{map.domain, map.hash}, map}
   end
 
-  def to_map([
+  @impl true
+  def list_to_map([
         domain,
         name,
         type,

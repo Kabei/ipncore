@@ -1,4 +1,5 @@
 defmodule Ippan.Block do
+  @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           height: non_neg_integer(),
           creator: non_neg_integer(),
@@ -30,6 +31,7 @@ defmodule Ippan.Block do
     vsn: 0
   ]
 
+  @impl true
   def to_list(x) do
     [
       x.height,
@@ -46,12 +48,18 @@ defmodule Ippan.Block do
     ]
   end
 
-  def to_tuple(x) do
-    {{x.creator, x.height}, x.hash, x.prev, x.hashfile, x.signature, x.round, x.timestamp,
-     x.count, x.size, x.errors}
+  @impl true
+  def list_to_tuple([creator, height | _] = x) do
+    {{creator, height}, list_to_map(x)}
   end
 
-  def to_map([
+  @impl true
+  def to_tuple(x) do
+    {{x.creator, x.height}, x}
+  end
+
+  @impl true
+  def list_to_map([
         height,
         creator,
         hash,
@@ -79,24 +87,8 @@ defmodule Ippan.Block do
     }
   end
 
-  def to_map(
-        {{creator, height}, hash, prev, hashfile, signature, round, timestamp, count, size,
-         errors}
-      ) do
-    %{
-      height: height,
-      creator: creator,
-      prev: prev,
-      hash: hash,
-      hashfile: hashfile,
-      signature: signature,
-      round: round,
-      timestamp: timestamp,
-      count: count,
-      errors: errors,
-      size: size
-    }
-  end
+  @impl true
+  def to_map({{_creator, _height}, x}), do: x
 
   @spec put_hash(term()) :: term()
   def put_hash(

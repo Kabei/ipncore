@@ -45,7 +45,7 @@ defmodule Platform do
 
         "env" ->
           Enum.each(values, fn x ->
-            SqliteStore.step(conn, stmts, "insert_env", Env.encode_list(x))
+            SqliteStore.step(conn, stmts, "insert_env", Env.to_list(x))
           end)
       end
     end

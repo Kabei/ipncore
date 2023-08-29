@@ -1,4 +1,5 @@
 defmodule Ippan.Token do
+  @behaviour Ippan.Struct
   @json Application.compile_env(:ipncore, :json)
   @type t :: %__MODULE__{
           id: String.t(),
@@ -16,8 +17,10 @@ defmodule Ippan.Token do
           updated_at: non_neg_integer()
         }
 
+  @impl true
   def optionals, do: ~w(avatar props)
 
+  @impl true
   def editable, do: ~w(avatar name owner)
 
   def props, do: ~w(burn coinbase lock vote)
@@ -36,27 +39,7 @@ defmodule Ippan.Token do
             created_at: nil,
             updated_at: nil
 
-  def to_list(
-        {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
-         created_at, updated_at}
-      ) do
-    [
-      id,
-      owner,
-      name,
-      avatar,
-      decimal,
-      symbol,
-      enabled,
-      supply,
-      burned,
-      max_supply,
-      @json.encode!(props),
-      created_at,
-      updated_at
-    ]
-  end
-
+  @impl true
   def to_list(x) do
     [
       x.id,
@@ -75,52 +58,22 @@ defmodule Ippan.Token do
     ]
   end
 
-  def to_tuple([
-        id,
-        owner,
-        name,
-        avatar,
-        decimal,
-        symbol,
-        enabled,
-        supply,
-        burned,
-        max_supply,
-        props,
-        created_at,
-        updated_at
-      ]) do
-    {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
-     created_at, updated_at}
+  @impl true
+  def list_to_tuple([id | _] = x) do
+    {id, list_to_map(x)}
   end
+
+  @impl true
 
   def to_tuple(x) do
-    {x.id, x.owner, x.name, x.avatar, x.decimal, x.symbol, x.enabled, x.supply, x.burned,
-     x.max_supply, x.props, x.created_at, x.updated_at}
+    {x.id, x}
   end
 
-  def to_map(
-        {id, owner, name, avatar, decimal, symbol, enabled, supply, burned, max_supply, props,
-         created_at, updated_at}
-      ) do
-    %{
-      id: id,
-      name: name,
-      owner: owner,
-      avatar: avatar,
-      decimal: decimal,
-      symbol: symbol,
-      enabled: enabled,
-      supply: supply,
-      burned: burned,
-      max_supply: max_supply,
-      props: @json.decode!(props),
-      created_at: created_at,
-      updated_at: updated_at
-    }
-  end
+  @impl true
+  def to_map({_id, x}), do: x
 
-  def to_map([
+  @impl true
+  def list_to_map([
         id,
         owner,
         name,

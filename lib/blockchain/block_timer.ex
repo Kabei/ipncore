@@ -68,11 +68,11 @@ defmodule BlockTimer do
     %{vid: validator_id} = Platform.start()
 
     conn = :persistent_term.get(:asset_conn)
-    stmts = :persistent_term.get(:asset_stmts)
+    stmts = :persistent_term.get(:asset_stmt)
 
     ets_nodes = :ets.new(:nodes, [:set, :public])
 
-    validators = SqliteStore.all(conn, stmts, "get_active_validators")
+    validators = SqliteStore.all(conn, stmts, "get_players")
 
     # fill nodes table
     for v <- validators do

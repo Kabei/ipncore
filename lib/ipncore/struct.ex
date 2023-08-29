@@ -1,21 +1,25 @@
 defmodule Ippan.Struct do
   @callback to_list(map()) :: list()
+  @callback to_map(tuple()) :: map()
   @callback to_tuple(map()) :: tuple()
-  @callback to_map(tuple() | list()) :: map()
+  @callback list_to_map(list()) :: map()
+  @callback list_to_tuple(list()) :: tuple()
 
-  # @callback to_ets(list() | map()) :: tuple()
-  # @callback from_ets(tuple()) :: map()
+  @callback optionals() :: [binary()]
+  @callback editable() :: [binary()]
 
-  defmacro __using__(_opts) do
-    quote location: :keep do
-      @behaviour Ippan.Struct
+  @optional_callbacks [optionals: 0, editable: 0]
 
-      @callback edit_fields() :: [atom()]
+  # defmacro __using__(_opts) do
+  #   quote location: :keep do
+  #     @behaviour Ippan.Struct
 
-      @spec fields :: [atom()]
-      def fields do
-        __MODULE__.__struct__() |> Map.keys()
-      end
-    end
-  end
+  #     @callback edit_fields() :: [atom()]
+
+  #     @spec fields :: [atom()]
+  #     def fields do
+  #       __MODULE__.__struct__() |> Map.keys()
+  #     end
+  #   end
+  # end
 end

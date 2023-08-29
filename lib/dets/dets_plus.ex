@@ -82,13 +82,12 @@ defmodule DetsPlus do
 
   @doc false
   def start_link(args) do
-    {:ok, dets} = DetsPlus.open_file(args[:name], args)
-    {:ok, dets.pid}
+    DetsPlus.open_file(args[:name], args)
   end
 
+  @doc false
   def start_link(_, args) do
-    {:ok, dets} = DetsPlus.open_file(args[:name], args)
-    {:ok, dets.pid}
+    DetsPlus.open_file(args[:name], args)
   end
 
   @doc """

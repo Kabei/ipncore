@@ -79,8 +79,16 @@ defmodule Ippan.NetworkNode do
   end
 
   @impl NetworkBehaviour
-  def on_disconnect(node_id) do
-    :ets.delete(@table, node_id)
+  def on_disconnect(node_id, %{opts: opts}) do
+    reconnect = Keyword.get(opts, :reconnect, false)
+
+    if reconnect do
+      [{_, node}] = :ets.lookup(@table, node_id)
+      :ets.delete(@table, node_id)
+      connect(node, opts)
+    else
+      :ets.delete(@table, node_id)
+    end
   end
 
   @impl NetworkBehaviour
@@ -120,7 +128,8 @@ defmodule Ippan.NetworkNode do
               adapter: @adapter,
               mod: @module,
               id: node_id,
-              sharedkey: sharedkey
+              sharedkey: sharedkey,
+              opts: opts
             })
 
           :gen_tcp.controlling_process(socket, pid)
@@ -278,12 +287,14 @@ defmodule Ippan.NetworkNode do
   def handle_request(_method, _from, _data), do: "not found"
 
   @impl NetworkBehaviour
-  def handle_message("msg_round", _from, _data) do
+  def handle_message("msg_round", from, data) do
     # BlockTimer.new_round(data, from)
 
     # if from == BlockTimer.who_is_on_duty(data.id) do
     #   broadcast_except(%{"event" => "msg_round", "data" => data}, [from])
     # end
+    send(RoundManager, {"msg_round", from, data})
+
     :ok
   end
 

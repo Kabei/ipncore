@@ -1,10 +1,8 @@
 defmodule RoundManager do
-  alias Ippan.NetworkNode
-  alias Ippan.Validator
-  alias Ippan.MsgBlock
-  alias Ippan.MsgRound
-  alias Phoenix.PubSub
   use GenServer, restart: :transient
+  require Logger
+  alias Ippan.{NetworkNode, Validator, MsgBlock, MsgRound}
+  alias Phoenix.PubSub
   require SqliteStore
 
   @pubsub :network
@@ -20,12 +18,16 @@ defmodule RoundManager do
     ets_players =
       :ets.new(:players, [:set, :public, read_concurrency: true, write_concurrency: true])
 
+    ets_votes =
+      :ets.new(:votes, [:set, :public, read_concurrency: true, write_concurrency: true])
+
     {:ok,
      %{
        id: vid,
        main: main,
        net: net,
        players: ets_players,
+       ets_votes: ets_votes,
        round: round,
        tRef: nil,
        delegate: false,
@@ -54,10 +56,19 @@ defmodule RoundManager do
     # connect to P2P peers
     connect_to_peers(players)
 
-    delegate = is_delegate?(round, total_players, vid)
+    delegates = get_delegates(round.id, total_players)
 
     tRef = :timer.send_after(@timeout, :tick)
-    {:noreply, %{state | delegate: delegate, tRef: tRef, total: total_players}}
+
+    {:noreply,
+     %{
+       state
+       | delegates: delegates,
+         delegate: vid in delegates,
+         tRef: tRef,
+         total: total_players,
+         vid: vid
+     }}
   end
 
   @impl true
@@ -67,34 +78,65 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_info({:round_start, _round}, state) do
+  def handle_info({:complete_sync, _round}, state) do
     # send vote failure
 
     {:noreply, state}
   end
 
-  def handle_info(
-        %{
-          "event" => "msg_round",
-          "data" =>
-            msg_round = %{
-              "id" => _id,
-              "creator" => creator,
-              "messages" => _messages,
-              "hash" => hash,
-              "signature" => signature
-            }
-        },
-        %{net: {net_conn, net_stmts}, players: ets_players} = state
-      ) do
-    with [{_, player}] <- :ets.lookup(ets_players, creator),
-         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         :done <-
-           SqliteStore.step(net_conn, net_stmts, "insert_msg_round", MsgRound.encode(msg_round)) do
-      PubSub.local_broadcast(@pubsub, "network", msg_round)
-    end
+  def handle_info({:start, round}, %{total: total_players, vid: vid} = state) do
+    delegates = get_delegates(round.id, total_players)
+    delegate = vid in delegates
+    {:noreply, %{state | delegates: delegates, delegate: delegate}}
+  end
 
-    {:noreply, state}
+  def handle_info(
+        {
+          "msg_round",
+          _node_id,
+          msg_round = %{
+            "id" => id,
+            "creator" => creator,
+            "messages" => _messages,
+            "hash" => hash,
+            "signature" => signature
+          }
+        },
+        %{
+          net: {net_conn, net_stmts},
+          players: ets_players,
+          ets_votes: ets_votes,
+          min: min_votes,
+          delegates: delegates,
+          round: %{id: round_id}
+        } =
+          state
+      )
+      when id > round_id do
+    with true <- creator in delegates,
+         [{_, player}] <- :ets.lookup(ets_players, creator),
+         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
+         count <-
+           :ets.update_counter(ets_votes, id, {3, 1}, {id, msg_round, 1}) do
+      PubSub.local_broadcast(@pubsub, "network", msg_round)
+
+      if count == min_votes do
+        case SqliteStore.step(net_conn, net_stmts, "insert_msg_round", MsgRound.encode(msg_round)) do
+          :done ->
+            send(self(), {:sync, msg_round})
+            {:noreply, state}
+
+          :busy ->
+            Logger.error("Database Busy")
+            {:noreply, state}
+
+          _ ->
+            {:noreply, state}
+        end
+      else
+        {:noreply, state}
+      end
+    end
   end
 
   def handle_info(
@@ -139,7 +181,17 @@ defmodule RoundManager do
     end
   end
 
-  defp is_delegate?(round, total_players, my_id) do
-    rem(round, total_players) == my_id
+  defp get_delegates(round, total_players) do
+    count = EnvStore.round_delegates()
+    start = rem(round * count, total_players)
+
+    position_end = start + total_players
+
+    if position_end <= total_players do
+      start..total_players |> Enum.to_list()
+    else
+      rest = position_end - total_players
+      Enum.to_list(start..position_end) ++ Enum.to_list(0..rest)
+    end
   end
 end

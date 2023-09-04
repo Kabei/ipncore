@@ -39,7 +39,7 @@ defmodule Ippan.NetworkClient do
   def handle_info({:tcp_closed, socket}, %{id: id, mod: mod, adapter: adapter} = state) do
     Logger.debug("tcp_closed | #{id}")
     adapter.close(socket)
-    mod.on_disconnect(id)
+    mod.on_disconnect(id, state)
     {:stop, state}
   end
 

@@ -20,7 +20,7 @@ config :ipncore, :version, 0
 config :ipncore, :max_block_size, 10_485_760
 config :ipncore, :block_data_max_size, 10_000_000
 config :ipncore, :block_interval, :timer.seconds(5)
-config :ipncore, :block_file_ext, "mpk"
+config :ipncore, :block_extension, "mpk"
 config :ipncore, :note_max_size, 255
 config :ipncore, :max_tx_amount, 1_000_000_000_000_000
 config :ipncore, :timeout_refund, :timer.hours(72)

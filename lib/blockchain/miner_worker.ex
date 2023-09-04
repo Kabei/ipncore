@@ -1,7 +1,7 @@
 defmodule MinerWorker do
   use GenServer
   alias Ippan.Validator
-  alias Ippan.Command
+  alias Ippan.EventHandler
   alias Ippan.Block
   require SqliteStore
   require Logger
@@ -63,7 +63,7 @@ defmodule MinerWorker do
       SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", creator_id, Validator)
 
     for [hash, timestamp, type, from, args, size] <- messages do
-      Command.handle!(
+      EventHandler.handle!(
         conn,
         stmts,
         dets,

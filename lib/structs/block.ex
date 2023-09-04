@@ -15,7 +15,7 @@ defmodule Ippan.Block do
           vsn: pos_integer()
         }
 
-  @file_extension "mpk"
+  @block_extension Application.compile_env(:ipncore, :block_extension)
   defstruct [
     :height,
     :creator,
@@ -136,12 +136,12 @@ defmodule Ippan.Block do
 
   def block_path(validator_id, height) do
     block_dir = Application.get_env(:ipnworker, :block_dir)
-    Path.join([block_dir, "#{validator_id}.#{height}.#{@file_extension}"])
+    Path.join([block_dir, "#{validator_id}.#{height}.#{@block_extension}"])
   end
 
   def decode_path(validator_id, height) do
     decode_dir = Application.get_env(:ipnworker, :decode_dir)
-    Path.join([decode_dir, "#{validator_id}.#{height}.#{@file_extension}"])
+    Path.join([decode_dir, "#{validator_id}.#{height}.#{@block_extension}"])
   end
 
   def url(hostname, creator_id, height) do

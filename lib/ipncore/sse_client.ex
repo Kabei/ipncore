@@ -10,7 +10,7 @@ defmodule SseClient do
   def init({url, timeout}) do
     Logger.debug("Connecting to stream...")
     HTTPoison.get!(url, [], recv_timeout: timeout, stream_to: self(), hackney: [:insecure])
-    {:ok, nil}
+    {:ok, nil, :hibernate}
   end
 
   @impl true

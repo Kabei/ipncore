@@ -95,24 +95,24 @@ defmodule Ippan.NetworkServer do
   end
 
   @impl ThousandIsland.Handler
-  def handle_close(_socket, %{id: id}) do
+  def handle_close(_socket, %{id: id} = state) do
     Logger.debug("handle close socket")
 
-    NetworkNode.on_disconnect(id)
+    NetworkNode.on_disconnect(id, state)
   end
 
   @impl ThousandIsland.Handler
-  def handle_shutdown(_socket, %{id: id}) do
+  def handle_shutdown(_socket, %{id: id} = state) do
     Logger.debug("handle shutdown")
 
-    NetworkNode.on_disconnect(id)
+    NetworkNode.on_disconnect(id, state)
   end
 
   @impl ThousandIsland.Handler
-  def handle_timeout(_socket, %{id: id}) do
+  def handle_timeout(_socket, %{id: id} = state) do
     Logger.debug("handle timeout")
 
-    NetworkNode.on_disconnect(id)
+    NetworkNode.on_disconnect(id, state)
   end
 
   # defp handle_event("block_msg", from, data) do

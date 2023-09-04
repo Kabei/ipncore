@@ -1,4 +1,4 @@
-defmodule Ippan.Command do
+defmodule Ippan.EventHandler do
   alias Ippan.Events
 
   # @libsecp256k1 ExSecp256k1.Impl

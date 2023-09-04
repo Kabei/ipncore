@@ -1,6 +1,6 @@
 defmodule NetworkBehaviour do
   @callback on_connect(node_id :: term(), map :: map()) :: any()
-  @callback on_disconnect(node_id :: term()) :: any()
+  @callback on_disconnect(node_id :: term(), state :: term()) :: any()
   @callback on_message(node_id :: term(), socket :: term(), packet :: term(), sharedkey :: binary) ::
               any()
   @callback connect(node :: term(), opts :: keyword()) :: term() | {:error, term()}

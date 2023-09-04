@@ -20,7 +20,9 @@ defmodule Ippan.P2P do
   def client_handshake(socket, node_id, kem_pubkey, privkey) do
     {:ok, ciphertext, sharedkey} = NtruKem.enc(kem_pubkey)
     {:ok, signature} = Cafezinho.Impl.sign(sharedkey, privkey)
-    authtext = encode(signature <> <<node_id::unsigned-size(64)>>, sharedkey)
+
+    data = %{"id" => node_id, "sig" => signature}
+    authtext = encode(data, sharedkey)
     @adapter.send(socket, "HI" <> @version <> ciphertext <> authtext)
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
@@ -43,7 +45,7 @@ defmodule Ippan.P2P do
       {:ok, "HI" <> @version <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
         case NtruKem.dec(kem_privkey, ciphertext) do
           {:ok, sharedkey} ->
-            <<signature::bytes-size(64), id::unsigned-size(64)>> = decode!(encodeText, sharedkey)
+            %{"id" => id, "sig" => signature} = decode!(encodeText, sharedkey)
 
             case fun.(id) do
               %{name: name, hostname: hostname, pubkey: clientPubkey, net_pubkey: net_pubkey} ->
@@ -76,6 +78,7 @@ defmodule Ippan.P2P do
     end
   end
 
+  @spec decode!(data :: binary, sharedkey :: binary) :: term()
   def decode!(
         <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>>,
         sharedkey
@@ -95,6 +98,7 @@ defmodule Ippan.P2P do
 
   def decode!(packet, _sharedkey), do: packet
 
+  @spec encode(msg :: term, sharedkey :: binary) :: binary()
   def encode(msg, sharedkey) do
     bin = CBOR.Encoder.encode_into(msg, <<>>)
     iv = :crypto.strong_rand_bytes(@iv_bytes)

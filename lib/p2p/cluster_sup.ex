@@ -1,9 +1,9 @@
-defmodule Ippan.NetworkSup do
+defmodule Ippan.ClusterSup do
   use DynamicSupervisor
   alias IO.ANSI
   @module __MODULE__
   def start_link(children) do
-    opts = Application.get_env(:ipncore, :network)
+    opts = Application.get_env(:ipncore, :cluster)
 
     result =
       case Process.whereis(@module) do
@@ -17,14 +17,14 @@ defmodule Ippan.NetworkSup do
       end
 
     IO.puts(
-      "Running #{ANSI.red()}IPNCORE#{ANSI.reset()} P2P Network with port #{ANSI.yellow()}#{opts[:port]}#{ANSI.reset()}"
+      "Running #{ANSI.red()}IPNCORE#{ANSI.reset()} P2P Cluster with port #{ANSI.yellow()}#{opts[:port]}#{ANSI.reset()}"
     )
 
     result
   end
 
   def start_child(args) do
-    DynamicSupervisor.start_child(@module, {Ippan.NetworkClient, args})
+    DynamicSupervisor.start_child(@module, {Ippan.ClusterClient, args})
   end
 
   @impl true

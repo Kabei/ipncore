@@ -1,10 +1,9 @@
 defmodule Ipncore.Application do
   @moduledoc false
-  alias IO.ANSI
   alias Phoenix.PubSub
-  alias Ippan.NetworkNode
+  alias Ippan.{ClusterNode, NetworkNode}
   use Application
-  import Ippan.Utils, only: [to_atom: 1]
+  # import Ippan.Utils, only: [to_atom: 1]
 
   @otp_app :ipncore
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
@@ -12,8 +11,6 @@ defmodule Ipncore.Application do
   @impl true
   def start(_type, _args) do
     IO.puts("Starting application")
-
-    p2p_opts = Application.get_env(@otp_app, :P2P)
     # start erlang node
     start_node()
 
@@ -29,23 +26,13 @@ defmodule Ipncore.Application do
         MemTables,
         MainStore,
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
-        Supervisor.child_spec({PubSub, name: :network}, id: :network),
+        Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
+        ClusterNode,
         NetworkNode,
-        {ThousandIsland, p2p_opts},
         {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
       ]
 
-    case Supervisor.start_link(children, @opts) do
-      {:ok, _pid} = result ->
-        IO.puts(
-          "Running #{ANSI.red()}IPNCORE#{ANSI.reset()} P2P with port #{ANSI.yellow()}#{p2p_opts[:port]}#{ANSI.reset()}"
-        )
-
-        result
-
-      error ->
-        error
-    end
+    Supervisor.start_link(children, @opts)
   end
 
   @impl true
@@ -54,12 +41,13 @@ defmodule Ipncore.Application do
   end
 
   defp start_node do
+    :persistent_term.put(:node, System.get_env("NODE"))
     :persistent_term.put(:vid, String.to_integer(System.get_env("VID", "0")))
-    name = System.get_env("NODE") |> to_atom()
-    cookie = System.get_env("COOKIE") |> to_atom()
+    # name = System.get_env("NODE") |> to_atom()
+    # cookie = System.get_env("COOKIE") |> to_atom()
 
-    {:ok, _} = Node.start(name)
-    Node.set_cookie(name, cookie)
+    # {:ok, _} = Node.start(name)
+    # Node.set_cookie(name, cookie)
   end
 
   defp load_keys do

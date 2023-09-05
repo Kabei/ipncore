@@ -5,11 +5,12 @@ cpus = System.schedulers_online()
 
 # Environment variables setup
 port = System.get_env("PORT", "5815") |> String.to_integer()
+cluster_port = System.get_env("CLUSTER_PORT", "4848") |> String.to_integer()
 http_port = System.get_env("HTTP_PORT", "8080") |> String.to_integer()
 
 # Network setup
 # P2P server
-config :ipncore, :P2P,
+config :ipncore, :network,
   handler_module: Ippan.NetworkServer,
   transport_module: ThousandIsland.Transports.TCP,
   num_acceptors: max(cpus, 10),
@@ -23,6 +24,23 @@ config :ipncore, :P2P,
     reuseaddr: true,
     packet: 2,
     packet_size: 16_000
+  ]
+
+# Cluster setup
+config :ipncore, :cluster,
+  handler_module: Ippan.ClusterServer,
+  transport_module: ThousandIsland.Transports.TCP,
+  num_acceptors: max(cpus, 10),
+  port: cluster_port,
+  transport_options: [
+    backlog: 1024,
+    nodelay: true,
+    linger: {true, 30},
+    send_timeout: 30_000,
+    send_timeout_close: true,
+    reuseaddr: true,
+    packet: 2,
+    packet_size: 64_000
   ]
 
 # HTTP server

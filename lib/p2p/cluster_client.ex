@@ -1,9 +1,9 @@
-defmodule Ippan.NetworkClient do
+defmodule Ippan.ClusterClient do
   use GenServer, restart: :transient
   require Logger
 
   @adapter :gen_tcp
-  @node Ippan.NetworkNode
+  @node Ippan.ClusterNode
   @ping_interval 45_000
 
   def start_link(_, args) do
@@ -11,7 +11,7 @@ defmodule Ippan.NetworkClient do
   end
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, hibernate_after: 2_000)
+    GenServer.start_link(__MODULE__, args, [hibernate_after: 2_000])
   end
 
   @impl true

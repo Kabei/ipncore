@@ -1,17 +1,15 @@
-defmodule Ippan.Validator do
+defmodule LocalCluster do
   @behaviour Ippan.Struct
+
   @type t :: %__MODULE__{
-          id: non_neg_integer(),
-          hostname: String.t(),
-          name: String.t(),
-          owner: binary(),
-          pubkey: binary(),
-          net_pubkey: binary(),
-          avatar: String.t() | nil,
-          fee_type: integer(),
-          fee: 0 | 1 | 2,
-          stake: non_neg_integer(),
-          failures: integer(),
+          id: binary,
+          hostname: charlist(),
+          port: non_neg_integer(),
+          name: binary | nil,
+          role: binary | nil,
+          pubkey: binary,
+          net_pubkey: binary,
+          avatar: binary | nil,
           created_at: non_neg_integer(),
           updated_at: non_neg_integer()
         }
@@ -20,37 +18,26 @@ defmodule Ippan.Validator do
     :id,
     :hostname,
     :name,
-    :owner,
+    :role,
     :pubkey,
     :net_pubkey,
     :avatar,
-    :fee_type,
-    :fee,
-    :stake,
-    :failures,
     :created_at,
-    :updated_at
+    :updated_at,
+    port: 4848
   ]
-
-  @impl true
-  def editable, do: ~w(hostname name avatar pubkey net_pubkey fee fee_type owner)
-  @impl true
-  def optionals, do: ~w(avatar)
 
   @impl true
   def to_list(x) do
     [
       x.id,
       x.hostname,
+      x.port,
       x.name,
-      x.owner,
+      x.role,
       x.pubkey,
       x.net_pubkey,
       x.avatar,
-      x.fee_type,
-      x.fee,
-      x.stake,
-      x.failures,
       x.created_at,
       x.updated_at
     ]
@@ -70,37 +57,29 @@ defmodule Ippan.Validator do
   def list_to_map([
         id,
         hostname,
+        port,
         name,
-        owner,
+        role,
         pubkey,
         net_pubkey,
         avatar,
-        fee_type,
-        fee,
-        stake,
-        failures,
         created_at,
         updated_at
       ]) do
     %{
       id: id,
       hostname: hostname,
+      port: port,
       name: name,
-      owner: owner,
-      avatar: avatar,
+      role: role,
       pubkey: pubkey,
       net_pubkey: net_pubkey,
-      fee: fee,
-      fee_type: fee_type,
-      stake: stake,
-      failures: failures,
+      avatar: avatar,
       created_at: created_at,
       updated_at: updated_at
     }
   end
 
   @impl true
-  def to_map({_id, x}) do
-    x
-  end
+  def to_map({_id, x}), do: x
 end

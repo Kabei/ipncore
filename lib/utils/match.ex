@@ -10,6 +10,7 @@ defmodule Match do
   @subdomain ~r/^([a-z0-9]{1}[a-z0-9-]?){0,62}[a-z0-9]{1}.$/
   @ippan_domain ~r/^[a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1}\.ipn$/
   @hashtag ~r/(?:$|)#[A-Za-z0-9\-\.\_]+(?:$|)/
+  @base16 ~r/^[0-9A-Fa-f]+$/
   @base58 ~r/^[1-9A-HJ-NP-Za-km-z]+$/
   @base62 ~r/^[0-9A-Za-z]+$/
   @domain_link ~r/^@([a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1})/
@@ -25,6 +26,7 @@ defmodule Match do
   def url?(x), do: Regex.match?(@url, x)
   def email?(x), do: Regex.match?(@email, x)
   def hashtag(x), do: Regex.match?(@hashtag, x)
+  def base16(x), do: Regex.match?(@base16, x)
   def base58(x), do: Regex.match?(@base58, x)
   def base62(x), do: Regex.match?(@base62, x)
   def domain_link(x), do: Regex.match?(@domain_link, x)

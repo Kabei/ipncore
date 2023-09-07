@@ -23,8 +23,7 @@ defmodule MainStore do
     "account" => "accounts.db",
     "assets" => "assets.db",
     "dns" => "dns.db",
-    "blockchain" => "blockchain.db",
-    "network" => "file:network.db?mode=ro"
+    "blockchain" => "blockchain.db"
   }
 
   @name "main"
@@ -49,6 +48,8 @@ defmodule MainStore do
     # put in global conn and statements
     :persistent_term.put(@key_conn, conn)
     :persistent_term.put(@key_stmt, stmts)
+
+    Platform.start()
 
     {:ok, %{}, :hibernate}
   end

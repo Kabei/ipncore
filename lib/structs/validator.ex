@@ -27,9 +27,9 @@ defmodule Ippan.Validator do
     :fee_type,
     :fee,
     :stake,
-    :failures,
     :created_at,
-    :updated_at
+    :updated_at,
+    failures: 0
   ]
 
   @impl true

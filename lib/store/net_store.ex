@@ -17,7 +17,6 @@ defmodule NetStore do
 
   # databases
   @attaches %{
-    "network" => "network.db",
     "local" => "local.db"
   }
 

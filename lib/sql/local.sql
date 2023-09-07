@@ -8,5 +8,5 @@ CREATE TABLE IF NOT EXISTS cluster(
   net_pubkey BLOB,
   avatar TEXT,
   created_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
 ) WITHOUT ROWID;

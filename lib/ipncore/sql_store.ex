@@ -105,7 +105,7 @@ defmodule SqliteStore do
           map
 
         [] ->
-          args = if(is_tuple(id), do: Tuple.to_list(id), else: id)
+          args = if(is_tuple(id), do: Tuple.to_list(id), else: [id])
 
           case Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args) do
             {:row, []} ->
@@ -221,16 +221,18 @@ defmodule SqliteStore do
     base = Path.dirname(main_file)
 
     for {name, filename} <- attaches do
-      path = Path.join(base, filename)
-      # IO.inspect(path)
-      creation = Map.get(creations, name, [])
-      {:ok, conn} = Sqlite3.open(path, [])
+      if not String.contains?(filename, "?") do
+        path = Path.join(base, filename)
+        # IO.inspect(path)
+        creation = Map.get(creations, name, [])
+        {:ok, conn} = Sqlite3.open(path, [])
 
-      for sql <- creation do
-        :ok = Sqlite3NIF.execute(conn, sql)
+        for sql <- creation do
+          :ok = Sqlite3NIF.execute(conn, sql)
+        end
+
+        Sqlite3NIF.close(conn)
       end
-
-      Sqlite3NIF.close(conn)
     end
 
     # create main database

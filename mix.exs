@@ -79,7 +79,7 @@ defmodule Ipncore.MixProject do
       {:benchee, "~> 1.0", only: [:dev, :test]},
       {:bakeware, "~> 0.2.4", runtime: false},
       {:poolboy, "~> 1.5.2"},
-      {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
+      # {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
       {:jason, "~> 1.4"},
       {:cbor, "~> 1.0"},
       {:bandit, ">= 0.7.7"},

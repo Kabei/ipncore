@@ -75,6 +75,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
     %{
       avatar: nil,
       created_at: timestamp,
+      failures: 0,
       fee: 1.0,
       fee_type: 2,
       hostname: "visurpay.com",
@@ -89,6 +90,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
     %{
       avatar: nil,
       created_at: timestamp,
+      failures: 0,
       fee: 1.0,
       fee_type: 2,
       hostname: "ippan.co.uk",

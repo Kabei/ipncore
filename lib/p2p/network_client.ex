@@ -66,7 +66,7 @@ defmodule Ippan.NetworkClient do
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 
         error ->
-          IO.inspect("HERE ERROR 2")
+          IO.inspect("ERROR 2")
           IO.inspect(error)
           retry_connect(state, retry, error)
       end
@@ -77,7 +77,7 @@ defmodule Ippan.NetworkClient do
         {:stop, :normal, state}
 
       error ->
-        IO.inspect("HERE ERROR")
+        IO.inspect("ERROR")
         IO.inspect(error)
         retry_connect(state, retry, error)
     end

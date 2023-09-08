@@ -2,7 +2,7 @@
 REPLACE INTO main.env values(?1, ?2, ?3);
 
 --name: get_env
-SELECT value FROM main.env WHERE name=?1;
+SELECT value FROM main.env WHERE name=?1 LIMIT 1;
 
 --name: all_env
 SELECT name, value FROM main.env;
@@ -15,7 +15,7 @@ DELETE FROM main.env WHERE name=?1;
 INSERT INTO account.wallet VALUES(?1,?2,?3,?4);
 
 --name: get_wallet
-SELECT * FROM account.wallet WHERE id=?;
+SELECT * FROM account.wallet WHERE id=? LIMIT 1;
 
 --name: exists_wallet
 SELECT 1 FROM account.wallet WHERE id=?;
@@ -28,7 +28,7 @@ DELETE FROM account.wallet WHERE id=?;
 INSERT INTO assets.token VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
 
 --name: get_token
-SELECT * FROM assets.token WHERE id = ?;
+SELECT * FROM assets.token WHERE id = ? LIMIT 1;
 
 --name: exists_token
 SELECT 1 FROM assets.token WHERE id = ?;
@@ -131,14 +131,14 @@ SELECT id, hash FROM blockchain.round ORDER BY id DESC LIMIT 1;
 --name: insert_validator
 INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14);
 
--- name: get_players
+--name: get_players
 SELECT * FROM blockchain.validator WHERE failures < 6;
 
 --name: get_validator
-SELECT * FROM blockchain.validator WHERE id = ?1;
+SELECT * FROM blockchain.validator WHERE id = ? LIMIT 1;
 
 --name: exists_validator
-SELECT 1 FROM blockchain.validator WHERE id = ?1;
+SELECT 1 FROM blockchain.validator WHERE id = ? LIMIT 1;
 
 --name: exists_host_validator
 SELECT 1 FROM blockchain.validator WHERE hostname = ?1;

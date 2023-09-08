@@ -16,7 +16,7 @@ DELETE FROM msg_block WHERE creator = ?1 AND height = ?2;
 INSERT INTO cluster.nodes VALUES(?1,?2,?3,?4,?5,?6,?7);
 
 --name: get_node
-SELECT * FROM cluster.nodes WHERE id=?;
+SELECT * FROM cluster.nodes WHERE id=? LIMIT 1;
 
 --name: all_nodes
 SELECT * FROM cluster.nodes;

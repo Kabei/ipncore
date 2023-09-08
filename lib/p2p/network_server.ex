@@ -24,7 +24,7 @@ defmodule Ippan.NetworkServer do
 
         {:continue, %{id: id, socket: tcp_socket, sharedkey: sharedkey}, timeout}
 
-      :error ->
+      _ ->
         {:close, state}
     end
   end

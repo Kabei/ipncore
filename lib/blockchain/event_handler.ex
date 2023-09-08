@@ -48,7 +48,7 @@ defmodule Ippan.EventHandler do
   end
 
   defp insert_deferred(
-         {{_key, _type} = msg_key, hash, timestamp, _args, _valdiator_id, _round} = msg
+         {{_key, _type} = msg_key, hash, timestamp, _args, _validator_id, _round} = msg
        ) do
     case :ets.lookup(:dtx, msg_key) do
       [] ->

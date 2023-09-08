@@ -180,7 +180,7 @@ defmodule BlockTimer do
           main: {conn, stmts},
           last: last_round,
           min_votes: min_votes,
-          total: total_valdiators
+          total: total_validators
         } = state
       ) do
     validator =
@@ -190,7 +190,7 @@ defmodule BlockTimer do
       last_round.time > time ->
         :error
 
-      who_is_on_duty(id, total_valdiators) != creator_id ->
+      who_is_on_duty(id, total_validators) != creator_id ->
         :error
 
       EnvStore.blocks_per_round() <= length(blocks) ->

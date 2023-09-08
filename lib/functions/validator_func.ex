@@ -99,7 +99,7 @@ defmodule Ippan.Func.Validator do
 
   @spec delete(Source.t(), term) :: result()
   def delete(%{id: account_id, conn: conn, dets: dets, stmts: stmts}, id) do
-    validator = SqliteStore.lookup_map(:validator, conn, stmts, "get_valdiator", id, Validator)
+    validator = SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", id, Validator)
 
     if validator.stake > 0 do
       BalanceStore.income(dets, {account_id, @token}, validator.stake)

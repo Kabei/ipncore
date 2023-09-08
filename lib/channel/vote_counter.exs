@@ -188,7 +188,7 @@ defmodule VoteCounter do
   def handle_cast({:validators, n}, %{validators: validators} = state) do
     minimum = calc_minimum(validators)
 
-    {:noreply, %{state | valdiators: validators + n, minimum: minimum}}
+    {:noreply, %{state | validators: validators + n, minimum: minimum}}
   end
 
   def handle_cast({:snapshot, %{round: round} = _data}, state) do

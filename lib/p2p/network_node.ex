@@ -19,8 +19,8 @@ defmodule Ippan.NetworkNode do
   def fetch(id) do
     SqliteStore.lookup_map(
       :validator,
-      :persistent_term.get(:net_conn),
-      :persistent_term.get(:net_stmt),
+      :persistent_term.get(:asset_conn),
+      :persistent_term.get(:asset_stmt),
       "get_validator",
       id,
       Validator

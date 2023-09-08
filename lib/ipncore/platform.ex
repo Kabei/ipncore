@@ -5,10 +5,8 @@ defmodule Platform do
   @token Application.compile_env(:ipncore, :token)
 
   def start do
-    vid = Application.get_env(:ipncore, :vid)
     conn = :persistent_term.get(:asset_conn)
     stmts = :persistent_term.get(:asset_stmt)
-    :persistent_term.put(:vid, vid)
 
     case SqliteStore.lookup_map(:token, conn, stmts, "get_token", @token, Token) do
       nil ->
@@ -17,8 +15,6 @@ defmodule Platform do
       token ->
         :persistent_term.put(:owner, token.owner)
     end
-
-    %{vid: vid}
   end
 
   defp load_genesis_file(conn, stmts) do

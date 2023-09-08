@@ -3,9 +3,6 @@ defmodule Ippan.ClusterNode do
   alias Ippan.{LocalNode, Network}
   require SqliteStore
 
-  # @max_block_data_size Application.compile_env(:ipncore, :max_block_data_size)
-  # @block_extension Application.compile_env(:ipncore, :block_extension)
-
   use Network,
     app: :ipncore,
     name: :cluster,
@@ -89,7 +86,6 @@ defmodule Ippan.ClusterNode do
   def handle_request(_method, _data, _state), do: "not found"
 
   @impl Network
-
   def handle_message(_event, _data, _state), do: :ok
 
   # defp check_table_size do

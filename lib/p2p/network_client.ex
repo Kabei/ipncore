@@ -4,6 +4,7 @@ defmodule Ippan.NetworkClient do
   alias Ippan.Utils
   require Logger
 
+  @id :vid
   @adapter :gen_tcp
   @node Ippan.NetworkNode
   @ping_interval 45_000
@@ -43,11 +44,12 @@ defmodule Ippan.NetworkClient do
            state
        ) do
     retry = Keyword.get(opts, :retry, 0)
+    from_id = :persistent_term.get(@id)
 
     with {:ok, ip_addr} <- Utils.getaddr(hostname),
          {:ok, socket} <- @adapter.connect(ip_addr, port, @opts),
          false <- @node.alive?(node_id) do
-      case P2P.client_handshake(socket, node_id, net_pubkey, :persistent_term.get(:privkey)) do
+      case P2P.client_handshake(socket, from_id, net_pubkey, :persistent_term.get(:privkey)) do
         {:ok, sharedkey} ->
           :ok = :inet.setopts(socket, active: true)
 

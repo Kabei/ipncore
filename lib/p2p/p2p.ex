@@ -12,16 +12,16 @@ defmodule Ippan.P2P do
 
   @spec client_handshake(
           socket :: term,
-          node_id :: integer(),
+          from_id :: integer() | binary(),
           kem_pubkey :: binary(),
           privkey :: binary()
         ) ::
           {:ok, sharekey :: binary} | {:error, term()} | :halt
-  def client_handshake(socket, node_id, kem_pubkey, privkey) do
+  def client_handshake(socket, from_id, kem_pubkey, privkey) do
     {:ok, ciphertext, sharedkey} = NtruKem.enc(kem_pubkey)
     {:ok, signature} = Cafezinho.Impl.sign(sharedkey, privkey)
 
-    data = %{"id" => node_id, "sig" => signature}
+    data = %{"id" => from_id, "sig" => signature}
     authtext = encode(data, sharedkey)
     @adapter.controlling_process(socket, self())
     @adapter.send(socket, "HI" <> @version <> ciphertext <> authtext)

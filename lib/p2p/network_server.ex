@@ -7,7 +7,7 @@ defmodule Ippan.NetworkServer do
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
     # Logger.debug("handle_connection #{inspect(state)}")
-    tcp_socket = socket.transport_module
+    tcp_socket = socket.socket
 
     case P2P.server_handshake(
            tcp_socket,
@@ -31,6 +31,7 @@ defmodule Ippan.NetworkServer do
 
   @impl ThousandIsland.Handler
   def handle_data("PING", _socket, state) do
+    # Logger.debug("PING")
     {:continue, state}
   end
 
@@ -46,40 +47,20 @@ defmodule Ippan.NetworkServer do
     Logger.debug("handle close socket")
 
     NetworkNode.on_disconnect(state)
+    {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_shutdown(_socket, state) do
     Logger.debug("handle shutdown")
-
     NetworkNode.on_disconnect(state)
+    {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_timeout(_socket, state) do
     Logger.debug("handle timeout")
-
     NetworkNode.on_disconnect(state)
+    {:close, state}
   end
-
-  # defp handle_event("block_msg", from, data) do
-  #   block = MapUtil.to_existing_atoms(data)
-  #   send(VoteCounter, {"new_recv", from, true, block})
-  # end
-
-  # defp handle_event(_, _, _), do: :ok
-
-  # defp handle_request("get_state") do
-  #   BlockTimer.get_state()
-  # end
-
-  # defp handle_request(_), do: :not_found
-
-  # defp handle_request("get_block_messages", %{"round" => _round}) do
-  #   :ok
-  # end
-
-  # defp handle_request(_, _) do
-  #   :not_found
-  # end
 end

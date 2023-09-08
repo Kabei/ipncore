@@ -83,6 +83,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       name: "Speedy",
       net_pubkey: npk,
       owner: address,
+      port: 5815,
       pubkey: pk,
       stake: 0,
       updated_at: timestamp
@@ -98,6 +99,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       name: "Raptor",
       net_pubkey: npk,
       owner: address,
+      port: 5815,
       pubkey: pk,
       stake: 0,
       updated_at: timestamp

@@ -23,6 +23,7 @@ defmodule Ippan.P2P do
 
     data = %{"id" => node_id, "sig" => signature}
     authtext = encode(data, sharedkey)
+    @adapter.controlling_process(socket, self())
     @adapter.send(socket, "HI" <> @version <> ciphertext <> authtext)
 
     case @adapter.recv(socket, 0, @handshake_timeout) do
@@ -48,10 +49,10 @@ defmodule Ippan.P2P do
             %{"id" => id, "sig" => signature} = decode!(encodeText, sharedkey)
 
             case fun.(id) do
-              %{name: name, hostname: hostname, pubkey: clientPubkey, net_pubkey: net_pubkey} ->
+              %{hostname: hostname, pubkey: clientPubkey, net_pubkey: net_pubkey} ->
                 case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
                   :ok ->
-                    Logger.debug("[Server connection] #{name} connected")
+                    Logger.debug("[Server connection] #{id} connected")
                     @adapter.send(socket, "WEL")
 
                     {:ok, id, hostname, sharedkey, net_pubkey, @server_ping_timeout}
@@ -62,7 +63,7 @@ defmodule Ippan.P2P do
                 end
 
               _ ->
-                Logger.debug("validator not exists #{id}")
+                Logger.debug("Node not exists: #{id}")
                 :error
             end
 
@@ -71,9 +72,9 @@ defmodule Ippan.P2P do
             :error
         end
 
-      _error ->
+      error ->
         Logger.debug("Invalid handshake")
-        # IO.inspect(error)
+        IO.inspect(error)
         :error
     end
   end

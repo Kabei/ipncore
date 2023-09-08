@@ -1,4 +1,5 @@
 defmodule Ippan.Func.Validator do
+  alias Ippan.ClusterNode
   alias Phoenix.PubSub
   alias Ippan.Validator
   alias Ippan.Request.Source
@@ -16,6 +17,7 @@ defmodule Ippan.Func.Validator do
         %{id: account_id, conn: conn, dets: dets, stmts: stmts, timestamp: timestamp},
         owner_id,
         hostname,
+        port,
         name,
         pubkey,
         net_pubkey,
@@ -47,6 +49,7 @@ defmodule Ippan.Func.Validator do
               %Validator{
                 id: next_id,
                 hostname: hostname,
+                port: port,
                 name: name,
                 pubkey: pubkey,
                 net_pubkey: net_pubkey,
@@ -60,7 +63,10 @@ defmodule Ippan.Func.Validator do
               |> Map.merge(MapUtil.to_atoms(map_filter))
 
             SqliteStore.step(conn, stmts, "insert_doamin", Validator.to_list(validator))
-            PubSub.broadcast(@pubsub_server, "validator", {"new", validator})
+
+            event = %{"event" => "validator.new", "data" => validator}
+            PubSub.broadcast(@pubsub_server, @topic, event)
+            ClusterNode.broadcast(event)
         end
     end
   end
@@ -84,7 +90,10 @@ defmodule Ippan.Func.Validator do
           |> Map.put(:updated_at, timestamp)
 
         SqliteStore.update(conn, @table_name, map, id: id)
-        PubSub.broadcast(@pubsub_server, @topic, {"update", id, map})
+
+        event = %{"event" => "validator.update", "data" => Map.put(map, :id, id)}
+        PubSub.broadcast(@pubsub_server, @topic, event)
+        ClusterNode.broadcast(event)
     end
   end
 
@@ -98,6 +107,8 @@ defmodule Ippan.Func.Validator do
 
     SqliteStore.step(conn, stmts, "delete_validator", [id])
 
-    PubSub.broadcast(@pubsub_server, @topic, {"delete", id})
+    event = %{"event" => "validator.delete", "data" => id}
+    PubSub.broadcast(@pubsub_server, @topic, event)
+    ClusterNode.broadcast(event)
   end
 end

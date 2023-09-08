@@ -7,7 +7,7 @@ defmodule NetStore do
 
   @creations %{
     "network" => SQL.readFile!("lib/sql/network.sql"),
-    "local" => SQL.readFile!("lib/sql/local.sql")
+    "cluster" => SQL.readFile!("lib/sql/cluster.sql")
   }
 
   @statements SQL.readStmtFile!("lib/sql/network.stmt.sql")
@@ -17,7 +17,7 @@ defmodule NetStore do
 
   # databases
   @attaches %{
-    "local" => "local.db"
+    "cluster" => "cluster.db"
   }
 
   @name "network"
@@ -38,10 +38,11 @@ defmodule NetStore do
     :ok = SqliteStore.check_version(conn, @alter, @version)
     # prepare statements
     {:ok, stmts} = SqliteStore.prepare_statements(conn, @statements)
-    SqliteStore.begin(conn)
     # put in global conn and statements
     :persistent_term.put(@key_conn, conn)
     :persistent_term.put(@key_stmt, stmts)
+    # begin tx
+    SqliteStore.begin(conn)
 
     {:ok, %{}, :hibernate}
   end

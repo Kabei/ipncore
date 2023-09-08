@@ -13,7 +13,13 @@ DELETE FROM msg_block WHERE creator = ?1 AND height = ?2;
 
 
 --name: insert_node
-INSERT OR REPLACE INTO local.cluster VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10);
+INSERT INTO cluster.nodes VALUES(?1,?2,?3,?4,?5,?6,?7);
 
 --name: get_node
-SELECT * FROM local.cluster WHERE id=?;
+SELECT * FROM cluster.nodes WHERE id=?;
+
+--name: all_nodes
+SELECT * FROM cluster.nodes;
+
+--name: delete_nodes
+DELETE FROM cluster.nodes;

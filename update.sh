@@ -5,3 +5,4 @@ git pull
 
 mix deps.get
 mix deps.clean --unlock --unused
+mix compile --force

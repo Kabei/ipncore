@@ -13,4 +13,6 @@ defmodule Guards do
   defguard is_wallet_address(value) when byte_size(value) == 20
 
   defguard between_size(x, n1, n2) when byte_size(x) >= n1 and byte_size(x) <= n2
+
+  defguard check_port(x) when x in 1000..65535
 end

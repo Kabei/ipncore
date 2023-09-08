@@ -81,12 +81,12 @@ defmodule SqliteStore do
     end
   end
 
-  defmacro fetch(conn, stmts, name, id) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, id: id] do
-      case Sqlite3NIF.step(conn, stmts, [id]) do
-        {:row, []} -> nil
+  defmacro fetch(conn, stmts, name, args, default \\ nil) do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args, default: default] do
+      case Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args) do
+        {:row, []} -> default
         {:row, data} -> data
-        _ -> nil
+        _ -> default
       end
     end
   end

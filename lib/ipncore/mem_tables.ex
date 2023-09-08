@@ -2,16 +2,44 @@ defmodule MemTables do
   use GenServer
 
   # @set_opts [:set, :public, read_concurrency: true, write_concurrency: true]
-  @set_named_opts [:set, :named_table, :public, read_concurrency: true, write_concurrency: true]
+  @set_named_concurrent_opts [
+    :set,
+    :named_table,
+    :public,
+    read_concurrency: true,
+    write_concurrency: true
+  ]
+  @set_named_opts [:set, :named_table, :public, read_concurrency: true, write_concurrency: false]
+  @dbag_named_opts [
+    :duplicate_bag,
+    :named_table,
+    :public,
+    read_concurrency: true,
+    write_concurrency: true
+  ]
 
-  @tables_name %{dtx: "dtx", wallet: "wallet", token: "token", validator: "validator", env: "env"}
+  @tables_name %{
+    hash: "hash",
+    msg: "msg",
+    dmsg: "dmsg",
+    dtx: "dtx",
+    # cache
+    wallet: "wallet",
+    token: "token",
+    validator: "validator",
+    env: "env"
+  }
 
   @tables_opt %{
-    dtx: @set_named_opts,
-    wallet: @set_named_opts,
-    validator: @set_named_opts,
-    token: @set_named_opts,
-    env: @set_named_opts
+    msg: @dbag_named_opts,
+    dmsg: @dbag_named_opts,
+    hash: @set_named_opts,
+    dtx: @set_named_concurrent_opts,
+    # cache
+    wallet: @set_named_concurrent_opts,
+    validator: @set_named_concurrent_opts,
+    token: @set_named_concurrent_opts,
+    env: @set_named_concurrent_opts
   }
 
   @tables Map.to_list(@tables_name)

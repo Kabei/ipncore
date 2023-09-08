@@ -1,30 +1,24 @@
-defmodule LocalCluster do
+defmodule Ippan.LocalNode do
   @behaviour Ippan.Struct
 
   @type t :: %__MODULE__{
           id: binary,
           hostname: charlist(),
           port: non_neg_integer(),
-          name: binary | nil,
           role: binary | nil,
           pubkey: binary,
           net_pubkey: binary,
-          avatar: binary | nil,
-          created_at: non_neg_integer(),
-          updated_at: non_neg_integer()
+          avatar: binary | nil
         }
 
   defstruct [
     :id,
     :hostname,
-    :name,
+    :port,
     :role,
     :pubkey,
     :net_pubkey,
-    :avatar,
-    :created_at,
-    :updated_at,
-    port: 4848
+    :avatar
   ]
 
   @impl true
@@ -33,13 +27,10 @@ defmodule LocalCluster do
       x.id,
       x.hostname,
       x.port,
-      x.name,
       x.role,
       x.pubkey,
       x.net_pubkey,
-      x.avatar,
-      x.created_at,
-      x.updated_at
+      x.avatar
     ]
   end
 
@@ -58,25 +49,19 @@ defmodule LocalCluster do
         id,
         hostname,
         port,
-        name,
         role,
         pubkey,
         net_pubkey,
-        avatar,
-        created_at,
-        updated_at
+        avatar
       ]) do
     %{
       id: id,
       hostname: hostname,
       port: port,
-      name: name,
       role: role,
       pubkey: pubkey,
       net_pubkey: net_pubkey,
-      avatar: avatar,
-      created_at: created_at,
-      updated_at: updated_at
+      avatar: avatar
     }
   end
 

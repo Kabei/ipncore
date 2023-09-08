@@ -3,6 +3,7 @@ defmodule Ippan.Validator do
   @type t :: %__MODULE__{
           id: non_neg_integer(),
           hostname: String.t(),
+          port: integer(),
           name: String.t(),
           owner: binary(),
           pubkey: binary(),
@@ -19,6 +20,7 @@ defmodule Ippan.Validator do
   defstruct [
     :id,
     :hostname,
+    :port,
     :name,
     :owner,
     :pubkey,
@@ -33,7 +35,7 @@ defmodule Ippan.Validator do
   ]
 
   @impl true
-  def editable, do: ~w(hostname name avatar pubkey net_pubkey fee fee_type owner)
+  def editable, do: ~w(hostname port name avatar pubkey net_pubkey fee fee_type owner)
   @impl true
   def optionals, do: ~w(avatar)
 
@@ -42,6 +44,7 @@ defmodule Ippan.Validator do
     [
       x.id,
       x.hostname,
+      x.port,
       x.name,
       x.owner,
       x.pubkey,
@@ -70,6 +73,7 @@ defmodule Ippan.Validator do
   def list_to_map([
         id,
         hostname,
+        port,
         name,
         owner,
         pubkey,
@@ -85,6 +89,7 @@ defmodule Ippan.Validator do
     %{
       id: id,
       hostname: hostname,
+      port: port,
       name: name,
       owner: owner,
       avatar: avatar,

@@ -23,7 +23,7 @@ config :ipncore, :network,
     send_timeout_close: true,
     reuseaddr: true,
     packet: 2,
-    packet_size: 16_000
+    packet_size: 64_000
   ]
 
 # Cluster setup

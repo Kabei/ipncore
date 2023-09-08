@@ -8,9 +8,7 @@ defmodule Ippan.ClusterSup do
     result =
       case Process.whereis(@module) do
         nil ->
-          DynamicSupervisor.start_link(@module, [{ThousandIsland, opts}] ++ children,
-            name: @module
-          )
+          DynamicSupervisor.start_link(@module, children, name: @module)
 
         pid ->
           {:ok, pid}

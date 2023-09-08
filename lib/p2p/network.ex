@@ -1,8 +1,10 @@
 defmodule Ippan.Network do
+  require Logger
   @callback on_connect(node_id :: term(), map :: map()) :: any()
   @callback on_disconnect(state :: term()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
   @callback connect(node :: term(), opts :: keyword()) :: term() | {:error, term()}
+  @callback connect_async(node :: term(), opts :: keyword()) :: any()
   @callback disconnect(state :: term()) :: :ok
   @callback fetch(id :: term()) :: map() | nil
   @callback info(node_id :: term()) :: map() | nil
@@ -10,13 +12,32 @@ defmodule Ippan.Network do
   @callback alive?(node :: term()) :: boolean()
   @callback count() :: pos_integer()
   @callback cast(node :: term(), message :: term) :: :ok | :disconnect
-  @callback call(node :: term(), message :: term) :: {:ok, term()} | {:error, term()}
+  @callback call(
+              node_id :: term(),
+              method :: binary,
+              message :: term,
+              timeout :: integer(),
+              retry :: integer()
+            ) :: {:ok, term()} | {:error, term()}
   @callback broadcast(message :: term()) :: :ok
   @callback broadcast(message :: term(), role :: binary()) :: :ok
   @callback broadcast_except(message :: term(), ids :: list()) :: :ok
   @callback handle_request(method :: binary(), data :: map(), state :: term()) :: term()
   @callback handle_message(event :: binary(), data :: term(), state :: term()) :: any()
-  @optional_callbacks [broadcast: 2, broadcast_except: 2, handle_request: 3, handle_message: 3]
+  # nodes
+  @callback add_node(node :: term()) :: term()
+  @callback update_node(node_id :: term(), args :: term()) :: term()
+  @callback delete_node(node_id :: term()) :: term()
+
+  @optional_callbacks [
+    broadcast: 2,
+    broadcast_except: 2,
+    handle_request: 3,
+    handle_message: 3,
+    add_node: 1,
+    update_node: 2,
+    delete_node: 1
+  ]
 
   defmacro __using__(opts) do
     quote bind_quoted: [opts: opts], location: :keep do
@@ -26,6 +47,7 @@ defmodule Ippan.Network do
       alias Phoenix.PubSub
       alias Ippan.P2P
       require SqliteStore
+      require Logger
 
       @behaviour Ippan.Network
 
@@ -34,11 +56,10 @@ defmodule Ippan.Network do
       @otp_app opts[:app]
       @table opts[:table]
       @name opts[:name]
-      @opts opts[:opts]
       @pubsub opts[:pubsub]
       @topic opts[:topic]
       @supervisor opts[:sup]
-      @time_to_reconnect 1_000
+      @default_connect_opts opts[:conn_opts] || []
 
       def start_link(args) do
         GenServer.start_link(@module, args, hibernate_after: 5_000, name: __MODULE__)
@@ -46,14 +67,14 @@ defmodule Ippan.Network do
 
       @impl true
       def init(_args) do
-        case :ets.whereis(@module) do
+        case :ets.whereis(@table) do
           :undefined ->
-            :ets.new(@module, [
+            :ets.new(@table, [
               :set,
               :named_table,
               :public,
-              read_concurrency: true,
-              write_concurrency: true
+              read_concurrency: false,
+              write_concurrency: false
             ])
 
           ref ->
@@ -64,23 +85,31 @@ defmodule Ippan.Network do
 
         PubSub.subscribe(@pubsub, @topic)
 
-        {:ok, %{sup: sup}, :hibernate}
+        {:ok, %{sup: sup}, {:continue, :init}}
       end
 
       @impl true
-      def handle_info({node_id, msg}, state) do
-        %{sharedkey: sharedkey, socket: socket} = info(node_id)
-        @adapter.send(socket, encode(msg, sharedkey))
-        {:noreply, state}
+      def handle_continue(:init, state) do
+        on_init(state)
+        {:noreply, state, :hibernate}
       end
 
-      def handle_info(msg, state) do
-        for %{sharedkey: sharedkey, socket: socket} <- list() do
-          @adapter.send(socket, encode(msg, sharedkey))
-        end
+      def on_init(_), do: :ok
 
-        {:noreply, state}
-      end
+      # @impl true
+      # def handle_info({node_id, msg}, state) do
+      #   %{sharedkey: sharedkey, socket: socket} = info(node_id)
+      #   @adapter.send(socket, encode(msg, sharedkey))
+      #   {:noreply, state}
+      # end
+
+      # def handle_info(msg, state) do
+      #   for %{sharedkey: sharedkey, socket: socket} <- list() do
+      #     @adapter.send(socket, encode(msg, sharedkey))
+      #   end
+
+      #   {:noreply, state}
+      # end
 
       @impl true
       def terminate(_reason, %{sup: sup}) do
@@ -106,95 +135,65 @@ defmodule Ippan.Network do
       end
 
       @impl Network
-      def on_disconnect(%{id: node_id, opts: opts}) do
-        reconnect = Keyword.get(opts, :reconnect, false)
+      def on_disconnect(%{id: node_id}) do
+        :ets.delete(@table, node_id)
+      end
 
-        if reconnect do
-          [{_, node}] = :ets.lookup(@table, node_id)
-          :ets.delete(@table, node_id)
-          connect(node, opts)
-        else
+      def on_disconnect(%{id: node_id, socket: socket, opts: opts}) do
+        reconnect = Keyword.get(opts, :reconnect, false)
+        [{_, node}] = :ets.lookup(@table, node_id)
+
+        if socket == node.socket do
           :ets.delete(@table, node_id)
         end
+
+        if reconnect do
+          connect(node, opts)
+        end
       end
+
+      def on_disconnect(_), do: :ok
 
       @impl Network
       def on_message(packet, %{sharedkey: sharedkey} = state) do
         case decode!(packet, sharedkey) do
-          %{"_id" => id, "data" => data} ->
-            PubSub.local_broadcast(@pubsub, "call:#{id}", data)
-
+          # question
           %{"_id" => id, "method" => method, "data" => data} ->
             response = handle_request(method, data, state)
             bin = encode(%{"_id" => id, "data" => response}, sharedkey)
             @adapter.send(state.socket, bin)
 
+          # answer
+          %{"_id" => id, "data" => data} ->
+            PubSub.local_broadcast(@pubsub, "call:#{id}", data)
+
+          # event message (no return answer)
           %{"event" => event, "data" => data} ->
             handle_message(event, data, state)
 
-          _ ->
+          m ->
+            Logger.debug(m)
             :ok
         end
       end
 
       @impl Network
       def connect(
-            %{id: node_id, hostname: hostname, net_pubkey: net_pubkey} = node,
-            opts \\ []
+            %{id: node_id, hostname: hostname, port: port, net_pubkey: net_pubkey} = node,
+            opts \\ @default_connect_opts
           ) do
-        retry = Keyword.get(opts, :retry, 0)
+        @supervisor.start_child(
+          Map.merge(node, %{
+            conn: :persistent_term.get(:asset_conn),
+            stmts: :persistent_term.get(:asset_stmt),
+            opts: opts
+          })
+        )
+      end
 
-        {:ok, ip_addr} = Utils.getaddr(hostname)
-        port = Application.get_env(@otp_app, @name)[:port]
-        {:ok, socket} = @adapter.connect(ip_addr, port, @opts)
-
-        unless alive?(node_id) do
-          case P2P.client_handshake(socket, node_id, net_pubkey, :persistent_term.get(:privkey)) do
-            {:ok, sharedkey} ->
-              {:ok, pid} =
-                @supervisor.start_child(%{
-                  conn: :persistent_term.get(:asset_conn),
-                  stmts: :persistent_term.get(:asset_stmt),
-                  id: node_id,
-                  sharedkey: sharedkey,
-                  socket: socket,
-                  opts: opts
-                })
-
-              :gen_tcp.controlling_process(socket, pid)
-              :ok = :inet.setopts(socket, active: true)
-
-              :ets.insert(
-                @table,
-                {node_id,
-                 %{
-                   socket: socket,
-                   sharedkey: sharedkey,
-                   hostname: hostname,
-                   net_pubkey: net_pubkey
-                 }}
-              )
-
-            error ->
-              cond do
-                error == :halt ->
-                  error
-
-                retry == :infinity ->
-                  :timer.sleep(@time_to_reconnect)
-                  connect(node, opts)
-
-                retry > 0 ->
-                  :timer.sleep(@time_to_reconnect)
-                  connect(node, Keyword.put(opts, :retry, retry - 1))
-
-                true ->
-                  error
-              end
-          end
-        else
-          {:ok, info(node_id)}
-        end
+      @impl Network
+      def connect_async(node, opts \\ @default_connect_opts) do
+        connect(node, Keyword.put(opts, :async, true))
       end
 
       @impl Network
@@ -240,25 +239,17 @@ defmodule Ippan.Network do
 
       @impl Network
       def call(node_id, method, data \\ %{}, timeout \\ 10_000, retry \\ 0) do
-        id = :rand.bytes(10)
+        id = :rand.bytes(8)
         topic = "call:#{id}"
         message = %{"_id" => id, "method" => method, "data" => data}
-        %{sharedkey: sharedkey, socket: socket} = info(node_id)
 
-        PubSub.subscribe(@pubsub, topic)
-        @adapter.send(socket, encode(message, sharedkey))
+        case info(node_id) do
+          nil ->
+            {:error, :not_exists}
 
-        receive do
-          result ->
-            {:ok, result}
-        after
-          timeout ->
-            if retry == 0 do
-              PubSub.unsubscribe(@pubsub, topic)
-              {:error, :timeout}
-            else
-              call_retry(socket, message, sharedkey, topic, timeout, retry - 1)
-            end
+          %{sharedkey: sharedkey, socket: socket} ->
+            PubSub.subscribe(@pubsub, topic)
+            call_retry(socket, message, sharedkey, topic, timeout, retry)
         end
       end
 
@@ -266,6 +257,9 @@ defmodule Ippan.Network do
         @adapter.send(socket, encode(message, sharedkey))
 
         receive do
+          m = "not found" ->
+            {:error, m}
+
           result ->
             {:ok, result}
         after
@@ -297,7 +291,10 @@ defmodule Ippan.Network do
         end)
       end
 
-      defoverridable on_connect: 2, on_disconnect: 1, on_message: 2
+      defoverridable on_init: 1,
+                     on_connect: 2,
+                     on_disconnect: 1,
+                     on_message: 2
     end
   end
 end

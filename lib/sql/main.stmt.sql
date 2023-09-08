@@ -103,7 +103,7 @@ DELETE FROM blockchain.block WHERE creator=? AND height=?;
 SELECT count(1) FROM blockchain.block WHERE creator=?;
 
 --name: last_block
-SELECT * FROM blockchain.block WHERE creator=? ORDER BY height DESC;  
+SELECT height, hash FROM blockchain.block WHERE creator=? ORDER BY height DESC;  
 
 --name: last_block_by_creator
 SELECT * FROM blockchain.block WHERE creator = ? ORDER BY height DESC;
@@ -118,8 +118,18 @@ SELECT hash FROM blockchain.block WHERE round = ?1 ORDER BY creator ASC;
 SELECT count(1) FROM blockchain.block WHERE round = ?;
 
 
+--name: insert_round
+INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5);
+
+--name: get_round
+SELECT * FROM blockchain.round WHERE id = ? LIMIT 1;
+
+--name: last_round
+SELECT id, hash FROM blockchain.round ORDER BY id DESC LIMIT 1;
+
+
 --name: insert_validator
-INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
+INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14);
 
 -- name: get_players
 SELECT * FROM blockchain.validator WHERE failures < 6;

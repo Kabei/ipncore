@@ -20,6 +20,9 @@ defmodule Ipncore.Application do
     # load falcon keys
     load_keys()
 
+    cluster_opts = Application.get_env(:ipncore, :cluster)
+    network_opts = Application.get_env(:ipncore, :network)
+
     # services
     children =
       [
@@ -28,6 +31,8 @@ defmodule Ipncore.Application do
         MainStore,
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
         Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
+        {ThousandIsland, cluster_opts},
+        {ThousandIsland, network_opts},
         ClusterNode,
         NetworkNode,
         {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
@@ -42,8 +47,20 @@ defmodule Ipncore.Application do
   end
 
   defp start_node do
-    :persistent_term.put(:node, System.get_env("NODE"))
-    :persistent_term.put(:vid, String.to_integer(System.get_env("VID", "0")))
+    vid = System.get_env("VID")
+    name = System.get_env("NAME")
+
+    cond do
+      is_nil(vid) ->
+        raise IppanStartUpError, "variable VID (ValidatorID) is missing"
+
+      is_nil(name) ->
+        raise IppanStartUpError, "variable NAME is missing"
+
+      true ->
+        :persistent_term.put(:name, name)
+        :persistent_term.put(:vid, String.to_integer(vid))
+    end
   end
 
   defp load_keys do

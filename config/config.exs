@@ -20,6 +20,7 @@ config :ipncore, :version, 0
 config :ipncore, :max_block_size, 10_485_760
 config :ipncore, :max_block_data_size, 10_000_000
 config :ipncore, :block_interval, :timer.seconds(5)
+config :ipncore, :round_timeout, :timer.seconds(10)
 config :ipncore, :block_extension, "mpk"
 config :ipncore, :note_max_size, 255
 config :ipncore, :max_tx_amount, 1_000_000_000_000_000
@@ -34,7 +35,7 @@ config :ipncore, :p2p_client, [
   :binary,
   reuseaddr: true,
   packet: 2,
-  packet_size: 16_000
+  packet_size: 64_000
 ]
 
 config :ipncore, json: Jason

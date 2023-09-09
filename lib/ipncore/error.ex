@@ -17,3 +17,7 @@ end
 defmodule IppanCriticalError do
   defexception message: "Error not defined"
 end
+
+defmodule IppanRedirectError do
+  defexception message: "Redirect to correct validator"
+end

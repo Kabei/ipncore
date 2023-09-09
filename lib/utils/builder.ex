@@ -249,6 +249,73 @@ defmodule Builder do
     {body, sig}
   end
 
+  # Builder.validator_new(sk, address, "ippan.net", 5815, address, "net core", pkv, 1, 5.0, 100, %{"avatar" => "https://avatar.com"}) |> Builder.build_request()
+  def validator_new(
+        secret,
+        address,
+        hostname,
+        port,
+        owner,
+        name,
+        pubkey,
+        net_pubkey,
+        fee_type,
+        fee,
+        stake,
+        opts \\ %{}
+      )
+      when is_float(fee) and fee_type in 0..2 do
+    body =
+      [
+        100,
+        :os.system_time(:millisecond),
+        address,
+        hostname,
+        port,
+        owner,
+        name,
+        Fast64.encode64(pubkey),
+        Fast64.encode64(net_pubkey),
+        fee_type,
+        fee,
+        stake,
+        opts
+      ]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Builder.validator_update(sk, address, 1, %{"fee" => 7.0}) |> Builder.build_request()
+  def validator_update(secret, address, id, params) do
+    body =
+      [101, :os.system_time(:millisecond), address, id, params]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  # Builder.validator_delete(sk, address, 1) |> Builder.build_request()
+  def validator_delete(secret, address, id) do
+    body =
+      [102, :os.system_time(:millisecond), address, id]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
   # Builder.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
   # Builder.token_new(sk, address, "USD", address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Builder.build_request
   def token_new(
@@ -313,38 +380,9 @@ defmodule Builder do
     {body, sig}
   end
 
-  # Builder.validator_new(sk, address, "ippan.net", 5815, address, "net core", pkv, 1, 5.0, 100, %{"avatar" => "https://avatar.com"}) |> Builder.build_request()
-  def validator_new(
-        secret,
-        address,
-        hostname,
-        port,
-        owner,
-        name,
-        pubkey,
-        net_pubkey,
-        fee_type,
-        fee,
-        stake,
-        opts \\ %{}
-      )
-      when is_float(fee) and fee_type in 0..2 do
+  def balance_lock(secret, address, to, token_id, amount) do
     body =
-      [
-        100,
-        :os.system_time(:millisecond),
-        address,
-        hostname,
-        port,
-        owner,
-        name,
-        Fast64.encode64(pubkey),
-        Fast64.encode64(net_pubkey),
-        fee_type,
-        fee,
-        stake,
-        opts
-      ]
+      [250, :os.system_time(:millisecond), address, token_id, to, amount]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -354,23 +392,9 @@ defmodule Builder do
     {body, sig}
   end
 
-  # Builder.validator_update(sk, address, 1, %{"fee" => 7.0}) |> Builder.build_request()
-  def validator_update(secret, address, id, params) do
+  def balance_unlock(secret, address, to, token_id, amount) do
     body =
-      [101, :os.system_time(:millisecond), address, id, params]
-      |> Jason.encode!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(address, secret, hash)
-
-    {body, sig}
-  end
-
-  # Builder.validator_delete(sk, address, 1) |> Builder.build_request()
-  def validator_delete(secret, address, id) do
-    body =
-      [102, :os.system_time(:millisecond), address, id]
+      [251, :os.system_time(:millisecond), address, token_id, to, amount]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -512,30 +536,6 @@ defmodule Builder do
       ) do
     body =
       [403, :os.system_time(:millisecond), address, domain_name, days]
-      |> Jason.encode!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(address, secret, hash)
-
-    {body, sig}
-  end
-
-  def balance_lock(secret, address, token_id, to, amount) do
-    body =
-      [250, :os.system_time(:millisecond), address, token_id, to, amount]
-      |> Jason.encode!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(address, secret, hash)
-
-    {body, sig}
-  end
-
-  def balance_unlock(secret, address, token_id, to, amount) do
-    body =
-      [251, :os.system_time(:millisecond), address, token_id, to, amount]
       |> Jason.encode!()
 
     hash = hash_fun(body)

@@ -33,9 +33,10 @@ config :ipncore, :max_peers_conn, 20
 # P2P client
 config :ipncore, :p2p_client, [
   :binary,
+  active: false,
   reuseaddr: true,
-  packet: 2
-  # packet_size: 64_000
+  packet: 2,
+  packet_size: 64_000
 ]
 
 config :ipncore, json: Jason

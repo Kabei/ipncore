@@ -49,8 +49,6 @@ defmodule Ippan.NetworkClient do
     with {:ok, ip_addr} <- Utils.getaddr(hostname),
          {:ok, socket} <- @adapter.connect(ip_addr, port, @opts),
          false <- @node.alive?(node_id) do
-      IO.inspect(ip_addr)
-
       case P2P.client_handshake(socket, from_id, net_pubkey, :persistent_term.get(:privkey)) do
         {:ok, sharedkey} ->
           :ok = :inet.setopts(socket, active: true)
@@ -68,8 +66,7 @@ defmodule Ippan.NetworkClient do
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 
         error ->
-          IO.inspect("ERROR 2")
-          IO.inspect(error)
+          IO.inspect("ERROR 2 #{inspect(error)}")
           retry_connect(state, retry, error)
       end
     else
@@ -86,8 +83,6 @@ defmodule Ippan.NetworkClient do
   end
 
   defp retry_connect(state, retry, error) do
-    IO.inspect("retry #{inspect(error)}")
-
     cond do
       error == :halt ->
         IO.inspect(error)

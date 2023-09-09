@@ -35,6 +35,7 @@ defmodule Ippan.P2P do
         :halt
 
       error ->
+        @adapter.close(socket)
         error
     end
   end

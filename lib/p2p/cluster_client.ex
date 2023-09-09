@@ -122,7 +122,7 @@ defmodule Ippan.ClusterClient do
     Logger.debug("tcp_closed | #{id}")
     @adapter.close(socket)
     @node.on_disconnect(state)
-    {:stop, state}
+    {:stop, :normal, state}
   end
 
   if Mix.env() == :dev do

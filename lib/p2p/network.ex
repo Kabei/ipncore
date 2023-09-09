@@ -135,21 +135,20 @@ defmodule Ippan.Network do
       end
 
       @impl Network
-      def on_disconnect(%{id: node_id}) do
-        :ets.delete(@table, node_id)
+      def on_disconnect(%{id: node_id, socket: socket, opts: opts} = state) do
+        with [{_, node}] <- :ets.lookup(@table, node_id) do
+          if socket == node.socket do
+            :ets.delete(@table, node_id)
+          end
+        end
+
+        if Keyword.get(opts, :reconnect, false) do
+          connect(state, opts)
+        end
       end
 
-      def on_disconnect(%{id: node_id, socket: socket, opts: opts}) do
-        reconnect = Keyword.get(opts, :reconnect, false)
-        [{_, node}] = :ets.lookup(@table, node_id)
-
-        if socket == node.socket do
-          :ets.delete(@table, node_id)
-        end
-
-        if reconnect do
-          connect(node, opts)
-        end
+      def on_disconnect(%{id: node_id}) do
+        :ets.delete(@table, node_id)
       end
 
       def on_disconnect(_), do: :ok

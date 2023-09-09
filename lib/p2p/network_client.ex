@@ -111,7 +111,6 @@ defmodule Ippan.NetworkClient do
 
   def handle_info({:tcp, _socket, packet}, state) do
     @node.on_message(packet, state)
-
     {:noreply, state}
   end
 
@@ -119,7 +118,7 @@ defmodule Ippan.NetworkClient do
     Logger.debug("tcp_closed | #{id}")
     @adapter.close(socket)
     @node.on_disconnect(state)
-    {:stop, state}
+    {:stop, :normal, state}
   end
 
   if Mix.env() == :dev do
@@ -130,8 +129,9 @@ defmodule Ippan.NetworkClient do
   end
 
   @impl true
-  def terminate(_reason, %{tRef: tRef}) do
+  def terminate(_reason, %{tRef: tRef} = state) do
     :timer.cancel(tRef)
+    @node.on_disconnect(state)
   end
 
   def terminate(_reason, _state), do: :ok

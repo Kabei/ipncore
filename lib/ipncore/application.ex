@@ -11,13 +11,8 @@ defmodule Ipncore.Application do
   @impl true
   def start(_type, _args) do
     IO.puts("Starting application")
-    # start node
     start_node()
-
-    # create folders
     make_folders()
-
-    # load falcon keys
     load_keys()
 
     cluster_opts = Application.get_env(:ipncore, :cluster)

@@ -49,6 +49,8 @@ defmodule Ippan.NetworkClient do
     with {:ok, ip_addr} <- Utils.getaddr(hostname),
          {:ok, socket} <- @adapter.connect(ip_addr, port, @opts),
          false <- @node.alive?(node_id) do
+      IO.inspect(ip_addr)
+
       case P2P.client_handshake(socket, from_id, net_pubkey, :persistent_term.get(:privkey)) do
         {:ok, sharedkey} ->
           :ok = :inet.setopts(socket, active: true)
@@ -136,4 +138,6 @@ defmodule Ippan.NetworkClient do
   def terminate(_reason, %{tRef: tRef}) do
     :timer.cancel(tRef)
   end
+
+  def terminate(_reason, _state), do: :ok
 end

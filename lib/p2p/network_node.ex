@@ -12,7 +12,7 @@ defmodule Ippan.NetworkNode do
     pubsub: :network,
     topic: "network",
     opts: Application.compile_env(:ipncore, :p2p_client),
-    conn_opts: [retry: 3],
+    conn_opts: [retry: 2],
     sup: Ippan.NetworkSup
 
   @impl Network

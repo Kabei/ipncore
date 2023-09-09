@@ -136,4 +136,6 @@ defmodule Ippan.ClusterClient do
   def terminate(_reason, %{tRef: tRef}) do
     :timer.cancel(tRef)
   end
+
+  def terminate(_reason, _state), do: :ok
 end

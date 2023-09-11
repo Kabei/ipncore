@@ -79,7 +79,7 @@ defmodule Ippan.ClusterNode do
         :ets.insert(:dmsg, List.to_tuple(msg))
         :ets.insert(:msg, msg_sig)
 
-        %{"ok" => %{"height" => height}}
+        %{"height" => height}
     end
   end
 

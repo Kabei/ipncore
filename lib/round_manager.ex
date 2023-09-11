@@ -26,7 +26,7 @@ defmodule RoundManager do
       SqliteStore.fetch(conn, stmts, "last_round", [], [0, nil])
 
     [block_id, block_hash] =
-      SqliteStore.fetch(conn, stmts, "last_block", [vid], [0, nil])
+      SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [0, nil])
 
     PubSub.subscribe(@pubsub, "validator")
     PubSub.subscribe(@pubsub, "env")

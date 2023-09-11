@@ -4,16 +4,17 @@ defmodule Ippan.Round do
           id: non_neg_integer(),
           hash: binary(),
           prev: binary() | nil,
-          creator: binary(),
+          creator: non_neg_integer(),
+          coinbase: non_neg_integer(),
           blocks: non_neg_integer(),
           timestamp: non_neg_integer()
         }
 
-  defstruct [:id, :hash, :prev, :creator, :blocks, :timestamp]
+  defstruct [:id, :hash, :prev, :creator, :coinbase, :blocks, :timestamp]
 
   @impl true
   def to_list(x) do
-    [x.id, x.hash, x.prev, x.creator, x.blocks, x.timestamp]
+    [x.id, x.hash, x.prev, x.creator, x.coinbase, x.blocks, x.timestamp]
   end
 
   @impl true
@@ -27,12 +28,13 @@ defmodule Ippan.Round do
   end
 
   @impl true
-  def list_to_map([id, hash, prev, creator, blocks, timestamp]) do
+  def list_to_map([id, hash, prev, creator, coinbase, blocks, timestamp]) do
     %{
       id: id,
       hash: hash,
       prev: prev,
       creator: creator,
+      coinbase: coinbase,
       blocks: blocks,
       timestamp: timestamp
     }
@@ -41,9 +43,9 @@ defmodule Ippan.Round do
   @impl true
   def to_map({_id, map}), do: map
 
-  def compute_hash(round, prev, creator, hashes) do
+  def compute_hash(id, prev, creator, hashes) do
     ([
-       to_string(round),
+       to_string(id),
        normalize(prev),
        to_string(creator)
      ] ++

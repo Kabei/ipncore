@@ -16,8 +16,9 @@ CREATE TABLE IF NOT EXISTS validator(
 ) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS block(
-  height BIGINT NOT NULL,
+  id BIGINT PRIMARY KEY,
   creator BIGINT NOT NULL,
+  height BIGINT NOT NULL,
   hash BLOB NOT NULL,
   prev BLOB,
   hashfile BLOB,
@@ -28,24 +29,26 @@ CREATE TABLE IF NOT EXISTS block(
   size BIGINT DEFAULT 0,
   failures INTEGER,
   vsn integer,
-  PRIMARY KEY(height, creator)
+  UNIQUE(creator, height)
 ) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS round(
   id BIGINT PRIMARY KEY NOT NULL,
   hash BLOB NOT NULL,
   prev BLOB,
-  blocks BIGINT NOT NULL,
+  creator BIGINT NOT NULL,
+  coinbase BIGINT,
+  blocks BIGINT,
   timestamp BIGINT NOT NULL
 ) WITHOUT ROWID;
-    
+
 CREATE TABLE IF NOT EXISTS jackpot(
   round_id BIGINT NOT NULL,
   winner_id BLOB,
   amount BIGINT DEFAULT 0,
   PRIMARY KEY(round_id, winner_id)
 ) WITHOUT ROWID;
-    
+
 CREATE TABLE IF NOT EXISTS snapshot(
   round_id BIGINT PRIMARY KEY NOT NULL,
   hash BLOB NOT NULL,

@@ -87,39 +87,42 @@ DELETE FROM dns.dns WHERE domain = ?1 AND name=?2;
 DELETE FROM dns.dns WHERE domain = ?1;
 
 
+--name: next_id_block
+SELECT COALESCE((SELECT id FROM blockchain.block ORDER BY id DESC LIMIT 1) + 1, 0);
+
 --name: insert_block
-INSERT INTO blockchain.block values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12);
+INSERT INTO blockchain.block values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
+
+--name: exists_block
+SELECT 1 FROM blockchain.block WHERE id=? LIMIT 1;
 
 --name: get_block
-SELECT * FROM blockchain.block WHERE creator=? AND height=?;
+SELECT * FROM blockchain.block WHERE id=? LIMIT 1;
 
---name: get_hash_block
-SELECT hash FROM blockchain.block WHERE creator = ?1 AND height BETWEEN ?2 AND ?3 ORDER BY height ASC;
+--name: get_pending_block
+SELECT * FROM blockchain.block WHERE id IS NULL AND creator=? AND height=? LIMIT 1;
 
---name: delete_block
-DELETE FROM blockchain.block WHERE creator=? AND height=?;
+--name: total_pending_blocks
+SELECT count(1) FROM blockchain.block WHERE id IS NULL;
 
---name: total_block
+--name: total_blocks_created
 SELECT count(1) FROM blockchain.block WHERE creator=?;
 
---name: last_block
-SELECT height, hash FROM blockchain.block WHERE creator=? ORDER BY height DESC;  
+--name: last_block_created
+SELECT id, hash FROM blockchain.block WHERE creator=? ORDER BY height DESC LIMIT 1;
 
---name: last_block_by_creator
-SELECT * FROM blockchain.block WHERE creator = ? ORDER BY height DESC;
+--name: get_round_blocks
+SELECT id FROM blockchain.block WHERE round = ? ORDER BY id ASC;
 
---name: uniques_rounds_block
-SELECT creator, height FROM blockchain.block WHERE round = ?1 ORDER BY creator ASC;
+--name: creator_blocks_hash
+SELECT hash FROM blockchain.block WHERE round = ?1 ORDER BY id ASC;
 
---name: hash_by_round_block
-SELECT hash FROM blockchain.block WHERE round = ?1 ORDER BY creator ASC;
-
---name: total_rounds_block
+--name: total_round_blocks
 SELECT count(1) FROM blockchain.block WHERE round = ?;
 
 
 --name: insert_round
-INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5);
+INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7);
 
 --name: get_round
 SELECT * FROM blockchain.round WHERE id = ? LIMIT 1;

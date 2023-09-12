@@ -5,6 +5,7 @@ defmodule MinerWorker do
   alias Ippan.Block
   require SqliteStore
   require Logger
+  require EventHandler
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, hibernate_after: 10_000)
@@ -20,9 +21,11 @@ defmodule MinerWorker do
   def handle_cast(
         {:mine, _from_pid, current_round,
          %{
+           id: block_id,
            creator: creator_id,
            height: height,
-           count: count
+           count: count,
+           vsn: vsn
          } = block},
         state
       ) do
@@ -31,23 +34,22 @@ defmodule MinerWorker do
 
     # {last_id, last_hash} = BlockTimer.get_last_block(creator_id)
 
+    {:ok, content} = File.read(decode_path)
+
     messages =
-      if count != 0 do
-        # IO.inspect("block file")
-        {:ok, content} = File.read(decode_path)
-        Block.decode_file!(content)
-      else
-        # IO.inspect("block zero")
-        []
-      end
+      Block.decode_file!(content)
 
     conn = :persistent_term.get(:asset_conn)
     stmts = :persistent_term.get(:asset_stmt)
     dets = :persistent_term.get(:dets_balance)
 
-    mine_fun(messages, conn, stmts, dets, creator_id, current_round)
+    count_rejected =
+      mine_fun(vsn, messages, conn, stmts, dets, creator_id, block_id)
 
-    result = block |> Map.put(:round, current_round) |> Block.to_list()
+    result =
+      block
+      |> Map.merge(%{round: current_round, rejected: count_rejected})
+      |> Block.to_list()
 
     SqliteStore.step(conn, stmts, "insert_block", result)
 
@@ -56,26 +58,36 @@ defmodule MinerWorker do
     {:noreply, state}
   end
 
-  defp mine_fun([], _, _, _, _, _), do: :ok
-
-  defp mine_fun(messages, conn, stmts, dets, creator_id, round) do
+  defp mine_fun(0, messages, conn, stmts, dets, creator_id, block_id) do
     validator =
       SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", creator_id, Validator)
 
-    for [hash, timestamp, type, from, args, size] <- messages do
-      EventHandler.handle!(
-        conn,
-        stmts,
-        dets,
-        hash,
-        type,
-        timestamp,
-        from,
-        validator,
-        size,
-        args,
-        round
-      )
-    end
+    Enum.reduce(messages, 0, fn
+      [hash, type, from, args, timestamp, size], acc ->
+        EventHandler.handle_regular(
+          conn,
+          stmts,
+          dets,
+          validator,
+          hash,
+          type,
+          timestamp,
+          from,
+          size,
+          args,
+          block_id
+        )
+
+        acc
+
+      msg, acc ->
+        case EventHandler.insert_deferred(msg, block_id) do
+          true ->
+            acc
+
+          false ->
+            acc + 1
+        end
+    end)
   end
 end

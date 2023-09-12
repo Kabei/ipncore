@@ -4,40 +4,85 @@ defmodule Ippan.EventHandler do
   # @libsecp256k1 ExSecp256k1.Impl
   # @json Application.compile_env(:ipncore, :json)
 
-  def handle!(
-        conn,
-        stmts,
-        dets,
-        hash,
-        type,
-        timestamp,
-        account_id,
-        validator,
-        size,
-        args,
-        block_id
-      ) do
-    case Events.lookup(type) do
-      %{deferred: false, mod: module, fun: fun} ->
-        environment = %{
-          conn: conn,
-          block_id: block_id,
-          stmts: stmts,
-          dets: dets,
-          id: account_id,
-          type: type,
-          validator: validator,
-          hash: hash,
-          timestamp: timestamp,
-          size: size
-        }
+  # def handle!(
+  #       conn,
+  #       stmts,
+  #       dets,
+  #       hash,
+  #       type,
+  #       timestamp,
+  #       account_id,
+  #       validator,
+  #       size,
+  #       args,
+  #       block_id
+  #     ) do
+  #   case Events.lookup(type) do
+  #     %{deferred: false, mod: module, fun: fun} ->
+  #       environment = %{
+  #         conn: conn,
+  #         block_id: block_id,
+  #         stmts: stmts,
+  #         dets: dets,
+  #         id: account_id,
+  #         type: type,
+  #         validator: validator,
+  #         hash: hash,
+  #         timestamp: timestamp,
+  #         size: size
+  #       }
 
-        apply(module, fun, [environment | args])
+  #       apply(module, fun, [environment | args])
 
-      # deferred transactions
-      _deferred ->
-        key = normalize_key(args, account_id)
-        insert_deferred({{key, type}, hash, block_id, {args, validator.id, timestamp}})
+  #     # deferred transactions
+  #     _deferred ->
+  #       key = normalize_key(args, account_id)
+  #       insert_deferred({{key, type}, hash, block_id, {args, validator.id, timestamp}})
+  #   end
+  # end
+
+  defmacro handle_regular(
+             conn,
+             stmts,
+             dets,
+             validator,
+             hash,
+             type,
+             from,
+             args,
+             size,
+             timestamp,
+             block_id
+           ) do
+    quote bind_quoted: [
+            conn: conn,
+            stmts: stmts,
+            dets: dets,
+            validator: validator,
+            hash: hash,
+            type: type,
+            from: from,
+            args: args,
+            timestamp: timestamp,
+            size: size,
+            block_id: block_id
+          ] do
+      %{fun: fun, mod: module} = Events.lookup(type)
+
+      environment = %{
+        conn: conn,
+        block_id: block_id,
+        stmts: stmts,
+        dets: dets,
+        id: from,
+        type: type,
+        validator: validator,
+        hash: hash,
+        timestamp: timestamp,
+        size: size
+      }
+
+      apply(module, fun, [environment | args])
     end
   end
 
@@ -86,9 +131,9 @@ defmodule Ippan.EventHandler do
   end
 
   # Dispute resolution in deferred transaction
-  defp insert_deferred(
-         {{_key, _type} = msg_key, hash, block_id, {_timestamp, _args, _validator_id}} = msg
-       ) do
+  def insert_deferred(msg = [hash, type, key | _rest], block_id) do
+    msg_key = {type, key}
+
     case :ets.lookup(:dtx, msg_key) do
       [] ->
         :ets.insert(:dtx, msg)
@@ -97,12 +142,12 @@ defmodule Ippan.EventHandler do
         if hash < xhash or (hash == xhash and block_id < xblock_id) do
           :ets.insert(:dtx, msg)
         else
-          :error
+          false
         end
     end
   end
 
-  defp normalize_key(nil, from), do: from
-  defp normalize_key([], from), do: from
-  defp normalize_key(args, _from), do: hd(args) |> to_string()
+  # defp normalize_key(nil, from), do: from
+  # defp normalize_key([], from), do: from
+  # defp normalize_key(args, _from), do: hd(args) |> to_string()
 end

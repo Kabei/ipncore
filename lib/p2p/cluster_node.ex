@@ -66,12 +66,12 @@ defmodule Ippan.ClusterNode do
   @impl Network
   def handle_request(
         "new_msg",
-        [msg = [hash | _], msg_sig],
+        [false, msg = [hash | _], msg_sig],
         _state
       ) do
     case :ets.member(:hash, hash) do
       true ->
-        %{"error" => "already exists"}
+        %{"error" => "Already exists"}
 
       false ->
         height = :persistent_term.get(:height)
@@ -80,6 +80,34 @@ defmodule Ippan.ClusterNode do
         :ets.insert(:msg, msg_sig)
 
         %{"height" => height}
+    end
+  end
+
+  def handle_request(
+        "new_msg",
+        [true, msg = [hash, type, key | _], msg_sig],
+        _state
+      ) do
+    case :ets.member(:hash, hash) do
+      true ->
+        %{"error" => "Already exists"}
+
+      false ->
+        height = :persistent_term.get(:height, 0)
+        msg_key = {type, key}
+
+        case :ets.insert_new(:dhash, {{type, key}, hash}) do
+          true ->
+            :ets.insert(:hash, {hash, height})
+            :ets.insert(:dhash, {msg_key, hash})
+            :ets.insert(:dmsg, List.to_tuple(msg))
+            :ets.insert(:msg, msg_sig)
+
+            %{"height" => height}
+
+          false ->
+            %{"error" => "Deferred transaction already exists"}
+        end
     end
   end
 

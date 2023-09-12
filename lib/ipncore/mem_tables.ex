@@ -20,6 +20,7 @@ defmodule MemTables do
 
   @tables_name %{
     hash: "hash",
+    dhash: "dhash",
     msg: "msg",
     dmsg: "dmsg",
     dtx: "dtx",
@@ -34,6 +35,7 @@ defmodule MemTables do
     msg: @dbag_named_opts,
     dmsg: @dbag_named_opts,
     hash: @set_named_opts,
+    dhash: @set_named_opts,
     dtx: @set_named_concurrent_opts,
     # cache
     wallet: @set_named_concurrent_opts,

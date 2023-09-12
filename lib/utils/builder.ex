@@ -382,7 +382,7 @@ defmodule Builder do
 
   def balance_lock(secret, address, to, token_id, amount) do
     body =
-      [250, :os.system_time(:millisecond), address, token_id, to, amount]
+      [250, :os.system_time(:millisecond), address, to, token_id, amount]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -394,7 +394,7 @@ defmodule Builder do
 
   def balance_unlock(secret, address, to, token_id, amount) do
     body =
-      [251, :os.system_time(:millisecond), address, token_id, to, amount]
+      [251, :os.system_time(:millisecond), address, to, token_id, amount]
       |> Jason.encode!()
 
     hash = hash_fun(body)
@@ -422,6 +422,18 @@ defmodule Builder do
   def tx_send(secret, address, to, token, amount) do
     body =
       [301, :os.system_time(:millisecond), address, to, token, amount]
+      |> Jason.encode!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  def tx_send(secret, address, to, token, amount, note) do
+    body =
+      [301, :os.system_time(:millisecond), address, to, token, amount, note]
       |> Jason.encode!()
 
     hash = hash_fun(body)

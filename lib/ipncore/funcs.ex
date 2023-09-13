@@ -1,5 +1,5 @@
-defmodule Ippan.Events do
-  alias Ippan.Event
+defmodule Ippan.Funcs do
+  alias Ippan.Func
 
   alias Ippan.Func.{
     Env,
@@ -14,18 +14,18 @@ defmodule Ippan.Events do
 
   @spec lookup(event_id :: non_neg_integer()) :: map() | :undefined
   def lookup(0) do
-    %Event{
+    %Func{
       id: 0,
       name: "wallet.sub",
       mod: Wallet,
       fun: :subscribe,
       deferred: true,
-      validator: 0
+      check: 0
     }
   end
 
   def lookup(1) do
-    %Event{
+    %Func{
       id: 1,
       name: "wallet.unsub",
       mod: Wallet,
@@ -35,7 +35,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(50) do
-    %Event{
+    %Func{
       id: 50,
       name: "env.set",
       mod: Env,
@@ -45,7 +45,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(51) do
-    %Event{
+    %Func{
       id: 51,
       name: "env.delete",
       mod: Env,
@@ -55,7 +55,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(100) do
-    %Event{
+    %Func{
       id: 100,
       name: "validator.new",
       mod: Validator,
@@ -65,7 +65,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(101) do
-    %Event{
+    %Func{
       id: 101,
       name: "validator.update",
       mod: Validator,
@@ -75,7 +75,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(102) do
-    %Event{
+    %Func{
       id: 102,
       name: "validator.delete",
       mod: Validator,
@@ -85,7 +85,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(200) do
-    %Event{
+    %Func{
       id: 200,
       name: "token.new",
       mod: Token,
@@ -95,7 +95,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(201) do
-    %Event{
+    %Func{
       id: 201,
       name: "token.update",
       mod: Token,
@@ -104,7 +104,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(202) do
-    %Event{
+    %Func{
       id: 202,
       name: "token.delete",
       mod: Token,
@@ -113,27 +113,27 @@ defmodule Ippan.Events do
   end
 
   def lookup(250) do
-    %Event{
+    %Func{
       id: 250,
       name: "balance.lock",
       mod: Balance,
       fun: :lock,
-      validator: 2
+      check: 2
     }
   end
 
   def lookup(251) do
-    %Event{
+    %Func{
       id: 251,
       name: "balance.unlock",
       mod: Balance,
       fun: :unlock,
-      validator: 2
+      check: 2
     }
   end
 
   def lookup(300) do
-    %Event{
+    %Func{
       id: 300,
       name: "tx.coinbase",
       mod: Tx,
@@ -142,7 +142,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(301) do
-    %Event{
+    %Func{
       id: 301,
       name: "tx.send",
       mod: Tx,
@@ -151,7 +151,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(302) do
-    %Event{
+    %Func{
       id: 302,
       name: "tx.refundable",
       mod: Tx,
@@ -160,7 +160,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(303) do
-    %Event{
+    %Func{
       id: 303,
       name: "tx.refund",
       mod: Tx,
@@ -169,7 +169,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(304) do
-    %Event{
+    %Func{
       id: 304,
       name: "tx.burn",
       mod: Tx,
@@ -178,7 +178,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(400) do
-    %Event{
+    %Func{
       id: 400,
       name: "domain.new",
       mod: Domain,
@@ -188,7 +188,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(401) do
-    %Event{
+    %Func{
       id: 401,
       name: "domain.update",
       mod: Domain,
@@ -197,7 +197,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(402) do
-    %Event{
+    %Func{
       id: 402,
       name: "domain.delete",
       mod: Domain,
@@ -206,7 +206,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(403) do
-    %Event{
+    %Func{
       id: 403,
       name: "domain.renew",
       mod: Domain,
@@ -215,7 +215,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(500) do
-    %Event{
+    %Func{
       id: 500,
       name: "dns.new",
       mod: Dns,
@@ -224,7 +224,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(501) do
-    %Event{
+    %Func{
       id: 501,
       name: "dns.update",
       mod: Dns,
@@ -233,7 +233,7 @@ defmodule Ippan.Events do
   end
 
   def lookup(502) do
-    %Event{
+    %Func{
       id: 502,
       name: "dns.delete",
       mod: Dns,

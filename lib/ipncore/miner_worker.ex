@@ -1,11 +1,11 @@
 defmodule MinerWorker do
   use GenServer
   alias Ippan.Validator
-  alias Ippan.EventHandler
+  alias Ippan.TxHandler
   alias Ippan.Block
   require SqliteStore
   require Logger
-  require EventHandler
+  require TxHandler
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, hibernate_after: 10_000)
@@ -64,7 +64,7 @@ defmodule MinerWorker do
 
     Enum.reduce(messages, 0, fn
       [hash, type, from, args, timestamp, size], acc ->
-        EventHandler.handle_regular(
+        TxHandler.handle_regular(
           conn,
           stmts,
           dets,
@@ -81,7 +81,7 @@ defmodule MinerWorker do
         acc
 
       msg, acc ->
-        case EventHandler.insert_deferred(msg, block_id) do
+        case TxHandler.insert_deferred(msg, block_id) do
           true ->
             acc
 

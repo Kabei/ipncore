@@ -26,7 +26,7 @@ config :ipncore, :note_max_size, 255
 config :ipncore, :max_tx_amount, 1_000_000_000_000_000
 config :ipncore, :timeout_refund, :timer.hours(72)
 config :ipncore, :message_timeout, :timer.seconds(5)
-config :ipncore, :max_validators, 1000
+config :ipncore, :max_validators, 20_000
 config :ipncore, :max_tokens, 10_000
 config :ipncore, :max_peers_conn, 20
 

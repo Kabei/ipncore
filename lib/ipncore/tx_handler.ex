@@ -1,5 +1,5 @@
-defmodule Ippan.EventHandler do
-  alias Ippan.Events
+defmodule Ippan.TxHandler do
+  alias Ippan.Funcs
 
   # @libsecp256k1 ExSecp256k1.Impl
   # @json Application.compile_env(:ipncore, :json)
@@ -17,7 +17,7 @@ defmodule Ippan.EventHandler do
   #       args,
   #       block_id
   #     ) do
-  #   case Events.lookup(type) do
+  #   case Funcs.lookup(type) do
   #     %{deferred: false, mod: module, fun: fun} ->
   #       environment = %{
   #         conn: conn,
@@ -67,7 +67,7 @@ defmodule Ippan.EventHandler do
             size: size,
             block_id: block_id
           ] do
-      %{fun: fun, mod: module} = Events.lookup(type)
+      %{fun: fun, mod: module} = Funcs.lookup(type)
 
       environment = %{
         conn: conn,
@@ -113,7 +113,7 @@ defmodule Ippan.EventHandler do
           ] do
     end
 
-    %{mod: module, fun: fun} = Events.lookup(type)
+    %{mod: module, fun: fun} = Funcs.lookup(type)
 
     source = %{
       id: account_id,

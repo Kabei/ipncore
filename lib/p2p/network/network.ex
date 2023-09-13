@@ -158,9 +158,14 @@ defmodule Ippan.Network do
         case decode!(packet, sharedkey) do
           # question
           %{"_id" => id, "method" => method, "data" => data} ->
-            response = handle_request(method, data, state)
-            bin = encode(%{"_id" => id, "data" => response}, sharedkey)
-            @adapter.send(state.socket, bin)
+            try do
+              response = handle_request(method, data, state)
+              bin = encode(%{"_id" => id, "data" => response}, sharedkey)
+              @adapter.send(state.socket, bin)
+            rescue
+              x ->
+                Logger.error(x.message)
+            end
 
           # answer
           %{"_id" => id, "data" => data} ->

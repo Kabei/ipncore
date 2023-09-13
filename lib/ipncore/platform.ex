@@ -7,6 +7,7 @@ defmodule Platform do
   def start do
     conn = :persistent_term.get(:asset_conn)
     stmts = :persistent_term.get(:asset_stmt)
+    vid = :persistent_term.get(:vid)
 
     case SqliteStore.lookup_map(:token, conn, stmts, "get_token", @token, Token) do
       nil ->
@@ -15,6 +16,11 @@ defmodule Platform do
       token ->
         :persistent_term.put(:owner, token.owner)
     end
+
+    v = SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", vid, Validator)
+    :persistent_term.put(:validator, v)
+
+    :ok
   end
 
   defp load_genesis_file(conn, stmts) do

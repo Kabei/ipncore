@@ -196,14 +196,13 @@ defmodule Builder do
   #   {pk, Address.hash(2, pk)}
   # end
 
-  # Builder.wallet_sub(sk, pk, 0, 0) |> Builder.build_request
-  def wallet_sub(secret, pk, validator_id, sig_type \\ 0) do
+  # Builder.wallet_sub(sk, address, pk, 0, 0) |> Builder.build_request
+  def wallet_sub(secret, address, pk, validator_id, sig_type) do
     body =
-      [0, :os.system_time(:millisecond), Fast64.encode64(pk), validator_id, sig_type]
+      [0, :os.system_time(:millisecond), address, Fast64.encode64(pk), validator_id, sig_type]
       |> Jason.encode!()
 
     hash = hash_fun(body)
-    address = Address.hash(sig_type, pk)
 
     sig = signature64(address, secret, hash)
 
@@ -618,24 +617,15 @@ defmodule Builder do
   end
 
   defp signature64(address, secret, msg) do
-    <<first::bytes-size(1), _rest::binary>> = address
+    case :binary.first(address) do
+      48 ->
+        Cafezinho.Impl.sign(msg, secret)
+        |> elem(1)
 
-    (first <>
-       case first do
-         "1" ->
-           Falcon.sign(secret, msg)
-           |> elem(1)
-
-         _ ->
-           Cafezinho.Impl.sign(msg, secret)
-           |> elem(1)
-
-           #  "2" ->
-           #    # set secret_with_pk
-           #    ExSecp256k1.Impl.sign_compact(msg, secret)
-           #    |> elem(1)
-           #    |> elem(0)
-       end)
+      49 ->
+        Falcon.sign(secret, msg)
+        |> elem(1)
+    end
     |> Fast64.encode64()
   end
 

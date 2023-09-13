@@ -17,6 +17,7 @@ defmodule Ipncore.Application do
 
     cluster_opts = Application.get_env(:ipncore, :cluster)
     network_opts = Application.get_env(:ipncore, :network)
+    balance_path = Path.join(:persistent_term.get(:store_dir), "balance.dets")
 
     # services
     children =
@@ -24,6 +25,7 @@ defmodule Ipncore.Application do
         MemTables,
         NetStore,
         MainStore,
+        {DetsPlus, [name: :balance, file: balance_path]},
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
         Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
         {ThousandIsland, cluster_opts},

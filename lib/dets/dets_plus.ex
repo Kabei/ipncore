@@ -103,7 +103,7 @@ defmodule DetsPlus do
   """
   def open_file(name, args \\ []) when is_atom(name) do
     filename = Keyword.get(args, :file, name) |> do_string()
-    auto_save = Keyword.get(args, :auto_save, 180_000)
+    auto_save = Keyword.get(args, :auto_save, :infinity)
     mode = Keyword.get(args, :access, :read_write)
 
     state =

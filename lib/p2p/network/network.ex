@@ -156,22 +156,25 @@ defmodule Ippan.Network do
       @impl Network
       def on_message(packet, %{sharedkey: sharedkey} = state) do
         case decode!(packet, sharedkey) do
-          # question
+          # Receive question
           %{"_id" => id, "method" => method, "data" => data} ->
+            # send answer
             try do
               response = handle_request(method, data, state)
               bin = encode(%{"_id" => id, "data" => response}, sharedkey)
               @adapter.send(state.socket, bin)
             rescue
               x ->
+                bin = encode(%{"_id" => id, "data" => ["error", "Unknown"]}, sharedkey)
+                @adapter.send(state.socket, encode(bin, sharedkey))
                 Logger.error(x.message)
             end
 
-          # answer
+          # Receive answer
           %{"_id" => id, "data" => data} ->
             PubSub.local_broadcast(@pubsub, "call:#{id}", data)
 
-          # event message (no return answer)
+          # Event message (no return answer)
           %{"event" => event, "data" => data} ->
             handle_message(event, data, state)
 

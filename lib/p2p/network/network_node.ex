@@ -36,7 +36,7 @@ defmodule Ippan.NetworkNode do
     SqliteStore.fetch_all(conn, stmts, "get_msg_rounds", limit, offset)
   end
 
-  def handle_request(_method, _data, _state), do: "not found"
+  def handle_request(_method, _data, _state), do: ["error", "Not found"]
 
   @impl Network
   def handle_message("msg_round", data, %{id: from}) do

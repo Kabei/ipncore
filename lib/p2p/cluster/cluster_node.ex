@@ -111,7 +111,7 @@ defmodule Ippan.ClusterNode do
     end
   end
 
-  def handle_request(_method, _data, _state), do: "not found"
+  def handle_request(_method, _data, _state), do: ["error", "Not found"]
 
   @impl Network
   def handle_message(_event, _data, _state), do: :ok

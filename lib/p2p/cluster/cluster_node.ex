@@ -104,8 +104,11 @@ defmodule Ippan.ClusterNode do
           true ->
             IO.inspect(msg)
             :ets.insert(:hash, {hash, height})
+            IO.inspect("1")
             :ets.insert(:dhash, {msg_key, hash})
+            IO.inspect("2")
             :ets.insert(:dmsg, List.to_tuple(msg))
+            IO.inspect("3")
             :ets.insert(:msg, msg_sig)
 
             %{"height" => height}

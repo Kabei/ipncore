@@ -78,10 +78,10 @@ defmodule Ippan.ClusterNode do
 
       false ->
         IO.inspect("No exists")
-        height = :persistent_term.get(:height)
+        height = :persistent_term.get(:height, 0)
         :ets.insert(:hash, {hash, height})
         :ets.insert(:dmsg, List.to_tuple(msg))
-        :ets.insert(:msg, msg_sig)
+        :ets.insert(:msg, List.to_tuple(msg_sig))
 
         %{"height" => height}
     end

@@ -167,7 +167,7 @@ defmodule Ippan.Network do
               x ->
                 IO.inspect("error in question")
                 Logger.error(inspect(x))
-                bin = encode(%{"_id" => id, "data" => ["error", "Unknown"]}, sharedkey)
+                bin = %{"_id" => id, "data" => ["error", "Unknown"]}
                 @adapter.send(state.socket, encode(bin, sharedkey))
             end
 

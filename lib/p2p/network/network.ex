@@ -261,8 +261,8 @@ defmodule Ippan.Network do
         @adapter.send(socket, encode(message, sharedkey))
 
         receive do
-          m = "not found" ->
-            {:error, m}
+          ["error", error] ->
+            {:error, error}
 
           result ->
             {:ok, result}

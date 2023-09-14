@@ -91,7 +91,7 @@ defmodule Ippan.Func.Validator do
 
         SqliteStore.update(conn, @table_name, map, id: id)
 
-        event = %{"event" => "validator.update", "data" => Map.put(map, :id, id)}
+        event = %{"event" => "validator.update", "data" => %{"id" => id, "args" => map}}
         PubSub.broadcast(@pubsub_server, @topic, event)
         ClusterNode.broadcast(event)
     end

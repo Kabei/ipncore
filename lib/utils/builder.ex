@@ -33,77 +33,6 @@ defmodule Builder do
     {pk1, sk1, address1, pk2, sk2, address2}
   end
 
-  @doc """
-  Builder.init()
-  {pk, sk, pk1, sk1, address, address1} = Builder.test()
-  Builder.wallet_sub(pk1, 0) |> Builder.run()
-  Builder.tx_coinbase(sk, address, "IPN", [[address1, 50000000000]]) |> Builder.run()
-
-  # falcon
-  {pk2, sk2, address2, pk3, sk3, address3} = Builder.test_falcon()
-  Builder.wallet_sub(pk2, 0) |> Builder.run()
-  Builder.wallet_sub(pk3, 0) |> Builder.run()
-  Builder.tx_coinbase(sk, address, "IPN", [[address2, 50000000000]]) |> Builder.run()
-
-  BlockBuilderWork.sync_all()
-  """
-
-  # @spec bench_send(integer()) :: no_return()
-  # def bench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
-  #   spawn(fn ->
-  #     {_pk, _sk, _pk2, sk1, address, address1} = Builder.test()
-
-  #     chunks = div(n, cpus)
-
-  #     list =
-  #       for _ <- 1..n do
-  #         Builder.tx_send(sk1, address1, address, "IPN", 10 + :rand.uniform(10000))
-  #       end
-  #       |> Enum.chunk_every(chunks)
-
-  #     # tstream =
-  #     Enum.each(list, fn data ->
-  #       spawn(fn ->
-  #         start_time = :os.system_time(:microsecond)
-  #         run_list(data)
-  #         end_time = :os.system_time(:microsecond)
-  #         IO.puts("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
-  #       end)
-  #     end)
-  #   end)
-
-  # Enum.to_list(tstream)
-
-  # end_time = :os.system_time(:microsecond)
-
-  # IO.puts("Time elapsed: #{end_time - start_time} µs")
-  # end
-
-  # Builder.fbench_send(10_000)
-  # def fbench_send(n, cpus \\ :erlang.system_info(:schedulers_online)) do
-  #   spawn(fn ->
-  #     {_pk2, sk2, address2, _pk3, _sk3, address3} = Builder.test_falcon()
-
-  #     chunks = div(n, cpus)
-
-  #     list =
-  #       for _ <- 1..n do
-  #         Builder.tx_send(sk2, address2, address3, "IPN", 10 + :rand.uniform(50000))
-  #       end
-  #       |> Enum.chunk_every(chunks)
-
-  #     # tstream =
-  #     Enum.each(list, fn data ->
-  #       spawn(fn ->
-  #         start_time = :os.system_time(:microsecond)
-  #         run_list(data)
-  #         end_time = :os.system_time(:microsecond)
-  #         IO.puts("Time elapsed: #{end_time - start_time} µs - #{length(data)}")
-  #       end)
-  #     end)
-  #   end)
-  # end
-
   def build_request({body, sig}) do
     IO.puts(body)
     IO.puts(sig)
@@ -112,55 +41,6 @@ defmodule Builder do
   def build_request(body) do
     IO.puts(body)
   end
-
-  # def run_list([]), do: :ok
-
-  # def run_list([first | rest]) do
-  #   run(first)
-  #   run_list(rest)
-  # end
-
-  # def run({body, sig}) do
-  #   try do
-  #     hash = Blake3.hash(body)
-  #     sig = Fast64.decode64(sig)
-  #     size = byte_size(body) + byte_size(sig)
-  #     {event, msg} = RequestHandler.valid!(hash, body, size, sig, Global.validator_id())
-
-  #     case event do
-  #       %{deferred: false} ->
-  #         MessageStore.insert_sync(msg)
-
-  #       %{deferred: true} ->
-  #         MessageStore.insert_df(msg)
-  #     end
-  #   rescue
-  #     e ->
-  #       Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-  #   end
-  # end
-
-  # def run(body) do
-  #   try do
-  #     hash = Blake3.hash(body)
-  #     size = byte_size(body)
-  #     # [type, timestamp | args] = Jason.decode!(body)
-  #     # RequestHandler.handle!(hash, type, timestamp, nil, nil, size, args)
-  #     {event, msg} = RequestHandler.valid!(hash, body, size)
-  #     IO.inspect(msg)
-
-  #     case event do
-  #       %{deferred: false} ->
-  #         MessageStore.insert_sync(msg)
-
-  #       %{deferred: true} ->
-  #         MessageStore.insert_df(msg)
-  #     end
-  #   rescue
-  #     e ->
-  #       Logger.debug(Exception.format(:error, e, __STACKTRACE__))
-  #   end
-  # end
 
   # {pk, sk, address} = Builder.gen_ed25519()
   def gen_ed25519 do
@@ -184,17 +64,6 @@ defmodule Builder do
 
     {pk, sk, Address.hash(1, pk)}
   end
-
-  # {pk, address} = Builder.gen_secp256k1(sk)
-  # {pk2, address2} = Builder.gen_secp256k1(sk2)
-  # def gen_secp256k1(sk) do
-  #   pk =
-  #     sk
-  #     |> ExSecp256k1.Impl.create_public_key()
-  #     |> elem(1)
-
-  #   {pk, Address.hash(2, pk)}
-  # end
 
   # Builder.wallet_sub(sk, address, pk, 0, 0) |> Builder.build_request
   def wallet_sub(secret, address, pk, validator_id, sig_type) do

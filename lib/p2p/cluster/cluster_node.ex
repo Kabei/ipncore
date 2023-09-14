@@ -71,7 +71,7 @@ defmodule Ippan.ClusterNode do
       ) do
     case :ets.member(:hash, hash) do
       true ->
-        %{"error" => "Already exists"}
+        {"error", "Already exists"}
 
       false ->
         height = :persistent_term.get(:height)
@@ -90,7 +90,7 @@ defmodule Ippan.ClusterNode do
       ) do
     case :ets.member(:hash, hash) do
       true ->
-        %{"error" => "Already exists"}
+        {"error", "Already exists"}
 
       false ->
         height = :persistent_term.get(:height, 0)
@@ -106,7 +106,7 @@ defmodule Ippan.ClusterNode do
             %{"height" => height}
 
           false ->
-            %{"error" => "Deferred transaction already exists"}
+            {"error", "Deferred transaction already exists"}
         end
     end
   end

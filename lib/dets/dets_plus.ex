@@ -173,7 +173,7 @@ defmodule DetsPlus do
   defmacrop default_hash(key) do
     quote do
       <<hash::binary-size(@hash_size), _::binary>> =
-        Blake3.hash(encode(unquote(key)))
+        Blake3.hash(unquote(key))
 
       hash
     end
@@ -377,6 +377,11 @@ defmodule DetsPlus do
       x ->
         cast(pid, {:insert, {key, Map.merge(x, value)}})
     end
+  end
+
+  @spec rollback(pid()) :: :ok
+  def rollback(pid) do
+    call(pid, :rollback)
   end
 
   @doc """
@@ -703,6 +708,16 @@ defmodule DetsPlus do
 
   def handle_call(:sync, from, state = %State{sync_waiters: sync_waiters}) do
     {:noreply, %State{state | sync_waiters: [from | sync_waiters]}}
+  end
+
+  def handle_call(:rollback, _from, state = %State{ets: ets, sync: nil}) do
+    :ets.delete_all_objects(ets)
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:rollback, _from, state = %State{sync: fallback}) do
+    :ets.delete_all_objects(fallback)
+    {:reply, :ok, state}
   end
 
   defp do_lookup(key, hash, state = %State{ets: ets, sync: nil}) do

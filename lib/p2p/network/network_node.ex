@@ -9,10 +9,11 @@ defmodule Ippan.NetworkNode do
     app: :ipncore,
     name: :network,
     table: :nw,
+    server: Ippan.NetworkNode.Server,
     pubsub: :network,
     topic: "network",
     opts: Application.compile_env(:ipncore, :p2p_client),
-    conn_opts: [retry: 2],
+    conn_opts: [retry: 2, reconnect: false],
     sup: Ippan.NetworkSup
 
   @impl Network

@@ -25,6 +25,14 @@ defmodule Ippan.Utils do
   #   # |> :erlang.float_to_binary([:compact, decimals: 18])
   # end
 
+  def sqlite_in(values) do
+    Enum.reduce(values, "(", fn
+      x, acc when is_binary(x) -> IO.iodata_to_binary([acc, x, ","])
+      x, acc -> IO.iodata_to_binary([acc, to_string(x), ","])
+    end)
+    |> String.replace_trailing(",", ")")
+  end
+
   @spec rows_to_columns(map() | Keyword.t()) :: {list(), list()}
   def rows_to_columns(map_or_kw) do
     result =

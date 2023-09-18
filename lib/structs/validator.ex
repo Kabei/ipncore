@@ -34,6 +34,8 @@ defmodule Ippan.Validator do
     failures: 0
   ]
 
+  @validator_price Application.compile_env(:ipncore, :validator_price)
+
   @impl true
   def editable, do: ~w(hostname port name avatar pubkey net_pubkey fee fee_type owner)
   @impl true
@@ -108,4 +110,6 @@ defmodule Ippan.Validator do
   def to_map({_id, x}) do
     x
   end
+
+  def calc_price(next_id), do: (next_id + 1) * @validator_price
 end

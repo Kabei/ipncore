@@ -136,6 +136,16 @@ defmodule Ippan.Block do
     Cafezinho.Impl.sign(hash, privkey)
   end
 
+  def hashes_and_count_txs_and_size(blocks) do
+    Enum.reduce(blocks, {[], 0, 0}, fn x, {acc_hash, acc_tx, acc_size} ->
+      {
+        acc_hash ++ Map.get(x, "hash"),
+        acc_tx + Map.get(x, "count"),
+        acc_size + Map.get(x, "size")
+      }
+    end)
+  end
+
   def sign_block_confirm(hash) do
     privkey = :persistent_term.get(:privkey)
     Cafezinho.Impl.sign("#{hash} is valid", privkey)

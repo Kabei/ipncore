@@ -20,10 +20,10 @@ defmodule Ippan.Func.Dns do
         ttl
       ) do
     fee = EnvStore.network_fee()
-    balance = {account_id, @token}
-    validator_balance = {validator.owner, @token}
+    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_validator_key = BalanceStore.gen_key(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance, validator_balance, fee) do
+    case BalanceStore.pay(dets, balance_key, balance_validator_key, fee) do
       :error ->
         :error
 
@@ -53,10 +53,10 @@ defmodule Ippan.Func.Dns do
       ) do
     dns_hash = Base.decode16(dns_hash16, case: :mixed)
     fee = EnvStore.network_fee()
-    balance = {account_id, @token}
-    validator_balance = {validator.owner, @token}
+    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_validator_key = BalanceStore.gen_key(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance, validator_balance, fee) do
+    case BalanceStore.pay(dets, balance_key, balance_validator_key, fee) do
       :error ->
         :error
 

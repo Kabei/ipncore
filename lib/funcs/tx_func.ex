@@ -24,7 +24,8 @@ defmodule Ippan.Func.Tx do
         _note \\ <<>>
       ) do
     is_validator = validator.owner != account_id
-    balance_key = {account_id, token}
+    balance_key = BalanceStore.gen_key(account_id, token)
+    to_balance_key = BalanceStore.gen_key(to, token)
 
     if is_validator do
       fee = Utils.calc_fees!(validator.fee_type, validator.fee, amount, size)
@@ -33,12 +34,13 @@ defmodule Ippan.Func.Tx do
       case token do
         @token ->
           BalanceStore.subtract(dets, balance_key, amount + burn)
-          BalanceStore.income(dets, {to, token}, amount)
+          BalanceStore.income(dets, to_balance_key, amount)
 
         _ ->
+          native_balance_key = BalanceStore.gen_key(account_id, @token)
           BalanceStore.subtract(dets, balance_key, amount)
-          BalanceStore.subtract(dets, {account_id, @token}, burn)
-          BalanceStore.income(dets, {to, token}, amount)
+          BalanceStore.subtract(dets, native_balance_key, burn)
+          BalanceStore.income(dets, to_balance_key, amount)
       end
     else
       fee = Utils.calc_fees!(validator.fee_type, validator.fee, amount, size)
@@ -48,15 +50,17 @@ defmodule Ippan.Func.Tx do
       case token do
         @token ->
           BalanceStore.subtract(dets, balance_key, amount + fee)
-          BalanceStore.income(dets, {to, token}, amount)
+          BalanceStore.income(dets, to_balance_key, amount)
 
         _ ->
+          native_balance_key = BalanceStore.gen_key(account_id, @token)
           BalanceStore.subtract(dets, balance_key, amount)
-          BalanceStore.subtract(dets, {account_id, @token}, fee)
-          BalanceStore.income(dets, {to, token}, amount)
+          BalanceStore.subtract(dets, native_balance_key, fee)
+          BalanceStore.income(dets, to_balance_key, amount)
       end
 
-      BalanceStore.income(dets, {validator.owner, @token}, result_fee)
+      validator_balance_key = BalanceStore.gen_key(validator.owner, @token)
+      BalanceStore.income(dets, validator_balance_key, result_fee)
     end
   end
 
@@ -82,12 +86,14 @@ defmodule Ippan.Func.Tx do
 
   def coinbase(%{dets: dets}, token_id, outputs) do
     for [address, value] <- outputs do
-      BalanceStore.income(dets, {address, token_id}, value)
+      balance_key = BalanceStore.gen_key(address, token_id)
+      BalanceStore.income(dets, balance_key, value)
     end
   end
 
   def burn(%{id: account_id, dets: dets}, token_id, amount) do
-    BalanceStore.subtract(dets, {account_id, token_id}, amount)
+    balance_key = BalanceStore.gen_key(account_id, token_id)
+    BalanceStore.subtract(dets, balance_key, amount)
   end
 
   def refund(
@@ -96,9 +102,10 @@ defmodule Ippan.Func.Tx do
       ) do
     hash = Base.decode16!(hash16, case: :mixed)
 
-    {:row, [sender_id, token, refund_amount]} =
+    {:row, [sender_id, token_id, refund_amount]} =
       SqliteStore.step(conn, stmts, "get_delete_refund", [hash, account_id, timestamp])
 
-    BalanceStore.income(dets, {sender_id, token}, refund_amount)
+    balance_key = BalanceStore.gen_key(sender_id, token_id)
+    BalanceStore.income(dets, balance_key, refund_amount)
   end
 end

@@ -22,11 +22,13 @@ defmodule Ippan.Func.Token do
       SqliteStore.exists?(:token, conn, stmts, "exists_token", id) ->
         :error
 
-      @max_tokens > SqliteStore.total(conn, stmts, "total_token") ->
+      @max_tokens > SqliteStore.one(conn, stmts, "total_token") ->
         :error
 
       true ->
-        case BalanceStore.subtract(dets, {account_id, @token}, EnvStore.token_price()) do
+        balance_key = BalanceStore.gen_key(account_id, @token)
+
+        case BalanceStore.subtract(dets, balance_key, EnvStore.token_price()) do
           :error ->
             :error
 
@@ -62,10 +64,10 @@ defmodule Ippan.Func.Token do
       when byte_size(id) <= 10 do
     map_filter = Map.take(opts, Token.editable())
     fee = EnvStore.network_fee()
-    balance = {account_id, @token}
-    validator_balance = {validator.owner, @token}
+    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_validator_key = BalanceStore.gen_key(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance, validator_balance, fee) do
+    case BalanceStore.pay(dets, balance_key, balance_validator_key, fee) do
       :error ->
         :error
 

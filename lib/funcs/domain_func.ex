@@ -28,7 +28,8 @@ defmodule Ippan.Func.Domain do
         :error
 
       true ->
-        case BalanceStore.subtract(dets, {account_id, @token}, price) do
+        balance_key = BalanceStore.gen_key(account_id, @token)
+        case BalanceStore.subtract(dets, balance_key, price) do
           :error ->
             :error
 
@@ -65,10 +66,10 @@ defmodule Ippan.Func.Domain do
     map_filter = Map.take(opts, Domain.editable())
 
     fee = EnvStore.network_fee()
-    balance = {account_id, @token}
-    validator_balance = {validator.owner, @token}
+    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_validator = BalanceStore.gen_key(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance, validator_balance, fee) do
+    case BalanceStore.pay(dets, balance_key, balance_validator, fee) do
       :error ->
         :error
 

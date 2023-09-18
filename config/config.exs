@@ -27,8 +27,9 @@ config :ipncore, :max_tx_amount, 1_000_000_000_000_000
 config :ipncore, :timeout_refund, :timer.hours(72)
 config :ipncore, :message_timeout, :timer.seconds(5)
 config :ipncore, :max_validators, 20_000
-config :ipncore, :max_tokens, 10_000
+config :ipncore, :max_tokens, 1_000
 config :ipncore, :max_peers_conn, 20
+config :ipncore, :validator_price, 10_000_000_000
 
 # P2P client
 config :ipncore, :p2p_client, [

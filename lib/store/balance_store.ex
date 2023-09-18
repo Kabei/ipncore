@@ -1,17 +1,22 @@
 defmodule BalanceStore do
+  defmacro gen_key(address, token) do
+    quote bind_quoted: [address: address, token: token] do
+      IO.iodata_to_binary([address, "|", token])
+    end
+  end
   defmacro has_balance?(dets, key, value) do
-    quote do
-      {balance, _lock} = DetsPlus.lookup(unquote(dets), unquote(key), {0, 0})
+    quote bind_quoted: [dets: dets, key: key, value: value] do
+      {balance, _lock} = DetsPlus.lookup(dets, key, {0, 0})
 
-      balance >= unquote(value)
+      balance >= value
     end
   end
 
   defmacro can_be_unlock?(dets, key, value) do
-    quote do
-      {_balance, lock_amount} = DetsPlus.lookup(unquote(dets), unquote(key), {0, 0})
+    quote bind_quoted: [dets: dets, key: key, value: value] do
+      {_balance, lock_amount} = DetsPlus.lookup(dets, key, {0, 0})
 
-      lock_amount >= unquote(value)
+      lock_amount >= value
     end
   end
 

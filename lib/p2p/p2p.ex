@@ -41,7 +41,7 @@ defmodule Ippan.P2P do
   end
 
   @spec server_handshake(socket :: term, kem_privkey :: binary, fun :: fun()) ::
-          tuple() | :error
+          {:ok, term, map, integer()} | :error
   def server_handshake(socket, kem_privkey, fun) do
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "HI" <> @version <> <<ciphertext::bytes-size(1278), encodeText::binary>>} ->
@@ -50,13 +50,19 @@ defmodule Ippan.P2P do
             %{"id" => id, "sig" => signature} = decode!(encodeText, sharedkey)
 
             case fun.(id) do
-              %{hostname: hostname, pubkey: clientPubkey, net_pubkey: net_pubkey} ->
+              data = %{pubkey: clientPubkey} ->
                 case Cafezinho.Impl.verify(signature, sharedkey, clientPubkey) do
                   :ok ->
                     Logger.debug("[Server connection] #{id} connected")
                     @adapter.send(socket, "WEL")
 
-                    {:ok, id, hostname, sharedkey, net_pubkey, @server_ping_timeout}
+                    node =
+                      data
+                      |> Map.filter([:id, :hostname, :role, :net_pubkey])
+                      |> Map.put(:socket, socket)
+                      |> Map.put(:sharedkey, sharedkey)
+
+                    {:ok, id, node, @server_ping_timeout}
 
                   _ ->
                     Logger.debug("Invalid signature authentication")

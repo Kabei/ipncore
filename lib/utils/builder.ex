@@ -117,7 +117,7 @@ defmodule Builder do
     {body, sig}
   end
 
-  # Builder.validator_new(sk, address, "ippan.net", 5815, address, "net core", pkv, 1, 5.0, 100, %{"avatar" => "https://avatar.com"}) |> Builder.build_request()
+  # Builder.validator_new(sk, address, "ippan.net", 5815, address, "net core", pkv, 1, 5.0, %{"avatar" => "https://avatar.com"}) |> Builder.build_request()
   def validator_new(
         secret,
         address,
@@ -129,7 +129,6 @@ defmodule Builder do
         net_pubkey,
         fee_type,
         fee,
-        stake,
         opts \\ %{}
       )
       when is_float(fee) and fee_type in 0..2 do
@@ -146,7 +145,6 @@ defmodule Builder do
         Fast64.encode64(net_pubkey),
         fee_type,
         fee,
-        stake,
         opts
       ]
       |> Jason.encode!()
@@ -485,17 +483,33 @@ defmodule Builder do
     {body, sig}
   end
 
-  defp signature64(address, secret, msg) do
-    case :binary.first(address) do
-      48 ->
-        Cafezinho.Impl.sign(msg, secret)
-        |> elem(1)
+  def custom(secret, address, type, timestamp, args) do
+    {:ok, body} =
+      [type, timestamp, address, args]
+      |> Jason.encode()
 
-      49 ->
-        Falcon.sign(secret, msg)
-        |> elem(1)
-    end
-    |> Fast64.encode64()
+    hash = hash_fun(body)
+
+    sig = signature64(address, secret, hash)
+
+    {body, sig}
+  end
+
+  defp signature64(address, secret, msg) do
+    [type_sig, _] = String.split(address, "x", parts: 2)
+
+    result =
+      case type_sig do
+        "0" ->
+          Cafezinho.Impl.sign(msg, secret)
+          |> elem(1)
+
+        "1" ->
+          Falcon.sign(secret, msg)
+          |> elem(1)
+      end
+
+    Fast64.encode64(result)
   end
 
   defp hash_fun(msg) do

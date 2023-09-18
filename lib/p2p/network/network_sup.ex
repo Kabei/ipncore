@@ -1,24 +1,14 @@
 defmodule Ippan.NetworkSup do
   use DynamicSupervisor
-  alias IO.ANSI
   @module __MODULE__
   def start_link(children) do
-    opts = Application.get_env(:ipncore, :network)
+    case Process.whereis(@module) do
+      nil ->
+        DynamicSupervisor.start_link(@module, children, name: @module)
 
-    result =
-      case Process.whereis(@module) do
-        nil ->
-          DynamicSupervisor.start_link(@module, children, name: @module)
-
-        pid ->
-          {:ok, pid}
-      end
-
-    IO.puts(
-      "Running #{ANSI.red()}IPNCORE#{ANSI.reset()} P2P Network with port #{ANSI.yellow()}#{opts[:port]}#{ANSI.reset()}"
-    )
-
-    result
+      pid ->
+        {:ok, pid}
+    end
   end
 
   def start_child(args) do

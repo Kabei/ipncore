@@ -1,7 +1,7 @@
 defmodule SqliteStore do
   alias Exqlite.{Sqlite3, Sqlite3NIF}
 
-  defmacro total(conn, stmts, name, args \\ []) do
+  defmacro one(conn, stmts, name, args \\ []) do
     quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args] do
       {:row, [n]} = Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args)
 

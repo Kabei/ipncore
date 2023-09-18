@@ -5,7 +5,7 @@ defmodule Ippan.LocalNode do
           id: binary,
           hostname: charlist(),
           port: non_neg_integer(),
-          role: binary | nil,
+          role: [binary] | nil,
           pubkey: binary,
           net_pubkey: binary,
           avatar: binary | nil
@@ -27,7 +27,7 @@ defmodule Ippan.LocalNode do
       x.id,
       x.hostname,
       x.port,
-      x.role,
+      CBOR.encode(x.role),
       x.pubkey,
       x.net_pubkey,
       x.avatar
@@ -58,7 +58,7 @@ defmodule Ippan.LocalNode do
       id: id,
       hostname: hostname,
       port: port,
-      role: role,
+      role: CBOR.decode(role) |> elem(1),
       pubkey: pubkey,
       net_pubkey: net_pubkey,
       avatar: avatar

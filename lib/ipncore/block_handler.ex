@@ -2,56 +2,127 @@ defmodule BlockHandler do
   # alias Ippan.Block
 
   import Ippan.Block,
-    only: [encode_file!: 1, hash_file: 1]
+    only: [decode_file!: 1, encode_file!: 1, hash_file: 1]
 
+  @version Application.compile_env(:ipncore, :version)
   @block_extension Application.compile_env(:ipncore, :block_extension)
+  @max_block_data_size Application.compile_env(:ipncore, :max_block_data_size)
 
   # Generate local block and decode block file
-  def generate_files(creator_id, block_id) do
-    filename = "#{creator_id}.#{block_id}.#{@block_extension}"
+  @spec generate_files(creator_id :: integer(), height :: integer()) :: map | nil
+  def generate_files(creator_id, height) do
+    filename = "#{creator_id}.#{height}.#{@block_extension}"
     block_path = Path.join(Application.get_env(:ipncore, :block_dir), filename)
     decode_path = Path.join(Application.get_env(:ipncore, :decode_dir), filename)
     ets_msg = :ets.whereis(:msg)
-    ets_dmsg = :ets.whereis(:dmsg)
 
-    messages = :ets.tab2list(ets_msg)
-    decode_messages = :ets.tab2list(ets_dmsg)
+    cond do
+      File.exists?(decode_path) and File.exists?(block_path) ->
+        {:ok, file_info} = File.stat(block_path)
 
-    last_key =
-      List.last(messages)
-      |> elem(1)
+        {:ok, content} = File.read(block_path)
 
-    last_dkey =
-      List.last(decode_messages)
-      |> elem(1)
+        %{"msg" => messages, "vsn" => version} = decode_file!(content)
 
-    File.write(block_path, encode_file!(messages))
+        %{
+          count: length(messages),
+          creator: creator_id,
+          hashfile: hash_file(block_path),
+          height: height,
+          size: file_info.size,
+          vsn: version
+        }
 
-    File.write(decode_path, encode_file!(decode_messages))
+      :ets.info(ets_msg, :size) > 0 ->
+        {acc_msg, acc_decode} =
+          do_iterate(ets_msg, :ets.first(ets_msg), %{}, %{}, 0)
 
-    ets_delete_while(ets_msg, last_key, :ets.first(ets_msg))
-    ets_delete_while(ets_dmsg, last_dkey, :ets.first(ets_dmsg))
+        content = encode_file!(%{"msg" => acc_msg, "vsn" => @version})
 
-    {:ok, file_info} = File.stat(block_path)
+        File.write(block_path, content)
+        File.write(decode_path, encode_file!(%{"msg" => acc_decode, "vsn" => @version}))
 
-    %{
-      count: length(messages),
-      creator: creator_id,
-      hash: hash_file(block_path),
-      height: block_id,
-      size: file_info.size
-    }
+        {:ok, file_info} = File.stat(block_path)
+
+        %{
+          count: length(acc_msg),
+          creator: creator_id,
+          hashfile: hash_file(block_path),
+          height: height,
+          size: file_info.size,
+          vsn: @version
+        }
+
+      true ->
+        nil
+    end
   end
 
-  defp ets_delete_while(_table, _target, :"$end_of_table"), do: :ok
+  defp do_iterate(_ets_msg, :"$end_of_table", messages, decode_messages, _),
+    do: {Map.values(messages), Map.values(decode_messages)}
 
-  defp ets_delete_while(table, target, key) do
-    if key != target do
-      next = :ets.next(table, key)
-      :ets.delete(table, key)
-      ets_delete_while(table, target, next)
-    else
-      :ets.delete(table, key)
+  defp do_iterate(ets_msg, key, messages, decode_message, acc_size) do
+    [msg] = :ets.lookup(ets_msg, key)
+
+    {acc_msg, acc_decode, size} =
+      case msg do
+        {
+          hash,
+          timestamp,
+          type,
+          from,
+          args,
+          msg_sig,
+          size
+        } ->
+          acc_msg = Map.put(messages, hash, msg_sig)
+
+          acc_decode =
+            Map.put(hash, decode_message, [
+              hash,
+              timestamp,
+              type,
+              from,
+              args,
+              size
+            ])
+
+          {acc_msg, acc_decode, size}
+
+        {
+          hash,
+          timestamp,
+          _key,
+          type,
+          from,
+          args,
+          msg_sig,
+          size
+        } ->
+          acc_msg = Map.put(hash, messages, msg_sig)
+
+          acc_decode =
+            Map.put(hash, decode_message, [
+              hash,
+              timestamp,
+              type,
+              from,
+              args,
+              size
+            ])
+
+          {acc_msg, acc_decode, size}
+      end
+
+    acc_size = acc_size + size
+
+    case @max_block_data_size > acc_size do
+      false ->
+        :ets.delete(ets_msg, key)
+        do_iterate(ets_msg, :ets.next(ets_msg, key), acc_msg, acc_decode, acc_size)
+
+      _true ->
+        {Map.values(acc_msg), Map.values(acc_decode)}
     end
   end
 end

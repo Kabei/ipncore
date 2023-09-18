@@ -53,12 +53,13 @@ defmodule Ippan.ClusterClient do
         {:ok, sharedkey} ->
           :ok = :inet.setopts(socket, active: true)
 
-          map = %{
-            socket: socket,
-            sharedkey: sharedkey,
-            hostname: hostname,
-            net_pubkey: net_pubkey
-          }
+          map =
+            %{
+              socket: socket,
+              sharedkey: sharedkey,
+              hostname: hostname,
+              net_pubkey: net_pubkey
+            }
 
           new_state = Map.merge(state, map)
           @node.on_connect(node_id, map)

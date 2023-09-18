@@ -14,13 +14,8 @@ defmodule Ippan.ClusterServer do
            :persistent_term.get(:net_privkey),
            &ClusterNode.fetch/1
          ) do
-      {:ok, id, hostname, sharedkey, net_pubkey, timeout} ->
-        ClusterNode.on_connect(id, %{
-          socket: tcp_socket,
-          sharedkey: sharedkey,
-          hostname: hostname,
-          net_pubkey: net_pubkey
-        })
+      {:ok, id, %{sharedkey: sharedkey} = node, timeout} ->
+        ClusterNode.on_connect(id, node)
 
         {:continue, %{id: id, socket: tcp_socket, sharedkey: sharedkey}, timeout}
 

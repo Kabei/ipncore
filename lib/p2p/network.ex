@@ -3,15 +3,16 @@ defmodule Ippan.Network do
   @callback on_connect(node_id :: term(), map :: map()) :: any()
   @callback on_disconnect(state :: term()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
-  @callback connect(node :: term(), opts :: keyword()) :: term() | {:error, term()}
-  @callback connect_async(node :: term(), opts :: keyword()) :: any()
+  @callback connect(node :: term(), opts :: keyword()) :: boolean()
+  @callback connect_async(node :: term(), opts :: keyword()) :: {:ok, pid()} | {:error, term()}
   @callback disconnect(state :: term()) :: :ok
   @callback fetch(id :: term()) :: map() | nil
   @callback info(node_id :: term()) :: map() | nil
   @callback list() :: [term()]
   @callback alive?(node :: term()) :: boolean()
   @callback count() :: pos_integer()
-  @callback cast(node :: term(), message :: term) :: :ok | :disconnect
+  @callback cast(node_id :: term(), message :: term) :: :ok | :disconnect
+  @callback cast(node_id :: term(), event :: binary, data :: term) :: :ok | :disconnect
   @callback call(
               node_id :: term(),
               method :: binary,
@@ -28,6 +29,8 @@ defmodule Ippan.Network do
   @callback add_node(node :: term()) :: term()
   @callback update_node(node_id :: term(), args :: term()) :: term()
   @callback delete_node(node_id :: term()) :: term()
+  # random tools
+  @callback get_random_node() :: term()
 
   @optional_callbacks [
     broadcast: 2,
@@ -45,6 +48,7 @@ defmodule Ippan.Network do
       import Ippan.P2P, only: [encode: 2, decode!: 2]
       alias Ippan.{Network, Utils}
       alias Phoenix.PubSub
+      alias IO.ANSI
       alias Ippan.P2P
       require SqliteStore
       require Logger
@@ -54,8 +58,9 @@ defmodule Ippan.Network do
       @adapter :gen_tcp
       @module __MODULE__
       @otp_app opts[:app]
-      @table opts[:table]
       @name opts[:name]
+      @table opts[:table]
+      @server opts[:server] || opts[:name]
       @pubsub opts[:pubsub]
       @topic opts[:topic]
       @supervisor opts[:sup]
@@ -67,25 +72,51 @@ defmodule Ippan.Network do
 
       @impl true
       def init(_args) do
-        case :ets.whereis(@table) do
-          :undefined ->
-            :ets.new(@table, [
-              :set,
-              :named_table,
-              :public,
-              read_concurrency: false,
-              write_concurrency: false
-            ])
+        table =
+          case :ets.whereis(@table) do
+            :undefined ->
+              :ets.new(@table, [
+                :set,
+                :named_table,
+                :public,
+                read_concurrency: false,
+                write_concurrency: false
+              ])
 
-          ref ->
-            ref
-        end
+            ref ->
+              ref
+          end
+
+        server =
+          case Process.whereis(@server) do
+            nil ->
+              opts = Application.get_env(@otp_app, @name)
+              {:ok, pid} = ThousandIsland.start_link(opts)
+              Process.register(pid, @server)
+
+              app_name =
+                to_string(@otp_app)
+                |> String.upcase()
+
+              name =
+                to_string(@name)
+                |> String.capitalize()
+
+              IO.puts(
+                "Running #{ANSI.red() <> app_name <> ANSI.reset()} P2P #{name} with port #{ANSI.yellow() <> to_string(opts[:port]) <> ANSI.reset()}"
+              )
+
+              pid
+
+            pid ->
+              pid
+          end
 
         {:ok, sup} = @supervisor.start_link([])
 
         PubSub.subscribe(@pubsub, @topic)
 
-        {:ok, %{sup: sup}, {:continue, :init}}
+        {:ok, %{sup: sup, server: server, ets: table}, {:continue, :init}}
       end
 
       @impl true
@@ -112,9 +143,10 @@ defmodule Ippan.Network do
       # end
 
       @impl true
-      def terminate(_reason, %{sup: sup}) do
+      def terminate(_reason, %{ets: ets, server: server, sup: sup}) do
+        ThousandIsland.stop(server, :infinity)
         PubSub.unsubscribe(@pubsub, @topic)
-        :ets.delete(@table)
+        :ets.delete(ets)
         DynamicSupervisor.stop(sup)
       end
 
@@ -165,8 +197,7 @@ defmodule Ippan.Network do
               @adapter.send(state.socket, bin)
             rescue
               x ->
-                IO.inspect("error in question")
-                Logger.error(inspect(x))
+                Logger.error(x.message)
                 bin = %{"_id" => id, "data" => ["error", "Unknown"]}
                 @adapter.send(state.socket, encode(bin, sharedkey))
             end
@@ -190,18 +221,27 @@ defmodule Ippan.Network do
             %{id: node_id, hostname: hostname, port: port, net_pubkey: net_pubkey} = node,
             opts \\ @default_connect_opts
           ) do
-        @supervisor.start_child(
-          Map.merge(node, %{
-            conn: :persistent_term.get(:asset_conn),
-            stmts: :persistent_term.get(:asset_stmt),
-            opts: opts
-          })
-        )
+        case @supervisor.start_child(
+               Map.merge(node, %{
+                 conn: :persistent_term.get(:asset_conn),
+                 stmts: :persistent_term.get(:asset_stmt),
+                 opts: opts
+               })
+             ) do
+          {:ok, _pid} -> true
+          _ -> false
+        end
       end
 
       @impl Network
       def connect_async(node, opts \\ @default_connect_opts) do
-        connect(node, Keyword.put(opts, :async, true))
+        @supervisor.start_child(
+          Map.merge(node, %{
+            conn: :persistent_term.get(:asset_conn),
+            stmts: :persistent_term.get(:asset_stmt),
+            opts: Keyword.put(opts, :async, true)
+          })
+        )
       end
 
       @impl Network
@@ -239,6 +279,17 @@ defmodule Ippan.Network do
         case info(node_id) do
           %{sharedkey: sharedkey, socket: socket} ->
             @adapter.send(socket, encode(message, sharedkey))
+
+          _ ->
+            :disconnect
+        end
+      end
+
+      @impl Network
+      def cast(node_id, event, data) do
+        case info(node_id) do
+          %{sharedkey: sharedkey, socket: socket} ->
+            @adapter.send(socket, encode(%{"event" => event, "data" => data}, sharedkey))
 
           _ ->
             :disconnect
@@ -291,12 +342,26 @@ defmodule Ippan.Network do
       end
 
       @impl Network
+      def broadcast(message, role) do
+        data = :ets.select(@table, [{{:_, %{role: :"$1"}}, [{:==, :"$1", role}], [:"$_"]}])
+
+        Enum.each(data, fn {_, %{sharedkey: sharedkey, socket: socket}} ->
+          @adapter.send(socket, encode(message, sharedkey))
+        end)
+      end
+
+      @impl Network
       def broadcast_except(message, ids) do
         Enum.each(list(), fn {id, %{sharedkey: sharedkey, socket: socket}} ->
           if id not in ids do
             @adapter.send(socket, encode(message, sharedkey))
           end
         end)
+      end
+
+      @impl Network
+      def get_random_node do
+        Enum.random(list())
       end
 
       defoverridable on_init: 1,

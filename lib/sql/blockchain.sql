@@ -37,9 +37,13 @@ CREATE TABLE IF NOT EXISTS round(
   hash BLOB NOT NULL,
   prev BLOB,
   creator BIGINT NOT NULL,
+  signature BLOB NOT NULL,
   coinbase BIGINT,
-  blocks BIGINT,
-  timestamp BIGINT NOT NULL
+  count BIGINT,
+  tx_count BIGINT,
+  size BIGINT,
+  blocks BLOB,
+  extra BLOB
 ) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS jackpot(

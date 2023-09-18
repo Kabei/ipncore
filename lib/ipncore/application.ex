@@ -15,8 +15,6 @@ defmodule Ipncore.Application do
     make_folders()
     load_keys()
 
-    cluster_opts = Application.get_env(:ipncore, :cluster)
-    network_opts = Application.get_env(:ipncore, :network)
     balance_path = Path.join(:persistent_term.get(:store_dir), "balance.dets")
 
     # services
@@ -28,10 +26,9 @@ defmodule Ipncore.Application do
         {DetsPlus, [name: :balance, file: balance_path]},
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
         Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
-        {ThousandIsland, cluster_opts},
-        {ThousandIsland, network_opts},
         ClusterNode,
         NetworkNode,
+        RoundManager,
         {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
       ]
 

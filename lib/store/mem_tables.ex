@@ -22,7 +22,7 @@ defmodule MemTables do
     hash: "hash",
     dhash: "dhash",
     msg: "msg",
-    dmsg: "dmsg",
+    # used after process round
     dtx: "dtx",
     # cache
     wallet: "wallet",

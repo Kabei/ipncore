@@ -466,7 +466,7 @@ defmodule RoundManager do
           end
 
         # save round
-        round = %Round{
+        round = %{
           id: round_id,
           creator: msg_round.creator,
           hash: msg_round.hash,
@@ -575,7 +575,7 @@ defmodule RoundManager do
         end
 
       # save round
-      round = %Round{
+      round = %{
         id: round_id,
         creator: creator_id,
         hash: hash,

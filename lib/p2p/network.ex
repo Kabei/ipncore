@@ -30,7 +30,7 @@ defmodule Ippan.Network do
   @callback update_node(node_id :: term(), args :: term()) :: term()
   @callback delete_node(node_id :: term()) :: term()
   # random tools
-  @callback get_random_node() :: term()
+  @callback get_random_node() :: term() | nil
 
   @optional_callbacks [
     broadcast: 2,
@@ -361,7 +361,13 @@ defmodule Ippan.Network do
 
       @impl Network
       def get_random_node do
-        Enum.random(list())
+        n = count()
+        r = :rand.uniform(n) - 1
+
+        case :ets.slot(@table, r) do
+          [object] -> object
+          [] -> nil
+        end
       end
 
       defoverridable on_init: 1,

@@ -10,11 +10,23 @@ defmodule Ippan.Round do
           count: non_neg_integer(),
           tx_count: non_neg_integer(),
           size: non_neg_integer(),
-          blocks: [binary()] | nil,
-          extra: [term()] | nil
+          blocks: [map()] | nil,
+          extra: [any()] | nil
         }
 
-  defstruct [:id, :hash, :prev, :creator, :signature, :coinbase, :count, :tx_count, :size, :blocks, :extra]
+  defstruct [
+    :id,
+    :hash,
+    :prev,
+    :creator,
+    :signature,
+    :coinbase,
+    :count,
+    :tx_count,
+    :size,
+    :blocks,
+    :extra
+  ]
 
   @impl true
   def to_list(x) do
@@ -44,7 +56,19 @@ defmodule Ippan.Round do
   end
 
   @impl true
-  def list_to_map([id, hash, prev, creator, signature, coinbase, count, tx_count, blocks, extra, size]) do
+  def list_to_map([
+        id,
+        hash,
+        prev,
+        creator,
+        signature,
+        coinbase,
+        count,
+        tx_count,
+        blocks,
+        extra,
+        size
+      ]) do
     %{
       id: id,
       hash: hash,
@@ -74,11 +98,11 @@ defmodule Ippan.Round do
     |> Blake3.hash()
   end
 
-  def reward(0, _size), do: 0
-  def reward(_tx_count, 0), do: 0
+  def reward(0, _txs_rejected, _size), do: 0
+  def reward(_tx_count, _txs_rejected, 0), do: 0
 
-  def reward(tx_count, size) do
-    (tx_count / size)
+  def reward(txs_count, txs_rejected, size) do
+    ((txs_count - txs_rejected) / size)
     |> Kernel.*(1000)
     |> trunc()
   end

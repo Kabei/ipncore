@@ -9,7 +9,7 @@ defmodule Ippan.NetworkClient do
   @node Ippan.NetworkNode
   @ping_interval 45_000
   @opts Application.compile_env(:ipncore, :p2p_client)
-  @time_to_reconnect 1_500
+  @time_to_reconnect 1_000
 
   def start_link(_, args) do
     start_link(args)

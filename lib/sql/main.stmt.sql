@@ -87,7 +87,7 @@ DELETE FROM dns.dns WHERE domain = ?1 AND name=?2;
 DELETE FROM dns.dns WHERE domain = ?1;
 
 
---name: next_id_block
+--name: next_block_id
 SELECT COALESCE((SELECT id FROM blockchain.block ORDER BY id DESC LIMIT 1) + 1, 0);
 
 --name: insert_block
@@ -95,6 +95,9 @@ INSERT INTO blockchain.block values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
 
 --name: exists_block
 SELECT 1 FROM blockchain.block WHERE id=? LIMIT 1;
+
+--name: exists_local_block
+SELECT 1 FROM blockchain.block WHERE creator=? AND height=? LIMIT 1;
 
 --name: get_block
 SELECT * FROM blockchain.block WHERE id=? LIMIT 1;

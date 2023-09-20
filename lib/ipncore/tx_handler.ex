@@ -86,68 +86,49 @@ defmodule Ippan.TxHandler do
     end
   end
 
-  # only deferred transactions
-  defmacro handle_post!(
-             conn,
-             stmts,
-             dets,
-             hash,
-             type,
-             account_id,
-             validator_id,
-             args,
-             size,
-             timestamp
-           ) do
-    quote bind_quoted: [
-            conn: conn,
-            stmts: stmts,
-            dets: dets,
-            hash: hash,
-            type: type,
-            account_id: account_id,
-            validator_id: validator_id,
-            args: args,
-            size: size,
-            timestamp: timestamp
-          ] do
-    end
-
-    %{mod: module, fun: fun} = Funcs.lookup(type)
-
-    source = %{
-      id: account_id,
-      conn: conn,
-      stmts: stmts,
-      dets: dets,
-      type: type,
-      validator: validator_id,
-      hash: hash,
-      timestamp: timestamp,
-      size: size
-    }
-
-    apply(module, fun, [source | args])
-  end
-
   # Dispute resolution in deferred transaction
-  def insert_deferred(msg = [hash, type, key | _rest], block_id) do
-    msg_key = {type, key}
+  def insert_deferred(
+        [hash, type, arg_key, account_id, args, timestamp, size],
+        validator_id,
+        block_id
+      ) do
+    key = {type, arg_key}
+    body = [hash, account_id, validator_id, args, timestamp, size]
 
-    case :ets.lookup(:dtx, msg_key) do
+    case :ets.lookup(:dtx, key) do
       [] ->
-        :ets.insert(:dtx, msg)
+        :ets.insert(:dtx, {key, body})
 
       [{_msg_key, xhash, xblock_id, _rest}] ->
         if hash < xhash or (hash == xhash and block_id < xblock_id) do
-          :ets.insert(:dtx, msg)
+          :ets.insert(:dtx, {key, body})
         else
           false
         end
     end
   end
 
-  # defp normalize_key(nil, from), do: from
-  # defp normalize_key([], from), do: from
-  # defp normalize_key(args, _from), do: hd(args) |> to_string()
+  # only deferred transactions
+  def run_deferred_txs(conn, stmts, dets) do
+    for {{_key, type}, [hash, account_id, validator_id, args, timestamp, size]} <-
+          :ets.tab2list(:dtx) do
+      %{mod: module, fun: fun} = Funcs.lookup(type)
+
+      source = %{
+        id: account_id,
+        conn: conn,
+        stmts: stmts,
+        dets: dets,
+        type: type,
+        validator: validator_id,
+        hash: hash,
+        timestamp: timestamp,
+        size: size
+      }
+
+      apply(module, fun, [source | args])
+    end
+
+    :ets.delete_all_objects(:dtx)
+  end
 end

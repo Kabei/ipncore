@@ -1332,7 +1332,7 @@ defmodule DetsPlus do
     if Bloom.lookup(state, hash) and slot_count > 0 do
       slot = slot_idx(slot_count, hash)
 
-      {ret, _n} =
+      {{_key, ret}, _n} =
         file_lookup_slot_loop(state, key, hash, table_offset(state, table_idx), slot, slot_count)
 
       ret

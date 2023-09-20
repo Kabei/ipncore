@@ -19,8 +19,8 @@ defmodule MinerWorker do
     {:ok, args}
   end
 
-  def mine(server, block) do
-    GenServer.call(server, {:mine, block})
+  def mine(server, block, creator, round_id) do
+    GenServer.call(server, {:mine, block, creator, round_id})
   end
 
   # Create a block file from decode block file (foreign block)
@@ -35,39 +35,57 @@ defmodule MinerWorker do
             count: count,
             vsn: @version
           } = block,
+          creator,
           current_round
         },
         _from,
         state
       ) do
     try do
-      {node_id, _node} = ClusterNode.get_random_node()
+      conn = :persistent_term.get(:asset_conn)
+      stmts = :persistent_term.get(:asset_stmt)
+      dets = :persistent_term.get(:dets_balance)
+      {node_id, node} = ClusterNode.get_random_node()
 
       # Request verify a remote blockfile
       decode_path = Block.decode_path(creator_id, height)
 
+      # Call verify blockfile and download decode-file
       if File.exists?(decode_path) do
         :ok
       else
         # Download from Cluster node
-        {:ok, url} = ClusterNode.call(node_id, "verify_block", block, 15_000, 2)
-        :ok = Download.from(url, decode_path)
+        block_check =
+          block
+          |> Map.put("hostname", creator.hostname)
+          |> Map.put("pubkey", creator.pubkey)
+
+        case ClusterNode.call(node_id, "verify_block", block_check, 15_000, 2) do
+          {:ok, verify_result} ->
+            case verify_result do
+              false ->
+                raise IppanError, "Error block verify"
+
+              true ->
+                url = Block.cluster_decode_url(node.hostname, creator_id, height)
+                :ok = Download.from(url, decode_path)
+            end
+
+          {:error, _} ->
+            raise IppanError, "Error Node verify"
+        end
       end
 
       Logger.debug("#{creator_id}.#{height} Txs: #{count} | #{decode_path} Mining...")
 
-      # read blockfile
+      # Read decode blockfile
       {:ok, content} = File.read(decode_path)
 
-      %{"msg" => messages, "vsn" => version} =
+      messages =
         Block.decode_file!(content)
 
-      conn = :persistent_term.get(:asset_conn)
-      stmts = :persistent_term.get(:asset_stmt)
-      dets = :persistent_term.get(:dets_balance)
-
       count_rejected =
-        mine_fun(version, messages, conn, stmts, dets, creator_id, block_id)
+        mine_fun(@version, messages, conn, stmts, dets, creator_id, block_id)
 
       result =
         block
@@ -75,9 +93,8 @@ defmodule MinerWorker do
         |> Block.to_list()
 
       :done = SqliteStore.step(conn, stmts, "insert_block", result)
-      :done = SqliteStore.step(conn, stmts, "delete_msg_block", [creator_id, height])
 
-      {:reply, :ok, state}
+      {:reply, {:ok, count_rejected}, state}
     rescue
       error ->
         Logger.error(error.message)
@@ -109,7 +126,7 @@ defmodule MinerWorker do
         acc
 
       msg, acc ->
-        case TxHandler.insert_deferred(msg, block_id) do
+        case TxHandler.insert_deferred(msg, creator_id, block_id) do
           true ->
             acc
 

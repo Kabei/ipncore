@@ -12,8 +12,8 @@ defmodule BlockHandler do
   @spec generate_files(creator_id :: integer(), height :: integer()) :: map | nil
   def generate_files(creator_id, height) do
     filename = "#{creator_id}.#{height}.#{@block_extension}"
-    block_path = Path.join(Application.get_env(:ipncore, :block_dir), filename)
-    decode_path = Path.join(Application.get_env(:ipncore, :decode_dir), filename)
+    block_path = Path.join(:persistent_term.get(:block_dir), filename)
+    decode_path = Path.join(:persistent_term.get(:decode_dir), filename)
     ets_msg = :ets.whereis(:msg)
 
     cond do
@@ -22,7 +22,7 @@ defmodule BlockHandler do
 
         {:ok, content} = File.read(block_path)
 
-        %{"msg" => messages, "vsn" => version} = decode_file!(content)
+        %{"data" => messages, "vsn" => version} = decode_file!(content)
 
         %{
           count: length(messages),
@@ -37,10 +37,10 @@ defmodule BlockHandler do
         {acc_msg, acc_decode} =
           do_iterate(ets_msg, :ets.first(ets_msg), %{}, %{}, 0)
 
-        content = encode_file!(%{"msg" => acc_msg, "vsn" => @version})
+        content = encode_file!(%{"data" => acc_msg, "vsn" => @version})
 
         File.write(block_path, content)
-        File.write(decode_path, encode_file!(%{"msg" => acc_decode, "vsn" => @version}))
+        File.write(decode_path, encode_file!(%{"data" => acc_decode, "vsn" => @version}))
 
         {:ok, file_info} = File.stat(block_path)
 

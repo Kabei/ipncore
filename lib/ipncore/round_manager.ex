@@ -1,15 +1,22 @@
 defmodule RoundManager do
   use GenServer, restart: :transient
   require Logger
+  require Ippan.TxHandler
+  require BalanceStore
+  alias Ippan.TxHandler
   alias Ippan.ClusterNode
   alias Ippan.Block
   alias Ippan.Round
-  alias Ippan.{NetworkNode, Validator, MsgBlock, MsgRound}
+  alias Ippan.{NetworkNode, Validator}
   alias Phoenix.PubSub
   require SqliteStore
+  require BalanceStore
+  require BigNumber
 
   @miner_pool :miner_pool
   @pubsub :cluster
+  @wait_time 4_000
+  @token Application.compile_env(:ipncore, :token)
   @timeout 20_000
   @block_interval Application.compile_env(:ipncore, :block_interval)
   @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)
@@ -25,16 +32,19 @@ defmodule RoundManager do
     net = {:persistent_term.get(:net_conn), :persistent_term.get(:net_stmt)}
 
     ets_players =
-      :ets.new(:players, [:ordered_set, :public, read_concurrency: true, write_concurrency: true])
+      ets_start(:players, [:ordered_set, :public, read_concurrency: true, write_concurrency: true])
 
-    # ets_votes =
-    #   :ets.new(:votes, [:set, :public, read_concurrency: true, write_concurrency: true])
+    ets_votes =
+      ets_start(:votes, [:set, :public, read_concurrency: true, write_concurrency: true])
+
+    ets_candidates =
+      ets_start(:candidates, [:set, :public, read_concurrency: true, write_concurrency: true])
 
     [round_id, round_hash] =
-      SqliteStore.fetch(conn, stmts, "last_round", [], [0, nil])
+      SqliteStore.fetch(conn, stmts, "last_round", [], [-1, nil])
 
     [block_id, block_hash] =
-      SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [0, nil])
+      SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [-1, nil])
 
     # Subscribe
     PubSub.subscribe(@pubsub, "validator")
@@ -55,19 +65,21 @@ defmodule RoundManager do
 
     {:ok,
      %{
-       block_id: block_id,
+       block_id: block_id + 1,
        block_hash: block_hash,
        candidate: nil,
+       dets: :persistent_term.get(:dets_balance),
        main: main,
        miner_pool: miner_pool_pid,
        net: net,
        players: ets_players,
-       #  ets_votes: ets_votes,
+       votes: ets_votes,
+       candidates: ets_candidates,
        turn: false,
        position: nil,
        rcid: nil,
        rc_node: nil,
-       round_id: round_id,
+       round_id: round_id + 1,
        round_hash: round_hash,
        total: total_players,
        tRef: nil,
@@ -99,12 +111,37 @@ defmodule RoundManager do
   end
 
   @impl true
-  def handle_info(:timeout, %{round_id: round_id} = state) do
+  def handle_info(
+        :timeout,
+        %{main: {conn, stmts}, players: ets_players, round_id: round_id, rcid: rcid} = state
+      ) do
     IO.puts("Round ##{round_id} Timeout")
-    {:noreply, state}
+
+    pid = self()
+
+    t = Task.async(fn -> build_round_from_messages(pid, state) end)
+
+    if Task.await(t, :infinity) == nil do
+      :done = SqliteStore.step(conn, stmts, "delete_validator", [rcid])
+      SqliteStore.sync(conn)
+
+      # delete player
+      :ets.delete(ets_players, rcid)
+      total_players = get_total_players(ets_players)
+
+      # send event
+      PubSub.broadcast_from(@pubsub, pid, "validator", %{
+        "event" => "validator.delete",
+        "data" => rcid
+      })
+
+      {:noreply, %{state | total: total_players}, {:continue, :next}}
+    else
+      {:noreply, state, {:continue, :next}}
+    end
   end
 
-  # Check
+  # Check if there are transactions to create local block
   def handle_info(:mine, %{bRef: bRef, candidate: nil, vid: vid, block_id: block_id} = state) do
     :timer.cancel(bRef)
     result = BlockHandler.generate_files(vid, block_id)
@@ -122,50 +159,64 @@ defmodule RoundManager do
           "msg_round",
           msg_round = %{
             "id" => id,
+            "blocks" => blocks,
             "creator" => creator,
-            "messages" => _messages,
             "hash" => hash,
-            "signature" => signature
+            "signature" => signature,
+            "prev" => prev
           },
           node_id
         },
         %{
-          net: {net_conn, net_stmts},
           players: ets_players,
-          # ets_votes: ets_votes,
-          # min: min_votes,
-          # delegates: delegates,
+          votes: ets_votes,
           rcid: rcid,
           round_id: round_id
         } =
           state
       )
-      when id > round_id do
-    #  count <-
-    #    :ets.update_counter(ets_votes, id, {3, 1}, {id, msg_round, 1})
+      when id == round_id do
+    blocks =
+      Enum.reduce(blocks, [], fn b, acc ->
+        block =
+          MapUtil.to_atoms(b, ~w(hash height creator prev size hashfile timestamp count vsn))
+
+        acc ++ [block]
+      end)
+
+    msg_round =
+      msg_round
+      |> MapUtil.to_atoms(["id", "hash", "prev", "signature"])
+      |> Map.put(:blocks, blocks)
+
+    hashes = Enum.map(blocks, & &1.hash)
+
+    limit = EnvStore.round_blocks()
+    pid = self()
+
     with true <- creator == rcid,
+         true <- limit >= length(blocks),
          [{_, player}] <- :ets.lookup(ets_players, creator),
+         true <- hash == Round.compute_hash(id, prev, creator, hashes),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey) do
-      NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [node_id])
+      count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 1})
 
-      # if count == min_votes do
-      case SqliteStore.step(net_conn, net_stmts, "insert_msg_round", MsgRound.encode(msg_round)) do
-        :done ->
-          send(self(), {:sync, msg_round})
-          {:noreply, state}
+      n = NetworkNode.count()
 
-        :busy ->
-          Logger.error("Database Busy")
-          {:noreply, state}
+      cond do
+        count == div(n, 2) + 1 ->
+          spawn_link(fn ->
+            build_round_from_messages(pid, msg_round)
+          end)
 
-        _ ->
-          {:noreply, state}
+        true ->
+          :ok
       end
 
-      # else
-      #   {:noreply, state}
-      # end
+      NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [node_id])
     end
+
+    {:noreply, state}
   end
 
   def handle_info(
@@ -176,43 +227,53 @@ defmodule RoundManager do
               "creator" => creator,
               "height" => height,
               "hash" => hash,
-              "signature" => signature
+              "signature" => signature,
+              "prev" => prev,
+              "hashfile" => hashfile,
+              "timestamp" => timestamp
             }
         },
-        %{main: {conn, stmts}, net: {net_conn, net_stmts}, players: ets_players} = state
+        %{main: {conn, stmts}, candidates: ets_candidates, players: ets_players} = state
       ) do
     with [{_, player}] <- :ets.lookup(ets_players, creator),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         false <- SqliteStore.exists?(conn, stmts, "exists_block", [creator, height]),
-         :done <-
-           SqliteStore.step(net_conn, net_stmts, "insert_msg_block", MsgBlock.encode(block)) do
-      {:noreply, state}
-    else
-      _ ->
-        {:noreply, state}
+         true <- Block.compute_hash(creator, height, prev, hashfile, timestamp),
+         false <- SqliteStore.exists?(conn, stmts, "exists_local_block", [creator, height]) do
+      block =
+        block
+        |> Map.take(Block.fields())
+        |> MapUtil.to_atoms()
+
+      :ets.insert(ets_candidates, {{creator, height}, block})
     end
+
+    {:noreply, state}
   end
 
   def handle_info(
         %{"event" => "validator.new", "data" => validator},
         %{players: ets_players} = state
       ) do
+    # add player
     :ets.insert(ets_players, Validator.to_tuple(validator))
     total_players = get_total_players(ets_players)
-    new_state = get_state_after_check(%{state | total: total_players + 1})
 
-    {:noreply, new_state}
+    {:noreply, %{state | total: total_players}}
   end
 
   def handle_info(
         %{"event" => "validator.delete", "data" => validator_id},
         %{players: ets_players} = state
       ) do
+    # delete player
     :ets.delete(ets_players, validator_id)
     total_players = get_total_players(ets_players)
-    new_state = get_state_after_check(%{state | total: total_players + 1})
+    {:noreply, %{state | total: total_players}}
+  end
 
-    {:noreply, new_state}
+  def handle_info(msg, state) do
+    Logger.debug("RoundManager - handle_info: " <> inspect(msg))
+    {:noreply, state}
   end
 
   @impl true
@@ -233,18 +294,52 @@ defmodule RoundManager do
 
   @impl true
   # Process round
-  def handle_cast({:complete, round}, state) do
-    Logger.debug("Round completed: #{round.id} | #{Base.encode16(round.hash)}")
-    # run deferred tx
-    # run jackpot and events
+  def handle_cast(
+        {:complete, round},
+        %{
+          main: {conn, _stmts},
+          dets: dets,
+          block_id: block_id,
+          round_id: round_id,
+          votes: ets_votes,
+          candidates: ets_candidates
+        } = state
+      ) do
+    Logger.debug("[completed] Round ##{round_id} | #{Base.encode16(round.hash)}")
+
+    # Clear round-message-votes and block-candidates
+    c = :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
+    :ets.delete_all_objects(ets_candidates)
+    IO.inspect("select_delete votes: #{c}")
+
     # save all round
-    {:noreply, %{state | round_id: round.id, round_hash: round.hash}}
-    # {:noreply, %{state | round_id: round.id, round_hash: round.hash}, {:continue, :next}}
+    spawn_link(fn ->
+      SqliteStore.sync(conn)
+      DetsPlus.commit(dets)
+      DetsPlus.sync(dets)
+      # replicate data to cluster nodes
+      ClusterNode.broadcast(%{"event" => "round.new", "data" => round})
+    end)
+
+    {:noreply,
+     %{
+       state
+       | round_id: round.id + 1,
+         round_hash: round.hash,
+         block_id: block_id + length(round.blocks)
+     }, {:continue, :next}}
   end
 
   @impl true
-  def terminate(_reason, %{players: ets_players, miner_pool: miner_pool_pid}) do
+  def terminate(_reason, %{
+        players: ets_players,
+        candidates: ets_candidates,
+        votes: ets_votes,
+        miner_pool: miner_pool_pid
+      }) do
     :ets.delete(ets_players)
+    :ets.delete(ets_votes)
+    :ets.delete(ets_candidates)
     :poolboy.stop(miner_pool_pid)
     PubSub.unsubscribe(@pubsub, "validator")
   end
@@ -275,6 +370,13 @@ defmodule RoundManager do
   #   end
   # end
 
+  defp ets_start(name, opts) do
+    case :ets.whereis(name) do
+      :undefined -> :ets.new(name, opts)
+      table -> table
+    end
+  end
+
   defp start_miner_pool do
     case Process.whereis(@miner_pool) do
       nil ->
@@ -287,72 +389,265 @@ defmodule RoundManager do
     end
   end
 
-  defp build_round(pid, %{
+  defp build_round_from_messages(pid, %{
+         block_id: block_id,
          round_id: round_id,
          round_hash: round_hash,
-         vid: creator,
          main: {conn, stmts},
+         dets: dets,
+         rcid: rcid,
          miner_pool: pool,
-         candidate: candidate
+         votes: ets_votes
        }) do
+    # Choose msg round with more votes
+    msg_round =
+      :ets.tab2list(ets_votes)
+      |> Enum.filter(fn {{id, _hash}, _, _} -> id == round_id end)
+      |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
+      |> List.first()
+
+    if msg_round != nil do
+      blocks =
+        msg_round.blocks
+
+      {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
+
+      creator =
+        SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", rcid, Validator)
+
+      hash_count = length(hashes)
+
+      # Tasks to create blocks
+      result =
+        Enum.with_index(blocks, fn element, index -> {block_id + index, element} end)
+        |> Enum.map(fn {id, block} ->
+          Task.async(fn ->
+            :poolboy.transaction(
+              pool,
+              fn pid -> MinerWorker.mine(pid, Map.put(block, :id, id), creator, round_id) end,
+              :infinity
+            )
+          end)
+        end)
+        |> Enum.map(fn t -> Task.await(t, :infinity) end)
+
+      IO.inspect(result)
+
+      # Count Blocks and txs rejected
+      {block_count, txs_rejected} =
+        Enum.reduce(result, {0, 0}, fn x, {acc, acc_txr} ->
+          case x do
+            {:ok, rejected} -> {acc + 1, acc_txr + rejected}
+            :error -> {acc, acc_txr}
+          end
+        end)
+
+      IO.inspect(result)
+
+      if (hash_count > 0 and block_count > 0) or hash_count == block_count do
+        # Run deferred txs
+        TxHandler.run_deferred_txs(conn, stmts, dets)
+
+        # Calculate reward
+        reward = Round.reward(tx_count, txs_rejected, size)
+
+        if reward > 0 do
+          balance_key = BalanceStore.gen_key(creator.owner, @token)
+          BalanceStore.income(dets, balance_key, reward)
+        end
+
+        # Run jackpot and events
+        jackpot_amount =
+          if rem(round_id, 100) == 0 do
+            last_block_id = block_id + block_count
+            run_jackpot(conn, stmts, dets, round_id, last_block_id, round_hash, reward)
+          else
+            0
+          end
+
+        # save round
+        round = %Round{
+          id: round_id,
+          creator: msg_round.creator,
+          hash: msg_round.hash,
+          prev: round_hash,
+          signature: msg_round.signature,
+          coinbase: reward + jackpot_amount,
+          count: block_count,
+          tx_count: tx_count,
+          size: size,
+          blocks: hashes,
+          extra: nil
+        }
+
+        IO.inspect(round)
+
+        :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
+
+        GenServer.cast(pid, {:complete, round})
+      else
+        send(pid, :timeout)
+      end
+    end
+  end
+
+  defp build_round(pid, %{
+         block_id: block_id,
+         round_id: round_id,
+         round_hash: round_hash,
+         candidates: ets_candidates,
+         main: {conn, stmts},
+         dets: dets,
+         miner_pool: pool,
+         candidate: candidate,
+         vid: creator_id
+       }) do
+    # Time to wait messages (msg_block) to arrived
+    if is_nil(candidate) do
+      :timer.sleep(@wait_time)
+    end
+
     candidate =
       if candidate do
         candidate
       else
         get_candidate(pid)
       end
-
-    limit = EnvStore.round_blocks()
+      |> if(do: [candidate], else: [])
 
     blocks =
-      ([candidate] ++
-         SqliteStore.fetch_all(conn, stmts, "msg_blocks", limit))
-      |> Enum.filter(&(not is_nil(&1)))
-      |> Enum.map(fn x ->
-        MsgBlock.decode(x)
-      end)
+      candidate ++
+        :ets.tab2list(ets_candidates)
 
     {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
+    creator = :persistent_term.get(:validator)
+    hash = Round.compute_hash(round_id, round_hash, creator_id, hashes)
+    hash_count = length(hashes)
 
-    hash = Round.compute_hash(round_id, round_hash, creator, hashes)
     {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
-    reward = Round.reward(tx_count, size)
-    block_count = length(hashes)
-
-    round = %Round{
-      id: round_id,
-      creator: creator,
-      hash: hash,
-      prev: round_hash,
-      signature: signature,
-      coinbase: reward,
-      count: block_count,
-      tx_count: tx_count,
-      size: size,
-      blocks: hashes,
-      extra: nil
-    }
-
-    :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
 
     # Tasks to create blocks
-    Enum.map(blocks, fn block ->
-      Task.async(fn ->
-        :poolboy.transaction(
-          pool,
-          fn pid ->
-            MinerWorker.mine(pid, block)
-          end,
-          :infinity
-        )
+    result =
+      Enum.with_index(blocks, fn element, index -> {block_id + index, element} end)
+      |> Enum.map(fn block ->
+        Task.async(fn ->
+          :poolboy.transaction(
+            pool,
+            fn pid ->
+              MinerWorker.mine(pid, block, creator, round_id)
+            end,
+            :infinity
+          )
+        end)
       end)
-    end)
-    |> Enum.each(&Task.await(&1, :infinity))
+      |> Enum.map(&Task.await(&1, :infinity))
 
-    GenServer.cast(pid, {:complete, round})
+    IO.inspect(result)
 
-    NetworkNode.broadcast(%{"event" => "msg_round", "data" => round})
-    ClusterNode.broadcast(%{"event" => "round.new", "data" => round})
+    # Count Blocks and txs rejected
+    {block_count, txs_rejected} =
+      Enum.reduce(result, {0, 0}, fn x, {acc, acc_txr} ->
+        case x do
+          {:ok, rejected} -> {acc + 1, acc_txr + rejected}
+          :error -> {acc, acc_txr}
+        end
+      end)
+
+    if (hash_count > 0 and block_count > 0) or hash_count == block_count do
+      # Run deferred txs
+      TxHandler.run_deferred_txs(conn, stmts, dets)
+
+      # Calculate reward
+      reward = Round.reward(tx_count, txs_rejected, size)
+
+      if reward > 0 do
+        balance_key = BalanceStore.gen_key(creator.owner, @token)
+        BalanceStore.income(dets, balance_key, reward)
+      end
+
+      # Run jackpot and events
+      jackpot_amount =
+        if rem(round_id, 100) == 0 do
+          last_block_id = block_id + block_count
+          run_jackpot(conn, stmts, dets, round_id, last_block_id, round_hash, reward)
+        else
+          0
+        end
+
+      # save round
+      round = %Round{
+        id: round_id,
+        creator: creator_id,
+        hash: hash,
+        prev: round_hash,
+        signature: signature,
+        coinbase: reward + jackpot_amount,
+        count: block_count,
+        tx_count: tx_count,
+        size: size,
+        blocks: hashes,
+        extra: nil
+      }
+
+      IO.inspect(round)
+
+      :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
+
+      GenServer.cast(pid, {:complete, round})
+    else
+      SqliteStore.rollback_to(conn)
+      DetsPlus.rollback(dets)
+      send(pid, :timeout)
+    end
+  end
+
+  defp run_jackpot(_conn, _stmts, _dets, _round_id, _block_id, _round_hash, 0), do: 0
+
+  defp run_jackpot(conn, stmts, dets, round_id, block_id, round_hash, reward) do
+    n = BigNumber.to_int(round_hash)
+    dv = min(block_id, 20_000)
+    b = rem(n, dv) + if(block_id >= 20_000, do: block_id, else: 0)
+
+    case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
+      nil ->
+        0
+
+      block_list ->
+        block = Block.list_to_map(block_list)
+        tx_count = block.count
+
+        cond do
+          tx_count > 0 ->
+            tx_n = rem(n, tx_count)
+            path = Block.block_path(block.creator, block.height)
+            %{"data" => data} = File.read(path)
+
+            winner_id =
+              case Enum.at(data, tx_n) do
+                [_hash, _type, account_id, _args, _timestamp, _size] ->
+                  balance_key = BalanceStore.gen_key(account_id, @token)
+                  BalanceStore.income(dets, balance_key, reward)
+                  account_id
+
+                [_hash, _type, _arg_key, account_id, _args, _timestamp, _size] ->
+                  balance_key = BalanceStore.gen_key(account_id, @token)
+                  BalanceStore.income(dets, balance_key, reward)
+                  account_id
+              end
+
+            :done =
+              SqliteStore.step(conn, stmts, "insert_jackpot", [
+                round_id,
+                winner_id,
+                reward
+              ])
+
+            reward
+
+          true ->
+            0
+        end
+    end
   end
 
   # Check turn of the round and connect to round creator, check another connections
@@ -384,7 +679,7 @@ defmodule RoundManager do
   defp get_round_creator(ets_players, position) do
     case :ets.slot(ets_players, position) do
       [object] -> object
-      [] -> raise RuntimeError, "Error not there round creator"
+      _ -> raise RuntimeError, "Error not there round creator"
     end
   end
 
@@ -397,7 +692,7 @@ defmodule RoundManager do
   defp connect_to_peers(ets_players, total_players) do
     t =
       Task.async(fn ->
-        take = min(@max_peers_conn - NetworkNode.count(), total_players)
+        take = min(@max_peers_conn - NetworkNode.count(), total_players - 1)
         players_connected = NetworkNode.list()
 
         if take > 0 do

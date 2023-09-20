@@ -47,6 +47,10 @@ defmodule MinerWorker do
       dets = :persistent_term.get(:dets_balance)
       {node_id, node} = ClusterNode.get_random_node()
 
+      if height != 1 + SqliteStore.one(conn, stmts, "last_block_height_created", [creator_id]) do
+        raise IppanError, "Wrong block height"
+      end
+
       # Request verify a remote blockfile
       decode_path = Block.decode_path(creator_id, height)
 

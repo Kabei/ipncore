@@ -1,17 +1,12 @@
 defmodule RoundManager do
   use GenServer, restart: :transient
-  require Logger
-  require Ippan.TxHandler
-  require BalanceStore
-  alias Ippan.TxHandler
-  alias Ippan.ClusterNode
-  alias Ippan.Block
-  alias Ippan.Round
-  alias Ippan.{NetworkNode, Validator}
+  alias Ippan.{NetworkNode, ClusterNode, Block, Round, TxHandler, Validator}
   alias Phoenix.PubSub
   require SqliteStore
+  require Ippan.TxHandler
   require BalanceStore
   require BigNumber
+  require Logger
 
   @miner_pool :miner_pool
   @pubsub :cluster
@@ -43,8 +38,10 @@ defmodule RoundManager do
     [round_id, round_hash] =
       SqliteStore.fetch(conn, stmts, "last_round", [], [-1, nil])
 
-    [block_id, block_hash] =
-      SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [-1, nil])
+    [block_id] =
+      SqliteStore.fetch(conn, stmts, "last_block_id", [], [-1])
+
+    [block_hash] = SqliteStore.fetch(conn, stmts, "last_block_height_created", [vid], [nil])
 
     # Subscribe
     PubSub.subscribe(@pubsub, "validator")
@@ -160,7 +157,7 @@ defmodule RoundManager do
           msg_round = %{
             "id" => id,
             "blocks" => blocks,
-            "creator" => creator,
+            "creator" => creator_id,
             "hash" => hash,
             "signature" => signature,
             "prev" => prev
@@ -194,10 +191,10 @@ defmodule RoundManager do
     limit = EnvStore.round_blocks()
     pid = self()
 
-    with true <- creator == rcid,
+    with true <- creator_id == rcid,
          true <- limit >= length(blocks),
-         [{_, player}] <- :ets.lookup(ets_players, creator),
-         true <- hash == Round.compute_hash(id, prev, creator, hashes),
+         [{_, player}] <- :ets.lookup(ets_players, creator_id),
+         true <- hash == Round.compute_hash(id, prev, creator_id, hashes),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey) do
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 1})
 
@@ -213,7 +210,7 @@ defmodule RoundManager do
           :ok
       end
 
-      NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [node_id])
+      NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [node_id, creator_id])
     end
 
     {:noreply, state}
@@ -224,7 +221,7 @@ defmodule RoundManager do
           "event" => "msg_block",
           "data" =>
             block = %{
-              "creator" => creator,
+              "creator" => creator_id,
               "height" => height,
               "hash" => hash,
               "signature" => signature,
@@ -235,16 +232,17 @@ defmodule RoundManager do
         },
         %{main: {conn, stmts}, candidates: ets_candidates, players: ets_players} = state
       ) do
-    with [{_, player}] <- :ets.lookup(ets_players, creator),
+    with [{_, player}] <- :ets.lookup(ets_players, creator_id),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- Block.compute_hash(creator, height, prev, hashfile, timestamp),
-         false <- SqliteStore.exists?(conn, stmts, "exists_local_block", [creator, height]) do
+         true <- Block.compute_hash(creator_id, height, prev, hashfile, timestamp),
+         true <-
+           height == 1 + SqliteStore.one(conn, stmts, "last_block_height_created", [creator_id]) do
       block =
         block
         |> Map.take(Block.fields())
         |> MapUtil.to_atoms()
 
-      :ets.insert(ets_candidates, {{creator, height}, block})
+      :ets.insert(ets_candidates, {{creator_id, height}, block})
     end
 
     {:noreply, state}

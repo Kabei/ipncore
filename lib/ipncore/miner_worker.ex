@@ -85,7 +85,7 @@ defmodule MinerWorker do
       # Read decode blockfile
       {:ok, content} = File.read(decode_path)
 
-      messages =
+      %{"data" => messages, "vsn" => @version} =
         Block.decode_file!(content)
 
       count_rejected =
@@ -101,7 +101,7 @@ defmodule MinerWorker do
       {:reply, {:ok, count_rejected}, state}
     rescue
       error ->
-        Logger.error(error.message)
+        Logger.error(inspect(error))
         {:reply, :error, state}
     end
   end

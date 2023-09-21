@@ -22,6 +22,7 @@ defmodule RoundManager do
 
   @impl true
   def init(_args) do
+    IO.inspect("Init RoundManager")
     vid = :persistent_term.get(:vid)
     main = {conn = :persistent_term.get(:asset_conn), stmts = :persistent_term.get(:asset_stmt)}
     net = {:persistent_term.get(:net_conn), :persistent_term.get(:net_stmt)}
@@ -698,7 +699,9 @@ defmodule RoundManager do
 
   # Get ValidatorID of round creator from PositionID or turnID
   defp get_round_creator(ets_players, position) do
-    case :ets.slot(ets_players, position) do
+    r = :ets.slot(ets_players, position)
+    IO.inspect(r)
+    case r do
       [object] -> object
       _ -> raise RuntimeError, "Error not there round creator"
     end

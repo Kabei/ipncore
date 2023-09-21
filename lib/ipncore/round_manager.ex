@@ -113,32 +113,35 @@ defmodule RoundManager do
   @impl true
   def handle_info(
         :timeout,
-        %{main: {conn, stmts}, players: ets_players, round_id: round_id, rcid: rcid} = state
+        %{main: {conn, stmts}, players: ets_players, round_id: round_id, rcid: rcid, vid: vid} =
+          state
       ) do
-    IO.puts("Round ##{round_id} Timeout")
+    IO.puts("Round ##{round_id} Timeout #{rcid}")
 
-    pid = self()
+    if rcid != vid do
+      pid = self()
 
-    t = Task.async(fn -> build_round_from_messages(pid, state) end)
+      t = Task.async(fn -> build_round_from_messages(pid, state) end)
 
-    if Task.await(t, :infinity) == nil do
-      :done = SqliteStore.step(conn, stmts, "delete_validator", [rcid])
-      SqliteStore.sync(conn)
+      if Task.await(t, :infinity) == nil do
+        :done = SqliteStore.step(conn, stmts, "delete_validator", [rcid])
+        SqliteStore.sync(conn)
 
-      # delete player
-      :ets.delete(ets_players, rcid)
-      total_players = get_total_players(ets_players)
+        # delete player
+        :ets.delete(ets_players, rcid)
+        total_players = get_total_players(ets_players)
 
-      # send event
-      PubSub.broadcast_from(@pubsub, pid, "validator", %{
-        "event" => "validator.delete",
-        "data" => rcid
-      })
+        # send event
+        PubSub.broadcast_from(@pubsub, pid, "validator", %{
+          "event" => "validator.delete",
+          "data" => rcid
+        })
 
-      {:noreply, %{state | total: total_players}, {:continue, :next}}
-    else
-      {:noreply, state, {:continue, :next}}
+        {:noreply, %{state | total: total_players}, {:continue, :next}}
+      end
     end
+
+    {:noreply, state, {:continue, :next}}
   end
 
   # Check if there are transactions to create local block
@@ -699,9 +702,9 @@ defmodule RoundManager do
 
   # Get ValidatorID of round creator from PositionID or turnID
   defp get_round_creator(ets_players, position) do
-    r = :ets.slot(ets_players, position)
-    IO.inspect(r)
-    case r do
+    IO.inspect(:ets.tab2list(ets_players))
+
+    case :ets.slot(ets_players, position) do
       [object] -> object
       _ -> raise RuntimeError, "Error not there round creator"
     end

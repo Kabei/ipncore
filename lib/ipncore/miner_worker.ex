@@ -47,6 +47,8 @@ defmodule MinerWorker do
       dets = :persistent_term.get(:dets_balance)
       {node_id, node} = ClusterNode.get_random_node()
 
+      IO.inspect("Here 1")
+
       if height != 1 + SqliteStore.one(conn, stmts, "last_block_height_created", [creator_id]) do
         raise IppanError, "Wrong block height"
       end
@@ -54,6 +56,7 @@ defmodule MinerWorker do
       # Request verify a remote blockfile
       decode_path = Block.decode_path(creator_id, height)
 
+      IO.inspect("Here 2")
       # Call verify blockfile and download decode-file
       if File.exists?(decode_path) do
         :ok
@@ -82,20 +85,28 @@ defmodule MinerWorker do
 
       Logger.debug("#{creator_id}.#{height} Txs: #{count} | #{decode_path} Mining...")
 
+      IO.inspect("Here 3")
       # Read decode blockfile
       {:ok, content} = File.read(decode_path)
+
+      IO.inspect("Here 4")
 
       %{"data" => messages, "vsn" => @version} =
         Block.decode_file!(content)
 
+      IO.inspect("Here 5")
+
       count_rejected =
         mine_fun(@version, messages, conn, stmts, dets, creator_id, block_id)
+
+      IO.inspect("Here 6")
 
       result =
         block
         |> Map.merge(%{round: current_round, rejected: count_rejected})
         |> Block.to_list()
 
+      IO.inspect("Here 7")
       :done = SqliteStore.step(conn, stmts, "insert_block", result)
 
       {:reply, {:ok, count_rejected}, state}

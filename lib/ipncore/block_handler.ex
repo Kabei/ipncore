@@ -90,10 +90,10 @@ defmodule BlockHandler do
       case msg do
         {
           hash,
-          timestamp,
           type,
           from,
           args,
+          timestamp,
           msg_sig,
           size
         } ->
@@ -102,10 +102,10 @@ defmodule BlockHandler do
           acc_decode =
             Map.put(decode_message, hash, [
               hash,
-              timestamp,
               type,
               from,
               args,
+              timestamp,
               size
             ])
 
@@ -113,12 +113,12 @@ defmodule BlockHandler do
 
         {
           hash,
-          timestamp,
           _key,
           type,
           from,
           args,
           msg_sig,
+          timestamp,
           size
         } ->
           acc_msg = Map.put(messages, hash, msg_sig)
@@ -126,10 +126,10 @@ defmodule BlockHandler do
           acc_decode =
             Map.put(decode_message, hash, [
               hash,
-              timestamp,
               type,
               from,
               args,
+              timestamp,
               size
             ])
 

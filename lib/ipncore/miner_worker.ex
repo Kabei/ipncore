@@ -1,7 +1,6 @@
 defmodule MinerWorker do
   use GenServer
   alias Ippan.ClusterNode
-  alias Ippan.Validator
   alias Ippan.TxHandler
   alias Ippan.Block
   require SqliteStore
@@ -33,7 +32,7 @@ defmodule MinerWorker do
             creator: creator_id,
             height: height,
             count: count,
-            vsn: @version
+            vsn: version
           } = block,
           creator,
           current_round_id
@@ -93,13 +92,15 @@ defmodule MinerWorker do
 
       IO.inspect("Here 4")
 
-      %{"data" => messages, "vsn" => @version} =
+      %{"data" => messages, "vsn" => version_file} =
         Block.decode_file!(content)
+
+      if version != version_file, do: raise(IppanError, "Block file version failed")
 
       IO.inspect("Here 5")
 
       count_rejected =
-        mine_fun(@version, messages, conn, stmts, dets, creator_id, block_id)
+        mine_fun(version, messages, conn, stmts, dets, creator, block_id)
 
       IO.inspect("Here 6")
 
@@ -120,9 +121,8 @@ defmodule MinerWorker do
   end
 
   # Process the block
-  defp mine_fun(0, messages, conn, stmts, dets, creator_id, block_id) do
-    validator =
-      SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", creator_id, Validator)
+  defp mine_fun(@version, messages, conn, stmts, dets, validator, block_id) do
+    creator_id = validator.id
 
     Enum.reduce(messages, 0, fn
       [hash, type, from, args, timestamp, size], acc ->

@@ -690,6 +690,8 @@ defmodule RoundManager do
   end
 
   # Get turnID of the round (position)
+  defp get_position(_round, 0), do: 0
+
   defp get_position(round, total_players) do
     rem(round, total_players)
   end

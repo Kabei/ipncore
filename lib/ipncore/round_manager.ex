@@ -359,6 +359,7 @@ defmodule RoundManager do
        state
        | block_height: block_height + 1,
          block_hash: block_hash,
+         candidate: nil,
          round_id: round.id + 1,
          round_hash: round.hash,
          block_id: block_id + length(round.blocks)

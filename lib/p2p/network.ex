@@ -177,7 +177,7 @@ defmodule Ippan.Network do
         :ets.delete(@table, node_id)
 
         if Keyword.get(opts, :reconnect, false) do
-          connect(state, opts)
+          connect_async(state, opts)
         end
       end
 

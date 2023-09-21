@@ -19,18 +19,34 @@ defmodule Ipncore.Application do
 
     # services
     children =
-      [
-        MemTables,
-        {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
-        NetStore,
-        MainStore,
-        Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
-        Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
-        ClusterNode,
-        NetworkNode,
-        RoundManager,
-        {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
-      ]
+      case System.get_env("test") do
+        nil ->
+          [
+            MemTables,
+            {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
+            NetStore,
+            MainStore,
+            Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
+            Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
+            ClusterNode,
+            NetworkNode,
+            RoundManager,
+            {Bandit,
+             [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
+          ]
+
+        _ ->
+          [
+            MemTables,
+            {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
+            NetStore,
+            MainStore,
+            Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
+            Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
+            ClusterNode,
+            NetworkNode
+          ]
+      end
 
     Supervisor.start_link(children, @opts)
   end

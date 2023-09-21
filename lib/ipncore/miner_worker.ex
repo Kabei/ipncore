@@ -48,7 +48,10 @@ defmodule MinerWorker do
 
       IO.inspect("Here 1")
 
-      if height != 1 + SqliteStore.one(conn, stmts, "last_block_height_created", [creator_id], -1) do
+      [block_height, prev_hash] =
+        SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [-1, nil])
+
+      if height != 1 + block_height do
         raise IppanError, "Wrong block height"
       end
 
@@ -106,7 +109,7 @@ defmodule MinerWorker do
 
       result =
         block
-        |> Map.merge(%{round: current_round_id, rejected: count_rejected})
+        |> Map.merge(%{prev: prev_hash, round: current_round_id, rejected: count_rejected})
         |> Block.to_list()
 
       IO.inspect("Here 7")

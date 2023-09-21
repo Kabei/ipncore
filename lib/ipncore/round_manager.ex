@@ -2,6 +2,9 @@ defmodule RoundManager do
   use GenServer, restart: :transient
   alias Ippan.{NetworkNode, ClusterNode, Block, Round, TxHandler, Validator}
   alias Phoenix.PubSub
+
+  import Ippan.Block, only: [decode_file!: 1]
+
   require SqliteStore
   require Ippan.TxHandler
   require BalanceStore
@@ -659,7 +662,8 @@ defmodule RoundManager do
           tx_count > 0 ->
             tx_n = rem(n, tx_count)
             path = Block.block_path(block.creator, block.height)
-            %{"data" => data} = File.read(path)
+            %{:ok, content} = File.read(path)
+            %{"data" => data} = decode_file!(content)
 
             winner_id =
               case Enum.at(data, tx_n) do

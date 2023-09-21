@@ -662,7 +662,7 @@ defmodule RoundManager do
           tx_count > 0 ->
             tx_n = rem(n, tx_count)
             path = Block.block_path(block.creator, block.height)
-            %{:ok, content} = File.read(path)
+            {:ok, content} = File.read(path)
             %{"data" => data} = decode_file!(content)
 
             winner_id =

@@ -133,10 +133,10 @@ defmodule MinerWorker do
           validator,
           hash,
           type,
-          timestamp,
           from,
-          size,
           args,
+          size,
+          timestamp,
           block_id
         )
 

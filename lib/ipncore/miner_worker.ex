@@ -49,7 +49,7 @@ defmodule MinerWorker do
 
       IO.inspect("Here 1")
 
-      if height != 1 + SqliteStore.one(conn, stmts, "last_block_height_created", [creator_id], 0) do
+      if height != 1 + SqliteStore.one(conn, stmts, "last_block_height_created", [creator_id], -1) do
         raise IppanError, "Wrong block height"
       end
 

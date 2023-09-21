@@ -36,16 +36,16 @@ defmodule MinerWorker do
             vsn: @version
           } = block,
           creator,
-          current_round
+          current_round_id
         },
         _from,
         state
       ) do
     try do
+      IO.inspect("Here 0")
       conn = :persistent_term.get(:asset_conn)
       stmts = :persistent_term.get(:asset_stmt)
       dets = :persistent_term.get(:dets_balance)
-      {node_id, node} = ClusterNode.get_random_node()
 
       IO.inspect("Here 1")
 
@@ -66,6 +66,8 @@ defmodule MinerWorker do
           block
           |> Map.put("hostname", creator.hostname)
           |> Map.put("pubkey", creator.pubkey)
+
+        {node_id, node} = random_node()
 
         case ClusterNode.call(node_id, "verify_block", block_check, 15_000, 2) do
           {:ok, verify_result} ->
@@ -103,7 +105,7 @@ defmodule MinerWorker do
 
       result =
         block
-        |> Map.merge(%{round: current_round, rejected: count_rejected})
+        |> Map.merge(%{round: current_round_id, rejected: count_rejected})
         |> Block.to_list()
 
       IO.inspect("Here 7")
@@ -153,5 +155,16 @@ defmodule MinerWorker do
 
   defp mine_fun(version, _messages, _conn, _stmts, _dets, _creator_id, _block_id) do
     raise IppanError, "Error block version #{inspect(version)}"
+  end
+
+  defp random_node do
+    case ClusterNode.get_random_node() do
+      nil ->
+        :timer.sleep(1_000)
+        random_node()
+
+      result ->
+        result
+    end
   end
 end

@@ -312,8 +312,10 @@ defmodule RoundManager do
     {:reply, result, %{state | bRef: bRef, candidate: result}, :hibernate}
   end
 
-  def handle_call(:candidate, state) do
-    {:reply, nil, state, :hibernate}
+  def handle_call(:candidate, _from, %{bRef: bRef, candidate: candidate} = state) do
+    :timer.cancel(bRef)
+    {:ok, bRef} = :timer.send_after(@block_interval, :mine)
+    {:reply, candidate, %{state | bRef: bRef}, :hibernate}
   end
 
   @impl true

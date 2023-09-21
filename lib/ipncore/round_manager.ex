@@ -473,15 +473,13 @@ defmodule RoundManager do
       IO.inspect(result)
 
       # Count Blocks and txs rejected
-      {block_count, txs_rejected} =
-        Enum.reduce(result, {0, 0}, fn x, {acc, acc_txr} ->
+      {block_count, txs_rejected, blocks} =
+        Enum.reduce(result, {0, 0, []}, fn x, {acc, acc_txr, acc_blocks} ->
           case x do
-            {:ok, rejected} -> {acc + 1, acc_txr + rejected}
+            {:ok, rejected, block} -> {acc + 1, acc_txr + rejected, acc_blocks ++ [block]}
             :error -> {acc, acc_txr}
           end
         end)
-
-      IO.inspect(result)
 
       if (hash_count > 0 and block_count > 0) or hash_count == block_count do
         # Run deferred txs
@@ -523,7 +521,7 @@ defmodule RoundManager do
 
         :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
 
-        GenServer.cast(pid, {:complete, round})
+        GenServer.cast(pid, {:complete, Map.put(round, :block, blocks)})
       else
         send(pid, :timeout)
       end

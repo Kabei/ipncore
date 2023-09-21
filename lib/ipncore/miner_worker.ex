@@ -112,12 +112,11 @@ defmodule MinerWorker do
       result =
         block
         |> Map.merge(%{prev: prev_hash, round: current_round_id, rejected: count_rejected})
-        |> Block.to_list()
 
       IO.inspect("Here 7")
-      :done = SqliteStore.step(conn, stmts, "insert_block", result)
+      :done = SqliteStore.step(conn, stmts, "insert_block", Block.to_list(result))
 
-      {:reply, {:ok, count_rejected}, state}
+      {:reply, {:ok, result, count_rejected}, state}
     rescue
       error ->
         Logger.error(inspect(error))

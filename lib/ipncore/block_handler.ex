@@ -50,6 +50,8 @@ defmodule BlockHandler do
         {acc_msg, acc_decode} =
           do_iterate(ets_msg, :ets.first(ets_msg), %{}, %{}, 0)
 
+          IO.inspect(acc_msg)
+
         content = encode_file!(%{"data" => acc_msg, "vsn" => @version})
 
         File.write(block_path, content)

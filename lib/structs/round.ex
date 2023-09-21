@@ -98,7 +98,7 @@ defmodule Ippan.Round do
     |> Blake3.hash()
   end
 
-  def reward(0, _txs_rejected, _size), do: 1000
+  def reward(0, _txs_rejected, _size), do: 5
 
   def reward(txs_count, txs_rejected, size) do
     ((txs_count - txs_rejected) / size)

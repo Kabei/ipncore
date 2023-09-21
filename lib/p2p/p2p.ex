@@ -80,7 +80,7 @@ defmodule Ippan.P2P do
         end
 
       error ->
-        Logger.debug("Invalid handshake")
+        Logger.debug("Invalid handshake #{inspect(:inet.gethostname(socket))}")
         IO.inspect(error)
         :error
     end

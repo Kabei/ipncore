@@ -46,10 +46,12 @@ defmodule MinerWorker do
       stmts = :persistent_term.get(:asset_stmt)
       dets = :persistent_term.get(:dets_balance)
 
-      IO.inspect("Here 1")
+      IO.inspect("Here 1 #{height}")
 
       [block_height, prev_hash] =
         SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
+
+      IO.inspect(block_height)
 
       if height != 1 + block_height do
         raise IppanError, "Wrong block height"

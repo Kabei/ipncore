@@ -210,10 +210,15 @@ defmodule Ippan.Network do
 
           # Event message (no return answer)
           %{"event" => event, "data" => data} ->
-            handle_message(event, data, state)
+            try do
+              handle_message(event, data, state)
+            rescue
+              x ->
+                Logger.error(x.message)
+            end
 
           m ->
-            Logger.debug(m)
+            Logger.debug(inspect(m))
             :ok
         end
       end

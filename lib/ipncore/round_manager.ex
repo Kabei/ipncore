@@ -635,7 +635,7 @@ defmodule RoundManager do
 
       GenServer.cast(pid, {:complete, round})
     else
-      SqliteStore.rollback_to(conn)
+      SqliteStore.rollback(conn)
       DetsPlus.rollback(dets)
       send(pid, :timeout)
     end

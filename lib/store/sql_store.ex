@@ -177,7 +177,7 @@ defmodule SqliteStore do
     end
   end
 
-  defmacro rollback_to(conn) do
+  defmacro rollback(conn) do
     quote do
       Sqlite3NIF.execute(unquote(conn), ~c"ROLLBACK")
     end

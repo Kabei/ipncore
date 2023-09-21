@@ -17,8 +17,6 @@ defmodule Platform do
         :persistent_term.put(:owner, token.owner)
     end
 
-    :persistent_term.put(:dets_balance, Process.whereis(:balance))
-
     v = SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", vid, Validator)
     :persistent_term.put(:validator, v)
 

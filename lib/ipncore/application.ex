@@ -21,7 +21,7 @@ defmodule Ipncore.Application do
     children =
       [
         MemTables,
-        {DetsPlus, [name: :balance, file: balance_path]},
+        {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
         NetStore,
         MainStore,
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),

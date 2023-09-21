@@ -702,8 +702,6 @@ defmodule RoundManager do
 
   # Get ValidatorID of round creator from PositionID or turnID
   defp get_round_creator(ets_players, position) do
-    IO.inspect(:ets.tab2list(ets_players))
-
     case :ets.slot(ets_players, position) do
       [object] -> object
       _ -> raise RuntimeError, "Error not there round creator"

@@ -136,10 +136,10 @@ defmodule BlockHandler do
       end
 
     acc_size = acc_size + size
+    :ets.delete(ets_msg, key)
 
     case @max_block_data_size > acc_size do
       false ->
-        :ets.delete(ets_msg, key)
         do_iterate(ets_msg, :ets.next(ets_msg, key), acc_msg, acc_decode, acc_size)
 
       _true ->

@@ -210,7 +210,10 @@ defmodule RoundManager do
           :ok
       end
 
-      NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [node_id, creator_id])
+      NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
+        node_id,
+        creator_id
+      ])
     end
 
     {:noreply, state}

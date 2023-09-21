@@ -49,7 +49,7 @@ defmodule MinerWorker do
       IO.inspect("Here 1")
 
       [block_height, prev_hash] =
-        SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [-1, nil])
+        SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
 
       if height != 1 + block_height do
         raise IppanError, "Wrong block height"

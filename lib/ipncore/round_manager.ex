@@ -516,7 +516,7 @@ defmodule RoundManager do
          candidates: ets_candidates,
          main: {conn, stmts},
          dets: dets,
-         miner_pool: pool,
+         miner_pool: pool_pid,
          candidate: candidate,
          vid: creator_id
        }) do
@@ -548,12 +548,12 @@ defmodule RoundManager do
     # Tasks to create blocks
     result =
       Enum.with_index(blocks, fn element, index -> {block_id + index, element} end)
-      |> Enum.map(fn block ->
+      |> Enum.map(fn {id, block} ->
         Task.async(fn ->
           :poolboy.transaction(
-            pool,
+            pool_pid,
             fn pid ->
-              MinerWorker.mine(pid, block, creator, round_id)
+              MinerWorker.mine(pid, Map.put(block, :id, id), creator, round_id)
             end,
             :infinity
           )

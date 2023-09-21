@@ -31,7 +31,7 @@ defmodule BlockHandler do
         hashfile = hash_file(block_path)
 
         hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
-        signature = Block.sign(hash)
+        {:ok, signature} = Block.sign(hash)
 
         %{
           count: length(messages),
@@ -60,7 +60,7 @@ defmodule BlockHandler do
 
         hashfile = hash_file(block_path)
         hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
-        signature = Block.sign(hash)
+        {:ok, signature} = Block.sign(hash)
 
         %{
           count: length(acc_msg),

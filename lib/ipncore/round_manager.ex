@@ -473,10 +473,10 @@ defmodule RoundManager do
       IO.inspect(result)
 
       # Count Blocks and txs rejected
-      {block_count, txs_rejected, blocks} =
+      {block_count, blocks, txs_rejected} =
         Enum.reduce(result, {0, 0, []}, fn x, {acc, acc_txr, acc_blocks} ->
           case x do
-            {:ok, rejected, block} -> {acc + 1, acc_txr + rejected, acc_blocks ++ [block]}
+            {:ok, block, rejected} -> {acc + 1, acc_blocks ++ [block], acc_txr + rejected}
             :error -> {acc, acc_txr}
           end
         end)
@@ -583,10 +583,10 @@ defmodule RoundManager do
     IO.inspect(result)
 
     # Count Blocks and txs rejected
-    {block_count, txs_rejected, blocks} =
+    {block_count, blocks, txs_rejected} =
       Enum.reduce(result, {0, 0, []}, fn x, {acc, acc_txr, acc_blocks} ->
         case x do
-          {:ok, rejected, block} -> {acc + 1, acc_txr + rejected, acc_blocks ++ [block]}
+          {:ok, block, rejected} -> {acc + 1, acc_blocks ++ [block], acc_txr + rejected}
           :error -> {acc, acc_txr}
         end
       end)

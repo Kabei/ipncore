@@ -66,8 +66,8 @@ defmodule Ippan.TxHandler do
             timestamp: timestamp,
             size: size,
             block_id: block_id
-          ] do
-      IO.inspect(type)
+          ],
+          location: :keep do
       %{fun: fun, mod: module} = Funcs.lookup(type)
 
       environment = %{
@@ -82,9 +82,6 @@ defmodule Ippan.TxHandler do
         timestamp: timestamp,
         size: size
       }
-
-      IO.inspect(environment)
-      IO.inspect(args)
 
       apply(module, fun, [environment | args])
     end

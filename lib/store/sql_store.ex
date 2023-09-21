@@ -2,7 +2,8 @@ defmodule SqliteStore do
   alias Exqlite.{Sqlite3, Sqlite3NIF}
 
   defmacro one(conn, stmts, name, args \\ [], default \\ nil) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args, default: default] do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args, default: default],
+          location: :keep do
       case Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args) do
         {:row, [n]} ->
           n
@@ -19,7 +20,8 @@ defmodule SqliteStore do
             map_fields: map_fields,
             map_where: map_where,
             table_name: table_name
-          ] do
+          ],
+          location: :keep do
       {fields, values} = Ippan.Utils.rows_to_columns(map_fields)
       {w_fields, w_values} = Ippan.Utils.rows_to_columns(map_where)
 
@@ -44,13 +46,13 @@ defmodule SqliteStore do
   end
 
   defmacro step(conn, stmts, name, args \\ []) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args] do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args], location: :keep do
       Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args)
     end
   end
 
   defmacro step_change(conn, stmts, name, args) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args] do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args], location: :keep do
       Sqlite3NIF.bind_step_changes(conn, Map.get(stmts, name), args)
     end
   end
@@ -62,7 +64,8 @@ defmodule SqliteStore do
   end
 
   defmacro exists?(table, conn, stmts, name, id) do
-    quote bind_quoted: [table: table, conn: conn, stmts: stmts, name: name, id: id] do
+    quote bind_quoted: [table: table, conn: conn, stmts: stmts, name: name, id: id],
+          location: :keep do
       case :ets.member(table, id) do
         true ->
           true
@@ -74,19 +77,20 @@ defmodule SqliteStore do
   end
 
   defmacro exists?(conn, stmts, name, args) when is_list(args) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args] do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args], location: :keep do
       {:row, [1]} == Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args)
     end
   end
 
   defmacro exists?(conn, stmts, name, id) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, id: id] do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, id: id], location: :keep do
       {:row, [1]} == Sqlite3NIF.bind_step(conn, Map.get(stmts, name), [id])
     end
   end
 
   defmacro fetch(conn, stmts, name, args, default \\ nil) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args, default: default] do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args, default: default],
+          location: :keep do
       case Sqlite3NIF.bind_step(conn, Map.get(stmts, name), args) do
         {:row, []} -> default
         {:row, data} -> data
@@ -103,7 +107,8 @@ defmodule SqliteStore do
             name: name,
             id: id,
             mod_format: mod_format
-          ] do
+          ],
+          location: :keep do
       case :ets.lookup(table, id) do
         [{_, map}] ->
           map
@@ -133,7 +138,8 @@ defmodule SqliteStore do
   end
 
   defmacro fetch_all(conn, stmts, name, limit \\ 100, offset \\ 0) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, limit: limit, offset: offset] do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, limit: limit, offset: offset],
+          location: :keep do
       stmt = Map.get(stmts, name)
       Sqlite3NIF.bind(conn, stmt, [limit, offset])
 
@@ -145,7 +151,7 @@ defmodule SqliteStore do
   end
 
   defmacro all(conn, stmts, name) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name] do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name], location: :keep do
       case Sqlite3.fetch_all(conn, Map.get(stmts, name), 100) do
         {:ok, data} -> data
         _ -> []

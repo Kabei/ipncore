@@ -630,6 +630,8 @@ defmodule RoundManager do
 
   defp run_jackpot(_conn, _stmts, _dets, _round_id, _block_id, _round_hash, 0), do: 0
 
+  defp run_jackpot(_conn, _stmts, _dets, _round_id, _block_id, nil, _reward), do: 0
+
   defp run_jackpot(conn, stmts, dets, round_id, block_id, round_hash, reward) do
     n = BigNumber.to_int(round_hash)
     dv = min(block_id, 20_000)

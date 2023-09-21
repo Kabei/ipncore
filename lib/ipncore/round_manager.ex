@@ -41,7 +41,8 @@ defmodule RoundManager do
     [block_id] =
       SqliteStore.fetch(conn, stmts, "last_block_id", [], [-1])
 
-    [block_hash] = SqliteStore.fetch(conn, stmts, "last_block_height_created", [vid], [nil])
+    [block_height, block_hash] =
+      SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [-1, nil])
 
     # Subscribe
     PubSub.subscribe(@pubsub, "validator")
@@ -63,6 +64,7 @@ defmodule RoundManager do
     {:ok,
      %{
        block_id: block_id + 1,
+       block_height: block_height + 1,
        block_hash: block_hash,
        candidate: nil,
        dets: :persistent_term.get(:dets_balance),
@@ -139,9 +141,12 @@ defmodule RoundManager do
   end
 
   # Check if there are transactions to create local block
-  def handle_info(:mine, %{bRef: bRef, candidate: nil, vid: vid, block_id: block_id} = state) do
+  def handle_info(
+        :mine,
+        %{bRef: bRef, candidate: nil, vid: vid, block_height: block_height} = state
+      ) do
     :timer.cancel(bRef)
-    result = BlockHandler.generate_files(vid, block_id)
+    result = BlockHandler.generate_files(vid, block_height)
     {:ok, bRef} = :timer.send_after(@block_interval, :mine)
     {:noreply, %{state | bRef: bRef, candidate: result}, :hibernate}
   end
@@ -281,10 +286,10 @@ defmodule RoundManager do
   def handle_call(
         :candidate,
         _from,
-        %{bRef: bRef, candidate: nil, vid: vid, block_id: block_id} = state
+        %{bRef: bRef, candidate: nil, vid: vid, block_height: block_height} = state
       ) do
     :timer.cancel(bRef)
-    result = BlockHandler.generate_files(vid, block_id)
+    result = BlockHandler.generate_files(vid, block_height)
     {:ok, bRef} = :timer.send_after(@block_interval, :mine)
     {:reply, result, %{state | bRef: bRef, candidate: result}, :hibernate}
   end
@@ -514,7 +519,8 @@ defmodule RoundManager do
       else
         get_candidate(pid)
       end
-      |> if(do: [candidate], else: [])
+
+    candidate = if is_nil(candidate), do: [], else: [candidate]
 
     blocks =
       candidate ++

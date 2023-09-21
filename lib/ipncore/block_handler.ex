@@ -18,6 +18,7 @@ defmodule BlockHandler do
 
     cond do
       File.exists?(decode_path) and File.exists?(block_path) ->
+        IO.inspect("Already exists blockFiles")
         {:ok, file_info} = File.stat(block_path)
 
         {:ok, content} = File.read(block_path)
@@ -34,6 +35,8 @@ defmodule BlockHandler do
         }
 
       :ets.info(ets_msg, :size) > 0 ->
+        IO.inspect("MSG Size > 0")
+
         {acc_msg, acc_decode} =
           do_iterate(ets_msg, :ets.first(ets_msg), %{}, %{}, 0)
 
@@ -54,6 +57,7 @@ defmodule BlockHandler do
         }
 
       true ->
+        IO.inspect("No there TXS")
         nil
     end
   end

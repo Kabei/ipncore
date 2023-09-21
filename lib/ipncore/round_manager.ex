@@ -473,13 +473,15 @@ defmodule RoundManager do
       IO.inspect(result)
 
       # Count Blocks and txs rejected
-      {block_count, blocks, txs_rejected} =
-        Enum.reduce(result, {0, 0, []}, fn x, {acc, acc_txr, acc_blocks} ->
+      {blocks, txs_rejected} =
+        Enum.reduce(result, {[], 0}, fn x, {acc, acc_txr} ->
           case x do
-            {:ok, block, rejected} -> {acc + 1, acc_blocks ++ [block], acc_txr + rejected}
+            {:ok, block, rejected} -> {acc ++ [block], acc_txr + rejected}
             :error -> {acc, acc_txr}
           end
         end)
+
+      block_count = length(blocks)
 
       if (hash_count > 0 and block_count > 0) or hash_count == block_count do
         # Run deferred txs
@@ -583,13 +585,15 @@ defmodule RoundManager do
     IO.inspect(result)
 
     # Count Blocks and txs rejected
-    {block_count, blocks, txs_rejected} =
-      Enum.reduce(result, {0, 0, []}, fn x, {acc, acc_txr, acc_blocks} ->
+    {blocks, txs_rejected} =
+      Enum.reduce(result, {[], 0}, fn x, {acc, acc_txr} ->
         case x do
-          {:ok, block, rejected} -> {acc + 1, acc_blocks ++ [block], acc_txr + rejected}
+          {:ok, block, rejected} -> {acc ++ [block], acc_txr + rejected}
           :error -> {acc, acc_txr}
         end
       end)
+
+    block_count = length(blocks)
 
     if (hash_count > 0 and block_count > 0) or hash_count == block_count do
       # Run deferred txs

@@ -7,7 +7,7 @@ defmodule BalanceStore do
 
   defmacro has_balance?(dets, key, value) do
     quote bind_quoted: [dets: dets, key: key, value: value] do
-      {_, balance, _lock} = DetsPlus.lookup(dets, key, {nil, 0, 0})
+      {_, {balance, _lock}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
 
       balance >= value
     end
@@ -15,7 +15,7 @@ defmodule BalanceStore do
 
   defmacro can_be_unlock?(dets, key, value) do
     quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_key, _balance, lock_amount} = DetsPlus.lookup(dets, key, {nil, 0, 0})
+      {_key, {_balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
 
       lock_amount >= value
     end
@@ -23,7 +23,7 @@ defmodule BalanceStore do
 
   defmacro lock(dets, key, value) do
     quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_, balance, lock_amount} = DetsPlus.lookup(dets, key, {nil, 0, 0})
+      {_, {balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
 
       if balance >= value do
         DetsPlus.insert(dets, {key, {balance - value, lock_amount + value}})
@@ -35,7 +35,7 @@ defmodule BalanceStore do
 
   defmacro unlock(dets, key, value) do
     quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_, balance, lock_amount} = DetsPlus.lookup(dets, key, {nil, 0, 0})
+      {_, {balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
 
       if lock_amount >= value do
         DetsPlus.insert(dets, {key, {balance + value, lock_amount - value}})
@@ -47,7 +47,7 @@ defmodule BalanceStore do
 
   defmacro income(dets, key, value) do
     quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_, balance, lock_amount} = DetsPlus.lookup(dets, key, {nil, 0, 0})
+      {_, {balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
 
       DetsPlus.insert(dets, {key, {balance + value, lock_amount}})
     end
@@ -55,7 +55,7 @@ defmodule BalanceStore do
 
   defmacro subtract(dets, key, value) do
     quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_, balance, lock_amount} = DetsPlus.lookup(dets, key, {nil, 0, 0})
+      {_, {balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
 
       result = balance - value
 
@@ -69,14 +69,14 @@ defmodule BalanceStore do
 
   defmacro pay(dets, key, to_key, value) do
     quote bind_quoted: [dets: dets, key: key, to_key: to_key, value: value], location: :keep do
-      {_, balance, lock} = DetsPlus.lookup(dets, key, {nil, 0, 0})
+      {_, {balance, lock}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
 
       result = balance - value
 
       if result >= 0 do
         DetsPlus.insert(dets, {key, {result, lock}})
 
-        {_, balance2, lock2} = DetsPlus.lookup(dets, to_key, {nil, 0, 0})
+        {_, {balance2, lock2}} = DetsPlus.lookup(dets, to_key, {nil, {0, 0}})
         DetsPlus.insert(dets, {key, {balance2 + value, lock2}})
       else
         :error

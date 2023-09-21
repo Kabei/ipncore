@@ -164,7 +164,8 @@ defmodule RoundManager do
     {:noreply, %{state | bRef: bRef, candidate: result}, :hibernate}
   end
 
-  def handle_info(:mine, state) do
+  def handle_info(:mine, %{bRef: bRef} = state) do
+    :timer.cancel(bRef)
     {:ok, bRef} = :timer.send_after(@block_interval, :mine)
     {:noreply, %{state | bRef: bRef}, :hibernate}
   end
@@ -324,12 +325,13 @@ defmodule RoundManager do
   def handle_cast(
         {:complete, round},
         %{
-          main: {conn, _stmts},
+          candidates: ets_candidates,
+          main: {conn, stmts},
           dets: dets,
           block_id: block_id,
           round_id: round_id,
-          votes: ets_votes,
-          candidates: ets_candidates
+          vid: vid,
+          votes: ets_votes
         } = state
       ) do
     Logger.debug("[completed] Round ##{round_id} | #{Base.encode16(round.hash)}")
@@ -337,6 +339,10 @@ defmodule RoundManager do
     # Clear round-message-votes and block-candidates
     c = :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
     :ets.delete_all_objects(ets_candidates)
+
+    [block_height, block_hash] =
+      SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [-1, nil])
+
     IO.inspect("select_delete votes: #{c}")
 
     # save all round
@@ -351,7 +357,9 @@ defmodule RoundManager do
     {:noreply,
      %{
        state
-       | round_id: round.id + 1,
+       | block_height: block_height + 1,
+         block_hash: block_hash,
+         round_id: round.id + 1,
          round_hash: round.hash,
          block_id: block_id + length(round.blocks)
      }, {:continue, :next}}

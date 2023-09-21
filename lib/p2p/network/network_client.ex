@@ -70,7 +70,7 @@ defmodule Ippan.NetworkClient do
           retry_connect(state, retry, error)
       end
     else
-      false ->
+      true ->
         IO.puts("[cluster] member already exists")
         # {:noreply, Map.merge(state, @node.info(node_id))}
         {:stop, :normal, state}

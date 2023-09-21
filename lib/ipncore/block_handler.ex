@@ -78,7 +78,7 @@ defmodule BlockHandler do
           acc_msg = Map.put(messages, hash, msg_sig)
 
           acc_decode =
-            Map.put(hash, decode_message, [
+            Map.put(decode_message, hash, [
               hash,
               timestamp,
               type,
@@ -99,10 +99,10 @@ defmodule BlockHandler do
           msg_sig,
           size
         } ->
-          acc_msg = Map.put(hash, messages, msg_sig)
+          acc_msg = Map.put(messages, hash, msg_sig)
 
           acc_decode =
-            Map.put(hash, decode_message, [
+            Map.put(decode_message, hash, [
               hash,
               timestamp,
               type,

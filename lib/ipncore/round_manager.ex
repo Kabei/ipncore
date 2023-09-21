@@ -138,10 +138,12 @@ defmodule RoundManager do
         })
 
         {:noreply, %{state | total: total_players}, {:continue, :next}}
+      else
+        {:noreply, state, {:continue, :next}}
       end
+    else
+      {:noreply, state, {:continue, :next}}
     end
-
-    {:noreply, state, {:continue, :next}}
   end
 
   # Check if there are transactions to create local block

@@ -1,6 +1,5 @@
 defmodule BlockHandler do
   alias Ippan.Block
-  # alias Ippan.Block
 
   import Ippan.Block,
     only: [decode_file!: 1, encode_file!: 1, hash_file: 1]

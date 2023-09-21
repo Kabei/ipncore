@@ -99,11 +99,10 @@ defmodule Ippan.ClusterNode do
         height = :persistent_term.get(:height, 0)
         msg_key = {type, key}
 
-        case :ets.insert_new(:dhash, {{type, key}, hash}) do
+        case :ets.insert_new(:dhash, {msg_key, hash, height}) do
           true ->
             # IO.inspect(msg)
             :ets.insert(:hash, {hash, height})
-            :ets.insert(:dhash, {msg_key, hash})
             :ets.insert(:msg, List.to_tuple(msg))
 
             %{"height" => height}

@@ -23,6 +23,7 @@ defmodule RoundManager do
   @impl true
   def init(_args) do
     IO.inspect("Init RoundManager")
+
     vid = :persistent_term.get(:vid)
     main = {conn = :persistent_term.get(:asset_conn), stmts = :persistent_term.get(:asset_stmt)}
     net = {:persistent_term.get(:net_conn), :persistent_term.get(:net_stmt)}

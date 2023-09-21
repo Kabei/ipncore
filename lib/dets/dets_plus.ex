@@ -1465,7 +1465,7 @@ defimpl Enumerable, for: DetsPlus do
       |> Enum.reduce(%{}, fn {key, object}, map -> Map.put(map, key, object) end)
 
     {new_data2, filename} = GenServer.call(pid, :get_reduce_state)
-    new_data = Map.merge(new_data, new_data2)
+    new_data = Map.merge(new_data, new_data2 || %{})
 
     opts = [page_size: 1_000_000, max_pages: 1000]
 

@@ -113,8 +113,8 @@ defmodule BlockHandler do
 
         {
           hash,
-          _key,
           type,
+          _key,
           from,
           args,
           msg_sig,

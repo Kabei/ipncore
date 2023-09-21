@@ -143,10 +143,16 @@ defmodule RoundManager do
   # Check if there are transactions to create local block
   def handle_info(
         :mine,
-        %{bRef: bRef, candidate: nil, vid: vid, block_height: block_height} = state
+        %{
+          bRef: bRef,
+          candidate: nil,
+          vid: vid,
+          block_height: block_height,
+          block_hash: block_hash
+        } = state
       ) do
     :timer.cancel(bRef)
-    result = BlockHandler.generate_files(vid, block_height)
+    result = BlockHandler.generate_files(vid, block_height, block_hash)
     {:ok, bRef} = :timer.send_after(@block_interval, :mine)
     {:noreply, %{state | bRef: bRef, candidate: result}, :hibernate}
   end
@@ -286,10 +292,16 @@ defmodule RoundManager do
   def handle_call(
         :candidate,
         _from,
-        %{bRef: bRef, candidate: nil, vid: vid, block_height: block_height} = state
+        %{
+          bRef: bRef,
+          candidate: nil,
+          vid: vid,
+          block_hash: block_hash,
+          block_height: block_height
+        } = state
       ) do
     :timer.cancel(bRef)
-    result = BlockHandler.generate_files(vid, block_height)
+    result = BlockHandler.generate_files(vid, block_height, block_hash)
     {:ok, bRef} = :timer.send_after(@block_interval, :mine)
     {:reply, result, %{state | bRef: bRef, candidate: result}, :hibernate}
   end

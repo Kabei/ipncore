@@ -143,11 +143,12 @@ defmodule Ippan.Block do
 
   def hashes_and_count_txs_and_size(blocks) do
     IO.inspect(blocks)
+
     Enum.reduce(blocks, {[], 0, 0}, fn x, {acc_hash, acc_tx, acc_size} ->
       {
-        acc_hash ++ Map.get(x, "hash"),
-        acc_tx + Map.get(x, "count"),
-        acc_size + Map.get(x, "size")
+        acc_hash ++ [x.hash],
+        acc_tx + x.count,
+        acc_size + x.size
       }
     end)
   end

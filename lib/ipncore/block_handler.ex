@@ -1,4 +1,5 @@
 defmodule BlockHandler do
+  alias Ippan.Block
   # alias Ippan.Block
 
   import Ippan.Block,
@@ -9,12 +10,14 @@ defmodule BlockHandler do
   @max_block_data_size Application.compile_env(:ipncore, :max_block_data_size)
 
   # Generate local block and decode block file
-  @spec generate_files(creator_id :: integer(), height :: integer()) :: map | nil
-  def generate_files(creator_id, height) do
+  @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
+          map | nil
+  def generate_files(creator_id, height, prev) do
     filename = "#{creator_id}.#{height}.#{@block_extension}"
     block_path = Path.join(:persistent_term.get(:block_dir), filename)
     decode_path = Path.join(:persistent_term.get(:decode_dir), filename)
     ets_msg = :ets.whereis(:msg)
+    timestamp = :os.system_time(:millisecond)
 
     cond do
       File.exists?(decode_path) and File.exists?(block_path) ->
@@ -25,12 +28,20 @@ defmodule BlockHandler do
 
         %{"data" => messages, "vsn" => version} = decode_file!(content)
 
+        hashfile = hash_file(block_path)
+
+        hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
+        signature = Block.sign(hash)
+
         %{
           count: length(messages),
           creator: creator_id,
-          hashfile: hash_file(block_path),
+          hash: hash,
+          hashfile: hashfile,
           height: height,
+          signature: signature,
           size: file_info.size,
+          timestamp: timestamp,
           vsn: version
         }
 
@@ -47,12 +58,19 @@ defmodule BlockHandler do
 
         {:ok, file_info} = File.stat(block_path)
 
+        hashfile = hash_file(block_path)
+        hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
+        signature = Block.sign(hash)
+
         %{
           count: length(acc_msg),
           creator: creator_id,
-          hashfile: hash_file(block_path),
+          hash: hash,
+          hashfile: hashfile,
           height: height,
+          signature: signature,
           size: file_info.size,
+          timestamp: timestamp,
           vsn: @version
         }
 

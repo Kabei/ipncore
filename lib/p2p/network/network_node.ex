@@ -61,8 +61,21 @@ defmodule Ippan.NetworkNode do
   def handle_request(_method, _data, _state), do: ["error", "Not found"]
 
   @impl Network
-  def handle_message("msg_round", data, %{id: from}) when is_map(data) do
-    send(RoundManager, {"msg_round", data, from})
+  def handle_message("msg_round", %{"blocks" => blocks} = data, %{id: from}) when is_map(data) do
+    blocks =
+      Enum.reduce(blocks, [], fn b, acc ->
+        block =
+          MapUtil.to_atoms(b, ~w(hash height creator prev size hashfile timestamp count vsn))
+
+        acc ++ [block]
+      end)
+
+    msg_round =
+      data
+      |> MapUtil.to_atoms(~w(id creator hash prev signature))
+      |> Map.put(:blocks, blocks)
+
+    send(RoundManager, {"msg_round", msg_round, from})
   end
 
   def handle_message("msg_block", data, %{id: from}) when is_map(data) do

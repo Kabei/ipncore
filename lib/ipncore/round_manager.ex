@@ -177,12 +177,12 @@ defmodule RoundManager do
         {
           "msg_round",
           msg_round = %{
-            "id" => id,
-            "blocks" => blocks,
-            "creator" => creator_id,
-            "hash" => hash,
-            "signature" => signature,
-            "prev" => prev
+            id: id,
+            blocks: blocks,
+            creator: creator_id,
+            hash: hash,
+            signature: signature,
+            prev: prev
           },
           node_id
         },
@@ -190,40 +190,31 @@ defmodule RoundManager do
           players: ets_players,
           votes: ets_votes,
           rcid: rcid,
-          round_id: round_id
+          round_id: round_id,
+          vid: vid
         } =
           state
       )
-      when id == round_id do
-    blocks =
-      Enum.reduce(blocks, [], fn b, acc ->
-        block =
-          MapUtil.to_atoms(b, ~w(hash height creator prev size hashfile timestamp count vsn))
-
-        acc ++ [block]
-      end)
-
-    msg_round =
-      msg_round
-      |> MapUtil.to_atoms(["id", "hash", "prev", "signature"])
-      |> Map.put(:blocks, blocks)
-
-    hashes = Enum.map(blocks, & &1.hash)
-
+      when id == round_id and
+             vid != node_id and
+             vid != creator_id do
     limit = EnvStore.round_blocks()
-    pid = self()
 
     with true <- creator_id == rcid,
          true <- limit >= length(blocks),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
+         hashes <- Enum.map(blocks, & &1.hash),
          true <- hash == Round.compute_hash(id, prev, creator_id, hashes),
-         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey) do
+         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
+         true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 1})
 
       n = NetworkNode.count()
 
       cond do
         count == div(n, 2) + 1 ->
+          pid = self()
+
           spawn_link(fn ->
             build_round_from_messages(pid, Map.put(state, :message, msg_round))
           end)
@@ -341,13 +332,14 @@ defmodule RoundManager do
     Logger.debug("[completed] Round ##{round_id} | #{Base.encode16(round.hash)}")
 
     # Clear round-message-votes and block-candidates
-    c = :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
+    :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
+    :ets.select_delete(ets_votes, [{{{round_id, :_, :_}, :_}, [], [true]}])
     :ets.delete_all_objects(ets_candidates)
 
     [block_height, block_hash] =
       SqliteStore.fetch(conn, stmts, "last_block_created", [vid], [-1, nil])
 
-    IO.inspect("select_delete votes: #{c}")
+    # IO.inspect("select_delete votes: #{c}")
 
     # save all round
     spawn_link(fn ->

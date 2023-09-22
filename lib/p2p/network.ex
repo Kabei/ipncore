@@ -4,7 +4,8 @@ defmodule Ippan.Network do
   @callback on_disconnect(state :: term()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
   @callback connect(node :: term(), opts :: keyword()) :: boolean()
-  @callback connect_async(node :: term(), opts :: keyword()) :: {:ok, pid()} | {:error, term()}
+  @callback connect_async(node :: term(), opts :: keyword()) ::
+              {:ok, pid()} | true | {:error, term()}
   @callback disconnect(state :: term()) :: :ok
   @callback fetch(id :: term()) :: map() | nil
   @callback info(node_id :: term()) :: map() | nil
@@ -228,30 +229,38 @@ defmodule Ippan.Network do
             %{id: node_id, hostname: hostname, port: port, net_pubkey: net_pubkey} = node,
             opts \\ @default_connect_opts
           ) do
-        @supervisor.start_child(
-          Map.merge(node, %{
-            conn: :persistent_term.get(:asset_conn),
-            stmts: :persistent_term.get(:asset_stmt),
-            opts: opts,
-            pid: self()
-          })
-        )
+        unless alive?(node_id) do
+          @supervisor.start_child(
+            Map.merge(node, %{
+              conn: :persistent_term.get(:asset_conn),
+              stmts: :persistent_term.get(:asset_stmt),
+              opts: opts,
+              pid: self()
+            })
+          )
 
-        receive do
-          :ok -> true
-          _ -> false
+          receive do
+            :ok -> true
+            _ -> false
+          end
+        else
+          true
         end
       end
 
       @impl Network
-      def connect_async(node, opts \\ @default_connect_opts) do
-        @supervisor.start_child(
-          Map.merge(node, %{
-            conn: :persistent_term.get(:asset_conn),
-            stmts: :persistent_term.get(:asset_stmt),
-            opts: Keyword.put(opts, :async, true)
-          })
-        )
+      def connect_async(%{id: node_id} = node, opts \\ @default_connect_opts) do
+        unless alive?(node_id) do
+          @supervisor.start_child(
+            Map.merge(node, %{
+              conn: :persistent_term.get(:asset_conn),
+              stmts: :persistent_term.get(:asset_stmt),
+              opts: Keyword.put(opts, :async, true)
+            })
+          )
+        else
+          true
+        end
       end
 
       @impl Network

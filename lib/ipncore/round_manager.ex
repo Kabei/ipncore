@@ -732,7 +732,7 @@ defmodule RoundManager do
 
     new_state = %{state | position: position, rcid: rcid, rc_node: rc_node, turn: turn}
 
-    connect_to_peers(ets_players, total_players)
+    connect_to_peers(ets_players, vid, total_players)
     sync_to_round_creator(new_state)
 
     new_state
@@ -759,7 +759,7 @@ defmodule RoundManager do
 
   # Connect to nodes without exceeded max peers to connect
   # Return number of new connections. Zero in case not connect to new nodes
-  defp connect_to_peers(ets_players, total_players) do
+  defp connect_to_peers(ets_players, vid, total_players) do
     t =
       Task.async(fn ->
         take = min(@max_peers_conn - NetworkNode.count(), total_players - 1)
@@ -767,7 +767,7 @@ defmodule RoundManager do
 
         if take > 0 do
           :ets.tab2list(ets_players)
-          |> Kernel.--(players_connected)
+          |> Enum.filter(fn {id, _} = x -> id != vid or x not in players_connected end)
           |> Enum.take_random(take)
           |> Enum.reduce_while(0, fn {_id, node}, acc ->
             if acc < take do

@@ -26,10 +26,6 @@ defmodule Ippan.P2P do
     @adapter.controlling_process(socket, self())
     @adapter.send(socket, "HI" <> @version <> ciphertext <> authtext)
 
-    IO.puts("kem_pubkey: " <> inspect(kem_pubkey))
-    IO.puts("Ciphertext: " <> inspect(ciphertext))
-    IO.puts("Sharedkey: " <> inspect(sharedkey))
-
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "WEL"} ->
         {:ok, sharedkey}
@@ -49,12 +45,8 @@ defmodule Ippan.P2P do
   def server_handshake(socket, kem_privkey, fun) do
     case @adapter.recv(socket, 0, @handshake_timeout) do
       {:ok, "HI" <> @version <> <<ciphertext::bytes-size(1278), authtext::binary>>} ->
-        IO.puts("Ciphertext: " <> inspect(ciphertext))
-        IO.puts("kem_privkey: " <> inspect(kem_privkey))
-
         case NtruKem.dec(kem_privkey, ciphertext) do
           {:ok, sharedkey} ->
-            IO.puts("Sharedkey: " <> inspect(sharedkey))
             %{"id" => id, "sig" => signature} = decode!(authtext, sharedkey)
 
             case fun.(id) do

@@ -132,6 +132,7 @@ defmodule RoundManager do
 
         # delete player
         :ets.delete(ets_players, rcid)
+        NetworkNode.disconnect(rcid)
         total_players = get_total_players(ets_players)
 
         # send event
@@ -292,6 +293,7 @@ defmodule RoundManager do
       ) do
     # delete player
     :ets.delete(ets_players, validator_id)
+    NetworkNode.disconnect(validator_id)
     total_players = get_total_players(ets_players)
     {:noreply, %{state | total: total_players}}
   end

@@ -6,7 +6,7 @@ defmodule Ippan.Network do
   @callback connect(node :: term(), opts :: keyword()) :: boolean()
   @callback connect_async(node :: term(), opts :: keyword()) ::
               {:ok, pid()} | true | {:error, term()}
-  @callback disconnect(state :: term()) :: :ok
+  @callback disconnect(node_id_or_state :: binary() | term()) :: :ok
   @callback fetch(id :: term()) :: map() | nil
   @callback info(node_id :: term()) :: map() | nil
   @callback list() :: [term()]
@@ -251,6 +251,11 @@ defmodule Ippan.Network do
       end
 
       @impl Network
+      def disconnect(%{id: node_id, socket: socket} = state) do
+        :ets.delete(@table, node_id)
+        @adapter.close(socket)
+      end
+
       def disconnect(%{id: node_id} = state) do
         %{socket: socket} = info(node_id)
         :ets.delete(@table, node_id)

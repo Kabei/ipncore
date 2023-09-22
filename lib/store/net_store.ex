@@ -6,8 +6,7 @@ defmodule NetStore do
   @version 0
 
   @creations %{
-    "network" => SQL.readFile!("lib/sql/network.sql"),
-    "cluster" => SQL.readFile!("lib/sql/cluster.sql")
+    "network" => SQL.readFile!("lib/sql/network.sql")
   }
 
   @statements SQL.readStmtFile!("lib/sql/network.stmt.sql")
@@ -16,9 +15,7 @@ defmodule NetStore do
   @alter []
 
   # databases
-  @attaches %{
-    "cluster" => "cluster.db"
-  }
+  @attaches %{}
 
   @name "network"
   @filename "network.db"

@@ -773,17 +773,24 @@ defmodule RoundManager do
          candidate: candidate
        }) do
     if vid != node_id do
-      case NetworkNode.connect(node, retry: 2, reconnect: false) do
+      case NetworkNode.connect(node) do
         true ->
-          NetworkNode.cast(node_id, "msg_block", candidate)
-          {:ok, response} = NetworkNode.call(node_id, "get_msg_round", round_id)
-
-          # Disconnect if count is mayor than to max_peers_conn
-          if NetworkNode.count() > @max_peers_conn do
-            NetworkNode.disconnect(node_id)
+          if candidate do
+            NetworkNode.cast(node_id, "msg_block", candidate)
           end
 
-          send(self(), {"msg_round", response})
+          case NetworkNode.call(node_id, "get_round", round_id) do
+            {:ok, response} ->
+              send(self(), {"msg_round", response})
+
+              # Disconnect if count is mayor than to max_peers_conn
+              if NetworkNode.count() > @max_peers_conn do
+                NetworkNode.disconnect(node_id)
+              end
+
+            _ ->
+              :ok
+          end
 
         false ->
           Logger.warning("It was not possible to connect to the round creator")

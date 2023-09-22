@@ -137,7 +137,7 @@ defmodule RoundManager do
         total_players = get_total_players(ets_players)
 
         # send event
-        PubSub.broadcast_from(@pubsub, pid, "validator", %{
+        PubSub.local_broadcast_from(@pubsub, pid, "validator", %{
           "event" => "validator.delete",
           "data" => rcid
         })
@@ -216,20 +216,22 @@ defmodule RoundManager do
          true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 1})
 
-      n = NetworkNode.count()
+      if id == round_id do
+        n = NetworkNode.count()
 
-      cond do
-        id == round_id and count == div(n, 2) + 1 ->
-          IO.inspect("vote ##{id}")
-          pid = self()
-          :timer.cancel(tRef)
+        cond do
+          count == div(n, 2) + 1 ->
+            IO.inspect("vote ##{id}")
+            pid = self()
+            :timer.cancel(tRef)
 
-          spawn_link(fn ->
-            build_round_from_messages(pid, Map.put(state, :message, msg_round))
-          end)
+            spawn_link(fn ->
+              build_round_from_messages(pid, Map.put(state, :message, msg_round))
+            end)
 
-        true ->
-          :ok
+          true ->
+            :ok
+        end
       end
 
       # Replicate message to rest of nodes
@@ -653,13 +655,8 @@ defmodule RoundManager do
       # Run jackpot and events
       jackpot_amount =
         if rem(round_id, 100) == 0 do
-          t =
-            Task.async(fn ->
-              last_block_id = block_id + block_count
-              run_jackpot(conn, stmts, dets, round_id, last_block_id, round_hash, reward)
-            end)
-
-          Task.await(t)
+          last_block_id = block_id + block_count
+          run_jackpot(conn, stmts, dets, round_id, last_block_id, round_hash, reward)
         else
           0
         end

@@ -566,6 +566,19 @@ defmodule RoundManager do
 
     {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
 
+    # pre-build
+    pre_round = %{
+      id: round_id,
+      blocks: hashes,
+      creator: creator_id,
+      hash: hash,
+      signature: signature,
+      prev: round_hash
+    }
+
+    # send message
+    NetworkNode.broadcast(%{"event" => "msg_round", "data" => pre_round})
+
     # Tasks to create blocks
     result =
       Enum.with_index(blocks, fn element, index -> {block_id + index, element} end)

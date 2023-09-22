@@ -225,7 +225,7 @@ defmodule RoundManager do
       cond do
         count == div(n, 2) + 1 ->
           spawn_link(fn ->
-            build_round_from_messages(pid, msg_round)
+            build_round_from_messages(pid, Map.put(state, :message, msg_round))
           end)
 
         true ->
@@ -428,22 +428,31 @@ defmodule RoundManager do
     end
   end
 
-  defp build_round_from_messages(pid, %{
-         block_id: block_id,
-         round_id: round_id,
-         round_hash: round_hash,
-         main: {conn, stmts},
-         dets: dets,
-         rcid: rcid,
-         miner_pool: pool,
-         votes: ets_votes
-       }) do
-    # Choose msg round with more votes
+  defp build_round_from_messages(
+         pid,
+         %{
+           block_id: block_id,
+           round_id: round_id,
+           round_hash: round_hash,
+           main: {conn, stmts},
+           dets: dets,
+           rcid: rcid,
+           miner_pool: pool,
+           votes: ets_votes
+         } = map
+       ) do
     msg_round =
-      :ets.tab2list(ets_votes)
-      |> Enum.filter(fn {{id, _hash}, _, _} -> id == round_id end)
-      |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
-      |> List.first()
+      case map[:message] do
+        nil ->
+          # Choose msg round with more votes
+          :ets.tab2list(ets_votes)
+          |> Enum.filter(fn {{id, _hash}, _, _} -> id == round_id end)
+          |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
+          |> List.first()
+
+        message ->
+          message
+      end
 
     if msg_round != nil do
       blocks =

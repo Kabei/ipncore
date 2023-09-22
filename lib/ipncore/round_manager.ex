@@ -232,6 +232,7 @@ defmodule RoundManager do
           :ok
       end
 
+      # Replicate message to rest of nodes
       NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
         node_id,
         creator_id
@@ -242,18 +243,18 @@ defmodule RoundManager do
   end
 
   def handle_info(
-        %{
-          "event" => "msg_block",
-          "data" =>
-            block = %{
-              "creator" => creator_id,
-              "height" => height,
-              "hash" => hash,
-              "signature" => signature,
-              "prev" => prev,
-              "hashfile" => hashfile,
-              "timestamp" => timestamp
-            }
+        {
+          "msg_block",
+          block = %{
+            "creator" => creator_id,
+            "height" => height,
+            "hash" => hash,
+            "signature" => signature,
+            "prev" => prev,
+            "hashfile" => hashfile,
+            "timestamp" => timestamp
+          },
+          _node_id
         },
         %{main: {conn, stmts}, candidates: ets_candidates, players: ets_players} = state
       ) do

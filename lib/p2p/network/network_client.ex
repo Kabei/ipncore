@@ -71,8 +71,7 @@ defmodule Ippan.NetworkClient do
       end
     else
       true ->
-        IO.puts("[cluster] member already exists")
-        # {:noreply, Map.merge(state, @node.info(node_id))}
+        IO.puts("[Node] member already exists")
         {:stop, :normal, state}
 
       error ->

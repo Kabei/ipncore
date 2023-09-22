@@ -11,7 +11,7 @@ defmodule Ippan.ClusterNode do
     pubsub: :cluster,
     topic: "cluster",
     opts: Application.compile_env(:ipncore, :p2p_client),
-    conn_opts: [],
+    conn_opts: [retry: 1, reconnect: false],
     sup: Ippan.ClusterSup
 
   def on_init(_) do

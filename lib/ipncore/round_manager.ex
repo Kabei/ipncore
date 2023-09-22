@@ -220,6 +220,7 @@ defmodule RoundManager do
 
       cond do
         count == div(n, 2) + 1 ->
+          IO.inspect("vote ##{id}")
           pid = self()
           :timer.cancel(tRef)
 
@@ -468,6 +469,7 @@ defmodule RoundManager do
           end)
           |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
           |> List.first()
+          |> elem(1)
 
         message ->
           message

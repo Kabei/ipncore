@@ -97,8 +97,6 @@ defmodule RoundManager do
     :timer.cancel(tRef)
 
     if new_state.turn do
-      IO.puts("Its my turn")
-
       pid = self()
 
       spawn_link(fn ->
@@ -749,9 +747,13 @@ defmodule RoundManager do
     {rcid, rc_node} = get_round_creator(ets_players, position)
     turn = rcid == vid
 
-    IO.inspect("RCID: " <> inspect(rcid))
-    IO.inspect("Position: " <> inspect(position))
-    IO.inspect("Turn: " <> inspect(turn))
+    IO.puts(
+      "RCID: " <>
+        inspect(rcid) <>
+        " | Position: " <>
+        inspect(position) <>
+        " | MyTurn: " <> inspect(turn)
+    )
 
     new_state = %{state | position: position, rcid: rcid, rc_node: rc_node, turn: turn}
 

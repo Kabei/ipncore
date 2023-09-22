@@ -257,9 +257,14 @@ defmodule Ippan.Network do
       end
 
       def disconnect(node_id) do
-        %{socket: socket} = info(node_id)
-        :ets.delete(@table, node_id)
-        @adapter.close(socket)
+        case info(node_id) do
+          %{socket: socket} ->
+            :ets.delete(@table, node_id)
+            @adapter.close(socket)
+
+          _ ->
+            :ok
+        end
       end
 
       @impl Network

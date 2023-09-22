@@ -228,14 +228,17 @@ defmodule Ippan.Network do
             %{id: node_id, hostname: hostname, port: port, net_pubkey: net_pubkey} = node,
             opts \\ @default_connect_opts
           ) do
-        case @supervisor.start_child(
-               Map.merge(node, %{
-                 conn: :persistent_term.get(:asset_conn),
-                 stmts: :persistent_term.get(:asset_stmt),
-                 opts: opts
-               })
-             ) do
-          {:ok, _pid} -> true
+        @supervisor.start_child(
+          Map.merge(node, %{
+            conn: :persistent_term.get(:asset_conn),
+            stmts: :persistent_term.get(:asset_stmt),
+            opts: opts,
+            pid: self()
+          })
+        )
+
+        receive do
+          :ok -> true
           _ -> false
         end
       end

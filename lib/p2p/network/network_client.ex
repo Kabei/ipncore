@@ -20,22 +20,12 @@ defmodule Ippan.NetworkClient do
   end
 
   @impl true
-  def init(args = %{opts: opts}) do
-    if Keyword.get(opts, :async, false) do
-      {:ok, args, {:continue, :init}}
-    else
-      case connect(args) do
-        {:noreply, state, _} ->
-          {:ok, state, :hibernate}
-
-        stop ->
-          stop
-      end
-    end
+  def init(args) do
+    {:ok, args, {:continue, :connect}}
   end
 
   @impl true
-  def handle_continue(:init, state) do
+  def handle_continue(:connect, state) do
     connect(state)
   end
 
@@ -63,6 +53,10 @@ defmodule Ippan.NetworkClient do
           new_state = Map.merge(state, map)
           @node.on_connect(node_id, map)
           {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
+
+          # callback
+          callback(state[:pid], :ok)
+
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 
         error ->
@@ -72,6 +66,7 @@ defmodule Ippan.NetworkClient do
     else
       true ->
         IO.puts("[Node] member already exists")
+        callback(state[:pid], :ok)
         {:stop, :normal, state}
 
       error ->
@@ -85,6 +80,7 @@ defmodule Ippan.NetworkClient do
     cond do
       error == :halt ->
         IO.inspect(error)
+        callback(state[:pid], :error)
         {:stop, :normal, state}
 
       retry == :infinity ->
@@ -97,8 +93,14 @@ defmodule Ippan.NetworkClient do
         connect(%{state | opts: opts})
 
       true ->
+        callback(state[:pid], :error)
         {:stop, :normal, state}
     end
+  end
+
+  defp callback(nil, _message), do: nil
+  defp callback(pid, message) do
+    send(pid, message)
   end
 
   @impl true

@@ -780,8 +780,8 @@ defmodule RoundManager do
           end
 
           case NetworkNode.call(node_id, "get_round", round_id) do
-            {:ok, response} ->
-              send(self(), {"msg_round", response})
+            {:ok, response} when is_map(response) ->
+              send(self(), {"msg_round", response, node_id})
 
               # Disconnect if count is mayor than to max_peers_conn
               if NetworkNode.count() > @max_peers_conn do

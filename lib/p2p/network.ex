@@ -230,14 +230,7 @@ defmodule Ippan.Network do
             opts \\ @default_connect_opts
           ) do
         unless alive?(node_id) do
-          @supervisor.start_child(
-            Map.merge(node, %{
-              conn: :persistent_term.get(:asset_conn),
-              stmts: :persistent_term.get(:asset_stmt),
-              opts: opts,
-              pid: self()
-            })
-          )
+          @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
 
           receive do
             :ok -> true
@@ -251,13 +244,7 @@ defmodule Ippan.Network do
       @impl Network
       def connect_async(%{id: node_id} = node, opts \\ @default_connect_opts) do
         unless alive?(node_id) do
-          @supervisor.start_child(
-            Map.merge(node, %{
-              conn: :persistent_term.get(:asset_conn),
-              stmts: :persistent_term.get(:asset_stmt),
-              opts: Keyword.put(opts, :async, true)
-            })
-          )
+          @supervisor.start_child(Map.put(node, :opts, opts))
         else
           true
         end
@@ -316,7 +303,7 @@ defmodule Ippan.Network do
       end
 
       @impl Network
-      def call(node_id, method, data \\ %{}, timeout \\ 10_000, retry \\ 0) do
+      def call(node_id, method, data \\ nil, timeout \\ 10_000, retry \\ 0) do
         id = :rand.bytes(8)
         topic = "call:#{id}"
         message = %{"_id" => id, "method" => method, "data" => data}

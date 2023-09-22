@@ -20,18 +20,8 @@ defmodule Ippan.ClusterClient do
   end
 
   @impl true
-  def init(args = %{opts: opts}) do
-    if Keyword.get(opts, :async, false) do
-      {:ok, args, {:continue, :init}}
-    else
-      case connect(args) do
-        {:noreply, state, _} ->
-          {:ok, state, :hibernate}
-
-        stop ->
-          stop
-      end
-    end
+  def init(args) do
+    {:ok, args, {:continue, :connect}}
   end
 
   @impl true
@@ -53,13 +43,12 @@ defmodule Ippan.ClusterClient do
         {:ok, sharedkey} ->
           :ok = :inet.setopts(socket, active: true)
 
-          map =
-            %{
-              socket: socket,
-              sharedkey: sharedkey,
-              hostname: hostname,
-              net_pubkey: net_pubkey
-            }
+          map = %{
+            socket: socket,
+            sharedkey: sharedkey,
+            hostname: hostname,
+            net_pubkey: net_pubkey
+          }
 
           new_state = Map.merge(state, map)
           @node.on_connect(node_id, map)
@@ -71,8 +60,7 @@ defmodule Ippan.ClusterClient do
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 
         error ->
-          IO.inspect("ERROR 2")
-          IO.inspect(error)
+          IO.inspect("ERROR 2 #{inspect(error)}")
           retry_connect(state, retry, error)
       end
     else
@@ -89,8 +77,6 @@ defmodule Ippan.ClusterClient do
   end
 
   defp retry_connect(state, retry, error) do
-    IO.inspect("retry #{inspect(error)}")
-
     cond do
       error == :halt ->
         IO.inspect(error)
@@ -113,7 +99,6 @@ defmodule Ippan.ClusterClient do
   end
 
   defp callback(nil, _message), do: nil
-
   defp callback(pid, message) do
     send(pid, message)
   end

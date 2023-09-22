@@ -48,6 +48,16 @@ defmodule Ippan.NetworkNode do
     end
   end
 
+  def handle_request("last_round", nil, _state) do
+    conn = :persistent_term.get(:asset_conn)
+    stmts = :persistent_term.get(:asset_stmt)
+
+    case SqliteStore.fetch(conn, stmts, "last_round", []) do
+      nil -> nil
+      [id, hash] -> %{"id" => id, "hash" => hash}
+    end
+  end
+
   def handle_request(_method, _data, _state), do: ["error", "Not found"]
 
   @impl Network

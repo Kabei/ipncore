@@ -128,6 +128,7 @@ defmodule RoundManager do
       t = Task.async(fn -> build_round_from_messages(pid, state) end)
 
       if Task.await(t, :infinity) == nil do
+        # delete validator
         :done = SqliteStore.step(conn, stmts, "delete_validator", [rcid])
         SqliteStore.sync(conn)
 
@@ -202,8 +203,7 @@ defmodule RoundManager do
         } =
           state
       )
-      when id == round_id and
-             vid != node_id and
+      when vid != node_id and
              vid != creator_id do
     limit = EnvStore.round_blocks()
 
@@ -219,7 +219,7 @@ defmodule RoundManager do
       n = NetworkNode.count()
 
       cond do
-        count == div(n, 2) + 1 ->
+        id == round_id and count == div(n, 2) + 1 ->
           IO.inspect("vote ##{id}")
           pid = self()
           :timer.cancel(tRef)
@@ -459,7 +459,7 @@ defmodule RoundManager do
          } = map
        ) do
     msg_round =
-      case map[:message] do
+      case Map.get(map, :message) do
         nil ->
           # Choose msg round with more votes
           # :ets.fun2ms(fn {{id, _hash}, _, _} = x when id == 1 -> x end)
@@ -545,15 +545,15 @@ defmodule RoundManager do
           count: block_count,
           tx_count: tx_count,
           size: size,
-          blocks: hashes,
+          blocks: blocks,
           extra: nil
         }
 
-        IO.inspect(round)
+        # IO.inspect(round)
 
         :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
 
-        GenServer.cast(pid, {:complete, Map.put(round, :block, blocks)})
+        GenServer.cast(pid, {:complete, round})
       else
         send(pid, :timeout)
       end
@@ -675,15 +675,15 @@ defmodule RoundManager do
         count: block_count,
         tx_count: tx_count,
         size: size,
-        blocks: hashes,
+        blocks: blocks,
         extra: nil
       }
 
-      IO.inspect(round)
+      # IO.inspect(round)
 
       :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
 
-      GenServer.cast(pid, {:complete, Map.put(round, :blocks, blocks)})
+      GenServer.cast(pid, {:complete, round})
     else
       SqliteStore.rollback(conn)
       DetsPlus.rollback(dets)

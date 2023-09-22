@@ -65,9 +65,9 @@ defmodule Ippan.Round do
         coinbase,
         count,
         tx_count,
+        size,
         blocks,
-        extra,
-        size
+        extra
       ]) do
     %{
       id: id,

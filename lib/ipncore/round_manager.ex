@@ -653,8 +653,13 @@ defmodule RoundManager do
       # Run jackpot and events
       jackpot_amount =
         if rem(round_id, 100) == 0 do
-          last_block_id = block_id + block_count
-          run_jackpot(conn, stmts, dets, round_id, last_block_id, round_hash, reward)
+          t =
+            Task.async(fn ->
+              last_block_id = block_id + block_count
+              run_jackpot(conn, stmts, dets, round_id, last_block_id, round_hash, reward)
+            end)
+
+          Task.await(t)
         else
           0
         end
@@ -692,7 +697,7 @@ defmodule RoundManager do
 
   defp run_jackpot(conn, stmts, dets, round_id, block_id, round_hash, reward) do
     n = BigNumber.to_int(round_hash)
-    dv = min(block_id, 20_000)
+    dv = min(block_id + 1, 20_000)
     b = rem(n, dv) + if(block_id >= 20_000, do: block_id, else: 0)
 
     case SqliteStore.fetch(conn, stmts, "get_block", [b]) do

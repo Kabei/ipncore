@@ -15,7 +15,7 @@ defmodule RoundManager do
   @pubsub :cluster
   @wait_time 4_000
   @token Application.compile_env(:ipncore, :token)
-  @timeout 20_000
+  @timeout 15_000
   @block_interval Application.compile_env(:ipncore, :block_interval)
   @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)
 
@@ -162,9 +162,15 @@ defmodule RoundManager do
         } = state
       ) do
     :timer.cancel(bRef)
-    result = BlockHandler.generate_files(vid, block_height, block_hash)
-    {:ok, bRef} = :timer.send_after(@block_interval, :mine)
-    {:noreply, %{state | bRef: bRef, candidate: result}, :hibernate}
+    pid = self()
+
+    spawn_link(fn ->
+      result = BlockHandler.generate_files(vid, block_height, block_hash)
+      {:ok, bRef} = :timer.send_after(@block_interval, :mine)
+      GenServer.cast(pid, {:candidate, result, bRef})
+    end)
+
+    {:noreply, state}
   end
 
   def handle_info(:mine, %{bRef: bRef} = state) do
@@ -191,6 +197,7 @@ defmodule RoundManager do
           votes: ets_votes,
           rcid: rcid,
           round_id: round_id,
+          tRef: tRef,
           vid: vid
         } =
           state
@@ -214,6 +221,7 @@ defmodule RoundManager do
       cond do
         count == div(n, 2) + 1 ->
           pid = self()
+          :timer.cancel(tRef)
 
           spawn_link(fn ->
             build_round_from_messages(pid, Map.put(state, :message, msg_round))
@@ -362,6 +370,21 @@ defmodule RoundManager do
      }, {:continue, :next}}
   end
 
+  def handle_cast({:candidate, candidate, bRef}, %{candidate: candidate} = state) do
+    case candidate do
+      nil ->
+        {:noreply, %{state | bRef: bRef}}
+
+      candidate ->
+        {:noreply, %{state | bRef: bRef, candidate: candidate}}
+    end
+  end
+
+  def handle_cast(msg, state) do
+    Logger.debug("RoundManager - handle_cast: " <> inspect(msg))
+    {:noreply, state}
+  end
+
   @impl true
   def terminate(_reason, %{
         players: ets_players,
@@ -439,7 +462,10 @@ defmodule RoundManager do
         nil ->
           # Choose msg round with more votes
           :ets.tab2list(ets_votes)
-          |> Enum.filter(fn {{id, _hash}, _, _} -> id == round_id end)
+          |> Enum.filter(fn
+            {{id, _hash}, _, _} -> id == round_id
+            _ -> false
+          end)
           |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
           |> List.first()
 

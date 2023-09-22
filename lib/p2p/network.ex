@@ -230,12 +230,15 @@ defmodule Ippan.Network do
             opts \\ @default_connect_opts
           ) do
         unless alive?(node_id) do
-          @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
+          Task.async(fn ->
+            @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
 
-          receive do
-            :ok -> true
-            _ -> false
-          end
+            receive do
+              :ok -> true
+              _ -> false
+            end
+          end)
+          |> Task.await(:infinity)
         else
           true
         end
@@ -314,18 +317,21 @@ defmodule Ippan.Network do
 
       @impl Network
       def call(node_id, method, data \\ nil, timeout \\ 10_000, retry \\ 0) do
-        id = :rand.bytes(8)
-        topic = "call:#{id}"
-        message = %{"_id" => id, "method" => method, "data" => data}
+        Task.async(fn ->
+          id = :rand.bytes(8)
+          topic = "call:#{id}"
+          message = %{"_id" => id, "method" => method, "data" => data}
 
-        case info(node_id) do
-          nil ->
-            {:error, :not_exists}
+          case info(node_id) do
+            nil ->
+              {:error, :not_exists}
 
-          %{sharedkey: sharedkey, socket: socket} ->
-            PubSub.subscribe(@pubsub, topic)
-            call_retry(socket, message, sharedkey, topic, timeout, retry)
-        end
+            %{sharedkey: sharedkey, socket: socket} ->
+              PubSub.subscribe(@pubsub, topic)
+              call_retry(socket, message, sharedkey, topic, timeout, retry)
+          end
+        end)
+        |> Task.await(:infinity)
       end
 
       defp call_retry(socket, message, sharedkey, topic, timeout, retry) do

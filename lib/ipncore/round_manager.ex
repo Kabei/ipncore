@@ -25,7 +25,7 @@ defmodule RoundManager do
 
   @impl true
   def init(_args) do
-    IO.inspect("Init RoundManager")
+    IO.puts("Init RoundManager")
 
     vid = :persistent_term.get(:vid)
     main = {conn = :persistent_term.get(:asset_conn), stmts = :persistent_term.get(:asset_stmt)}
@@ -168,7 +168,7 @@ defmodule RoundManager do
       GenServer.cast(pid, {:candidate, result, bRef})
     end)
 
-    {:noreply, state}
+    {:noreply, state, :hibernate}
   end
 
   def handle_info(:mine, %{bRef: bRef} = state) do
@@ -219,7 +219,7 @@ defmodule RoundManager do
 
         cond do
           count == div(n, 2) + 1 ->
-            IO.inspect("vote ##{id}")
+            IO.puts("Vote ##{id}")
             pid = self()
             :timer.cancel(tRef)
 
@@ -455,7 +455,7 @@ defmodule RoundManager do
            main: {conn, stmts},
            dets: dets,
            rcid: rcid,
-           miner_pool: pool,
+           miner_pool: pool_pid,
            votes: ets_votes
          } = map
        ) do
@@ -493,15 +493,17 @@ defmodule RoundManager do
         |> Enum.map(fn {id, block} ->
           Task.async(fn ->
             :poolboy.transaction(
-              pool,
-              fn pid -> MinerWorker.mine(pid, Map.put(block, :id, id), creator, round_id) end,
+              pool_pid,
+              fn worker ->
+                MinerWorker.mine(worker, Map.put(block, :id, id), creator, round_id)
+              end,
               :infinity
             )
           end)
         end)
         |> Enum.map(fn t -> Task.await(t, :infinity) end)
 
-      IO.inspect(result)
+      IO.puts("MinerWorker: " <> inspect(result))
 
       # Count Blocks and txs rejected
       {blocks, txs_rejected} =
@@ -617,16 +619,14 @@ defmodule RoundManager do
         Task.async(fn ->
           :poolboy.transaction(
             pool_pid,
-            fn pid ->
-              MinerWorker.mine(pid, Map.put(block, :id, id), creator, round_id)
-            end,
+            fn worker -> MinerWorker.mine(worker, Map.put(block, :id, id), creator, round_id) end,
             :infinity
           )
         end)
       end)
       |> Enum.map(&Task.await(&1, :infinity))
 
-    IO.inspect(result)
+    IO.puts("MinerWorker: " <> inspect(result))
 
     # Count Blocks and txs rejected
     {blocks, txs_rejected} =
@@ -785,31 +785,26 @@ defmodule RoundManager do
   # Connect to nodes without exceeded max peers to connect
   # Return number of new connections. Zero in case not connect to new nodes
   defp connect_to_peers(ets_players, vid, total_players) do
-    t =
-      Task.async(fn ->
-        take = min(@max_peers_conn - NetworkNode.count(), total_players - 1)
-        players_connected = NetworkNode.list()
+    take = min(@max_peers_conn - NetworkNode.count(), total_players - 1)
+    players_connected = NetworkNode.list()
 
-        if take > 0 do
-          :ets.tab2list(ets_players)
-          |> Enum.filter(fn {id, _} = x -> id != vid and x not in players_connected end)
-          |> Enum.take_random(take)
-          |> Enum.reduce_while(0, fn {_id, node}, acc ->
-            if acc < take do
-              case NetworkNode.connect(node) do
-                true -> {:cont, acc + 1}
-                false -> {:cont, acc}
-              end
-            else
-              {:halt, acc}
-            end
-          end)
+    if take > 0 do
+      :ets.tab2list(ets_players)
+      |> Enum.filter(fn {id, _} = x -> id != vid and x not in players_connected end)
+      |> Enum.take_random(take)
+      |> Enum.reduce_while(0, fn {_id, node}, acc ->
+        if acc < take do
+          case NetworkNode.connect(node) do
+            true -> {:cont, acc + 1}
+            false -> {:cont, acc}
+          end
         else
-          0
+          {:halt, acc}
         end
       end)
-
-    Task.await(t, :infinity)
+    else
+      0
+    end
   end
 
   # connect to round creator, send candidate if exists and question round creator about msg_round

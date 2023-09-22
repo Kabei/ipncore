@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS block(
   round BIGINT NOT NULL,
   timestamp BIGINT NOT NULL,
   count INTEGER DEFAULT 0,
+  rejected INTEGER,
   size BIGINT DEFAULT 0,
-  failures INTEGER,
   vsn integer,
   UNIQUE(creator, height)
 ) WITHOUT ROWID;

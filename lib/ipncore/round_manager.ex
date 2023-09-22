@@ -29,7 +29,6 @@ defmodule RoundManager do
 
     vid = :persistent_term.get(:vid)
     main = {conn = :persistent_term.get(:asset_conn), stmts = :persistent_term.get(:asset_stmt)}
-    net = {:persistent_term.get(:net_conn), :persistent_term.get(:net_stmt)}
 
     ets_players =
       ets_start(:players, [:ordered_set, :public, read_concurrency: true, write_concurrency: true])
@@ -75,7 +74,6 @@ defmodule RoundManager do
        dets: :persistent_term.get(:dets_balance),
        main: main,
        miner_pool: miner_pool_pid,
-       net: net,
        players: ets_players,
        votes: ets_votes,
        candidates: ets_candidates,
@@ -205,6 +203,7 @@ defmodule RoundManager do
       )
       when vid != node_id and
              vid != creator_id do
+    Logger.debug(inspect(msg_round))
     limit = EnvStore.round_blocks()
 
     with true <- creator_id == rcid,
@@ -508,7 +507,7 @@ defmodule RoundManager do
       {blocks, txs_rejected} =
         Enum.reduce(result, {[], 0}, fn x, {acc, acc_txr} ->
           case x do
-            {:ok, block, rejected} -> {acc ++ [block], acc_txr + rejected}
+            {:ok, block} -> {acc ++ [block], acc_txr + block.rejected}
             :error -> {acc, acc_txr}
           end
         end)
@@ -633,7 +632,7 @@ defmodule RoundManager do
     {blocks, txs_rejected} =
       Enum.reduce(result, {[], 0}, fn x, {acc, acc_txr} ->
         case x do
-          {:ok, block, rejected} -> {acc ++ [block], acc_txr + rejected}
+          {:ok, block} -> {acc ++ [block], acc_txr + block.rejected}
           :error -> {acc, acc_txr}
         end
       end)

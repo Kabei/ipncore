@@ -116,7 +116,7 @@ defmodule MinerWorker do
       IO.inspect("Here 7")
       :done = SqliteStore.step(conn, stmts, "insert_block", Block.to_list(result))
 
-      {:reply, {:ok, result, count_rejected}, state}
+      {:reply, {:ok, result}, state}
     rescue
       error ->
         Logger.error(inspect(error))

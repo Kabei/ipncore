@@ -462,14 +462,14 @@ defmodule RoundManager do
       case map[:message] do
         nil ->
           # Choose msg round with more votes
-          :ets.tab2list(ets_votes)
-          |> Enum.filter(fn
-            {{id, _hash}, _, _} -> id == round_id
-            _ -> false
-          end)
+          # :ets.fun2ms(fn {{id, _hash}, _, _} = x when id == 1 -> x end)
+          :ets.select(ets_votes, [{{{:"$1", :"$2"}, :_, :_}, [{:==, :"$1", round_id}], [:"$_"]}])
           |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
           |> List.first()
-          |> elem(1)
+          |> case do
+            nil -> nil
+            x -> elem(x, 1)
+          end
 
         message ->
           message
@@ -792,7 +792,7 @@ defmodule RoundManager do
 
         if take > 0 do
           :ets.tab2list(ets_players)
-          |> Enum.filter(fn {id, _} = x -> id != vid or x not in players_connected end)
+          |> Enum.filter(fn {id, _} = x -> id != vid and x not in players_connected end)
           |> Enum.take_random(take)
           |> Enum.reduce_while(0, fn {_id, node}, acc ->
             if acc < take do

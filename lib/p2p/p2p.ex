@@ -58,7 +58,7 @@ defmodule Ippan.P2P do
 
                     node =
                       data
-                      |> Map.take([:id, :hostname, :role, :net_pubkey])
+                      |> Map.take([:id, :hostname, :port, :role, :net_pubkey])
                       |> Map.put(:socket, socket)
                       |> Map.put(:sharedkey, sharedkey)
 

@@ -44,7 +44,9 @@ defmodule Ipncore.Application do
             Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
             Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
             ClusterNode,
-            NetworkNode
+            NetworkNode,
+            {Bandit,
+             [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
           ]
       end
 

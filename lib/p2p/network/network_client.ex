@@ -47,6 +47,7 @@ defmodule Ippan.NetworkClient do
             socket: socket,
             sharedkey: sharedkey,
             hostname: hostname,
+            port: port,
             net_pubkey: net_pubkey
           }
 

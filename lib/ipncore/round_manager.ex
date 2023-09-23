@@ -235,7 +235,8 @@ defmodule RoundManager do
       # Replicate message to rest of nodes
       NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
         node_id,
-        creator_id
+        creator_id,
+        vid
       ])
     end
 
@@ -824,7 +825,7 @@ defmodule RoundManager do
 
           case NetworkNode.call(node_id, "get_round", round_id) do
             {:ok, response} when is_map(response) ->
-              send(self(), {"msg_round", response, node_id})
+              send(self(), {"msg_round", Round.from_remote(response), node_id})
 
               # Disconnect if count is mayor than to max_peers_conn
               if NetworkNode.count() > @max_peers_conn do

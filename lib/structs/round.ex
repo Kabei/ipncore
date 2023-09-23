@@ -106,6 +106,20 @@ defmodule Ippan.Round do
     |> trunc()
   end
 
+  def from_remote(%{"blocks" => blocks} = msg_round) do
+    blocks =
+      Enum.reduce(blocks, [], fn b, acc ->
+        block =
+          MapUtil.to_atoms(b, ~w(hash height creator prev size hashfile timestamp count vsn))
+
+        acc ++ [block]
+      end)
+
+    msg_round
+    |> MapUtil.to_atoms(~w(id creator hash prev signature))
+    |> Map.put(:blocks, blocks)
+  end
+
   defp normalize(nil), do: ""
   defp normalize(x), do: x
 end

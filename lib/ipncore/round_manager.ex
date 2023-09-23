@@ -811,38 +811,69 @@ defmodule RoundManager do
   end
 
   # connect to round creator, send candidate if exists and question round creator about msg_round
-  defp sync_to_round_creator(%{
-         rcid: node_id,
-         rc_node: node,
-         vid: vid,
-         round_id: round_id,
-         candidate: candidate
-       }) do
+  defp sync_to_round_creator(
+         %{
+           rcid: node_id,
+           rc_node: node,
+           vid: vid,
+           round_id: round_id,
+           candidate: candidate
+         } = state
+       ) do
     if vid != node_id do
-      case NetworkNode.connect(node) do
-        true ->
-          if candidate do
-            NetworkNode.cast(node_id, "msg_block", candidate)
-          end
-
-          case NetworkNode.call(node_id, "get_round", round_id) do
-            {:ok, response} when is_map(response) ->
-              send(self(), {"msg_round", Round.from_remote(response), node_id})
-
-              # Disconnect if count is mayor than to max_peers_conn
-              if NetworkNode.count() > @max_peers_conn do
-                NetworkNode.disconnect(node_id)
+      case check_votes(state) do
+        :ok ->
+          # connect to round creator
+          case NetworkNode.connect(node) do
+            true ->
+              if candidate do
+                NetworkNode.cast(node_id, "msg_block", candidate)
               end
 
-            _ ->
-              :ok
+              case NetworkNode.call(node_id, "get_round", round_id) do
+                {:ok, response} when is_map(response) ->
+                  send(self(), {"msg_round", Round.from_remote(response), node_id})
+
+                  # Disconnect if count is mayor than to max_peers_conn
+                  if NetworkNode.count() > @max_peers_conn do
+                    NetworkNode.disconnect(node_id)
+                  end
+
+                _ ->
+                  :ok
+              end
+
+            false ->
+              Logger.warning("It was not possible to connect to the round creator")
           end
 
-        false ->
-          Logger.warning("It was not possible to connect to the round creator")
+        message ->
+          pid = self()
+
+          spawn_link(fn ->
+            build_round_from_messages(pid, Map.put(state, :message, message))
+          end)
       end
-    else
-      :none
+    end
+  end
+
+  defp check_votes(%{round_id: round_id, votes: ets_votes}) do
+    # check votes
+    n = NetworkNode.count()
+
+    :ets.select(ets_votes, [{{{:"$1", :"$2"}, :_, :_}, [{:==, :"$1", round_id}], [:"$_"]}])
+    |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
+    |> List.first()
+    |> case do
+      nil ->
+        nil
+
+      {_, x, count} ->
+        if count == div(n, 2) + 1 do
+          x
+        else
+          :ok
+        end
     end
   end
 end

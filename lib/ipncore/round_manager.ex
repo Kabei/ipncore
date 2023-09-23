@@ -218,6 +218,7 @@ defmodule RoundManager do
 
       if id == round_id do
         n = NetworkNode.count()
+        IO.puts("n = #{n}")
 
         cond do
           count == div(n, 2) + 1 ->

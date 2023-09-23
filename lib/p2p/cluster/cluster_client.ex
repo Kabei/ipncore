@@ -60,7 +60,7 @@ defmodule Ippan.ClusterClient do
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 
         error ->
-          IO.inspect("ERROR 2 #{inspect(error)}")
+          # IO.inspect("ERROR 2 #{inspect(error)}")
           retry_connect(state, retry, error)
       end
     else
@@ -70,8 +70,8 @@ defmodule Ippan.ClusterClient do
         {:stop, :normal, state}
 
       error ->
-        IO.inspect("ERROR")
-        IO.inspect(error)
+        # IO.inspect("ERROR")
+        # IO.inspect(error)
         retry_connect(state, retry, error)
     end
   end
@@ -79,7 +79,7 @@ defmodule Ippan.ClusterClient do
   defp retry_connect(state, retry, error) do
     cond do
       error == :halt ->
-        IO.inspect(error)
+        # IO.inspect(error)
         callback(state[:pid], :error)
         {:stop, :normal, state}
 

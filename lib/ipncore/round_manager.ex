@@ -13,7 +13,7 @@ defmodule RoundManager do
 
   @miner_pool :miner_pool
   @pubsub :cluster
-  @wait_time 4_000
+  @wait_time 2_500
   @token Application.compile_env(:ipncore, :token)
   @timeout 15_000
   @block_interval Application.compile_env(:ipncore, :block_interval)
@@ -214,6 +214,8 @@ defmodule RoundManager do
          true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 1})
 
+      IO.puts("#{id} = #{round_id}")
+
       if id == round_id do
         n = NetworkNode.count()
 
@@ -298,7 +300,7 @@ defmodule RoundManager do
   end
 
   def handle_info(msg, state) do
-    Logger.debug("RoundManager - handle_info: " <> inspect(msg))
+    Logger.warning("RoundManager - handle_info: " <> inspect(msg))
     {:noreply, state}
   end
 

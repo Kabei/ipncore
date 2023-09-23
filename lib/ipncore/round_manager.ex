@@ -212,7 +212,7 @@ defmodule RoundManager do
          true <- hash == Round.compute_hash(id, prev, creator_id, hashes),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
          true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
-      count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 1})
+      count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
 
       IO.puts("#{id} = #{round_id}")
 

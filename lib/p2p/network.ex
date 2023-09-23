@@ -128,11 +128,6 @@ defmodule Ippan.Network do
 
       def on_init(_), do: :ok
 
-      @impl true
-      def handle_info(_, state) do
-        {:noreply, state}
-      end
-
       # @impl true
       # def handle_info({node_id, msg}, state) do
       #   %{sharedkey: sharedkey, socket: socket} = info(node_id)

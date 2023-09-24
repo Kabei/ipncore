@@ -97,7 +97,7 @@ defmodule BlockTimer do
         :timer.sleep(div(@wait_time, diff))
     end
 
-    new_state = check(state, 1)
+    new_state = check(%{state | block_id: current_block_id}, 1)
     {:reply, new_state.candidate, new_state}
   end
 

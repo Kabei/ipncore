@@ -24,8 +24,8 @@ defmodule EnvStore do
     :persistent_term.get({:env, "TOKEN.PRICE"}, 50_000)
   end
 
-  def validator_stake do
-    :persistent_term.get({:env, "VALIDATOR.STAKE"}, 100_000)
+  def validator_price do
+    :persistent_term.get({:env, "VALIDATOR.PRICE"}, 100_000)
   end
 
   def jackpot_reward do
@@ -46,7 +46,7 @@ defmodule EnvStore do
 
   defp transform("TOKEN.PRICE", x), do: if(is_integer(x) and x > 0, do: x, else: 50_000)
 
-  defp transform("VALIDATOR.STAKE", x), do: if(is_integer(x) and x > 0, do: x, else: 100_000)
+  defp transform("VALIDATOR.PRICE", x), do: if(is_integer(x) and x > 0, do: x, else: 100_000)
 
   defp transform("JACKPOT.REWARD", x), do: if(x in 1..100_000, do: x, else: 100)
 

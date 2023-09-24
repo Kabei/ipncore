@@ -13,7 +13,7 @@ defmodule RoundManager do
 
   @miner_pool :miner_pool
   @pubsub :cluster
-  @wait_time 2_500
+  @wait_time 2_000
   @token Application.compile_env(:ipncore, :token)
   @timeout 15_000
   @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)
@@ -494,14 +494,14 @@ defmodule RoundManager do
       {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
       creator = :persistent_term.get(:validator)
       hash = Round.compute_hash(round_id, round_hash, creator_id, hashes)
-      hash_count = length(hashes)
+      hash_count = length(blocks)
 
       {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
 
       # pre-build
       pre_round = %{
         id: round_id,
-        blocks: hashes,
+        blocks: blocks,
         creator: creator_id,
         hash: hash,
         signature: signature,

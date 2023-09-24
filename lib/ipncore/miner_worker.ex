@@ -41,7 +41,7 @@ defmodule MinerWorker do
         state
       ) do
     try do
-      IO.inspect("Here 0")
+      IO.puts("Here 0")
       conn = :persistent_term.get(:asset_conn)
       stmts = :persistent_term.get(:asset_stmt)
       dets = :persistent_term.get(:dets_balance)
@@ -49,9 +49,9 @@ defmodule MinerWorker do
       [block_height, prev_hash] =
         SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
 
-      IO.inspect("height #{height} sql-height #{block_height}")
+      IO.puts("height #{height} sql-height #{block_height}")
 
-      IO.inspect(block_height)
+      IO.puts(block_height)
 
       if height != 1 + block_height do
         raise IppanError, "Wrong block height"
@@ -60,7 +60,7 @@ defmodule MinerWorker do
       # Request verify a remote blockfile
       decode_path = Block.decode_path(creator_id, height)
 
-      IO.inspect("Here 2")
+      IO.puts("Here 2")
       # Call verify blockfile and download decode-file
       if File.exists?(decode_path) do
         :ok
@@ -73,16 +73,13 @@ defmodule MinerWorker do
 
         {node_id, node} = random_node()
 
-        case ClusterNode.call(node_id, "verify_block", block_check, 15_000, 2) do
-          {:ok, verify_result} ->
-            case verify_result do
-              false ->
-                raise IppanError, "Error block verify"
+        case ClusterNode.call(node_id, "verify_block", block_check, 10_000, 2) do
+          {:ok, true} ->
+            url = Block.cluster_decode_url(node.hostname, creator_id, height)
+            :ok = Download.from(url, decode_path)
 
-              true ->
-                url = Block.cluster_decode_url(node.hostname, creator_id, height)
-                :ok = Download.from(url, decode_path)
-            end
+          {:ok, false} ->
+            raise IppanError, "Error block verify"
 
           {:error, _} ->
             raise IppanError, "Error Node verify"
@@ -91,29 +88,29 @@ defmodule MinerWorker do
 
       Logger.debug("#{creator_id}.#{height} Txs: #{count} | #{decode_path} Mining...")
 
-      IO.inspect("Here 3")
+      IO.puts("Here 3")
       # Read decode blockfile
       {:ok, content} = File.read(decode_path)
 
-      IO.inspect("Here 4")
+      IO.puts("Here 4")
 
       %{"data" => messages, "vsn" => version_file} =
         Block.decode_file!(content)
 
       if version != version_file, do: raise(IppanError, "Block file version failed")
 
-      IO.inspect("Here 5")
+      IO.puts("Here 5")
 
       count_rejected =
         mine_fun(version, messages, conn, stmts, dets, creator, block_id)
 
-      IO.inspect("Here 6")
+      IO.puts("Here 6")
 
       result =
         block
         |> Map.merge(%{prev: prev_hash, round: current_round_id, rejected: count_rejected})
 
-      IO.inspect("Here 7")
+      IO.puts("Here 7")
       :done = SqliteStore.step(conn, stmts, "insert_block", Block.to_list(result))
 
       {:reply, {:ok, result}, state}

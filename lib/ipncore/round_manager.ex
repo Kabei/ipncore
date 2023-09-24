@@ -13,7 +13,7 @@ defmodule RoundManager do
 
   @miner_pool :miner_pool
   @pubsub :cluster
-  @wait_time 2_000
+  @wait_time 500
   @token Application.compile_env(:ipncore, :token)
   @timeout 15_000
   @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)

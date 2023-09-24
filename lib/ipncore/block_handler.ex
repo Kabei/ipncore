@@ -11,7 +11,7 @@ defmodule BlockHandler do
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
           map | nil
-  def generate_files(creator_id, height, prev) do
+  def generate_files(creator_id, height, prev, priority \\ 0) do
     filename = "#{creator_id}.#{height}.#{@block_extension}"
     block_path = Path.join(:persistent_term.get(:block_dir), filename)
     decode_path = Path.join(:persistent_term.get(:decode_dir), filename)
@@ -44,7 +44,8 @@ defmodule BlockHandler do
           vsn: version
         }
 
-      :ets.info(ets_msg, :size) > 0 ->
+      (0 == priority and :ets.info(ets_msg, :size) >= 1_000_000) or
+          (1 == priority and :ets.info(ets_msg, :size) > 0) ->
         IO.inspect("MSG Size > 0")
 
         {acc_msg, acc_decode} =

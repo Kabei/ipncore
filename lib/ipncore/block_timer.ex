@@ -66,7 +66,7 @@ defmodule BlockTimer do
   @impl true
   def handle_call(:get, _from, %{tRef: tRef} = state) do
     :timer.cancel(tRef)
-    new_state = check(state)
+    new_state = check(state, 1)
     {:reply, new_state.candidate, new_state}
   end
 
@@ -92,11 +92,11 @@ defmodule BlockTimer do
     {:noreply, new_state, {:continue, :next}}
   end
 
-  defp check(%{candidate: candidate, creator: creator_id, height: height, prev: prev} = state) do
+  defp check(%{candidate: candidate, creator: creator_id, height: height, prev: prev} = state, priority \\ 0) do
     candidate =
       case candidate do
         nil ->
-          case BlockHandler.generate_files(creator_id, height, prev) do
+          case BlockHandler.generate_files(creator_id, height, prev, priority) do
             nil ->
               nil
 

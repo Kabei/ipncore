@@ -4,8 +4,6 @@ defmodule Ippan.NetworkNode do
   alias Ippan.Network
   require SqliteStore
 
-  # @max_block_data_size Application.compile_env(:ipncore, :max_block_data_size)
-
   use Network,
     app: :ipncore,
     name: :network,

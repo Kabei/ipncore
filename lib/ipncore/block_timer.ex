@@ -88,8 +88,7 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_info(:mine, %{tRef: tRef} = state) do
-    :timer.cancel(tRef)
+  def handle_info(@message, state) do
     new_state = check(state)
     {:noreply, new_state, {:continue, :next}}
   end

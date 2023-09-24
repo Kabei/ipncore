@@ -19,7 +19,7 @@ defmodule MinerWorker do
   end
 
   def mine(server, block, creator, round_id) do
-    GenServer.call(server, {:mine, block, creator, round_id})
+    GenServer.call(server, {:mine, block, creator, round_id}, :infinity)
   end
 
   # Create a block file from decode block file (foreign block)

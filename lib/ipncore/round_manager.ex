@@ -657,8 +657,13 @@ defmodule RoundManager do
 
     new_state = %{state | position: position, rcid: rcid, rc_node: rc_node, turn: turn}
 
-    connect_to_peers(ets_players, vid, total_players)
-    sync_to_round_creator(new_state)
+    t =
+      Task.async(fn ->
+        connect_to_peers(ets_players, vid, total_players)
+        sync_to_round_creator(new_state)
+      end)
+
+    Task.await(t, :infinity)
 
     new_state
   end
@@ -730,7 +735,7 @@ defmodule RoundManager do
 
               case NetworkNode.call(node_id, "get_round", round_id) do
                 {:ok, response} when is_map(response) ->
-                  send(self(), {"msg_round", Round.from_remote(response), node_id})
+                  send(RoundManager, {"msg_round", Round.from_remote(response), node_id})
 
                   # Disconnect if count is mayor than to max_peers_conn
                   if NetworkNode.count() > @max_peers_conn do

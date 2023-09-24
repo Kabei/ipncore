@@ -230,15 +230,12 @@ defmodule Ippan.Network do
             opts \\ @default_connect_opts
           ) do
         unless alive?(node_id) do
-          Task.async(fn ->
-            @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
+          @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
 
-            receive do
-              :ok -> true
-              _ -> false
-            end
-          end)
-          |> Task.await(:infinity)
+          receive do
+            :ok -> true
+            _ -> false
+          end
         else
           true
         end
@@ -317,21 +314,18 @@ defmodule Ippan.Network do
 
       @impl Network
       def call(node_id, method, data \\ nil, timeout \\ 10_000, retry \\ 0) do
-        Task.async(fn ->
-          id = :rand.bytes(8)
-          topic = "call:#{id}"
-          message = %{"_id" => id, "method" => method, "data" => data}
+        id = :rand.bytes(8)
+        topic = "call:#{id}"
+        message = %{"_id" => id, "method" => method, "data" => data}
 
-          case info(node_id) do
-            nil ->
-              {:error, :not_exists}
+        case info(node_id) do
+          nil ->
+            {:error, :not_exists}
 
-            %{sharedkey: sharedkey, socket: socket} ->
-              PubSub.subscribe(@pubsub, topic)
-              call_retry(socket, message, sharedkey, topic, timeout, retry)
-          end
-        end)
-        |> Task.await(:infinity)
+          %{sharedkey: sharedkey, socket: socket} ->
+            PubSub.subscribe(@pubsub, topic)
+            call_retry(socket, message, sharedkey, topic, timeout, retry)
+        end
       end
 
       defp call_retry(socket, message, sharedkey, topic, timeout, retry) do
@@ -383,12 +377,9 @@ defmodule Ippan.Network do
 
       @impl Network
       def get_random_node do
-        n = count()
-        r = :rand.uniform(n) - 1
-
-        case :ets.slot(@table, r) do
-          [object] -> object
+        case :ets.tab2list(@table) do
           [] -> nil
+          objects -> Enum.random(objects)
         end
       end
 

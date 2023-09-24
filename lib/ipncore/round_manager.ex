@@ -44,6 +44,9 @@ defmodule RoundManager do
     [block_id] =
       SqliteStore.fetch(conn, stmts, "last_block_id", [], [-1])
 
+    current_block_id = block_id + 1
+    current_round_id = round_id + 1
+
     # Subscribe
     PubSub.subscribe(@pubsub, "validator")
     PubSub.subscribe(@pubsub, "env")
@@ -60,11 +63,11 @@ defmodule RoundManager do
     end
 
     # Start block-timer: keep candidate updated
-    BlockTimer.start_link(%{creator: vid, conn: conn, stmts: stmts})
+    BlockTimer.start_link(%{block_id: current_block_id, creator: vid, conn: conn, stmts: stmts})
 
     {:ok,
      %{
-       block_id: block_id + 1,
+       block_id: current_block_id,
        dets: :persistent_term.get(:dets_balance),
        conn: conn,
        stmts: stmts,
@@ -76,7 +79,7 @@ defmodule RoundManager do
        position: nil,
        rcid: nil,
        rc_node: nil,
-       round_id: round_id + 1,
+       round_id: current_round_id,
        round_hash: round_hash,
        total: total_players,
        tRef: nil,

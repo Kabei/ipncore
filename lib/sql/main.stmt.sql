@@ -182,3 +182,6 @@ DELETE FROM assets.refund WHERE hash = ? RETURNING sender, token, amount;
 
 --name: delete_expiry_refund
 DELETE FROM assets.refund WHERE expiry_in < ?1;
+
+
+INSERT INTO blockchain.jackpot VALUES(?1,?2,?3);

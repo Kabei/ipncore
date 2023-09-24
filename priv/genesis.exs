@@ -79,16 +79,13 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
   "tokens" => [
     %{
       avatar: nil,
-      burned: 0,
       created_at: timestamp,
       decimal: 9,
-      enabled: "true",
       id: "IPN",
       max_supply: 42_000_000_000_000_000,
       name: "IPPAN",
       owner: address,
       props: ["coinbase", "lock", "burn"],
-      supply: 0,
       symbol: "Þ",
       updated_at: timestamp
     }

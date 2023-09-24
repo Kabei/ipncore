@@ -1,46 +1,6 @@
 defmodule Ippan.TxHandler do
   alias Ippan.Funcs
 
-  # @libsecp256k1 ExSecp256k1.Impl
-  # @json Application.compile_env(:ipncore, :json)
-
-  # def handle!(
-  #       conn,
-  #       stmts,
-  #       dets,
-  #       hash,
-  #       type,
-  #       timestamp,
-  #       account_id,
-  #       validator,
-  #       size,
-  #       args,
-  #       block_id
-  #     ) do
-  #   case Funcs.lookup(type) do
-  #     %{deferred: false, mod: module, fun: fun} ->
-  #       environment = %{
-  #         conn: conn,
-  #         block_id: block_id,
-  #         stmts: stmts,
-  #         dets: dets,
-  #         id: account_id,
-  #         type: type,
-  #         validator: validator,
-  #         hash: hash,
-  #         timestamp: timestamp,
-  #         size: size
-  #       }
-
-  #       apply(module, fun, [environment | args])
-
-  #     # deferred transactions
-  #     _deferred ->
-  #       key = normalize_key(args, account_id)
-  #       insert_deferred({{key, type}, hash, block_id, {args, validator.id, timestamp}})
-  #   end
-  # end
-
   defmacro handle_regular(
              conn,
              stmts,
@@ -111,7 +71,7 @@ defmodule Ippan.TxHandler do
 
   # only deferred transactions
   def run_deferred_txs(conn, stmts, dets) do
-    for {{_key, type}, [hash, account_id, validator_id, args, timestamp, size]} <-
+    for {{type, _key}, [hash, account_id, validator_id, args, timestamp, size]} <-
           :ets.tab2list(:dtx) do
       %{mod: module, fun: fun} = Funcs.lookup(type)
 

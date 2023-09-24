@@ -594,9 +594,13 @@ defmodule RoundManager do
   defp run_jackpot(_conn, _stmts, _dets, _round_id, _block_id, nil, _reward), do: 0
 
   defp run_jackpot(conn, stmts, dets, round_id, block_id, round_hash, reward) do
+    IO.inspect("jackpot")
     n = BigNumber.to_int(round_hash)
     dv = min(block_id + 1, 20_000)
     b = rem(n, dv) + if(block_id >= 20_000, do: block_id, else: 0)
+    IO.inspect(dv)
+    IO.inspect(n)
+    IO.inspect(b)
 
     case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
       nil ->
@@ -605,11 +609,12 @@ defmodule RoundManager do
       block_list ->
         block = Block.list_to_map(block_list)
         tx_count = block.count
+        IO.inspect(tx_count)
 
         cond do
           tx_count > 0 ->
             tx_n = rem(n, tx_count)
-            path = Block.block_path(block.creator, block.height)
+            path = Block.decode_path(block.creator, block.height)
             {:ok, content} = File.read(path)
             %{"data" => data} = decode_file!(content)
 

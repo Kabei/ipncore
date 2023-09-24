@@ -465,6 +465,8 @@ defmodule RoundManager do
           else
             GenServer.cast(pid, :incomplete)
           end
+        else
+          GenServer.cast(pid, :incomplete)
         end
       end)
     end

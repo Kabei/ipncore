@@ -29,7 +29,7 @@ defmodule Ippan.Func.Validator do
       SqliteStore.exists?(:validator, conn, stmts, "exists_host_validator", hostname) ->
         :error
 
-      @max_validators > SqliteStore.one(conn, stmts, "total_validator") ->
+      @max_validators > SqliteStore.one(conn, stmts, "total_validators") ->
         :error
 
       true ->

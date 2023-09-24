@@ -22,7 +22,7 @@ defmodule Ippan.Func.Token do
       SqliteStore.exists?(:token, conn, stmts, "exists_token", id) ->
         :error
 
-      @max_tokens > SqliteStore.one(conn, stmts, "total_token") ->
+      @max_tokens > SqliteStore.one(conn, stmts, "total_tokens") ->
         :error
 
       true ->
@@ -34,8 +34,7 @@ defmodule Ippan.Func.Token do
 
           _ ->
             map_filter =
-              opts
-              |> Map.take(Token.optionals())
+              Map.take(opts, Token.optionals())
 
             token =
               %Token{

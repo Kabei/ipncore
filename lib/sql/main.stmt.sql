@@ -161,7 +161,7 @@ SELECT 1 FROM blockchain.validator WHERE hostname = ?1;
 --name: owner_validator
 SELECT 1 FROM blockchain.validator WHERE id = ?1 AND owner = ?2;
 
---name: total_validator
+--name: total_validators
 SELECT COUNT(1) FROM blockchain.validator;
 
 --name: next_id_validator

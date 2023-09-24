@@ -1,4 +1,5 @@
 defmodule Ippan.Round do
+  alias Ippan.Block
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: non_neg_integer(),
@@ -27,6 +28,10 @@ defmodule Ippan.Round do
     :blocks,
     :extra
   ]
+
+  def pre_build_fields do
+    ~w(id creator hash prev signature)
+  end
 
   @impl true
   def to_list(x) do
@@ -110,13 +115,13 @@ defmodule Ippan.Round do
     blocks =
       Enum.reduce(blocks, [], fn b, acc ->
         block =
-          MapUtil.to_atoms(b, ~w(hash height creator prev size hashfile timestamp count vsn))
+          MapUtil.to_atoms(b, Block.fields())
 
         acc ++ [block]
       end)
 
     msg_round
-    |> MapUtil.to_atoms(~w(id creator hash prev signature))
+    |> MapUtil.to_atoms(pre_build_fields())
     |> Map.put(:blocks, blocks)
   end
 

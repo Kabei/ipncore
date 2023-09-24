@@ -135,7 +135,7 @@ defmodule Ippan.Block do
     |> Blake3.hash()
   end
 
-  @spec sign(binary()) :: {:ok, binary()} | {:error, term()}
+  @spec sign(binary()) :: {:ok, signature :: binary()} | {:error, term()}
   def sign(hash) do
     privkey = :persistent_term.get(:privkey)
     Cafezinho.Impl.sign(hash, privkey)

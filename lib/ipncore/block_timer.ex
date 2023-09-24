@@ -48,6 +48,9 @@ defmodule BlockTimer do
     end
   end
 
+  @doc """
+  Get a candidate
+  """
   @spec get_block :: map() | nil
   def get_block do
     GenServer.call(@module, :get, :infinity)
@@ -64,6 +67,9 @@ defmodule BlockTimer do
     end
   end
 
+  @doc """
+  Update block height, prev hash and candidate in state
+  """
   @spec complete(conn :: reference(), stmts :: map()) :: :ok
   def complete(conn, stmts) do
     GenServer.cast(@module, {:complete, conn, stmts})
@@ -75,10 +81,8 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_call(:get, _from, %{tRef: tRef} = state) do
-    :timer.cancel(tRef)
-    new_state = check(state, 1)
-    {:reply, new_state.candidate, new_state}
+  def handle_call(:get, _from, state) do
+    {:reply, state.candidate, state}
   end
 
   def handle_call({:get, current_block_id}, _from, %{block_id: block_id, tRef: tRef} = state) do

@@ -68,6 +68,7 @@ defmodule RoundManager do
        block_id: block_id + 1,
        dets: :persistent_term.get(:dets_balance),
        conn: conn,
+       stmts: stmts,
        miner_pool: miner_pool_pid,
        players: ets_players,
        votes: ets_votes,

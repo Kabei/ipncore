@@ -1,4 +1,6 @@
 defmodule Ippan.Token do
+  require BigNumber
+
   @behaviour Ippan.Struct
   @json Application.compile_env(:ipncore, :json)
   @type t :: %__MODULE__{
@@ -8,9 +10,6 @@ defmodule Ippan.Token do
           avatar: String.t(),
           decimal: non_neg_integer(),
           symbol: String.t(),
-          enabled: boolean(),
-          supply: non_neg_integer(),
-          burned: non_neg_integer(),
           max_supply: non_neg_integer(),
           props: list() | nil,
           created_at: non_neg_integer(),
@@ -23,7 +22,7 @@ defmodule Ippan.Token do
   @impl true
   def editable, do: ~w(avatar name owner)
 
-  def props, do: ~w(burn coinbase lock vote)
+  def props, do: ~w(burn coinbase lock)
 
   defstruct id: nil,
             name: nil,
@@ -31,9 +30,6 @@ defmodule Ippan.Token do
             avatar: nil,
             decimal: 0,
             symbol: nil,
-            enabled: true,
-            supply: 0,
-            burned: 0,
             max_supply: 0,
             props: [],
             created_at: nil,
@@ -48,10 +44,7 @@ defmodule Ippan.Token do
       x.avatar,
       x.decimal,
       x.symbol,
-      x.enabled,
-      x.supply,
-      x.burned,
-      x.max_supply,
+      BigNumber.to_bin(x.max_supply),
       @json.encode!(x.props),
       x.created_at,
       x.updated_at
@@ -80,9 +73,6 @@ defmodule Ippan.Token do
         avatar,
         decimal,
         symbol,
-        enabled,
-        supply,
-        burned,
         max_supply,
         props,
         created_at,
@@ -95,10 +85,7 @@ defmodule Ippan.Token do
       avatar: avatar,
       decimal: decimal,
       symbol: symbol,
-      enabled: enabled,
-      supply: supply,
-      burned: burned,
-      max_supply: max_supply,
+      max_supply: BigNumber.to_int(max_supply),
       props: @json.decode!(props),
       created_at: created_at,
       updated_at: updated_at

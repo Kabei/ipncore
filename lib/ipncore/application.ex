@@ -15,6 +15,7 @@ defmodule Ipncore.Application do
     make_folders()
     load_keys()
 
+    stats_path = Path.join(:persistent_term.get(:store_dir), "stats.dets")
     balance_path = Path.join(:persistent_term.get(:store_dir), "balance.dets")
 
     # services
@@ -23,6 +24,7 @@ defmodule Ipncore.Application do
         nil ->
           [
             MemTables,
+            {DetsPlus, [name: :stats, file: stats_path, var: :stats]},
             {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
             NetStore,
             MainStore,

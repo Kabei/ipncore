@@ -42,6 +42,8 @@ defmodule Ippan.Func.Tx do
           BalanceStore.subtract(dets, native_balance_key, burn)
           BalanceStore.income(dets, to_balance_key, amount)
       end
+
+      TokenSupply.subtract(@token, burn)
     else
       fee = Utils.calc_fees!(validator.fee_type, validator.fee, amount, size)
       burn = trunc(fee * 0.3)
@@ -61,6 +63,7 @@ defmodule Ippan.Func.Tx do
 
       validator_balance_key = BalanceStore.gen_key(validator.owner, @token)
       BalanceStore.income(dets, validator_balance_key, result_fee)
+      TokenSupply.subtract(@token, burn)
     end
   end
 
@@ -85,15 +88,21 @@ defmodule Ippan.Func.Tx do
   end
 
   def coinbase(%{dets: dets}, token_id, outputs) do
-    for [address, value] <- outputs do
-      balance_key = BalanceStore.gen_key(address, token_id)
-      BalanceStore.income(dets, balance_key, value)
-    end
+    total =
+      for [address, value] <- outputs do
+        balance_key = BalanceStore.gen_key(address, token_id)
+        BalanceStore.income(dets, balance_key, value)
+        value
+      end
+      |> Enum.sum()
+
+    TokenSupply.add(token_id, total)
   end
 
   def burn(%{id: account_id, dets: dets}, token_id, amount) do
     balance_key = BalanceStore.gen_key(account_id, token_id)
     BalanceStore.subtract(dets, balance_key, amount)
+    TokenSupply.subtract(token_id, amount)
   end
 
   def refund(

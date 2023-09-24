@@ -4,11 +4,8 @@ CREATE TABLE IF NOT EXISTS token(
   name TEXT NOT NULL,
   avatar TEXT,
   decimal TINYINT DEFAULT 0,
-  symbol VARCHAR(5) NOT NULL,
-  enabled BOOLEAN,
-  supply BIGINT DEFAULT 0,
-  burned BIGINT DEFAULT 0,
-  max_supply BIGINT DEFAULT 0,
+  symbol VARCHAR(5) NOT NULL,  
+  max_supply BLOB,
   props BLOB,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL

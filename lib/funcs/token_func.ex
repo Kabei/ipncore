@@ -15,7 +15,7 @@ defmodule Ippan.Func.Token do
         name,
         decimal,
         symbol,
-        max_supply,
+        max_supply \\ 0,
         opts \\ %{}
       ) do
     cond do
@@ -84,6 +84,8 @@ defmodule Ippan.Func.Token do
   end
 
   def delete(%{id: account_id, conn: conn, stmts: stmts}, id) do
-    SqliteStore.step(conn, stmts, "delete_token", [id, account_id])
+    if TokenSupply.get(id) == 0 do
+      SqliteStore.step(conn, stmts, "delete_token", [id, account_id])
+    end
   end
 end

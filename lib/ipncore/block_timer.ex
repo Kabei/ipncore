@@ -5,6 +5,7 @@ defmodule BlockTimer do
   @module __MODULE__
   @timeout Application.compile_env(:ipncore, :block_interval)
   @message :mine
+  @wait_time 5_000
 
   def start_link(args) do
     case Process.whereis(@module) do
@@ -18,12 +19,19 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def init(%{conn: conn, stmts: stmts, creator: creator_id}) do
+  def init(%{conn: conn, stmts: stmts, block_id: block_id, creator: creator_id}) do
     [last_height, prev] =
       SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
 
-    {:ok, %{creator: creator_id, height: last_height + 1, prev: prev, candidate: nil, tRef: nil},
-     {:continue, :next}}
+    {:ok,
+     %{
+       block_id: block_id,
+       creator: creator_id,
+       height: last_height + 1,
+       prev: prev,
+       candidate: nil,
+       tRef: nil
+     }, {:continue, :next}}
   end
 
   @impl true
@@ -45,9 +53,12 @@ defmodule BlockTimer do
     GenServer.call(@module, :get, :infinity)
   end
 
-  @spec get_blocks :: [map()] | []
-  def get_blocks do
-    case GenServer.call(@module, :get, :infinity) do
+  @doc """
+  Get a candidate with a dynamic time to wait
+  """
+  @spec get_blocks(block_id :: integer()) :: [map()] | []
+  def get_blocks(block_id) do
+    case GenServer.call(@module, {:get, block_id}, :infinity) do
       nil -> []
       candidate -> [candidate]
     end
@@ -70,6 +81,26 @@ defmodule BlockTimer do
     {:reply, new_state.candidate, new_state}
   end
 
+  def handle_call({:get, current_block_id}, _from, %{block_id: block_id, tRef: tRef} = state) do
+    :timer.cancel(tRef)
+
+    diff = current_block_id - block_id
+
+    cond do
+      diff > 10 ->
+        :ok
+
+      diff <= 1 ->
+        :timer.sleep(@wait_time)
+
+      diff < 10 ->
+        :timer.sleep(div(@wait_time, diff))
+    end
+
+    new_state = check(state, 1)
+    {:reply, new_state.candidate, new_state}
+  end
+
   @impl true
   def handle_cast(
         {:complete, conn, stmts},
@@ -88,11 +119,14 @@ defmodule BlockTimer do
 
   @impl true
   def handle_info(@message, state) do
-    new_state = check(state)
+    new_state = check(state, 0)
     {:noreply, new_state, {:continue, :next}}
   end
 
-  defp check(%{candidate: candidate, creator: creator_id, height: height, prev: prev} = state, priority \\ 0) do
+  defp check(
+         %{candidate: candidate, creator: creator_id, height: height, prev: prev} = state,
+         priority
+       ) do
     candidate =
       case candidate do
         nil ->

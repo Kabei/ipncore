@@ -13,7 +13,6 @@ defmodule RoundManager do
 
   @miner_pool :miner_pool
   @pubsub :cluster
-  @wait_time 500
   @token Application.compile_env(:ipncore, :token)
   @timeout 15_000
   @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)
@@ -487,10 +486,8 @@ defmodule RoundManager do
 
     spawn_link(fn ->
       # Time to wait messages (msg_block) to arrived
-      :timer.sleep(@wait_time)
-
       blocks =
-        BlockTimer.get_blocks() ++
+        BlockTimer.get_blocks(block_id) ++
           :ets.tab2list(ets_candidates)
 
       {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)

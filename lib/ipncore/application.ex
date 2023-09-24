@@ -24,8 +24,13 @@ defmodule Ipncore.Application do
         nil ->
           [
             MemTables,
-            {DetsPlus, [name: :stats, file: stats_path, var: :stats]},
-            {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
+            Supervisor.child_spec({DetsPlus, [name: :stats, file: stats_path, var: :stats]},
+              id: :stats
+            ),
+            Supervisor.child_spec(
+              {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
+              id: :balance
+            ),
             NetStore,
             MainStore,
             Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
@@ -40,7 +45,13 @@ defmodule Ipncore.Application do
         _ ->
           [
             MemTables,
-            {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
+            Supervisor.child_spec({DetsPlus, [name: :stats, file: stats_path, var: :stats]},
+              id: :stats
+            ),
+            Supervisor.child_spec(
+              {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
+              id: :balance
+            ),
             NetStore,
             MainStore,
             Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),

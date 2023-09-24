@@ -16,7 +16,6 @@ defmodule BlockHandler do
     block_path = Path.join(:persistent_term.get(:block_dir), filename)
     decode_path = Path.join(:persistent_term.get(:decode_dir), filename)
     ets_msg = :ets.whereis(:msg)
-    timestamp = :os.system_time(:millisecond)
 
     cond do
       File.exists?(decode_path) and File.exists?(block_path) ->
@@ -28,7 +27,7 @@ defmodule BlockHandler do
         %{"data" => messages, "vsn" => version} = decode_file!(content)
 
         hashfile = hash_file(block_path)
-
+        timestamp = :os.system_time(:millisecond)
         hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
         {:ok, signature} = Block.sign(hash)
 
@@ -59,6 +58,7 @@ defmodule BlockHandler do
         {:ok, file_info} = File.stat(block_path)
 
         hashfile = hash_file(block_path)
+        timestamp = :os.system_time(:millisecond)
         hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
         {:ok, signature} = Block.sign(hash)
 

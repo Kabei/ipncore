@@ -29,10 +29,6 @@ defmodule Ippan.Round do
     :extra
   ]
 
-  def pre_build_fields do
-    ~w(id creator hash prev signature)
-  end
-
   @impl true
   def to_list(x) do
     [
@@ -121,7 +117,7 @@ defmodule Ippan.Round do
       end)
 
     msg_round
-    |> MapUtil.to_atoms(pre_build_fields())
+    |> MapUtil.to_atoms(~w(id creator hash prev signature))
     |> Map.put(:blocks, blocks)
   end
 

@@ -27,9 +27,10 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_continue(:next, %{candidate: candidate} = state) do
+  def handle_continue(:next, %{candidate: candidate, tRef: tRef} = state) do
     case candidate do
       nil ->
+        :timer.cancel(tRef)
         {:ok, tRef} = :timer.send_after(@timeout, @message)
 
         {:noreply, %{state | tRef: tRef}, :hibernate}
@@ -66,20 +67,18 @@ defmodule BlockTimer do
   def handle_call(:get, _from, %{tRef: tRef} = state) do
     :timer.cancel(tRef)
     new_state = check(state)
-    {:reply, new_state.candidate, new_state, {:continue, :next}}
+    {:reply, new_state.candidate, new_state}
   end
 
   @impl true
   def handle_cast(
         {:complete, conn, stmts},
-        %{creator: creator_id, height: height, tRef: tRef} = state
+        %{creator: creator_id, height: height} = state
       ) do
     [last_height, hash] =
       SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
 
     if last_height >= height do
-      :timer.cancel(tRef)
-
       {:noreply, %{state | candidate: nil, height: last_height + 1, prev: hash},
        {:continue, :next}}
     else

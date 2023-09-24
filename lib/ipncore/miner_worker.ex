@@ -127,21 +127,22 @@ defmodule MinerWorker do
 
     Enum.reduce(messages, 0, fn
       [hash, type, from, args, timestamp, size], acc ->
-        TxHandler.handle_regular(
-          conn,
-          stmts,
-          dets,
-          validator,
-          hash,
-          type,
-          from,
-          args,
-          size,
-          timestamp,
-          block_id
-        )
-
-        acc
+        case TxHandler.handle_regular(
+               conn,
+               stmts,
+               dets,
+               validator,
+               hash,
+               type,
+               from,
+               args,
+               size,
+               timestamp,
+               block_id
+             ) do
+          :error -> acc + 1
+          _ -> acc
+        end
 
       msg, acc ->
         case TxHandler.insert_deferred(msg, creator_id, block_id) do

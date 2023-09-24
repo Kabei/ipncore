@@ -25,15 +25,16 @@ defmodule Ippan.Func.Validator do
         fee,
         opts \\ %{}
       ) do
+    next_id = SqliteStore.one(conn, stmts, "next_id_validator")
+
     cond do
       SqliteStore.exists?(:validator, conn, stmts, "exists_host_validator", hostname) ->
         :error
 
-      @max_validators > SqliteStore.one(conn, stmts, "total_validators") ->
+      @max_validators <= next_id ->
         :error
 
       true ->
-        next_id = SqliteStore.one(conn, stmts, "next_id_validator")
         stake = Validator.calc_price(next_id)
         map_filter = Map.take(opts, Validator.optionals())
         pubkey = Fast64.decode64(pubkey)

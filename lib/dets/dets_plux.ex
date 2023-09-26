@@ -33,7 +33,7 @@ defmodule DetsPlux do
   @entry_size_size 4
   @entry_size_size_bits @entry_size_size * 8
 
-  # We're using sha256 as source - should not have conflicts ever
+  # We're using Blake3 as source - should not have conflicts ever
   @hash_size 8
   @hash_size_bits @hash_size * 8
 
@@ -46,6 +46,7 @@ defmodule DetsPlux do
   @start_offset byte_size("DET+")
   @page_cache_memory 1_000_000_000
   @ets_type :set
+  @txs_suffix :dbx
 
   alias DetsPlus.{Bloom, EntryWriter, FileReader, FileWriter}
   use GenServer
@@ -82,6 +83,13 @@ defmodule DetsPlux do
     ]
   end
 
+  def child_spec(args) do
+    %{
+      id: args[:id],
+      start: {__MODULE__, :start_link, [args]}
+    }
+  end
+
   @doc false
   def start_link(args) do
     open(args[:name], args)
@@ -106,7 +114,7 @@ defmodule DetsPlux do
     filename = Keyword.get(args, :file, name) |> do_string()
     auto_save = Keyword.get(args, :auto_save, :infinity)
     mode = Keyword.get(args, :access, :read_write)
-    var_name = Keyword.get(args, :var, :dets)
+    var_name = Keyword.get(args, :var, name)
 
     state =
       with true <- File.exists?(filename),
@@ -386,9 +394,17 @@ defmodule DetsPlux do
         write_concurrency: true
       ])
 
-    :persistent_term.put({:detx, name}, tid)
+    :persistent_term.put({@txs_suffix, name}, tid)
 
     tid
+  end
+
+  @spec tx(name :: atom()) :: transaction()
+  def tx(name) do
+    case :persistent_term.get({@txs_suffix, name}, nil) do
+      nil -> begin(name)
+      tid -> tid
+    end
   end
 
   @spec put(transaction(), key(), value()) :: true
@@ -411,9 +427,30 @@ defmodule DetsPlux do
     call(pid, :clear)
   end
 
+  @doc """
+  Immediately cancel a transaction and delete transaction persistent variable
+  """
   @spec rollback(transaction()) :: true
   def rollback(tx) do
+    name = :ets.info(tx, :name)
+    :persistent_term.erase({@txs_suffix, name})
     :ets.delete(tx)
+  end
+
+  @spec rollback(transaction(), atom) :: true
+  def rollback(tx, name) do
+    :persistent_term.erase({@txs_suffix, name})
+    :ets.delete(tx)
+  end
+
+  @doc """
+  Delete a list of transtions
+  """
+  @spec drop_all([transaction()]) :: term()
+  def drop_all(txs) do
+    for tx <- txs do
+      rollback(tx)
+    end
   end
 
   @doc """
@@ -512,9 +549,8 @@ defmodule DetsPlux do
       Process.exit(sync, :kill)
     end
 
-    for ets <- fallback do
-      :ets.delete(ets)
-    end
+    # delete all transactions
+    drop_all(fallback)
 
     for w when not is_nil(w) <- waiters do
       :ok = GenServer.reply(w, :ok)
@@ -702,7 +738,8 @@ defmodule DetsPlux do
     File.rename!(new_filename, filename)
     fp = file_open(filename)
 
-    :ets.delete(ets)
+    # delete transaction
+    rollback(ets)
 
     [_ | new_fallback] = fallback
     [w | new_waiters] = waiters
@@ -1391,9 +1428,8 @@ defmodule DetsPlux do
   @impl true
   def terminate(_reason, %State{fp: fp, sync: sync, sync_fallback: fallback}) do
     if sync do
-      for ets <- fallback do
-        :ets.delete(ets)
-      end
+      # delete all transactions
+      drop_all(fallback)
     end
 
     if fp != nil and Process.alive?(fp) do

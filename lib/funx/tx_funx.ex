@@ -27,6 +27,9 @@ defmodule Ippan.Funx.Tx do
     balance_key = BalanceStore.gen_key(account_id, token)
     to_balance_key = BalanceStore.gen_key(to, token)
 
+    supply_tx = DetsPlux.tx(:supply)
+    {supply_key, supply} = TokenSupply.fetch(supply_tx, @token)
+
     if is_validator do
       fee = Utils.calc_fees!(validator.fee_type, validator.fee, amount, size)
       burn = trunc(fee * 0.3)
@@ -43,7 +46,7 @@ defmodule Ippan.Funx.Tx do
           BalanceStore.income(dets, to_balance_key, amount)
       end
 
-      TokenSupply.subtract(@token, burn)
+      TokenSupply.subtract(supply_tx, supply_key, supply, burn)
     else
       fee = Utils.calc_fees!(validator.fee_type, validator.fee, amount, size)
       burn = trunc(fee * 0.3)
@@ -63,7 +66,7 @@ defmodule Ippan.Funx.Tx do
 
       validator_balance_key = BalanceStore.gen_key(validator.owner, @token)
       BalanceStore.income(dets, validator_balance_key, result_fee)
-      TokenSupply.subtract(@token, burn)
+      TokenSupply.subtract(supply_tx, supply_key, supply, burn)
     end
   end
 
@@ -88,6 +91,9 @@ defmodule Ippan.Funx.Tx do
   end
 
   def coinbase(%{dets: dets}, token_id, outputs) do
+    supply_tx = DetsPlux.tx(:supply)
+    {supply_key, supply} = TokenSupply.fetch(supply_tx, @token)
+
     total =
       for [address, value] <- outputs do
         balance_key = BalanceStore.gen_key(address, token_id)
@@ -96,13 +102,16 @@ defmodule Ippan.Funx.Tx do
       end
       |> Enum.sum()
 
-    TokenSupply.add(token_id, total)
+    TokenSupply.add(supply_tx, supply_key, supply, total)
   end
 
   def burn(%{id: account_id, dets: dets}, token_id, amount) do
+    supply_tx = DetsPlux.tx(:supply)
+    {supply_key, supply} = TokenSupply.fetch(supply_tx, token_id)
+
     balance_key = BalanceStore.gen_key(account_id, token_id)
     BalanceStore.subtract(dets, balance_key, amount)
-    TokenSupply.subtract(token_id, amount)
+    TokenSupply.subtract(supply_tx, supply_key, supply, amount)
   end
 
   def refund(

@@ -83,7 +83,8 @@ defmodule Ippan.Func.Tx do
             end
           end)
 
-        supply = TokenSupply.get(token_id)
+        tx = DetsPlux.tx(:suplly)
+        supply = TokenSupply.get(tx, token_id)
 
         if token.max_supply < total + supply do
           raise ArgumentError, "Max supply exceeded"

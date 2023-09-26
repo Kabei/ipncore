@@ -1,28 +1,26 @@
 defmodule TokenSupply do
   @table :stats
 
-  defp gen_key(token_id) do
-    "#{token_id}.supply"
+  @spec get(tx :: DetsPlux.transaction(), token_id :: binary) :: supply :: integer()
+  def get(tx, token_id) do
+    key = DetsPlux.tuple_of_keys(token_id, "supply")
+    DetsPlux.get_tx(@table, tx, key, 0)
   end
 
-  @spec get(token_id :: binary) :: integer()
-  def get(token_id) do
-    key = gen_key(token_id)
-    {_, supply} = DetsPlus.lookup(@table, key, {nil, 0})
-    supply
+  @spec fetch(tx :: DetsPlux.transaction(), token_id :: binary) ::
+          {DetsPlux.key(), supply :: integer}
+  def fetch(tx, token_id) do
+    key = DetsPlux.tuple_of_keys(token_id, "supply")
+    {key, DetsPlux.get_tx(@table, tx, key, 0)}
   end
 
-  @spec add(token_id :: binary, amount :: integer()) :: :ok | {:error, term()}
-  def add(token_id, amount) do
-    key = gen_key(token_id)
-    {_, supply} = DetsPlus.lookup(@table, key, {nil, 0})
-    DetsPlus.insert(@table, {key, supply + amount})
+  @spec add(DetsPlux.transaction(), DetsPlux.key(), integer(), integer()) :: true
+  def add(tx, key, supply, amount) do
+    DetsPlux.put(tx, key, supply + amount)
   end
 
-  @spec subtract(token_id :: binary, amount :: integer()) :: :ok | {:error, term()}
-  def subtract(token_id, amount) do
-    key = gen_key(token_id)
-    {_, supply} = DetsPlus.lookup(@table, key, {nil, 0})
-    DetsPlus.insert(@table, {key, supply - amount})
+  @spec subtract(DetsPlux.transaction(), DetsPlux.key(), integer(), integer()) :: true
+  def subtract(tx, key, supply, amount) do
+    DetsPlux.put(tx, key, supply - amount)
   end
 end

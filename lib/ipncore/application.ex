@@ -22,13 +22,8 @@ defmodule Ipncore.Application do
     children =
       [
         MemTables,
-        Supervisor.child_spec({DetsPlus, [name: :stats, file: stats_path, var: :stats]},
-          id: :stats
-        ),
-        Supervisor.child_spec(
-          {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
-          id: :balance
-        ),
+        {DetsPlux, [name: :stats, file: stats_path]},
+        {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
         NetStore,
         MainStore,
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),

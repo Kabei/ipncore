@@ -82,8 +82,10 @@ defmodule Ippan.Func.Token do
   end
 
   def delete(%{id: account_id, conn: conn, stmts: stmts}, id) when byte_size(id) <= 10 do
+    tx = DetsPlux.tx(:supply)
+
     cond do
-      TokenSupply.get(id) != 0 ->
+      TokenSupply.get(tx, id) != 0 ->
         raise IppanError, "Invalid operation"
 
       not SqliteStore.exists?(conn, stmts, "owner_token", [id, account_id]) ->

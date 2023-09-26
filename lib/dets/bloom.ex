@@ -1,6 +1,6 @@
 defmodule DetsPlus.Bloom do
   @moduledoc false
-  alias DetsPlus.{Bloom, State}
+  alias DetsPlus.Bloom
   import Bitwise
   @hash_size_bits 64
   @atomic_bits 64
@@ -38,7 +38,7 @@ defmodule DetsPlus.Bloom do
   end
 
   def lookup(
-        %State{bloom_size: bloom_size, bloom: bloom},
+        %{bloom_size: bloom_size, bloom: bloom},
         <<hash::unsigned-size(@hash_size_bits)>>
       ) do
     key = rem(hash, bloom_size)

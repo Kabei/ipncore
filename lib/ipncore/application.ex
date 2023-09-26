@@ -20,48 +20,24 @@ defmodule Ipncore.Application do
 
     # services
     children =
-      case System.get_env("test") do
-        nil ->
-          [
-            MemTables,
-            Supervisor.child_spec({DetsPlus, [name: :stats, file: stats_path, var: :stats]},
-              id: :stats
-            ),
-            Supervisor.child_spec(
-              {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
-              id: :balance
-            ),
-            NetStore,
-            MainStore,
-            Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
-            Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
-            ClusterNode,
-            NetworkNode,
-            RoundManager,
-            {Bandit,
-             [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
-          ]
-
-        _ ->
-          [
-            MemTables,
-            Supervisor.child_spec({DetsPlus, [name: :stats, file: stats_path, var: :stats]},
-              id: :stats
-            ),
-            Supervisor.child_spec(
-              {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
-              id: :balance
-            ),
-            NetStore,
-            MainStore,
-            Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
-            Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
-            ClusterNode,
-            NetworkNode,
-            {Bandit,
-             [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
-          ]
-      end
+      [
+        MemTables,
+        Supervisor.child_spec({DetsPlus, [name: :stats, file: stats_path, var: :stats]},
+          id: :stats
+        ),
+        Supervisor.child_spec(
+          {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
+          id: :balance
+        ),
+        NetStore,
+        MainStore,
+        Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
+        Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
+        ClusterNode,
+        NetworkNode,
+        RoundManager,
+        {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
+      ]
 
     Supervisor.start_link(children, @opts)
   end
@@ -105,10 +81,10 @@ defmodule Ipncore.Application do
   defp make_folders do
     # catch routes
     data_dir = System.get_env("data_dir", "data")
-    block_dir = Path.join(data_dir, "blocks")
-    decode_dir = Path.join(data_dir, "blocks/decoded")
-    store_dir = Path.join(data_dir, "store")
-    save_dir = Path.join(data_dir, "store/save")
+    block_dir = Path.join(data_dir, "blocks") |> String.to_charlist()
+    decode_dir = Path.join(data_dir, "blocks/decoded") |> String.to_charlist()
+    store_dir = Path.join(data_dir, "store") |> String.to_charlist()
+    save_dir = Path.join(data_dir, "store/save") |> String.to_charlist()
     # set variables
     :persistent_term.put(:data_dir, data_dir)
     :persistent_term.put(:block_dir, block_dir)

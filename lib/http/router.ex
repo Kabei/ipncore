@@ -3,6 +3,7 @@ defmodule Ipncore.Router do
   require Logger
 
   @block_extension Application.compile_env(:ipncore, :block_extension)
+  @content_type "application/octet-stream"
 
   plug(:match)
   plug(:dispatch)
@@ -13,7 +14,7 @@ defmodule Ipncore.Router do
 
     if File.exists?(block_path) do
       conn
-      |> put_resp_content_type("application/octet-stream")
+      |> put_resp_content_type(@content_type)
       |> send_file(200, block_path)
     else
       send_resp(conn, 404, "")
@@ -26,8 +27,21 @@ defmodule Ipncore.Router do
 
     if File.exists?(block_path) do
       conn
-      |> put_resp_content_type("application/octet-stream")
+      |> put_resp_content_type(@content_type)
       |> send_file(200, block_path)
+    else
+      send_resp(conn, 404, "")
+    end
+  end
+
+  get "/v1/download/db/:filename" do
+    store_dir = :persistent_term.get(:store_dir)
+    path = Path.join([store_dir, filename])
+
+    if File.regular?(path) do
+      conn
+      |> put_resp_content_type(@content_type)
+      |> send_file(200, path)
     else
       send_resp(conn, 404, "")
     end
@@ -37,9 +51,9 @@ defmodule Ipncore.Router do
     store_dir = :persistent_term.get(:save_dir)
     path = Path.join([store_dir, filename, ".zip"])
 
-    if File.exists?(path) do
+    if File.regular?(path) do
       conn
-      |> put_resp_content_type("application/octet-stream")
+      |> put_resp_content_type(@content_type)
       |> send_file(200, path)
     else
       send_resp(conn, 404, "")

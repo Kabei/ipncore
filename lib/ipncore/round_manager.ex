@@ -18,7 +18,13 @@ defmodule RoundManager do
   @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    case System.get_env("test") do
+      nil ->
+        GenServer.start_link(__MODULE__, args, name: __MODULE__)
+
+      _ ->
+        :ignore
+    end
   end
 
   @impl true
@@ -262,8 +268,14 @@ defmodule RoundManager do
     # save all round
     spawn_link(fn ->
       SqliteStore.sync(conn)
-      DetsPlus.commit(dets)
-      DetsPlus.sync(dets)
+
+      if round.tx_count > 0 do
+        DetsPlus.commit(dets)
+        DetsPlus.commit(:stats)
+        DetsPlus.start_sync(dets)
+        DetsPlus.start_sync(:stats)
+      end
+
       # replicate data to cluster nodes
       ClusterNode.broadcast(%{"event" => "round.new", "data" => round})
     end)

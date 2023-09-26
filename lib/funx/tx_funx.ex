@@ -1,4 +1,4 @@
-defmodule Ippan.Func.Tx do
+defmodule Ippan.Funx.Tx do
   alias Ippan.Utils
   require SqliteStore
   require BalanceStore

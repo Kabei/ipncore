@@ -1,4 +1,4 @@
-defmodule Ippan.Func.Balance do
+defmodule Ippan.Funx.Balance do
   require BalanceStore
 
   def lock(%{dets: dets}, to_id, token_id, amount) do

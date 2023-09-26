@@ -1,4 +1,4 @@
-defmodule Ippan.Func.Wallet do
+defmodule Ippan.Funx.Wallet do
   alias Ippan.{Address, Wallet}
   require SqliteStore
 

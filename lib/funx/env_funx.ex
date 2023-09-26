@@ -1,4 +1,4 @@
-defmodule Ippan.Func.Env do
+defmodule Ippan.Funx.Env do
   alias Phoenix.PubSub
   require SqliteStore
 

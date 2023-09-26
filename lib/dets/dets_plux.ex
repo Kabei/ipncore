@@ -54,7 +54,7 @@ defmodule DetsPlux do
 
   @type db :: pid | atom()
   @type transaction :: :ets.tid() | atom()
-  @type key :: number() | binary() | nil
+  @type key :: binary() | nil
   @type value :: binary() | number() | list() | map() | nil
   @type t :: %__MODULE__{ets: transaction(), filename: binary(), sync_fallback: [transaction()]}
 
@@ -187,6 +187,14 @@ defmodule DetsPlux do
 
   defp keyfun([key, _]), do: key
   # defp keyfun({key, _}), do: key
+
+  def tuple_of_keys(k1, k2) do
+    IO.iodata_to_binary([k1, "|", k2])
+  end
+
+  def tuple_of_keys(k1, k2, k3) do
+    IO.iodata_to_binary([k1, "|", k2, "|", k3])
+  end
 
   defp load_state(filename, file_size) do
     fp = file_open(filename)
@@ -543,18 +551,11 @@ defmodule DetsPlux do
 
   def handle_call({:put_new, tx, key, hash, value}, _from, state) do
     exists = do_lookup(key, hash, state) != []
-    # Enum.any?(objects, fn {key, hash, _object} ->
-    #   do_lookup(key, hash, state) != []
-    # end)
 
     if exists do
       {:reply, false, state}
     else
-      # objects = Enum.map(objects, fn {key, _hash, object} -> {key, object} end)
-      # handle_call({:insert, objects}, from, state)
-      # handle_call({:insert, objects}, from, state)
-      put(tx, key, value)
-      {:reply, true, state}
+      {:reply, put(tx, key, value), state}
     end
   end
 

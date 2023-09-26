@@ -1,23 +1,16 @@
 defmodule Ippan.Funcs do
   alias Ippan.Func
 
-  alias Ippan.Func.{
-    Env,
-    Balance,
-    Tx,
-    Validator,
-    Token,
-    Domain,
-    Dns,
-    Wallet
-  }
+  alias Ippan.Func
+  alias Ippan.Funx
 
   @spec lookup(event_id :: non_neg_integer()) :: map() | :undefined
   def lookup(0) do
     %Func{
       id: 0,
       name: "wallet.sub",
-      mod: Wallet,
+      mod: Func.Wallet,
+      modx: Funx.Wallet,
       fun: :subscribe,
       deferred: true,
       check: 1
@@ -28,7 +21,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 1,
       name: "wallet.unsub",
-      mod: Wallet,
+      mod: Func.Wallet,
+      modx: Funx.Wallet,
       fun: :unsubscribe,
       deferred: false
     }
@@ -38,7 +32,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 50,
       name: "env.set",
-      mod: Env,
+      mod: Func.Env,
+      modx: Funx.Env,
       fun: :set,
       deferred: true
     }
@@ -48,7 +43,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 51,
       name: "env.delete",
-      mod: Env,
+      mod: Func.Env,
+      modx: Funx.Env,
       fun: :delete,
       deferred: true
     }
@@ -58,7 +54,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 100,
       name: "validator.new",
-      mod: Validator,
+      mod: Func.Validator,
+      modx: Funx.Validator,
       fun: :new,
       deferred: true
     }
@@ -68,7 +65,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 101,
       name: "validator.update",
-      mod: Validator,
+      mod: Func.Validator,
+      modx: Funx.Validator,
       fun: :update,
       deferred: true
     }
@@ -78,7 +76,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 102,
       name: "validator.delete",
-      mod: Validator,
+      mod: Func.Validator,
+      modx: Funx.Validator,
       fun: :delete,
       deferred: true
     }
@@ -88,7 +87,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 200,
       name: "token.new",
-      mod: Token,
+      mod: Func.Token,
+      modx: Funx.Token,
       fun: :new,
       deferred: true
     }
@@ -98,7 +98,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 201,
       name: "token.update",
-      mod: Token,
+      mod: Func.Token,
+      modx: Funx.Token,
       fun: :update
     }
   end
@@ -107,7 +108,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 202,
       name: "token.delete",
-      mod: Token,
+      mod: Func.Token,
+      modx: Funx.Token,
       fun: :delete
     }
   end
@@ -116,7 +118,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 250,
       name: "balance.lock",
-      mod: Balance,
+      mod: Func.Balance,
+      modx: Funx.Balance,
       fun: :lock,
       check: 2
     }
@@ -126,7 +129,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 251,
       name: "balance.unlock",
-      mod: Balance,
+      mod: Func.Balance,
+      modx: Funx.Balance,
       fun: :unlock,
       check: 2
     }
@@ -136,7 +140,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 300,
       name: "tx.coinbase",
-      mod: Tx,
+      mod: Func.Tx,
+      modx: Funx.Tx,
       fun: :coinbase
     }
   end
@@ -145,7 +150,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 301,
       name: "tx.send",
-      mod: Tx,
+      mod: Func.Tx,
+      modx: Funx.Tx,
       fun: :send
     }
   end
@@ -154,7 +160,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 302,
       name: "tx.refundable",
-      mod: Tx,
+      mod: Func.Tx,
+      modx: Funx.Tx,
       fun: :send_refundable
     }
   end
@@ -163,7 +170,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 303,
       name: "tx.refund",
-      mod: Tx,
+      mod: Func.Tx,
+      modx: Funx.Tx,
       fun: :refund
     }
   end
@@ -172,7 +180,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 304,
       name: "tx.burn",
-      mod: Tx,
+      mod: Func.Tx,
+      modx: Funx.Tx,
       fun: :burn
     }
   end
@@ -181,7 +190,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 400,
       name: "domain.new",
-      mod: Domain,
+      mod: Func.Domain,
+      modx: Funx.Domain,
       fun: :new,
       deferred: true
     }
@@ -191,7 +201,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 401,
       name: "domain.update",
-      mod: Domain,
+      mod: Func.Domain,
+      modx: Funx.Domain,
       fun: :update
     }
   end
@@ -200,7 +211,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 402,
       name: "domain.delete",
-      mod: Domain,
+      mod: Func.Domain,
+      modx: Funx.Domain,
       fun: :delete
     }
   end
@@ -209,7 +221,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 403,
       name: "domain.renew",
-      mod: Domain,
+      mod: Func.Domain,
+      modx: Funx.Domain,
       fun: :renew
     }
   end
@@ -218,7 +231,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 500,
       name: "dns.new",
-      mod: Dns,
+      mod: Func.Dns,
+      modx: Funx.Dns,
       fun: :new
     }
   end
@@ -227,7 +241,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 501,
       name: "dns.update",
-      mod: Dns,
+      mod: Func.Dns,
+      modx: Funx.Dns,
       fun: :update
     }
   end
@@ -236,7 +251,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 502,
       name: "dns.delete",
-      mod: Dns,
+      mod: Func.Dns,
+      modx: Funx.Dns,
       fun: :delete
     }
   end

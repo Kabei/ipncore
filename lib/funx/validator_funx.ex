@@ -1,4 +1,4 @@
-defmodule Ippan.Func.Validator do
+defmodule Ippan.Funx.Validator do
   alias Ippan.ClusterNode
   alias Phoenix.PubSub
   alias Ippan.Validator

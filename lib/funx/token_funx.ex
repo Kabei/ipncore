@@ -1,4 +1,4 @@
-defmodule Ippan.Func.Token do
+defmodule Ippan.Funx.Token do
   alias Ippan.Token
   require SqliteStore
   require BalanceStore

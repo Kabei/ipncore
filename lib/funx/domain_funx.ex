@@ -1,4 +1,4 @@
-defmodule Ippan.Func.Domain do
+defmodule Ippan.Funx.Domain do
   alias Ippan.Domain
   require SqliteStore
   require BalanceStore

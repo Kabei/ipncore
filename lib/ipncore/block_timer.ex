@@ -1,5 +1,6 @@
 defmodule BlockTimer do
   use GenServer, restart: :transient
+  alias Ippan.BlockHandler
   require SqliteStore
 
   @module __MODULE__

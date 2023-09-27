@@ -1,10 +1,8 @@
 defmodule Ippan.Funcs do
   alias Ippan.Func
-
-  alias Ippan.Func
   alias Ippan.Funx
 
-  @spec lookup(event_id :: non_neg_integer()) :: map() | :undefined
+  @spec lookup(event_id :: non_neg_integer()) :: Func.t() | :undefined
   def lookup(0) do
     %Func{
       id: 0,

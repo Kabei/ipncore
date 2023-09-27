@@ -41,7 +41,7 @@ defmodule DetsPlux do
   @null_tuple {<<0::unsigned-size(64)>>, 0}
   @null_binary <<0::unsigned-size(128)>>
 
-  @version 3
+  @version 1
   @suffixId "DEX+"
 
   @start_offset byte_size(@suffixId)
@@ -215,7 +215,7 @@ defmodule DetsPlux do
     %State{version: version, bloom: bloom} = state = :erlang.binary_to_term(header)
 
     if version != @version do
-      raise("incompatible dets+ version #{version}")
+      raise("incompatible DB version #{version}")
     end
 
     state = %State{

@@ -1,7 +1,4 @@
 defmodule MemTables do
-  use GenServer
-
-  # @set_opts [:set, :public, read_concurrency: true, write_concurrency: true]
   @set_named_concurrent_opts [
     :set,
     :named_table,
@@ -33,7 +30,6 @@ defmodule MemTables do
 
   @tables_opt %{
     msg: @dbag_named_opts,
-    dmsg: @dbag_named_opts,
     hash: @set_named_opts,
     dhash: @set_named_opts,
     dtx: @set_named_concurrent_opts,
@@ -49,11 +45,13 @@ defmodule MemTables do
   @save_extension "save"
   # @tmp_extension "save.tmp"
 
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args)
+  def child_spec(args) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :init, [args]}
+    }
   end
 
-  @impl true
   def init(_args) do
     for {table, opts} <- @tables_opt do
       :ets.new(table, opts)
@@ -61,7 +59,7 @@ defmodule MemTables do
 
     load_all()
 
-    {:ok, %{}}
+    :ignore
   end
 
   defmacrop default_dir(basename, extension) do
@@ -97,8 +95,7 @@ defmodule MemTables do
     end
   end
 
-  @impl true
-  def terminate(_reason, _state) do
+  def terminate do
     save_all()
     delete_all()
     :persistent_term.erase(:save_dir)

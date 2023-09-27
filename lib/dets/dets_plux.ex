@@ -42,8 +42,9 @@ defmodule DetsPlux do
   @null_binary <<0::unsigned-size(128)>>
 
   @version 3
+  @suffixId "DEX+"
 
-  @start_offset byte_size("DET+")
+  @start_offset byte_size(@suffixId)
   @page_cache_memory 1_000_000_000
   @ets_type :set
   @txs_suffix :dbx
@@ -399,10 +400,13 @@ defmodule DetsPlux do
     tid
   end
 
-  @spec tx(name :: atom()) :: transaction()
-  def tx(name) do
-    case :persistent_term.get({@txs_suffix, name}, nil) do
-      nil -> begin(name)
+  @doc """
+  Create if not exists a transaction. Return a transaction
+  """
+  @spec tx(tx_name :: atom()) :: transaction()
+  def tx(tx_name) do
+    case :persistent_term.get({@txs_suffix, tx_name}, nil) do
+      nil -> begin(tx_name)
       tid -> tid
     end
   end
@@ -970,7 +974,7 @@ defmodule DetsPlux do
   defp write_data(state = %State{fp: fp}) do
     state = %State{state | file_entries: 0, slot_counts: %{}}
     writer = FileWriter.new(fp, 0, module: @wfile)
-    writer = FileWriter.write(writer, "DET+")
+    writer = FileWriter.write(writer, @suffixId)
 
     {state, writer} =
       async_iterate_consume(
@@ -1442,7 +1446,8 @@ defimpl Enumerable, for: DetsPlux do
   alias DetsPlus.FileReader
   import DetsPlux, only: [decode: 1]
 
-  @start_offset byte_size("DET+")
+  @suffixId "DEX+"
+  @start_offset byte_size(@suffixId)
   def count(_pid), do: {:error, __MODULE__}
   def member?(_pid, _key), do: {:error, __MODULE__}
   def slice(_pid), do: {:error, __MODULE__}

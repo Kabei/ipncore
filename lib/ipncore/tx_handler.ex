@@ -234,7 +234,7 @@ defmodule Ippan.TxHandler do
             block_id: block_id
           ],
           location: :keep do
-      %{fun: fun, mod: module} = Funcs.lookup(type)
+      %{fun: fun, modx: module} = Funcs.lookup(type)
 
       environment = %{
         conn: conn,
@@ -279,7 +279,7 @@ defmodule Ippan.TxHandler do
   def run_deferred_txs(conn, stmts, dets) do
     for {{type, _key}, [hash, account_id, validator_id, args, timestamp, size]} <-
           :ets.tab2list(:dtx) do
-      %{mod: module, fun: fun} = Funcs.lookup(type)
+      %{modx: module, fun: fun} = Funcs.lookup(type)
 
       source = %{
         id: account_id,

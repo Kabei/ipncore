@@ -271,7 +271,8 @@ defmodule RoundManager do
 
       if round.tx_count > 0 do
         DetsPlus.sync(dets)
-        DetsPlux.sync(:stats)
+        tx_supply = DetsPlux.tx(:supply)
+        DetsPlux.sync(:stats, tx_supply)
       end
 
       # replicate data to cluster nodes

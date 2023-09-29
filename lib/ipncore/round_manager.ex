@@ -270,10 +270,8 @@ defmodule RoundManager do
       SqliteStore.sync(conn)
 
       if round.tx_count > 0 do
-        DetsPlus.commit(dets)
-        DetsPlus.commit(:stats)
-        DetsPlus.start_sync(dets)
-        DetsPlus.start_sync(:stats)
+        DetsPlus.sync(dets)
+        DetsPlux.sync(:stats)
       end
 
       # replicate data to cluster nodes

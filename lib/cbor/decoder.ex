@@ -68,12 +68,13 @@ defmodule CBOR.Decoder do
   defp decode_array(0, rest), do: {[], rest}
   defp decode_array(len, rest), do: decode_array(len, [], rest)
   defp decode_array(0, acc, bin), do: {Enum.reverse(acc), bin}
+
   defp decode_array(len, acc, bin) do
     {value, bin_rest} = decode(bin)
-    decode_array(len - 1, [value|acc], bin_rest)
+    decode_array(len - 1, [value | acc], bin_rest)
   end
 
-  defp decode_array_indefinite(<<0xff, new_rest::binary>>, acc) do
+  defp decode_array_indefinite(<<0xFF, new_rest::binary>>, acc) do
     {Enum.reverse(acc), new_rest}
   end
 
@@ -85,6 +86,7 @@ defmodule CBOR.Decoder do
   defp decode_map(0, rest), do: {%{}, rest}
   defp decode_map(len, rest), do: decode_map(len, %{}, rest)
   defp decode_map(0, acc, bin), do: {acc, bin}
+
   defp decode_map(len, acc, bin) do
     {key, key_rest} = decode(bin)
     {value, bin_rest} = decode(key_rest)
@@ -92,7 +94,8 @@ defmodule CBOR.Decoder do
     decode_map(len - 1, Map.put(acc, key, value), bin_rest)
   end
 
-  defp decode_map_indefinite(<<0xff, new_rest::binary>>, acc), do: {acc, new_rest}
+  defp decode_map_indefinite(<<0xFF, new_rest::binary>>, acc), do: {acc, new_rest}
+
   defp decode_map_indefinite(rest, acc) do
     {key, key_rest} = decode(rest)
     {value, new_rest} = decode(key_rest)
@@ -101,31 +104,45 @@ defmodule CBOR.Decoder do
 
   defp decode_float(bin, value, rest) do
     case bin do
-      <<0xf4, _::binary>> -> {false, rest}
-      <<0xf5, _::binary>> -> {true, rest}
-      <<0xf6, _::binary>> -> {nil, rest}
-      <<0xf7, _::binary>> -> {:__undefined__, rest}
+      <<0xF4, _::binary>> ->
+        {false, rest}
 
-      <<0xf9, sign::size(1), exp::size(5), mant::size(10), _::binary>> ->
+      <<0xF5, _::binary>> ->
+        {true, rest}
+
+      <<0xF6, _::binary>> ->
+        {nil, rest}
+
+      <<0xF7, _::binary>> ->
+        {:__undefined__, rest}
+
+      <<0xF9, sign::size(1), exp::size(5), mant::size(10), _::binary>> ->
         {decode_half(sign, exp, mant), rest}
 
-      <<0xfa, value::float-size(32), _::binary>> ->
-         {value, rest}
-
-      <<0xfa, sign::size(1), 255::size(8), mant::size(23), _::binary>> ->
-        {decode_non_finite(sign, mant), rest}
-
-      <<0xfb, value::float, _::binary >> ->
+      <<0xFA, value::float-size(32), _::binary>> ->
         {value, rest}
 
-      <<0xfb, sign::size(1), 2047::size(11), mant::size(52), _::binary>> ->
+      <<0xFA, sign::size(1), 255::size(8), mant::size(23), _::binary>> ->
         {decode_non_finite(sign, mant), rest}
 
-      _ -> {%CBOR.Tag{tag: :simple, value: value}, rest}
+      <<0xFB, value::float, _::binary>> ->
+        {value, rest}
+
+      <<0xFB, sign::size(1), 2047::size(11), mant::size(52), _::binary>> ->
+        {decode_non_finite(sign, mant), rest}
+
+      _ ->
+        {%CBOR.Tag{tag: :simple, value: value}, rest}
     end
   end
 
-  defp decode_other(value, {inner, rest}), do: {decode_tag(value, inner), rest}
+  defp decode_other(4, {_inner, rest}) do
+    decode_tuple(rest)
+  end
+
+  defp decode_other(value, {inner, rest}) do
+    {decode_tag(value, inner), rest}
+  end
 
   def decode_non_finite(0, 0), do: %CBOR.Tag{tag: :float, value: :inf}
   def decode_non_finite(1, 0), do: %CBOR.Tag{tag: :float, value: :"-inf"}
@@ -136,7 +153,7 @@ defmodule CBOR.Decoder do
   # 2**112 -- difference in bias
   defp decode_half(sign, exp, mant) do
     <<value::float-size(32)>> = <<sign::size(1), exp::size(8), mant::size(10), 0::size(13)>>
-    value * 5192296858534827628530496329220096.0
+    value * 5_192_296_858_534_827_628_530_496_329_220_096.0
   end
 
   defp decode_tag(0, value), do: decode_datetime(value)
@@ -181,5 +198,15 @@ defmodule CBOR.Decoder do
       {:ok, time} -> time
       {:error, _reason} -> %CBOR.Tag{tag: 0, value: value}
     end
+  end
+
+  defp decode_tuple(<<>>), do: {}
+  defp decode_tuple(<<size::8, rest::binary>>), do: decode_tuple(size, {}, rest)
+
+  defp decode_tuple(0, acc, rest), do: {acc, rest}
+
+  defp decode_tuple(size, acc, bin) do
+    {value, bin_rest} = decode(bin)
+    decode_tuple(size - 1, Tuple.append(acc, value), bin_rest)
   end
 end

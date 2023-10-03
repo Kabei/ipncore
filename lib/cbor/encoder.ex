@@ -7,10 +7,10 @@ defprotocol CBOR.Encoder do
 end
 
 defimpl CBOR.Encoder, for: Atom do
-  def encode_into(false, acc), do: <<acc::binary, 0xf4>>
-  def encode_into(true, acc), do: <<acc::binary, 0xf5>>
-  def encode_into(nil, acc), do: <<acc::binary, 0xf6>>
-  def encode_into(:__undefined__, acc), do: <<acc::binary, 0xf7>>
+  def encode_into(false, acc), do: <<acc::binary, 0xF4>>
+  def encode_into(true, acc), do: <<acc::binary, 0xF5>>
+  def encode_into(nil, acc), do: <<acc::binary, 0xF6>>
+  def encode_into(:__undefined__, acc), do: <<acc::binary, 0xF7>>
   def encode_into(v, acc), do: CBOR.Utils.encode_string(3, Atom.to_string(v), acc)
 end
 
@@ -24,15 +24,15 @@ defimpl CBOR.Encoder, for: CBOR.Tag do
   end
 
   def encode_into(%CBOR.Tag{tag: :float, value: :inf}, acc) do
-    <<acc::binary, 0xf9, 0x7c, 0>>
+    <<acc::binary, 0xF9, 0x7C, 0>>
   end
 
   def encode_into(%CBOR.Tag{tag: :float, value: :"-inf"}, acc) do
-    <<acc::binary, 0xf9, 0xfc, 0>>
+    <<acc::binary, 0xF9, 0xFC, 0>>
   end
 
   def encode_into(%CBOR.Tag{tag: :float, value: :nan}, acc) do
-    <<acc::binary, 0xf9, 0x7e, 0>>
+    <<acc::binary, 0xF9, 0x7E, 0>>
   end
 
   def encode_into(%CBOR.Tag{tag: :simple, value: val}, acc) when val < 0x100 do
@@ -63,7 +63,7 @@ defimpl CBOR.Encoder, for: DateTime do
 end
 
 defimpl CBOR.Encoder, for: Float do
-  def encode_into(x, acc), do: <<acc::binary, 0xfb, x::float>>
+  def encode_into(x, acc), do: <<acc::binary, 0xFB, x::float>>
 end
 
 defimpl CBOR.Encoder, for: Integer do
@@ -91,31 +91,31 @@ defimpl CBOR.Encoder, for: List do
   def encode_into([], acc), do: <<acc::binary, 0x80>>
 
   def encode_into(list, acc) when length(list) < 0x10000000000000000 do
-    Enum.reduce(list, CBOR.Utils.encode_head(4, length(list), acc), fn(v, acc) ->
+    Enum.reduce(list, CBOR.Utils.encode_head(4, length(list), acc), fn v, acc ->
       CBOR.Encoder.encode_into(v, acc)
     end)
   end
 
   def encode_into(list, acc) do
-    Enum.reduce(list, <<acc::binary, 0x9f>>, fn(v, acc) ->
+    Enum.reduce(list, <<acc::binary, 0x9F>>, fn v, acc ->
       CBOR.Encoder.encode_into(v, acc)
-    end) <> <<0xff>>
+    end) <> <<0xFF>>
   end
 end
 
 defimpl CBOR.Encoder, for: Map do
-  def encode_into(map, acc) when map_size(map) == 0, do: <<acc::binary, 0xa0>>
+  def encode_into(map, acc) when map_size(map) == 0, do: <<acc::binary, 0xA0>>
 
   def encode_into(map, acc) when map_size(map) < 0x10000000000000000 do
-    Enum.reduce(map, CBOR.Utils.encode_head(5, map_size(map), acc), fn({k, v}, subacc) ->
+    Enum.reduce(map, CBOR.Utils.encode_head(5, map_size(map), acc), fn {k, v}, subacc ->
       CBOR.Encoder.encode_into(v, CBOR.Encoder.encode_into(k, subacc))
     end)
   end
 
   def encode_into(map, acc) do
-    Enum.reduce(map, <<acc::binary, 0xbf>>, fn({k, v}, subacc) ->
+    Enum.reduce(map, <<acc::binary, 0xBF>>, fn {k, v}, subacc ->
       CBOR.Encoder.encode_into(v, CBOR.Encoder.encode_into(k, subacc))
-    end) <> <<0xff>>
+    end) <> <<0xFF>>
   end
 end
 
@@ -153,12 +153,21 @@ defimpl CBOR.Encoder, for: Time do
   end
 end
 
-# We convert all Tuples to Lists since CBOR has no concept of Tuples,
-# and they are basically the same thing anyway. This also fixes the problem
-# of having to deal with keyword lists so we don't lose any information.
 defimpl CBOR.Encoder, for: Tuple do
   def encode_into(tuple, acc) do
-    tuple |> Tuple.to_list() |> CBOR.Encoder.encode_into(acc)
+    size = tuple_size(tuple)
+
+    case size <= 255 do
+      true ->
+        tuple
+        |> Tuple.to_list()
+        |> Enum.reduce(<<acc::binary, 0xC4, 0x04, size>>, fn v, acc ->
+          CBOR.Encoder.encode_into(v, acc)
+        end)
+
+      false ->
+        raise ArgumentError, "Tuple size ilegal"
+    end
   end
 end
 

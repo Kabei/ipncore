@@ -187,7 +187,7 @@ defmodule DetsPlux do
     hash
   end
 
-  defp key_fun([key, _]), do: key
+  # defp key_fun([key, _]), do: key
   defp key_fun({key, _}), do: key
 
   @spec tuple(binary, binary) :: binary
@@ -375,18 +375,21 @@ defmodule DetsPlux do
   """
   @spec member_tx?(db(), transaction(), key()) :: false | true | {:error, atom}
   def member_tx?(pid, tx, key) do
-    case get_tx(pid, tx, key) do
-      nil -> false
-      _ -> true
+    case :ets.lookup(tx, key) do
+      [{_key, :delete}] ->
+        false
+
+      [{_key, {_, _value}}] ->
+        true
+
+      _ ->
+        call(pid, {:member, key, key_hash(key)})
     end
   end
 
   @spec member?(pid(), key()) :: false | true | {:error, atom}
   def member?(pid, key) do
-    case get(pid, key) do
-      nil -> false
-      _ -> true
-    end
+    call(pid, {:member, key, key_hash(key)})
   end
 
   @spec begin(atom) :: transaction()
@@ -420,10 +423,6 @@ defmodule DetsPlux do
 
       tid ->
         tid
-        # case :ets.whereis(tid) do
-        #   :undefined -> begin(tx_name)
-        #   _ -> tid
-        # end
     end
   end
 
@@ -461,6 +460,11 @@ defmodule DetsPlux do
   @spec clear(db()) :: :ok
   def clear(pid) do
     call(pid, :clear)
+  end
+
+  @spec clear_tx(transaction()) :: true
+  def clear_tx(tx) do
+    :ets.delete_all_objects(tx)
   end
 
   @doc """
@@ -632,7 +636,23 @@ defmodule DetsPlux do
   end
 
   def handle_call({:lookup, key, hash}, _from, state) do
-    {:reply, do_lookup(key, hash, state), state}
+    case do_lookup(key, hash, state) do
+      {_, value} ->
+        {:reply, value, state}
+
+      value ->
+        {:reply, value, state}
+    end
+  end
+
+  def handle_call({:member, key, hash}, _from, state) do
+    case do_lookup(key, hash, state) do
+      nil ->
+        {:reply, false, state}
+
+      _ ->
+        {:reply, true, state}
+    end
   end
 
   def handle_call(
@@ -971,7 +991,7 @@ defmodule DetsPlux do
   end
 
   defp do_merge_tables(ets1, ets2, :"$end_of_table") do
-    :ets.delete(ets2)
+    rollback(ets2)
     ets1
   end
 
@@ -1377,11 +1397,7 @@ defmodule DetsPlux do
       {ret, _n} =
         file_lookup_slot_loop(state, key, hash, table_offset(state, table_idx), slot, slot_count)
 
-      case ret do
-        [_, ret] -> ret
-        # {_, ret} -> ret
-        ret -> ret
-      end
+      ret
     else
       nil
     end

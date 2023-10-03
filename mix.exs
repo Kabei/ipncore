@@ -28,7 +28,7 @@ defmodule Ipncore.MixProject do
     [
       overwrite: true,
       quiet: true,
-      steps: [:assemble, &Bakeware.assemble/1],
+      # steps: [:assemble, &Bakeware.assemble/1],
       strip_beams: Mix.env() == :prod
     ]
   end
@@ -77,7 +77,6 @@ defmodule Ipncore.MixProject do
   defp deps do
     [
       {:benchee, "~> 1.0", only: [:dev, :test]},
-      {:bakeware, "~> 0.2.4", runtime: false},
       {:poolboy, "~> 1.5.2"},
       {:jason, "~> 1.4"},
       {:bandit, ">= 0.7.7"},
@@ -85,7 +84,6 @@ defmodule Ipncore.MixProject do
       {:httpoison, "~> 2.0"},
       {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
       {:cafezinho, "~> 0.4.0"},
-      {:paged_file, "~> 1.1"},
       {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
       {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},
       {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},

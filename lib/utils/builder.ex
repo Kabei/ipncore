@@ -2,7 +2,44 @@ defmodule Builder do
   alias Ippan.Address
   require Logger
 
-  # {pk, sk, pk2, sk2, address, address2} = Builder.test()
+  @compile {:inline, hash_fun: 1, encode_fun!: 1}
+  @type response :: {Client.t(), {binary, binary}}
+
+  defmodule Client do
+    @type t :: %Client{
+            seed: binary,
+            address: binary,
+            pk: binary,
+            secret: binary,
+            sig_type: 0 | 1 | 2,
+            nonce: pos_integer()
+          }
+
+    @compile {:inline, cont: 1}
+
+    defstruct [:seed, :address, :pk, :secret, :sig_type, nonce: 1]
+
+    @spec new(binary, 0 | 1 | 2) :: t()
+    def new(seed, sig_type \\ 0) do
+      {pk, sk, address} =
+        case sig_type do
+          0 ->
+            Builder.gen_ed25519(seed)
+
+          1 ->
+            Builder.gen_falcon(seed)
+        end
+
+      %Client{secret: sk, pk: pk, seed: seed, address: address, sig_type: sig_type}
+    end
+
+    @spec cont(t) :: t
+    def cont(client = %Client{nonce: nonce}) do
+      %{client | nonce: nonce + 1}
+    end
+  end
+
+  # {client, client2} = Builder.test()
   def test do
     sk =
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
@@ -12,43 +49,14 @@ defmodule Builder do
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
         100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
 
-    {pk, sk, address} = Builder.gen_ed25519(sk)
-    {pk2, sk2, address2} = Builder.gen_ed25519(sk2)
-    {pk, sk, pk2, sk2, address, address2}
+    {Client.new(sk), Client.new(sk2)}
   end
 
-  # {fpk1, fskf1, faddress1, fpk2, fsk2, faddress2} = Builder.test_falcon()
-  def test_falcon do
-    seed1 =
-      <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
-        100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 83>>
-
-    seed2 =
-      <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
-        100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
-
-    {pk1, sk1, address1} = Builder.gen_falcon(seed1)
-    {pk2, sk2, address2} = Builder.gen_falcon(seed2)
-
-    {pk1, sk1, address1, pk2, sk2, address2}
-  end
-
-  def build_request({body, sig}) do
+  @spec print({Client.t(), binary, binary}) :: Client.t()
+  def print({client, body, sig}) do
     IO.puts(body)
     IO.puts(sig)
-  end
-
-  def build_request(body) do
-    IO.puts(body)
-  end
-
-  # {pk, sk, address} = Builder.gen_ed25519()
-  def gen_ed25519 do
-    {:ok, {pk, sk}} =
-      :rand.bytes(32)
-      |> Cafezinho.Impl.keypair_from_seed()
-
-    {pk, sk, Address.hash(0, pk)}
+    client
   end
 
   # {pk, sk, address} = Builder.gen_ed25519(seed)
@@ -65,62 +73,82 @@ defmodule Builder do
     {pk, sk, Address.hash(1, pk)}
   end
 
-  # Builder.wallet_sub(sk, address, pk, 0, 0) |> Builder.build_request
-  def wallet_sub(secret, address, pk, validator_id, sig_type) do
+  # Builder.wallet_sub(client, 0, 0) |> Builder.print
+  def wallet_sub(
+        client = %Client{
+          address: address,
+          nonce: nonce,
+          pk: pk,
+          sig_type: sig_type
+        },
+        validator_id,
+        sig_type
+      ) do
     body =
-      [0, :os.system_time(:millisecond), address, Fast64.encode64(pk), validator_id, sig_type]
-      |> Jason.encode!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(address, secret, hash)
-
-    {body, sig}
-  end
-
-  # Builder.wallet_unsub(sk, address) |> Builder.build_request
-  def wallet_unsub(secret, address) do
-    body =
-      [1, :os.system_time(:millisecond), address]
-      |> Jason.encode!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(address, secret, hash)
-
-    {body, sig}
-  end
-
-  # Builder.env_set(sk, address, "test", "value-test") |> Builder.build_request
-  def env_set(secret, address, name, value) do
-    body =
-      [50, :os.system_time(:millisecond), address, name, value]
-      |> Jason.encode!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(address, secret, hash)
-
-    {body, sig}
-  end
-
-  # Builder.env_delete(sk, address, "test") |> Builder.build_request
-  def env_delete(secret, address, name) do
-    body =
-      [51, :os.system_time(:millisecond), address, name]
-      |> Jason.encode!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(address, secret, hash)
-
-    {body, sig}
-  end
-
-  # Builder.validator_new(sk, address, "ippan.net", 5815, address, "net core", pkv, 1, 5.0, %{"avatar" => "https://avatar.com"}) |> Builder.build_request()
-  def validator_new(
-        secret,
+      [
+        0,
+        :os.system_time(:millisecond),
+        nonce,
         address,
+        Base.encode64(pk),
+        validator_id,
+        sig_type
+      ]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # Builder.wallet_unsub(client) |> Builder.print
+  def wallet_unsub(client = %Client{address: address, nonce: nonce}) do
+    body =
+      [1, :os.system_time(:millisecond), nonce, address]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # Builder.env_set(client, "test", "value-test") |> Builder.print
+  def env_set(
+        client = %Client{address: address, nonce: nonce},
+        name,
+        value
+      ) do
+    body =
+      [50, :os.system_time(:millisecond), nonce, address, name, value]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # Builder.env_delete(client, "test") |> Builder.print
+  def env_delete(client = %Client{address: address, nonce: nonce}, name) do
+    body =
+      [51, :os.system_time(:millisecond), nonce, address, name]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # Builder.validator_new(client, "ippan.net", 5815, address, "net core", pkv, 1, 5.0, %{"avatar" => "https://avatar.com"}) |> Builder.print()
+  def validator_new(
+        client = %Client{address: address, nonce: nonce},
         hostname,
         port,
         owner,
@@ -136,6 +164,7 @@ defmodule Builder do
       [
         100,
         :os.system_time(:millisecond),
+        nonce,
         address,
         hostname,
         port,
@@ -147,46 +176,45 @@ defmodule Builder do
         fee,
         opts
       ]
-      |> Jason.encode!()
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_update(sk, address, 1, %{"fee" => 7.0}) |> Builder.build_request()
-  def validator_update(secret, address, id, params) do
+  # Builder.validator_update(client, 1, %{"fee" => 7.0}) |> Builder.print()
+  def validator_update(client = %Client{address: address, nonce: nonce}, id, params) do
     body =
-      [101, :os.system_time(:millisecond), address, id, params]
-      |> Jason.encode!()
+      [101, :os.system_time(:millisecond), nonce, address, id, params]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_delete(sk, address, 1) |> Builder.build_request()
-  def validator_delete(secret, address, id) do
+  # Builder.validator_delete(client, 1) |> Builder.print()
+  def validator_delete(client = %Client{address: address, nonce: nonce}, id) do
     body =
-      [102, :os.system_time(:millisecond), address, id]
-      |> Jason.encode!()
+      [102, :os.system_time(:millisecond), nonce, address, id]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.token_new(sk, address, "IPN", address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
-  # Builder.token_new(sk, address, "USD", address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Builder.build_request
+  # Builder.token_new(client, "IPN", address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
+  # Builder.token_new(client, "USD", address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Builder.print
   def token_new(
-        secret,
-        address,
+        client = %Client{address: address, nonce: nonce},
         token_id,
         owner,
         name,
@@ -202,6 +230,7 @@ defmodule Builder do
       [
         200,
         :os.system_time(:millisecond),
+        nonce,
         address,
         token_id,
         owner,
@@ -211,146 +240,145 @@ defmodule Builder do
         max_supply,
         opts
       ]
-      |> Jason.encode!()
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
     # IO.inspect(sig)
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.token_update(sk, address, "USD", %{"name" => "Dollar"}) |> Builder.build_request()
-  def token_update(secret, address, id, params) do
+  # Builder.token_update(client, "USD", %{"name" => "Dollar"}) |> Builder.print()
+  def token_update(client = %Client{address: address, nonce: nonce}, id, params) do
     body =
-      [201, :os.system_time(:millisecond), address, id, params]
-      |> Jason.encode!()
+      [201, :os.system_time(:millisecond), nonce, address, id, params]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.token_delete(sk, address, "USD") |> Builder.build_request()
-  def token_delete(secret, address, id) do
+  # Builder.token_delete(client, "USD") |> Builder.print()
+  def token_delete(client = %Client{address: address, nonce: nonce}, id) do
     body =
-      [202, :os.system_time(:millisecond), address, id]
-      |> Jason.encode!()
+      [202, :os.system_time(:millisecond), nonce, address, id]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def balance_lock(secret, address, to, token_id, amount) do
+  def balance_lock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
     body =
-      [250, :os.system_time(:millisecond), address, to, token_id, amount]
-      |> Jason.encode!()
+      [250, :os.system_time(:millisecond), nonce, address, to, token_id, amount]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def balance_unlock(secret, address, to, token_id, amount) do
+  def balance_unlock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
     body =
-      [251, :os.system_time(:millisecond), address, to, token_id, amount]
-      |> Jason.encode!()
+      [251, :os.system_time(:millisecond), nonce, address, to, token_id, amount]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.tx_coinbase(sk, address, "IPN", [[address2, 50000000]]) |> Builder.build_request()
-  def tx_coinbase(secret, address, token, outputs) do
+  # Builder.tx_coinbase(client, "IPN", [[address2, 50000000]]) |> Builder.print()
+  def tx_coinbase(client = %Client{address: address, nonce: nonce}, token, outputs) do
     body =
-      [300, :os.system_time(:millisecond), address, token, outputs]
-      |> Jason.encode!()
+      [300, :os.system_time(:millisecond), nonce, address, token, outputs]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.tx_send(sk2, address2, address, "IPN", 50000) |> Builder.build_request()
-  # Builder.tx_send(sk2, address2, address, "IPN", 4000) |> Builder.build_request()
-  def tx_send(secret, address, to, token, amount) do
+  # Builder.tx_send(client, address, "IPN", 50000) |> Builder.print()
+  # Builder.tx_send(client, address, "IPN", 4000) |> Builder.print()
+  def tx_send(client = %Client{address: address, nonce: nonce}, to, token, amount) do
     body =
-      [301, :os.system_time(:millisecond), address, to, token, amount]
-      |> Jason.encode!()
+      [301, :os.system_time(:millisecond), nonce, address, to, token, amount]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def tx_send(secret, address, to, token, amount, note) do
+  def tx_send(client = %Client{address: address, nonce: nonce}, to, token, amount, note) do
     body =
-      [301, :os.system_time(:millisecond), address, to, token, amount, note]
-      |> Jason.encode!()
+      [301, :os.system_time(:millisecond), nonce, address, to, token, amount, note]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def tx_refundable(secret, address, to, token, amount) do
+  def tx_refundable(client = %Client{address: address, nonce: nonce}, to, token, amount) do
     body =
-      [302, :os.system_time(:millisecond), address, to, token, amount]
-      |> Jason.encode!()
+      [302, :os.system_time(:millisecond), nonce, address, to, token, amount]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.tx_refund(sk, address, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.build_request()
-  def tx_refund(secret, address, hash) do
+  # Builder.tx_refund(client, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.print()
+  def tx_refund(client = %Client{address: address, nonce: nonce}, hash) do
     body =
-      [303, :os.system_time(:millisecond), address, hash]
-      |> Jason.encode!()
+      [303, :os.system_time(:millisecond), nonce, address, hash]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.tx_burn(sk2, address2, "IPN", 1000) |> Builder.build_request()
-  def tx_burn(secret, address, token, amount) do
+  # Builder.tx_burn(client, "IPN", 1000) |> Builder.print()
+  def tx_burn(client = %Client{address: address, nonce: nonce}, token, amount) do
     body =
-      [304, :os.system_time(:millisecond), address, token, amount]
-      |> Jason.encode!()
+      [304, :os.system_time(:millisecond), nonce, address, token, amount]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.domain_new(sk2, address2, "example.ipn", address, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Builder.build_request()
+  # Builder.domain_new(client, "example.ipn", address, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Builder.print()
   def domain_new(
-        secret,
-        address,
+        client = %Client{address: address, nonce: nonce},
         domain_name,
         owner,
         days,
@@ -360,159 +388,152 @@ defmodule Builder do
         } = params
       ) do
     body =
-      [400, :os.system_time(:millisecond), address, domain_name, owner, days, params]
-      |> Jason.encode!()
+      [400, :os.system_time(:millisecond), nonce, address, domain_name, owner, days, params]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.domain_update(sk, address, "example.ipn", %{"email" => "pop@email.com"}) |> Builder.build_request()
+  # Builder.domain_update(client, "example.ipn", %{"email" => "pop@email.com"}) |> Builder.print()
   def domain_update(
-        secret,
-        address,
+        client = %Client{address: address, nonce: nonce},
         domain_name,
         params
       ) do
     body =
-      [401, :os.system_time(:millisecond), address, domain_name, params]
-      |> Jason.encode!()
+      [401, :os.system_time(:millisecond), nonce, address, domain_name, params]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.domain_delete(sk, address, "example.ipn") |> Builder.build_request()
-  def domain_delete(
-        secret,
-        address,
-        domain_name
-      ) do
+  # Builder.domain_delete(client, "example.ipn") |> Builder.print()
+  def domain_delete(client = %Client{address: address, nonce: nonce}, domain_name) do
     body =
-      [402, :os.system_time(:millisecond), address, domain_name]
-      |> Jason.encode!()
+      [402, :os.system_time(:millisecond), nonce, address, domain_name]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  # Builder.domain_renew(sk, address, "example.ipn", 1000) |> Builder.build_request()
-  def domain_renew(
-        secret,
-        address,
-        domain_name,
-        days
-      ) do
+  # Builder.domain_renew(client, "example.ipn", 1000) |> Builder.print()
+  def domain_renew(client = %Client{address: address, nonce: nonce}, domain_name, days) do
     body =
-      [403, :os.system_time(:millisecond), address, domain_name, days]
-      |> Jason.encode!()
+      [403, :os.system_time(:millisecond), nonce, address, domain_name, days]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def dns_new(secret, address, fullname, type, data, ttl) do
+  def dns_new(client = %Client{address: address, nonce: nonce}, fullname, type, data, ttl) do
     body =
-      [500, :os.system_time(:millisecond), address, fullname, type, data, ttl]
-      |> Jason.encode!()
+      [500, :os.system_time(:millisecond), nonce, address, fullname, type, data, ttl]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def dns_update(secret, address, fullname, dns_hash16, params) do
+  def dns_update(client = %Client{address: address, nonce: nonce}, fullname, dns_hash16, params) do
     body =
-      [501, :os.system_time(:millisecond), address, fullname, dns_hash16, params]
-      |> Jason.encode!()
+      [501, :os.system_time(:millisecond), nonce, address, fullname, dns_hash16, params]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def dns_delete(secret, address, fullname) do
+  def dns_delete(client = %Client{address: address, nonce: nonce}, fullname) do
     body =
-      [502, :os.system_time(:millisecond), address, fullname]
-      |> Jason.encode!()
+      [502, :os.system_time(:millisecond), nonce, address, fullname]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def dns_delete(secret, address, fullname, type) when is_integer(type) do
+  def dns_delete(client = %Client{address: address, nonce: nonce}, fullname, type)
+      when is_integer(type) do
     body =
-      [502, :os.system_time(:millisecond), address, fullname, type]
-      |> Jason.encode!()
+      [502, :os.system_time(:millisecond), nonce, address, fullname, type]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def dns_delete(secret, address, fullname, hash16) do
+  def dns_delete(client = %Client{address: address, nonce: nonce}, address, fullname, hash16) do
     body =
-      [502, :os.system_time(:millisecond), address, fullname, hash16]
-      |> Jason.encode!()
+      [502, :os.system_time(:millisecond), nonce, address, fullname, hash16]
+      |> encode_fun!()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  def custom(secret, address, type, timestamp, args) do
+  def custom(client = %Client{address: address}, type, timestamp, args) do
     {:ok, body} =
       [type, timestamp, address, args]
       |> Jason.encode()
 
     hash = hash_fun(body)
 
-    sig = signature64(address, secret, hash)
+    sig = signature64(client, hash)
 
-    {body, sig}
+    {Client.cont(client), body, sig}
   end
 
-  defp signature64(address, secret, msg) do
-    [type_sig, _] = String.split(address, "x", parts: 2)
-
+  defp signature64(%Client{secret: secret, sig_type: sig_type}, msg) do
     result =
-      case type_sig do
-        "0" ->
+      case sig_type do
+        0 ->
           Cafezinho.Impl.sign(msg, secret)
           |> elem(1)
 
-        "1" ->
+        1 ->
           Falcon.sign(secret, msg)
           |> elem(1)
       end
 
-    Fast64.encode64(result)
+    Base.encode64(result)
   end
 
   defp hash_fun(msg) do
     Blake3.hash(msg)
+  end
+
+  defp encode_fun!(data) do
+    Jason.encode!(data)
   end
 end

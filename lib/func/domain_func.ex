@@ -12,7 +12,7 @@ defmodule Ippan.Func.Domain do
           id: account_id,
           conn: conn,
           stmts: stmts,
-          dets: dets,
+          balance: {dets, tx},
           size: size,
           validator: validator
         },
@@ -46,9 +46,9 @@ defmodule Ippan.Func.Domain do
         |> MapUtil.validate_email(:email)
 
         fee_amount = Utils.calc_fees!(validator.fee_type, validator.fee, amount, size)
-        balance_key = BalanceStore.gen_key(account_id, @token)
+        balance_key = DetsPlux.tuple(account_id, @token)
 
-        case BalanceStore.has_balance?(dets, balance_key, amount + fee_amount) do
+        case BalanceStore.has?(dets, tx, balance_key, amount + fee_amount) do
           true ->
             :ok
 
@@ -59,12 +59,12 @@ defmodule Ippan.Func.Domain do
   end
 
   def update(
-        %{id: account_id, conn: conn, stmts: stmts, dets: dets, size: size},
+        %{id: account_id, conn: conn, stmts: stmts, balance: {dets, tx}, size: size},
         name,
         opts \\ %{}
       ) do
     map_filter = Map.take(opts, Domain.editable())
-    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_key = DetsPlux.tuple(account_id, @token)
 
     cond do
       opts == %{} ->
@@ -76,7 +76,7 @@ defmodule Ippan.Func.Domain do
       not SqliteStore.exists?(conn, stmts, "owner_domain", [name, account_id]) ->
         raise IppanError, "Invalid owner"
 
-      not BalanceStore.has_balance?(dets, balance_key, size) ->
+      not BalanceStore.has?(dets, tx, balance_key, size) ->
         raise IppanError, "Insufficient balance"
 
       true ->
@@ -99,16 +99,16 @@ defmodule Ippan.Func.Domain do
     end
   end
 
-  def renew(%{id: account_id, conn: conn, stmts: stmts, dets: dets}, name, days)
+  def renew(%{id: account_id, conn: conn, stmts: stmts, balance: {dets, tx}}, name, days)
       when is_integer(days) and days > 0 do
     amount = Domain.price(name, days)
-    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_key = DetsPlux.tuple(account_id, @token)
 
     cond do
       not SqliteStore.exists?(conn, stmts, "owner_domain", [name, account_id]) ->
         raise IppanError, "Invalid owner"
 
-      not BalanceStore.has_balance?(dets, balance_key, amount) ->
+      not BalanceStore.has?(dets, tx, balance_key, amount) ->
         raise IppanError, "Insufficient balance"
 
       true ->

@@ -1,6 +1,6 @@
 defmodule RoundManager do
   use GenServer, restart: :transient
-  alias Ippan.{NetworkNode, ClusterNode, Block, Round, TxHandler, Validator}
+  alias Ippan.{NetworkNodes, ClusterNodes, Block, Round, TxHandler, Validator}
   alias Phoenix.PubSub
 
   import Ippan.Block, only: [decode_file!: 1]
@@ -74,7 +74,7 @@ defmodule RoundManager do
     {:ok,
      %{
        block_id: current_block_id,
-       dets: :persistent_term.get(:dets_balance),
+       dets: DetsPlux.get(:balance),
        conn: conn,
        stmts: stmts,
        miner_pool: miner_pool_pid,
@@ -156,7 +156,7 @@ defmodule RoundManager do
       IO.puts("#{id} = #{round_id}")
 
       if id == round_id do
-        n = NetworkNode.count()
+        n = NetworkNodes.count()
         IO.puts("n = #{n} | count = #{count}")
 
         cond do
@@ -170,7 +170,7 @@ defmodule RoundManager do
       end
 
       # Replicate message to rest of nodes
-      NetworkNode.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
+      NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
         node_id,
         creator_id,
         vid
@@ -229,7 +229,7 @@ defmodule RoundManager do
       ) do
     # delete player
     :ets.delete(ets_players, validator_id)
-    NetworkNode.disconnect(validator_id)
+    NetworkNodes.disconnect(validator_id)
     total_players = get_total_players(ets_players)
     {:noreply, %{state | total: total_players}}
   end
@@ -270,13 +270,16 @@ defmodule RoundManager do
       SqliteStore.sync(conn)
 
       if round.tx_count > 0 do
-        DetsPlus.sync(dets)
+        balance_tx = DetsPlux.tx(:balance)
         tx_supply = DetsPlux.tx(:supply)
+        DetsPlux.begin(:balance)
+        DetsPlux.begin(:supply)
+        DetsPlux.sync(dets, balance_tx)
         DetsPlux.sync(:stats, tx_supply)
       end
 
       # replicate data to cluster nodes
-      ClusterNode.broadcast(%{"event" => "round.new", "data" => round})
+      ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
     end)
 
     {:noreply,
@@ -290,13 +293,14 @@ defmodule RoundManager do
 
   def handle_cast(
         :incomplete,
-        %{conn: conn, dets: dets, stmts: stmts, players: ets_players, rcid: rcid, vid: vid} =
+        %{conn: conn, stmts: stmts, players: ets_players, rcid: rcid, vid: vid} =
           state
       ) do
     if rcid != vid do
       # Reverse changes
       SqliteStore.rollback(conn)
-      DetsPlus.rollback(dets)
+      balance_tx = DetsPlux.tx(:balance)
+      DetsPlux.rollback(balance_tx)
 
       # Delete validator
       :done = SqliteStore.step(conn, stmts, "delete_validator", [rcid])
@@ -304,7 +308,7 @@ defmodule RoundManager do
 
       # Delete player
       :ets.delete(ets_players, rcid)
-      NetworkNode.disconnect(rcid)
+      NetworkNodes.disconnect(rcid)
       total_players = get_total_players(ets_players)
 
       # send event
@@ -441,16 +445,28 @@ defmodule RoundManager do
             # Calculate reward
             reward = Round.reward(tx_count, txs_rejected, size)
 
+            balance_tx = DetsPlux.tx(:balance)
+
             if reward > 0 do
-              balance_key = BalanceStore.gen_key(creator.owner, @token)
-              BalanceStore.income(dets, balance_key, reward)
+              balance_key = DetsPlux.tuple(creator.owner, @token)
+              BalanceStore.income(dets, balance_tx, balance_key, reward)
             end
 
             # Run jackpot and events
             jackpot_amount =
               if rem(round_id, 100) == 0 do
                 last_block_id = block_id + block_count
-                run_jackpot(conn, stmts, dets, round_id, last_block_id, round_hash, reward)
+
+                run_jackpot(
+                  conn,
+                  stmts,
+                  dets,
+                  balance_tx,
+                  round_id,
+                  last_block_id,
+                  round_hash,
+                  reward
+                )
               else
                 0
               end
@@ -522,7 +538,7 @@ defmodule RoundManager do
       }
 
       # send message
-      NetworkNode.broadcast(%{"event" => "msg_round", "data" => pre_round})
+      NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
 
       # Tasks to create blocks
       result =
@@ -560,16 +576,28 @@ defmodule RoundManager do
         # Calculate reward
         reward = Round.reward(tx_count, txs_rejected, size)
 
+        balance_tx = DetsPlux.tx(:balance)
+
         if reward > 0 do
-          balance_key = BalanceStore.gen_key(creator.owner, @token)
-          BalanceStore.income(dets, balance_key, reward)
+          balance_key = DetsPlux.tuple(creator.owner, @token)
+          BalanceStore.income(dets, balance_tx, balance_key, reward)
         end
 
         # Run jackpot and events
         jackpot_amount =
           if rem(round_id, 100) == 0 do
             last_block_id = block_id + block_count
-            run_jackpot(conn, stmts, dets, round_id, last_block_id, round_hash, reward)
+
+            run_jackpot(
+              conn,
+              stmts,
+              dets,
+              balance_tx,
+              round_id,
+              last_block_id,
+              round_hash,
+              reward
+            )
           else
             0
           end
@@ -600,11 +628,11 @@ defmodule RoundManager do
     end)
   end
 
-  defp run_jackpot(_conn, _stmts, _dets, _round_id, _block_id, _round_hash, 0), do: 0
+  defp run_jackpot(_conn, _stmts, _dets, _balance_tx, _round_id, _block_id, _round_hash, 0), do: 0
 
-  defp run_jackpot(_conn, _stmts, _dets, _round_id, _block_id, nil, _reward), do: 0
+  defp run_jackpot(_conn, _stmts, _dets, _balance_tx, _round_id, _block_id, nil, _reward), do: 0
 
-  defp run_jackpot(conn, stmts, dets, round_id, block_id, round_hash, reward) do
+  defp run_jackpot(conn, stmts, dets, balance_tx, round_id, block_id, round_hash, reward) do
     IO.inspect("jackpot")
     n = BigNumber.to_int(round_hash)
     dv = min(block_id + 1, 20_000)
@@ -632,13 +660,14 @@ defmodule RoundManager do
             winner_id =
               case Enum.at(data, tx_n) do
                 [_hash, _type, account_id, _args, _timestamp, _size] ->
-                  balance_key = BalanceStore.gen_key(account_id, @token)
-                  BalanceStore.income(dets, balance_key, reward)
+                  balance_key = DetsPlux.tuple(account_id, @token)
+                  BalanceStore.income(dets, balance_tx, balance_key, reward)
+
                   account_id
 
                 [_hash, _type, _arg_key, account_id, _args, _timestamp, _size] ->
-                  balance_key = BalanceStore.gen_key(account_id, @token)
-                  BalanceStore.income(dets, balance_key, reward)
+                  balance_key = DetsPlux.tuple(account_id, @token)
+                  BalanceStore.income(dets, balance_tx, balance_key, reward)
                   account_id
               end
 
@@ -708,8 +737,8 @@ defmodule RoundManager do
   # Connect to nodes without exceeded max peers to connect
   # Return number of new connections. Zero in case not connect to new nodes
   defp connect_to_peers(ets_players, vid, total_players) do
-    take = min(@max_peers_conn - NetworkNode.count(), total_players - 1)
-    players_connected = NetworkNode.list()
+    take = min(@max_peers_conn - NetworkNodes.count(), total_players - 1)
+    players_connected = NetworkNodes.list()
 
     if take > 0 do
       :ets.tab2list(ets_players)
@@ -717,7 +746,7 @@ defmodule RoundManager do
       |> Enum.take_random(take)
       |> Enum.reduce_while(0, fn {_id, node}, acc ->
         if acc < take do
-          case NetworkNode.connect(node) do
+          case NetworkNodes.connect(node) do
             true -> {:cont, acc + 1}
             false -> {:cont, acc}
           end
@@ -743,21 +772,21 @@ defmodule RoundManager do
       case check_votes(state) do
         :ok ->
           # connect to round creator
-          case NetworkNode.connect(node) do
+          case NetworkNodes.connect(node) do
             true ->
               candidate = BlockTimer.get_block()
 
               if candidate do
-                NetworkNode.cast(node_id, "msg_block", candidate)
+                NetworkNodes.cast(node_id, "msg_block", candidate)
               end
 
-              case NetworkNode.call(node_id, "get_round", round_id) do
+              case NetworkNodes.call(node_id, "get_round", round_id) do
                 {:ok, response} when is_map(response) ->
                   send(RoundManager, {"msg_round", Round.from_remote(response), node_id})
 
                   # Disconnect if count is mayor than to max_peers_conn
-                  if NetworkNode.count() > @max_peers_conn do
-                    NetworkNode.disconnect(node_id)
+                  if NetworkNodes.count() > @max_peers_conn do
+                    NetworkNodes.disconnect(node_id)
                   end
 
                 _ ->
@@ -776,7 +805,7 @@ defmodule RoundManager do
 
   defp check_votes(%{round_id: round_id, votes: ets_votes}) do
     # check votes
-    n = NetworkNode.count()
+    n = NetworkNodes.count()
 
     :ets.select(ets_votes, [{{{:"$1", :"$2"}, :_, :_}, [{:==, :"$1", round_id}], [:"$_"]}])
     |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)

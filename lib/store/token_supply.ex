@@ -3,14 +3,14 @@ defmodule TokenSupply do
 
   @spec get(tx :: DetsPlux.transaction(), token_id :: binary) :: supply :: integer()
   def get(tx, token_id) do
-    key = DetsPlux.tuple_of_keys(token_id, "supply")
+    key = DetsPlux.tuple(token_id, "supply")
     DetsPlux.get_tx(@table, tx, key, 0)
   end
 
   @spec fetch(tx :: DetsPlux.transaction(), token_id :: binary) ::
           {DetsPlux.key(), supply :: integer}
   def fetch(tx, token_id) do
-    key = DetsPlux.tuple_of_keys(token_id, "supply")
+    key = DetsPlux.tuple(token_id, "supply")
     {key, DetsPlux.get_tx(@table, tx, key, 0)}
   end
 

@@ -1,68 +1,87 @@
 defmodule Ippan.TxHandler do
-  alias Ippan.Wallet
-  alias Ippan.Funcs
-  alias Sqlite3NIF
-  require SqliteStore
+  alias Ippan.{Funcs, Wallet}
+
+  @compile {:inline, check_signature!: 4}
 
   @json Application.compile_env(:ipncore, :json)
 
-  @spec valid!(reference, map, binary, binary, binary, integer, integer, map) :: list()
-  def valid!(conn, stmts, hash, msg, signature, size, validator_node_id, validator) do
-    [type, timestamp, from | args] = @json.decode!(msg)
-
-    # if timestamp < :persistent_term.get(:time_expired, 0) or timestamp > :os.system_time(:millisecond) + 20000 do
-    if timestamp < :persistent_term.get(:time_expired, 0) do
-      raise(IppanError, "Invalid timestamp")
-    end
-
-    %{deferred: deferred, mod: mod, fun: fun, check: type_of_verification} = Funcs.lookup(type)
-
-    %{pubkey: wallet_pubkey} =
-      case type_of_verification do
+  defmacrop get_and_check_wallet!(dets, cache, type, from, validator_id, args) do
+    quote bind_quoted: [
+            dets: dets,
+            cache: cache,
+            type: type,
+            from: from,
+            validator_id: validator_id,
+            args: args
+          ],
+          location: :keep do
+      case type do
         # check from variable
         0 ->
-          result =
-            %{validator: wallet_validator} =
-            SqliteStore.lookup_map(:wallet, conn, stmts, "get_wallet", from, Wallet)
+          {pk, vid} =
+            DetsPlux.get_cache(dets, cache, from)
 
-          if wallet_validator != validator_node_id do
-            raise IppanRedirectError, "#{validator_node_id}"
+          if vid != validator_id do
+            raise IppanRedirectError, "#{validator_id}"
           end
 
-          result
+          pk
 
-        # get first argument
+        # get first argument and not check (wallet subscribe)
         1 ->
-          %{pubkey: args |> hd |> Fast64.decode64()}
+          Fast64.decode64(hd(args))
 
         # check first argument
         2 ->
           key = hd(args)
 
-          result =
-            %{validator: wallet_validator} =
-            SqliteStore.lookup_map(:wallet, conn, stmts, "get_wallet", key, Wallet)
+          {pk, vid} =
+            DetsPlux.get_tx(dets, cache, key)
 
-          if wallet_validator != validator_node_id do
-            raise IppanRedirectError, "#{wallet_validator}"
+          if vid != validator_id do
+            raise IppanRedirectError, "#{vid}"
           end
 
-          result
+          pk
       end
+    end
+  end
+
+  @spec valid!(reference, map, binary, binary, binary, integer, integer, map) :: list()
+  def valid!(conn, stmts, hash, msg, signature, size, validator_id, validator) do
+    [type, timestamp, nonce, from | args] = @json.decode!(msg)
+
+    %{deferred: deferred, mod: mod, fun: fun, check: type_of_verification} = Funcs.lookup(type)
+
+    wallet_dets = DetsPlux.get(:wallet)
+    wallet_cache = DetsPlux.tx(:wallet)
+
+    wallet_pk =
+      get_and_check_wallet!(
+        wallet_dets,
+        wallet_cache,
+        type_of_verification,
+        from,
+        validator_id,
+        args
+      )
 
     [sig_type, _] = String.split(from, "x", parts: 2)
-    check_signature!(sig_type, signature, hash, wallet_pubkey)
+    check_signature!(sig_type, signature, hash, wallet_pk)
+
+    Wallet.update_nonce!(wallet_dets, :cache_nonce, from, nonce)
 
     source = %{
       conn: conn,
-      dets: :persistent_term.get(:dets_balance),
+      balance: DetsPlux.whereis(:balance),
       id: from,
       hash: hash,
       size: size,
       stmts: stmts,
       timestamp: timestamp,
       type: type,
-      validator: validator
+      validator: validator,
+      wallets: {wallet_dets, wallet_cache}
     }
 
     apply(mod, fun, [source | args])
@@ -77,6 +96,7 @@ defmodule Ippan.TxHandler do
             from,
             args,
             timestamp,
+            nonce,
             [msg, signature],
             size
           ]
@@ -94,6 +114,7 @@ defmodule Ippan.TxHandler do
             from,
             args,
             timestamp,
+            nonce,
             [msg, signature],
             size
           ]
@@ -101,61 +122,49 @@ defmodule Ippan.TxHandler do
     end
   end
 
-  @spec valid_from_file!(reference, map, binary, binary, binary, integer, integer, map) :: list()
-  def valid_from_file!(conn, stmts, hash, msg, signature, size, validator_node_id, validator) do
-    [type, timestamp, from | args] = @json.decode!(msg)
-
-    # if timestamp < :persistent_term.get(:time_expired, 0) or timestamp > :os.system_time(:millisecond) + 20000 do
-    if timestamp < :persistent_term.get(:time_expired, 0) do
-      raise(IppanError, "Invalid timestamp")
-    end
+  @spec valid_from_file!(reference, map, tuple(), binary, binary, binary, integer, integer, map) ::
+          list()
+  def valid_from_file!(
+        conn,
+        stmts,
+        {wallet_dets, wallet_cache} = wallets,
+        hash,
+        msg,
+        signature,
+        size,
+        validator_id,
+        validator
+      ) do
+    [type, timestamp, nonce, from | args] = @json.decode!(msg)
 
     %{deferred: deferred, mod: mod, fun: fun, check: type_of_verification} = Funcs.lookup(type)
 
-    %{pubkey: wallet_pubkey} =
-      case type_of_verification do
-        # check from variable
-        0 ->
-          result =
-            %{validator: wallet_validator} =
-            SqliteStore.lookup_map(:wallet, conn, stmts, "get_wallet", from, Wallet)
-
-          if wallet_validator != validator_node_id do
-            raise IppanRedirectError, "#{validator_node_id}"
-          end
-
-          result
-
-        # get first argument
-        1 ->
-          %{pubkey: args |> hd |> Fast64.decode64()}
-
-        # check first argument
-        2 ->
-          key = hd(args)
-
-          result =
-            %{validator: wallet_validator} =
-            SqliteStore.lookup_map(:wallet, conn, stmts, "get_wallet", key, Wallet)
-
-          if wallet_validator != validator_node_id do
-            raise IppanRedirectError, "#{wallet_validator}"
-          end
-
-          result
-      end
+    wallet_pk =
+      get_and_check_wallet!(
+        wallet_dets,
+        wallet_cache,
+        type_of_verification,
+        from,
+        validator_id,
+        args
+      )
 
     [sig_type, _] = String.split(from, "x", parts: 2)
-    check_signature!(sig_type, signature, hash, wallet_pubkey)
+    check_signature!(sig_type, signature, hash, wallet_pk)
+
+    Wallet.update_nonce!(wallet_dets, :nonce, from, nonce)
 
     source = %{
       conn: conn,
-      dets: :persistent_term.get(:dets_balance),
+      balance: DetsPlux.whereis(:balance),
+      id: from,
       hash: hash,
       size: size,
       stmts: stmts,
       timestamp: timestamp,
-      validator: validator
+      type: type,
+      validator: validator,
+      wallets: wallets
     }
 
     apply(mod, fun, [source | args])
@@ -168,6 +177,7 @@ defmodule Ippan.TxHandler do
           from,
           args,
           timestamp,
+          nonce,
           size
         ]
 
@@ -181,9 +191,102 @@ defmodule Ippan.TxHandler do
           from,
           args,
           timestamp,
+          nonce,
           size
         ]
     end
+  end
+
+  defmacro handle_regular(
+             conn,
+             stmts,
+             balance,
+             validator,
+             hash,
+             type,
+             from,
+             args,
+             size,
+             timestamp,
+             block_id
+           ) do
+    quote bind_quoted: [
+            conn: conn,
+            stmts: stmts,
+            balance: balance,
+            validator: validator,
+            hash: hash,
+            type: type,
+            from: from,
+            args: args,
+            timestamp: timestamp,
+            size: size,
+            block_id: block_id
+          ],
+          location: :keep do
+      %{fun: fun, modx: module} = Funcs.lookup(type)
+
+      source = %{
+        balance: balance,
+        conn: conn,
+        block_id: block_id,
+        stmts: stmts,
+        id: from,
+        type: type,
+        validator: validator,
+        hash: hash,
+        timestamp: timestamp,
+        size: size
+      }
+
+      apply(module, fun, [source | args])
+    end
+  end
+
+  # Dispute resolution in deferred transaction
+  def insert_deferred(
+        [hash, type, arg_key, account_id, args, timestamp, _nonce, size],
+        validator_id,
+        block_id
+      ) do
+    key = {type, arg_key}
+    body = [hash, account_id, validator_id, args, timestamp, size]
+
+    case :ets.lookup(:dtx, key) do
+      [] ->
+        :ets.insert(:dtx, {key, body})
+
+      [{_msg_key, xhash, xblock_id, _rest}] ->
+        if hash < xhash or (hash == xhash and block_id < xblock_id) do
+          :ets.insert(:dtx, {key, body})
+        else
+          false
+        end
+    end
+  end
+
+  # only deferred transactions
+  def run_deferred_txs(conn, stmts, balance) do
+    for {{type, _key}, [hash, account_id, validator_id, args, timestamp, _nonce, size]} <-
+          :ets.tab2list(:dtx) do
+      %{modx: module, fun: fun} = Funcs.lookup(type)
+
+      source = %{
+        id: account_id,
+        conn: conn,
+        stmts: stmts,
+        balance: balance,
+        type: type,
+        validator: validator_id,
+        hash: hash,
+        timestamp: timestamp,
+        size: size
+      }
+
+      apply(module, fun, [source | args])
+    end
+
+    :ets.delete_all_objects(:dtx)
   end
 
   # check signature by type
@@ -205,97 +308,5 @@ defmodule Ippan.TxHandler do
 
   defp check_signature!(_, _signature, _hash, _wallet_pubkey) do
     raise(IppanError, "Signature type not supported")
-  end
-
-  defmacro handle_regular(
-             conn,
-             stmts,
-             dets,
-             validator,
-             hash,
-             type,
-             from,
-             args,
-             size,
-             timestamp,
-             block_id
-           ) do
-    quote bind_quoted: [
-            conn: conn,
-            stmts: stmts,
-            dets: dets,
-            validator: validator,
-            hash: hash,
-            type: type,
-            from: from,
-            args: args,
-            timestamp: timestamp,
-            size: size,
-            block_id: block_id
-          ],
-          location: :keep do
-      %{fun: fun, modx: module} = Funcs.lookup(type)
-
-      environment = %{
-        conn: conn,
-        block_id: block_id,
-        stmts: stmts,
-        dets: dets,
-        id: from,
-        type: type,
-        validator: validator,
-        hash: hash,
-        timestamp: timestamp,
-        size: size
-      }
-
-      apply(module, fun, [environment | args])
-    end
-  end
-
-  # Dispute resolution in deferred transaction
-  def insert_deferred(
-        [hash, type, arg_key, account_id, args, timestamp, size],
-        validator_id,
-        block_id
-      ) do
-    key = {type, arg_key}
-    body = [hash, account_id, validator_id, args, timestamp, size]
-
-    case :ets.lookup(:dtx, key) do
-      [] ->
-        :ets.insert(:dtx, {key, body})
-
-      [{_msg_key, xhash, xblock_id, _rest}] ->
-        if hash < xhash or (hash == xhash and block_id < xblock_id) do
-          :ets.insert(:dtx, {key, body})
-        else
-          false
-        end
-    end
-  end
-
-  # only deferred transactions
-  def run_deferred_txs(conn, stmts, dets) do
-    for {{type, _key}, [hash, account_id, validator_id, args, timestamp, size]} <-
-          :ets.tab2list(:dtx) do
-      %{modx: module, fun: fun} = Funcs.lookup(type)
-
-      source = %{
-        id: account_id,
-        conn: conn,
-        stmts: stmts,
-        dets: dets,
-        type: type,
-        validator: validator_id,
-        hash: hash,
-        timestamp: timestamp,
-        size: size
-      }
-
-      apply(module, fun, [source | args])
-    end
-
-    :ets.delete_all_objects(:dtx)
   end
 end

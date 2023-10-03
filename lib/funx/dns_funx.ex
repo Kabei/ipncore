@@ -10,7 +10,7 @@ defmodule Ippan.Funx.Dns do
         %{
           id: account_id,
           conn: conn,
-          dets: dets,
+          balance: {dets, balance_tx},
           stmts: stmts,
           validator: validator
         },
@@ -20,10 +20,10 @@ defmodule Ippan.Funx.Dns do
         ttl
       ) do
     fee = EnvStore.network_fee()
-    balance_key = BalanceStore.gen_key(account_id, @token)
-    balance_validator_key = BalanceStore.gen_key(validator.owner, @token)
+    key = DetsPlux.tuple(account_id, @token)
+    to_key = DetsPlux.tuple(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance_key, balance_validator_key, fee) do
+    case BalanceStore.pay(dets, balance_tx, key, to_key, fee) do
       :error ->
         :error
 
@@ -46,17 +46,17 @@ defmodule Ippan.Funx.Dns do
   end
 
   def update(
-        %{id: account_id, conn: conn, dets: dets, validator: validator},
+        %{id: account_id, conn: conn, balance: {dets, tx}, validator: validator},
         fullname,
         dns_hash16,
         params
       ) do
     dns_hash = Base.decode16(dns_hash16, case: :mixed)
     fee = EnvStore.network_fee()
-    balance_key = BalanceStore.gen_key(account_id, @token)
-    balance_validator_key = BalanceStore.gen_key(validator.owner, @token)
+    balance_key = DetsPlux.tuple(account_id, @token)
+    balance_validator_key = DetsPlux.tuple(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance_key, balance_validator_key, fee) do
+    case BalanceStore.pay(dets, tx, balance_key, balance_validator_key, fee) do
       :error ->
         :error
 

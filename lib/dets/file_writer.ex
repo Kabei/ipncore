@@ -1,6 +1,6 @@
-defmodule DetsPlus.FileWriter do
+defmodule DetsPlux.FileWriter do
   @moduledoc false
-  alias DetsPlus.FileWriter
+  alias DetsPlux.FileWriter
   defstruct [:fp, :module, :buffer_size, :offset, :chunk, :chunk_size, :limit]
 
   def new(fp, start_offset \\ 0, opts \\ []) when is_integer(start_offset) do

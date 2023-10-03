@@ -7,7 +7,7 @@ defmodule DetsPlux do
   internal ETS table and synced every `auto_save` period
   to the persistent storage.
 
-  While `sync()` or `auto_save` are in progress the database
+  While `sync()` are in progress the database
   is still readable and writeable.
 
   There is no commitlog so not synced writes are lost.
@@ -49,7 +49,7 @@ defmodule DetsPlux do
   @ets_type :set
   @txs_suffix :dbx
 
-  alias DetsPlus.{Bloom, EntryWriter, FileReader, FileWriter}
+  alias DetsPlux.{Bloom, EntryWriter, FileReader, FileWriter}
   use GenServer
 
   defstruct [:ets, :filename, :sync_fallback]
@@ -60,11 +60,24 @@ defmodule DetsPlux do
   @type value :: binary() | number() | list() | map() | nil
   @type t :: %__MODULE__{ets: transaction(), filename: binary(), sync_fallback: [transaction()]}
 
+  # Inline common instructions
+  @compile {:inline,
+            call: 2,
+            call: 3,
+            decode: 1,
+            encode: 1,
+            get: 1,
+            key_hash: 1,
+            key_fun: 1,
+            tuple: 2,
+            tuple: 3,
+            tx: 1,
+            whereis: 1}
+
   defmodule State do
     @moduledoc false
     @enforce_keys [:version]
     defstruct [
-      :auto_save,
       :bloom_size,
       :bloom,
       :creation_stats,
@@ -93,29 +106,25 @@ defmodule DetsPlux do
 
   @doc false
   def start_link(args) do
-    open(args[:name], args)
+    open(args[:id], args)
   end
 
   @doc false
   def start_link(_, args) do
-    open(args[:name], args)
+    open(args[:id], args)
   end
 
   @doc """
     Opens an existing table or creates a new table. If no
-    `file` argument is provided the table name will be used.
+    - `name` argument is provided the table name will be used.
 
-    Arguments:
-
-    - `auto_save` - The autosave interval. If the interval is an integer Time, the table is flushed to disk whenever it is not accessed for Time milliseconds. If the interval is the atom infinity, autosave is disabled. Defaults to `180_000` (3 minutes).
-    - `auto_save_memory` - The autosave threshold in memory. When the internal ETS table reaches a size bigger than this the table is flushed to disk. Defaults to `1_000_000_000` (1 GB)
+    Optionals:
+    - `file` - The filename.
     - `page_cache_memory` - The amount of memory to use for file system caching. Defaults to `1_000_000_000` (1 GB)
   """
-  def open(name, args \\ []) when is_atom(name) do
-    filename = Keyword.get(args, :file, name) |> do_string()
-    auto_save = Keyword.get(args, :auto_save, :infinity)
-    mode = Keyword.get(args, :access, :read_write)
-    var_name = Keyword.get(args, :var, name)
+  def open(name, opts \\ []) when is_atom(name) do
+    filename = Keyword.get(opts, :file, name) |> do_string()
+    mode = Keyword.get(opts, :access, :read_write)
 
     state =
       with true <- File.exists?(filename),
@@ -137,7 +146,6 @@ defmodule DetsPlux do
             fp: nil,
             name: name,
             mode: mode,
-            auto_save: auto_save,
             file_entries: 0,
             slot_counts: %{},
             file_size: 0,
@@ -150,58 +158,45 @@ defmodule DetsPlux do
     # These properties should override what is stored on disk
     state = %State{
       state
-      | auto_save: auto_save,
-        mode: mode
+      | mode: mode
     }
 
     {:ok, pid} = GenServer.start_link(__MODULE__, state, hibernate_after: 5_000, name: name)
-    :persistent_term.put(var_name, pid)
+    :persistent_term.put({:dets, name}, pid)
     {:ok, pid}
   end
 
-  defmacrop call(pid, cmd, timeout \\ :infinity) do
-    quote do
-      :gen_server.call(unquote(pid), unquote(cmd), unquote(timeout))
-    end
+  defp call(pid, cmd, timeout \\ :infinity) do
+    :gen_server.call(pid, cmd, timeout)
   end
 
-  defmacrop cast(pid, cmd) do
-    quote do
-      :gen_server.cast(unquote(pid), unquote(cmd))
-    end
+  def encode(term) do
+    # :erlang.term_to_binary(unquote(term))
+    CBOR.Encoder.encode_into(term, <<>>)
   end
 
-  defmacro encode(term) do
-    quote do
-      # :erlang.term_to_binary(unquote(term))
-      CBOR.Encoder.encode_into(unquote(term), <<>>)
-    end
+  def decode(bin) do
+    # :erlang.binary_to_term(unquote(bin))
+    CBOR.Decoder.decode(bin) |> elem(0)
   end
 
-  defmacro decode(bin) do
-    quote do
-      # :erlang.binary_to_term(unquote(bin))
-      CBOR.Decoder.decode(unquote(bin)) |> elem(0)
-    end
+  defp key_hash(key) do
+    <<hash::binary-size(@hash_size), _::binary>> =
+      Blake3.hash(key)
+
+    hash
   end
 
-  defmacrop default_hash(key) do
-    quote do
-      <<hash::binary-size(@hash_size), _::binary>> =
-        Blake3.hash(unquote(key))
+  defp key_fun([key, _]), do: key
+  defp key_fun({key, _}), do: key
 
-      hash
-    end
-  end
-
-  defp keyfun([key, _]), do: key
-  # defp keyfun({key, _}), do: key
-
-  def tuple_of_keys(k1, k2) do
+  @spec tuple(binary, binary) :: binary
+  def tuple(k1, k2) do
     IO.iodata_to_binary([k1, "|", k2])
   end
 
-  def tuple_of_keys(k1, k2, k3) do
+  @spec tuple(binary, binary, binary) :: binary
+  def tuple(k1, k2, k3) do
     IO.iodata_to_binary([k1, "|", k2, "|", k3])
   end
 
@@ -254,29 +249,9 @@ defmodule DetsPlux do
   end
 
   @impl true
-  def init(state = %State{auto_save: auto_save}) do
-    if is_integer(auto_save) do
-      :timer.send_interval(auto_save, :auto_save)
-    end
-
+  def init(state) do
     {:ok, state}
   end
-
-  # defp init_ets(state = %State{name: name, filename: filename}) do
-  #   state_file = ~c"#{filename}.ets"
-
-  #   ets =
-  #     if File.exists?(state_file) do
-  #       case :ets.file2tab(state_file) do
-  #         {:ok, ets} -> ets
-  #         _ -> File.rm(state_file)
-  #       end
-  #     else
-  #       :ets.new(name, [@ets_type, read_concurrency: true, write_concurrency: true])
-  #     end
-
-  #   %State{state | ets: ets}
-  # end
 
   defp init_table_offsets(state = %State{slot_counts: slot_counts}, start_offset) do
     table_offsets =
@@ -322,6 +297,11 @@ defmodule DetsPlux do
     |> Enum.to_list()
   end
 
+  @spec get(atom) :: port()
+  def get(name) do
+    :persistent_term.get({:dets, name})
+  end
+
   @doc """
   Returns a list of all objects with key Key stored in the table.
 
@@ -344,15 +324,15 @@ defmodule DetsPlux do
   """
   @spec get(db(), key()) :: nil | any() | {:error, atom()}
   def get(pid, key) do
-    call(pid, {:lookup, key, default_hash(key)})
+    call(pid, {:lookup, key, key_hash(key)})
   end
 
   @spec get(db(), key(), term()) :: nil | any() | {:error, atom()}
   def get(pid, key, default) do
-    call(pid, {:lookup, key, default_hash(key)}) || default
+    call(pid, {:lookup, key, key_hash(key)}) || default
   end
 
-  @spec get_tx(db(), transaction(), binary(), term()) :: nil | any() | {:error, atom()}
+  @spec get_tx(db(), transaction(), binary(), term()) :: any()
   def get_tx(pid, tx, key, default \\ nil) do
     case :ets.lookup(tx, key) do
       [{_key, :delete}] ->
@@ -362,14 +342,38 @@ defmodule DetsPlux do
         value
 
       [] ->
-        call(pid, {:lookup, key, default_hash(key)}) || default
+        call(pid, {:lookup, key, key_hash(key)}) || default
+    end
+  end
+
+  @doc """
+  Get a value from a Only-Read Transaction or Disk.
+  If the value does not exist in the transaction. Insert it
+  """
+  @spec get_cache(db(), transaction(), binary(), term()) :: any()
+  def get_cache(pid, tx, key, default \\ nil) do
+    case :ets.lookup(tx, key) do
+      [{_key, :delete}] ->
+        nil
+
+      [{_key, {_, value}}] ->
+        value
+
+      [] ->
+        case call(pid, {:lookup, key, key_hash(key)}) do
+          nil ->
+            default
+
+          ret ->
+            :ets.insert(tx, {key, {key, ret}})
+        end
     end
   end
 
   @doc """
   Works like `lookup/2`, but does not return the objects. Returns true if one or more table elements has the key `key`, otherwise false.
   """
-  @spec member_tx?(db(), transaction(), any) :: false | true | {:error, atom}
+  @spec member_tx?(db(), transaction(), key()) :: false | true | {:error, atom}
   def member_tx?(pid, tx, key) do
     case get_tx(pid, tx, key) do
       nil -> false
@@ -377,7 +381,7 @@ defmodule DetsPlux do
     end
   end
 
-  @spec member?(pid(), any) :: false | true | {:error, atom}
+  @spec member?(pid(), key()) :: false | true | {:error, atom}
   def member?(pid, key) do
     case get(pid, key) do
       nil -> false
@@ -400,15 +404,32 @@ defmodule DetsPlux do
     tid
   end
 
+  @spec whereis(atom) :: {port(), transaction()}
+  def whereis(name) do
+    {:persistent_term.get(name), :persistent_term.get({@txs_suffix, name}, nil)}
+  end
+
   @doc """
   Create if not exists a transaction. Return a transaction
   """
   @spec tx(tx_name :: atom()) :: transaction()
   def tx(tx_name) do
     case :persistent_term.get({@txs_suffix, tx_name}, nil) do
-      nil -> begin(tx_name)
-      tid -> tid
+      nil ->
+        begin(tx_name)
+
+      tid ->
+        tid
+        # case :ets.whereis(tid) do
+        #   :undefined -> begin(tx_name)
+        #   _ -> tid
+        # end
     end
+  end
+
+  @spec tx_erase(atom()) :: boolean
+  def tx_erase(tx_name) do
+    :persistent_term.erase({@txs_suffix, tx_name})
   end
 
   @spec put(transaction(), key(), value()) :: true
@@ -418,12 +439,23 @@ defmodule DetsPlux do
 
   @spec put_new(db(), transaction(), key(), value()) :: boolean()
   def put_new(pid, tx, key, value) do
-    call(pid, {:put_new, tx, key, default_hash(key), value})
+    call(pid, {:put_new, tx, key, key_hash(key), value})
   end
 
+  @doc """
+  Delete a record from transaction alive and the store
+  """
   @spec delete(transaction(), key()) :: true
   def delete(tx, key) do
     :ets.insert(tx, {key, :delete})
+  end
+
+  @doc """
+  Delete a record from alive transaction
+  """
+  @spec drop(transaction(), key()) :: true
+  def drop(tx, key) do
+    :ets.delete(tx, key)
   end
 
   @spec clear(db()) :: :ok
@@ -655,10 +687,17 @@ defmodule DetsPlux do
       if :ets.info(ets, :size) > 0 do
         sync = spawn_sync_worker(ets, state)
 
+        new_fallback =
+          case fallback do
+            [t1, t2] -> [t1, merge_tx(t2, ets)]
+            [t1] -> [t1, ets]
+            [] -> [ets]
+          end
+
         %State{
           state
           | sync: sync,
-            sync_fallback: fallback ++ [ets],
+            sync_fallback: new_fallback,
             sync_waiters: waiters ++ [nil]
         }
       else
@@ -686,11 +725,18 @@ defmodule DetsPlux do
     else
       sync = spawn_sync_worker(ets, state)
 
+      new_fallback =
+        case fallback do
+          [t1, t2] -> [t1, merge_tx(t2, ets)]
+          [t1] -> [t1, ets]
+          [] -> [ets]
+        end
+
       {:noreply,
        %State{
          state
          | sync: sync,
-           sync_fallback: fallback ++ [ets],
+           sync_fallback: new_fallback,
            sync_waiters: waiters ++ [from]
        }}
     end
@@ -795,18 +841,6 @@ defmodule DetsPlux do
       ) do
     {:noreply, state}
   end
-
-  # @impl true
-  # def handle_info(:auto_save, state = %State{sync: sync, ets: ets}) do
-  #   sync =
-  #     if sync == nil and :ets.info(ets, :size) > 0 do
-  #       spawn_sync_worker(state)
-  #     else
-  #       sync
-  #     end
-
-  #   {:noreply, %State{state | sync: sync}}
-  # end
 
   defp add_stats({prev, stats}, label) do
     now = :erlang.timestamp()
@@ -920,10 +954,30 @@ defmodule DetsPlux do
       :lists.merge(Task.await(task, :infinity), result)
     else
       Enum.map(new_dataset, fn {key, object} ->
-        {{default_hash(key), key}, object}
+        {{key_hash(key), key}, object}
       end)
       |> :lists.sort()
     end
+  end
+
+  @doc """
+  Merge two transactions.
+  The items of second transaction prevails in case of coincidence of keys.
+  The second transaction is delete
+  """
+  @spec merge_tx(transaction(), transaction()) :: transaction()
+  def merge_tx(ets1, ets2) do
+    do_merge_tables(ets1, ets2, :ets.first(ets2))
+  end
+
+  defp do_merge_tables(ets1, ets2, :"$end_of_table") do
+    :ets.delete(ets2)
+    ets1
+  end
+
+  defp do_merge_tables(ets1, ets2, key) do
+    :ets.insert(ets1, :ets.lookup(ets2, key))
+    do_merge_tables(ets1, ets2, :ets.next(ets2, key))
   end
 
   defp task_async(fun) do
@@ -1287,7 +1341,7 @@ defmodule DetsPlux do
     case {new_entry_hash, old_entry_hash} do
       {same, same} ->
         # hash collision should be really seldom, or this is going to be expensive
-        old_entry_key = keyfun(decode(old_entry_bin))
+        old_entry_key = key_fun(decode(old_entry_bin))
 
         case {new_entry_key, old_entry_key} do
           {same, same} -> :equal
@@ -1382,7 +1436,7 @@ defmodule DetsPlux do
     Enum.find_value(entries, fn entry ->
       entry = decode(entry)
 
-      if keyfun(entry) == key do
+      if key_fun(entry) == key do
         entry
       end
     end)
@@ -1443,8 +1497,7 @@ defmodule DetsPlux do
 end
 
 defimpl Enumerable, for: DetsPlux do
-  alias DetsPlus.FileReader
-  import DetsPlux, only: [decode: 1]
+  alias DetsPlux.FileReader
 
   @suffixId "DEX+"
   @start_offset byte_size(@suffixId)
@@ -1490,7 +1543,7 @@ defimpl Enumerable, for: DetsPlux do
     ret =
       DetsPlux.iterate(acc, new_dataset, old_file, fn acc, _entry_hash, entry_blob, entry ->
         if entry != :delete do
-          fun.(entry || decode(entry_blob), acc)
+          fun.(entry || DetsPlux.decode(entry_blob), acc)
         else
           {:cont, acc}
         end

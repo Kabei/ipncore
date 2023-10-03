@@ -1,6 +1,6 @@
 defmodule MinerWorker do
   use GenServer
-  alias Ippan.ClusterNode
+  alias Ippan.ClusterNodes
   alias Ippan.TxHandler
   alias Ippan.Block
   require SqliteStore
@@ -44,7 +44,7 @@ defmodule MinerWorker do
       IO.puts("Here 0")
       conn = :persistent_term.get(:asset_conn)
       stmts = :persistent_term.get(:asset_stmt)
-      dets = :persistent_term.get(:dets_balance)
+      dets = DetsPlux.get(:balance)
 
       [block_height, prev_hash] =
         SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
@@ -73,7 +73,7 @@ defmodule MinerWorker do
 
         {node_id, node} = random_node()
 
-        case ClusterNode.call(node_id, "verify_block", block_check, 10_000, 2) do
+        case ClusterNodes.call(node_id, "verify_block", block_check, 10_000, 2) do
           {:ok, true} ->
             url = Block.cluster_decode_url(node.hostname, creator_id, height)
             :ok = Download.from(url, decode_path)
@@ -160,7 +160,7 @@ defmodule MinerWorker do
   end
 
   defp random_node do
-    case ClusterNode.get_random_node() do
+    case ClusterNodes.get_random_node() do
       nil ->
         :timer.sleep(1_000)
         random_node()

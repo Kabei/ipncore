@@ -52,8 +52,11 @@ defmodule Ippan.BlockHandler do
           (1 == priority and :ets.info(ets_msg, :size) > 0) ->
         IO.inspect("MSG Size > 0")
 
+        ets_dmsg = :ets.whereis(:dmsg)
+        ets_dhash = :ets.whereis(:dhash)
+
         {acc_msg, acc_decode} =
-          do_iterate(ets_msg, :ets.first(ets_msg), %{}, %{}, 0)
+          do_iterate(ets_msg, ets_dmsg, ets_dhash, :ets.first(ets_msg), UMap.new(), UMap.new(), 0)
 
         content = encode_file!(%{"data" => acc_msg, "vsn" => @version})
 
@@ -86,71 +89,40 @@ defmodule Ippan.BlockHandler do
     end
   end
 
-  defp do_iterate(_ets_msg, :"$end_of_table", messages, decode_messages, _),
-    do: {Map.values(messages), Map.values(decode_messages)}
+  defp do_iterate(
+         _ets_msg,
+         _ets_dmsg,
+         _ets_dhash,
+         :"$end_of_table",
+         acc_msg,
+         acc_dmsg,
+         _
+       ),
+       do: {UMap.values(acc_msg), UMap.values(acc_dmsg)}
 
-  defp do_iterate(ets_msg, key, messages, decode_message, acc_size) do
-    [msg] = :ets.lookup(ets_msg, key)
+  defp do_iterate(ets_msg, ets_dmsg, ets_dhash, key, acc_msg, acc_dmsg, acc_size) do
+    [{_, msg}] = :ets.lookup(ets_msg, key)
+    [{_, dmsg}] = :ets.lookup(ets_dmsg, key)
 
-    {acc_msg, acc_decode, size} =
-      case msg do
-        {
-          hash,
-          type,
-          from,
-          args,
-          timestamp,
-          msg_sig,
-          size
-        } ->
-          acc_msg = Map.put(messages, hash, msg_sig)
-
-          acc_decode =
-            Map.put(decode_message, hash, [
-              hash,
-              type,
-              from,
-              args,
-              timestamp,
-              size
-            ])
-
-          {acc_msg, acc_decode, size}
-
-        {
-          hash,
-          type,
-          _key,
-          from,
-          args,
-          timestamp,
-          msg_sig,
-          size
-        } ->
-          acc_msg = Map.put(messages, hash, msg_sig)
-
-          acc_decode =
-            Map.put(decode_message, hash, [
-              hash,
-              type,
-              from,
-              args,
-              timestamp,
-              size
-            ])
-
-          {acc_msg, acc_decode, size}
-      end
-
-    acc_size = acc_size + size
     :ets.delete(ets_msg, key)
+    :ets.delete(ets_dmsg, key)
+    :ets.delete(ets_dhash, key)
+    acc_size = acc_size + List.last(dmsg)
 
     case @max_block_data_size > acc_size do
       false ->
-        do_iterate(ets_msg, :ets.next(ets_msg, key), acc_msg, acc_decode, acc_size)
+        do_iterate(
+          ets_msg,
+          ets_dmsg,
+          ets_dhash,
+          :ets.next(ets_msg, key),
+          UMap.put(acc_msg, key, msg),
+          UMap.put(acc_dmsg, key, dmsg),
+          acc_size
+        )
 
       _true ->
-        {Map.values(acc_msg), Map.values(acc_decode)}
+        {UMap.values(acc_msg), UMap.values(acc_dmsg)}
     end
   end
 
@@ -213,6 +185,7 @@ defmodule Ippan.BlockHandler do
 
           conn = :persistent_term.get(:asset_conn)
           stmts = :persistent_term.get(:asset_stmt)
+          wallets = DetsPlux.whereis(:wallet)
 
           validator =
             SqliteStore.lookup_map(
@@ -224,8 +197,8 @@ defmodule Ippan.BlockHandler do
               Validator
             )
 
-          decode_msgs =
-            Enum.reduce(messages, %{}, fn [msg, sig], acc ->
+          decode_umap =
+            Enum.reduce(messages, UMap.new(), fn [msg, sig], acc ->
               hash = Blake3.hash(msg)
               size = byte_size(msg) + byte_size(sig)
 
@@ -234,6 +207,7 @@ defmodule Ippan.BlockHandler do
                   TxHandler.valid_from_file!(
                     conn,
                     stmts,
+                    wallets,
                     hash,
                     msg,
                     sig,
@@ -242,22 +216,23 @@ defmodule Ippan.BlockHandler do
                     validator
                   )
 
-                IO.inspect(msg)
-
-                Map.put(acc, hash, msg)
+                UMap.put_new(acc, hash, msg)
               catch
                 _ -> acc
               end
             end)
-            |> Map.values()
 
-          if count != length(decode_msgs) do
+          if count != UMap.size(decode_umap) do
             raise IppanError, "Invalid block messages count"
           end
 
           export_path = Path.join(:persistent_term.get(:decode_dir), filename)
 
-          :ok = File.write(export_path, encode_file!(%{"data" => decode_msgs, "vsn" => version}))
+          :ok =
+            File.write(
+              export_path,
+              encode_file!(%{"data" => UMap.values(decode_umap), "vsn" => version})
+            )
       end
     rescue
       error ->

@@ -1,5 +1,6 @@
-defmodule Ippan.ClusterNode do
+defmodule Ippan.ClusterNodes do
   require Logger
+  alias Ippan.Wallet
   alias Ippan.{LocalNode, Network}
   require SqliteStore
 
@@ -67,31 +68,36 @@ defmodule Ippan.ClusterNode do
   @impl Network
   def handle_request(
         "new_msg",
-        [false, msg = [hash | _]],
+        [false, [hash, type, from, args, timestamp, nonce, msg_sig, size]],
         _state
       ) do
-    IO.inspect(hash)
-
-    case :ets.member(:hash, hash) do
+    case :ets.member(:msg, hash) do
       true ->
         ["error", "Already exists"]
 
       false ->
-        # IO.inspect(msg)
-        height = :persistent_term.get(:height, 0)
-        :ets.insert(:hash, {hash, height})
-        :ets.insert(:msg, List.to_tuple(msg))
+        dets = DetsPlux.get(:wallet)
+        cache = DetsPlux.tx(:cache_nonce)
 
-        %{"height" => height}
+        case Wallet.update_nonce(dets, cache, from, nonce) do
+          :error ->
+            ["error", "Invalid nonce"]
+
+          _ ->
+            :ets.insert(:dmsg, {hash, [hash, type, from, args, timestamp, nonce, size]})
+            :ets.insert(:msg, {hash, msg_sig})
+        end
+
+        %{"height" => :persistent_term.get(:height, 0)}
     end
   end
 
   def handle_request(
         "new_msg",
-        [true, msg = [hash, type, key | _]],
+        [true, [hash, type, key | rest]],
         _state
       ) do
-    case :ets.member(:hash, hash) do
+    case :ets.member(:msg, hash) do
       true ->
         ["error", "Already exists"]
 
@@ -101,9 +107,19 @@ defmodule Ippan.ClusterNode do
 
         case :ets.insert_new(:dhash, {msg_key, hash, height}) do
           true ->
-            # IO.inspect(msg)
-            :ets.insert(:hash, {hash, height})
-            :ets.insert(:msg, List.to_tuple(msg))
+            [from, args, timestamp, nonce, msg_sig, size] = rest
+
+            dets = DetsPlux.get(:wallet)
+            cache = DetsPlux.tx(:cache_nonce)
+
+            case Wallet.update_nonce(dets, cache, from, nonce) do
+              :error ->
+                ["error", "Invalid nonce"]
+
+              _ ->
+                :ets.insert(:dmsg, {hash, [hash, type, key, from, args, timestamp, nonce, size]})
+                :ets.insert(:msg, {hash, msg_sig})
+            end
 
             %{"height" => height}
 

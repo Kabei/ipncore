@@ -1,7 +1,7 @@
 defmodule Ipncore.Application do
   @moduledoc false
   alias Phoenix.PubSub
-  alias Ippan.{ClusterNode, NetworkNode}
+  alias Ippan.{ClusterNodes, NetworkNodes}
   use Application
   # import Ippan.Utils, only: [to_atom: 1]
 
@@ -22,14 +22,14 @@ defmodule Ipncore.Application do
     children =
       [
         MemTables,
-        {DetsPlux, [name: :stats, file: stats_path]},
-        {DetsPlus, [name: :balance, file: balance_path, var: :dets_balance]},
+        {DetsPlux, [id: :stats, file: stats_path]},
+        {DetsPlux, [id: :balance, file: balance_path]},
         NetStore,
         MainStore,
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),
         Supervisor.child_spec({PubSub, [name: :network]}, id: :network),
-        ClusterNode,
-        NetworkNode,
+        ClusterNodes,
+        NetworkNodes,
         RoundManager,
         {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
       ]

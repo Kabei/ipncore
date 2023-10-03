@@ -1,6 +1,6 @@
-defmodule DetsPlus.FileReader do
+defmodule DetsPlux.FileReader do
   @moduledoc false
-  alias DetsPlus.FileReader
+  alias DetsPlux.FileReader
   defstruct [:fp, :module, :buffer_size, :offset, :chunk]
 
   def new(fp, start_offset \\ 0, opts \\ []) when is_integer(start_offset) do

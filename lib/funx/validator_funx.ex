@@ -1,5 +1,5 @@
 defmodule Ippan.Funx.Validator do
-  alias Ippan.ClusterNode
+  alias Ippan.ClusterNodes
   alias Phoenix.PubSub
   alias Ippan.Validator
   alias Ippan.Request.Source
@@ -14,7 +14,7 @@ defmodule Ippan.Funx.Validator do
   @table_name "blockchain.validator"
 
   def new(
-        %{id: account_id, conn: conn, dets: dets, stmts: stmts, timestamp: timestamp},
+        %{id: account_id, conn: conn, balance: {dets, tx}, stmts: stmts, timestamp: timestamp},
         owner_id,
         hostname,
         port,
@@ -39,9 +39,9 @@ defmodule Ippan.Funx.Validator do
         map_filter = Map.take(opts, Validator.optionals())
         pubkey = Fast64.decode64(pubkey)
         net_pubkey = Fast64.decode64(net_pubkey)
-        balance_key = BalanceStore.gen_key(account_id, @token)
+        balance_key = DetsPlux.tuple(account_id, @token)
 
-        case BalanceStore.subtract(dets, balance_key, stake) do
+        case BalanceStore.subtract(dets, tx, balance_key, stake) do
           :error ->
             :error
 
@@ -67,22 +67,22 @@ defmodule Ippan.Funx.Validator do
 
             event = %{"event" => "validator.new", "data" => validator}
             PubSub.broadcast(@pubsub, @topic, event)
-            ClusterNode.broadcast(event)
+            ClusterNodes.broadcast(event)
         end
     end
   end
 
   def update(
-        %{id: account_id, conn: conn, dets: dets, timestamp: timestamp},
+        %{id: account_id, conn: conn, balance: {dets, tx}, timestamp: timestamp},
         id,
         opts
       ) do
     map_filter = Map.take(opts, Validator.editable())
     fee = EnvStore.network_fee()
-    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_key = DetsPlux.tuple(account_id, @token)
 
-    case BalanceStore.subtract(dets, balance_key, fee) do
-      :error ->
+    case BalanceStore.subtract(dets, tx, balance_key, fee) do
+      false ->
         :error
 
       _ ->
@@ -94,23 +94,23 @@ defmodule Ippan.Funx.Validator do
 
         event = %{"event" => "validator.update", "data" => %{"id" => id, "args" => map}}
         PubSub.broadcast(@pubsub, @topic, event)
-        ClusterNode.broadcast(event)
+        ClusterNodes.broadcast(event)
     end
   end
 
   @spec delete(Source.t(), term) :: result()
-  def delete(%{id: account_id, conn: conn, dets: dets, stmts: stmts}, id) do
+  def delete(%{id: account_id, conn: conn, balance: {dets, tx}, stmts: stmts}, id) do
     validator = SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", id, Validator)
 
     if validator.stake > 0 do
-      balance_key = BalanceStore.gen_key(account_id, @token)
-      BalanceStore.income(dets, balance_key, validator.stake)
+      balance_key = DetsPlux.tuple(account_id, @token)
+      BalanceStore.income(dets, tx, balance_key, validator.stake)
     end
 
     SqliteStore.step(conn, stmts, "delete_validator", [id])
 
     event = %{"event" => "validator.delete", "data" => id}
     PubSub.broadcast(@pubsub, @topic, event)
-    ClusterNode.broadcast(event)
+    ClusterNodes.broadcast(event)
   end
 end

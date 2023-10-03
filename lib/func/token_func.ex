@@ -9,7 +9,7 @@ defmodule Ippan.Func.Token do
   @max_tokens Application.compile_env(:ipnworker, :max_tokens)
 
   def new(
-        %{id: account_id, conn: conn, dets: dets, stmts: stmts},
+        %{id: account_id, conn: conn, balance: {dets, tx}, stmts: stmts},
         id,
         owner_id,
         name,
@@ -47,9 +47,9 @@ defmodule Ippan.Func.Token do
         |> MapUtil.validate_url(:avatar)
         |> MapUtil.validate_any(:opts, Token.props())
 
-        balance_key = BalanceStore.gen_key(account_id, @token)
+        balance_key = DetsPlux.tuple(account_id, @token)
 
-        case BalanceStore.has_balance?(dets, balance_key, price) do
+        case BalanceStore.has?(dets, tx, balance_key, price) do
           false ->
             raise IppanError, "Insufficient balance"
 

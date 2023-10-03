@@ -1,13 +1,14 @@
 defmodule Ippan.Funx.Balance do
   require BalanceStore
 
-  def lock(%{dets: dets}, to_id, token_id, amount) do
-    balance_key = BalanceStore.gen_key(to_id, token_id)
-    BalanceStore.lock(dets, balance_key, amount)
+  def lock(%{balance: {dets, balacne_tx}}, to_id, token_id, amount) do
+    balance_key = DetsPlux.tuple(to_id, token_id)
+
+    BalanceStore.lock(dets, balacne_tx, balance_key, amount)
   end
 
-  def unlock(%{dets: dets}, to_id, token_id, amount) do
-    balance_key = BalanceStore.gen_key(to_id, token_id)
-    BalanceStore.unlock(dets, balance_key, amount)
+  def unlock(%{balance: {dets, balacne_tx}}, to_id, token_id, amount) do
+    balance_key = DetsPlux.tuple(to_id, token_id)
+    BalanceStore.unlock(dets, balacne_tx, balance_key, amount)
   end
 end

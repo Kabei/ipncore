@@ -3,7 +3,7 @@ defmodule Ippan.Func.Wallet do
   require SqliteStore
 
   def subscribe(
-        %{conn: conn, stmts: stmts, validator: validator},
+        %{validator: validator, wallets: {wallet_dets, wallet_tx}},
         pubkey,
         validator_id,
         sig_type
@@ -21,7 +21,7 @@ defmodule Ippan.Func.Wallet do
       byte_size(pubkey) > 897 ->
         raise IppanError, "Invalid pubkey size"
 
-      SqliteStore.exists?(conn, stmts, "exists_wallet", [id]) ->
+      DetsPlux.member_tx?(wallet_dets, wallet_tx, id) ->
         raise IppanError, "Already exists"
 
       true ->

@@ -43,4 +43,34 @@ defmodule Ippan.Wallet do
       created_at: created_at
     }
   end
+
+  @spec update_nonce(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) ::
+          pos_integer() | :error
+  def update_nonce(dets, tx_name, from, nonce) do
+    tx = DetsPlux.tx(tx_name)
+    key = DetsPlux.tuple(from, "n")
+    count = DetsPlux.get_tx(dets, tx, key, 0) + 1
+
+    if count == nonce do
+      DetsPlux.put(tx, key, count)
+      count
+    else
+      :error
+    end
+  end
+
+  @spec update_nonce!(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) ::
+          pos_integer() | no_return()
+  def update_nonce!(dets, tx_name, from, nonce) do
+    tx = DetsPlux.tx(tx_name)
+    key = DetsPlux.tuple(from, "n")
+    count = DetsPlux.get_tx(dets, tx, key, 0) + 1
+
+    if count != nonce do
+      raise IppanError, "Invalid nonce"
+    else
+      DetsPlux.put(tx, key, count)
+      count
+    end
+  end
 end

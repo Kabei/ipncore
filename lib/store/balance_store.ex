@@ -1,83 +1,111 @@
 defmodule BalanceStore do
-  defmacro gen_key(address, token) do
-    quote bind_quoted: [address: address, token: token], location: :keep do
-      IO.iodata_to_binary([address, "|", token])
+  defmacro requires(dets, tx, key, value) do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value] do
+      {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})
+
+      case balance >= value do
+        true ->
+          DetsPlux.put(tx, key, {balance - value, lock})
+
+        false ->
+          raise IppanError, "Insufficient balance"
+      end
     end
   end
 
-  defmacro has_balance?(dets, key, value) do
-    quote bind_quoted: [dets: dets, key: key, value: value] do
-      {_, {balance, _lock}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
+  def has?(dets, tx, key, value) do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value] do
+      {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})
 
-      balance >= value
+      case balance >= value do
+        true -> DetsPlux.put(tx, key, {balance - value, lock})
+        false -> false
+      end
     end
   end
 
-  defmacro can_be_unlock?(dets, key, value) do
-    quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_key, {_balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
+  defmacro income(dets, tx, key, value) do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
+      {balance, lock_amount} = DetsPlux.get_tx(dets, tx, key, {0, 0})
 
-      lock_amount >= value
+      DetsPlux.put(tx, key, {balance + value, lock_amount})
     end
   end
 
-  defmacro lock(dets, key, value) do
-    quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_, {balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
+  defmacro subtract(dets, tx, key, value) do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
+      {balance, lock_amount} = DetsPlux.get_tx(dets, tx, key, {0, 0})
+
+      case balance >= value do
+        true ->
+          DetsPlux.put(tx, key, {balance - value, lock_amount})
+
+        false ->
+          false
+      end
+    end
+  end
+
+  defmacro reset(tx, key) do
+    quote bind_quoted: [tx: tx, key: key], location: :keep do
+      DetsPlux.drop(tx, key)
+    end
+  end
+
+  defmacro pay(dets, tx, key, to_key, value) do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, to_key: to_key, value: value],
+          location: :keep do
+      {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})
+
+      result = balance - value
+
+      if result >= 0 do
+        DetsPlux.put(tx, key, {result, lock})
+        #
+        {balance2, lock2} = DetsPlux.get_tx(dets, tx, to_key, {0, 0})
+        DetsPlux.put(dets, key, {balance2 + value, lock2})
+      else
+        :error
+      end
+    end
+  end
+
+  defmacro pay!(dets, tx, key, to_key, value) do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, to_key: to_key, value: value],
+          location: :keep do
+      {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})
+
+      result = balance - value
+
+      if result >= 0 do
+        DetsPlux.put(tx, key, {result, lock})
+
+        {balance2, lock2} = DetsPlux.get_tx(dets, tx, to_key, {0, 0})
+        DetsPlux.put(dets, {key, {balance2 + value, lock2}})
+      else
+        raise IppanError, "Insufficient balance"
+      end
+    end
+  end
+
+  defmacro lock(dets, tx, key, value) do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
+      {balance, lock_amount} = DetsPlux.get_tx(dets, tx, key, {0, 0})
 
       if balance >= value do
-        DetsPlus.insert(dets, {key, {balance - value, lock_amount + value}})
+        DetsPlux.put(tx, key, {balance - value, lock_amount + value})
       else
         :error
       end
     end
   end
 
-  defmacro unlock(dets, key, value) do
-    quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_, {balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
+  defmacro unlock(dets, tx, key, value) do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
+      {balance, lock_amount} = DetsPlux.get_tx(dets, tx, key, {0, 0})
 
       if lock_amount >= value do
-        DetsPlus.insert(dets, {key, {balance + value, lock_amount - value}})
-      else
-        :error
-      end
-    end
-  end
-
-  defmacro income(dets, key, value) do
-    quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_, {balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
-
-      DetsPlus.insert(dets, {key, {balance + value, lock_amount}})
-    end
-  end
-
-  defmacro subtract(dets, key, value) do
-    quote bind_quoted: [dets: dets, key: key, value: value], location: :keep do
-      {_, {balance, lock_amount}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
-
-      result = balance - value
-
-      if result >= 0 do
-        DetsPlus.insert(dets, {key, {result, lock_amount}})
-      else
-        :error
-      end
-    end
-  end
-
-  defmacro pay(dets, key, to_key, value) do
-    quote bind_quoted: [dets: dets, key: key, to_key: to_key, value: value], location: :keep do
-      {_, {balance, lock}} = DetsPlus.lookup(dets, key, {nil, {0, 0}})
-
-      result = balance - value
-
-      if result >= 0 do
-        DetsPlus.insert(dets, {key, {result, lock}})
-
-        {_, {balance2, lock2}} = DetsPlus.lookup(dets, to_key, {nil, {0, 0}})
-        DetsPlus.insert(dets, {key, {balance2 + value, lock2}})
+        DetsPlux.put(tx, key, {balance + value, lock_amount - value})
       else
         :error
       end

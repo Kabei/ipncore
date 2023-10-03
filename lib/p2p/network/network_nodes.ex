@@ -1,4 +1,4 @@
-defmodule Ippan.NetworkNode do
+defmodule Ippan.NetworkNodes do
   alias Ippan.Round
   alias Ippan.Validator
   alias Ippan.Network
@@ -8,7 +8,7 @@ defmodule Ippan.NetworkNode do
     app: :ipncore,
     name: :network,
     table: :nw,
-    server: Ippan.NetworkNode.Server,
+    server: Ippan.NetworkNodes.Server,
     pubsub: :network,
     topic: "network",
     opts: Application.compile_env(:ipncore, :p2p_client),

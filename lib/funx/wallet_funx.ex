@@ -1,27 +1,22 @@
 defmodule Ippan.Funx.Wallet do
-  alias Ippan.{Address, Wallet}
-  require SqliteStore
+  alias Ippan.Address
 
-  def subscribe(%{conn: conn, stmts: stmts, timestamp: timestamp}, pubkey, validator_id, sig_type) do
+  def subscribe(
+        %{wallets: {_wallet_dets, wallet_tx}},
+        pubkey,
+        validator_id,
+        sig_type
+      ) do
     pubkey = Fast64.decode64(pubkey)
+    id = Address.hash(sig_type, pubkey)
 
-    wallet =
-      %Wallet{
-        id: Address.hash(sig_type, pubkey),
-        pubkey: pubkey,
-        validator: validator_id,
-        created_at: timestamp
-      }
-      |> Wallet.to_list()
-
-    SqliteStore.step(conn, stmts, "insert_wallet", wallet)
+    DetsPlux.put(wallet_tx, id, {pubkey, validator_id})
   end
 
   def unsubscribe(%{
         id: account_id,
-        conn: conn,
-        stmts: stmts
+        wallets: {_wallet_dets, wallet_tx}
       }) do
-    SqliteStore.step(conn, stmts, "delete_wallet", [account_id])
+    DetsPlux.delete(wallet_tx, account_id)
   end
 end

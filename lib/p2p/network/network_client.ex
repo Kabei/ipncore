@@ -6,7 +6,7 @@ defmodule Ippan.NetworkClient do
 
   @id :vid
   @adapter :gen_tcp
-  @node Ippan.NetworkNode
+  @node Ippan.NetworkNodes
   @ping_interval 45_000
   @opts Application.compile_env(:ipncore, :p2p_client)
   @time_to_reconnect 1_000

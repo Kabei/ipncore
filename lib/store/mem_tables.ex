@@ -16,13 +16,12 @@ defmodule MemTables do
   ]
 
   @tables_name %{
-    hash: "hash",
     dhash: "dhash",
     msg: "msg",
+    dmsg: "dmsg",
     # used after process round
     dtx: "dtx",
     # cache
-    wallet: "wallet",
     token: "token",
     validator: "validator",
     env: "env"
@@ -30,11 +29,10 @@ defmodule MemTables do
 
   @tables_opt %{
     msg: @dbag_named_opts,
-    hash: @set_named_opts,
+    dmsg: @dbag_named_opts,
     dhash: @set_named_opts,
     dtx: @set_named_concurrent_opts,
     # cache
-    wallet: @set_named_concurrent_opts,
     validator: @set_named_concurrent_opts,
     token: @set_named_concurrent_opts,
     env: @set_named_concurrent_opts

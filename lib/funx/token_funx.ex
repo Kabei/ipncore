@@ -9,7 +9,7 @@ defmodule Ippan.Funx.Token do
   @table_name "assets.token"
 
   def new(
-        %{id: account_id, conn: conn, dets: dets, stmts: stmts, timestamp: timestamp},
+        %{id: account_id, conn: conn, balance: {dets, tx}, stmts: stmts, timestamp: timestamp},
         id,
         owner_id,
         name,
@@ -26,13 +26,13 @@ defmodule Ippan.Funx.Token do
         :error
 
       true ->
-        balance_key = BalanceStore.gen_key(account_id, @token)
+        balance_key = DetsPlux.tuple(account_id, @token)
 
-        case BalanceStore.subtract(dets, balance_key, EnvStore.token_price()) do
-          :error ->
+        case BalanceStore.subtract(dets, tx, balance_key, EnvStore.token_price()) do
+          false ->
             :error
 
-          _ ->
+          _true ->
             map_filter =
               Map.take(opts, Token.optionals())
 
@@ -56,17 +56,23 @@ defmodule Ippan.Funx.Token do
   end
 
   def update(
-        %{id: account_id, conn: conn, dets: dets, timestamp: timestamp, validator: validator},
+        %{
+          id: account_id,
+          conn: conn,
+          balance: {dets, tx},
+          timestamp: timestamp,
+          validator: validator
+        },
         id,
         opts \\ %{}
       )
       when byte_size(id) <= 10 do
     map_filter = Map.take(opts, Token.editable())
     fee = EnvStore.network_fee()
-    balance_key = BalanceStore.gen_key(account_id, @token)
-    balance_validator_key = BalanceStore.gen_key(validator.owner, @token)
+    balance_key = DetsPlux.tuple(account_id, @token)
+    balance_validator_key = DetsPlux.tuple(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance_key, balance_validator_key, fee) do
+    case BalanceStore.pay(dets, tx, balance_key, balance_validator_key, fee) do
       :error ->
         :error
 

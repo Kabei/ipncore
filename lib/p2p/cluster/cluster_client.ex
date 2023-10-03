@@ -6,7 +6,7 @@ defmodule Ippan.ClusterClient do
 
   @id :name
   @adapter :gen_tcp
-  @node Ippan.ClusterNode
+  @node Ippan.ClusterNodes
   @ping_interval 45_000
   @opts Application.compile_env(:ipncore, :p2p_client)
   @time_to_reconnect 1_000

@@ -1,6 +1,6 @@
-defmodule DetsPlus.EntryWriter do
+defmodule DetsPlux.EntryWriter do
   @moduledoc false
-  alias DetsPlus.{EntryWriter, FileReader}
+  alias DetsPlux.{EntryWriter, FileReader}
   defstruct [:map, :fp, :filename]
 
   defmodule Table do

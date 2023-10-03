@@ -1,6 +1,6 @@
-defmodule DetsPlus.Bloom do
+defmodule DetsPlux.Bloom do
   @moduledoc false
-  alias DetsPlus.Bloom
+  alias DetsPlux.Bloom
   import Bitwise
   @hash_size_bits 64
   @atomic_bits 64

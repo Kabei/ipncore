@@ -1,7 +1,7 @@
 defmodule Ippan.ClusterServer do
   use ThousandIsland.Handler
   alias Ippan.P2P
-  alias Ippan.ClusterNode
+  alias Ippan.ClusterNodes
   require Logger
 
   @impl ThousandIsland.Handler
@@ -12,10 +12,10 @@ defmodule Ippan.ClusterServer do
     case P2P.server_handshake(
            tcp_socket,
            :persistent_term.get(:net_privkey),
-           &ClusterNode.fetch/1
+           &ClusterNodes.fetch/1
          ) do
       {:ok, id, %{sharedkey: sharedkey} = node, timeout} ->
-        ClusterNode.on_connect(id, node)
+        ClusterNodes.on_connect(id, node)
 
         {:continue, %{id: id, socket: tcp_socket, sharedkey: sharedkey}, timeout}
 
@@ -32,7 +32,7 @@ defmodule Ippan.ClusterServer do
 
   # event data | id method data
   def handle_data(packet, _socket, state) do
-    ClusterNode.on_message(packet, state)
+    ClusterNodes.on_message(packet, state)
     {:continue, state}
   end
 
@@ -40,21 +40,21 @@ defmodule Ippan.ClusterServer do
   def handle_close(_socket, state) do
     Logger.debug("handle close socket")
 
-    ClusterNode.on_disconnect(state)
+    ClusterNodes.on_disconnect(state)
     {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_shutdown(_socket, state) do
     Logger.debug("handle shutdown")
-    ClusterNode.on_disconnect(state)
+    ClusterNodes.on_disconnect(state)
     {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_timeout(_socket, state) do
     Logger.debug("handle timeout")
-    ClusterNode.on_disconnect(state)
+    ClusterNodes.on_disconnect(state)
     {:close, state}
   end
 end

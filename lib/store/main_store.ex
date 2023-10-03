@@ -5,7 +5,6 @@ defmodule MainStore do
   @version 0
 
   @creations %{
-    "account" => SQL.readFile!("lib/sql/accounts.sql"),
     "assets" => SQL.readFile!("lib/sql/assets.sql"),
     "blockchain" => SQL.readFile!("lib/sql/blockchain.sql"),
     "dns" => SQL.readFile!("lib/sql/dns.sql"),
@@ -18,7 +17,6 @@ defmodule MainStore do
 
   # databases
   @attaches %{
-    "account" => "accounts.db",
     "assets" => "assets.db",
     "dns" => "dns.db",
     "blockchain" => "blockchain.db"

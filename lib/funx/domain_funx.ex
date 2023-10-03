@@ -11,8 +11,8 @@ defmodule Ippan.Funx.Domain do
   def new(
         %{
           id: account_id,
+          balance: {dets, tx},
           conn: conn,
-          dets: dets,
           stmts: stmts,
           timestamp: timestamp
         },
@@ -28,8 +28,9 @@ defmodule Ippan.Funx.Domain do
         :error
 
       true ->
-        balance_key = BalanceStore.gen_key(account_id, @token)
-        case BalanceStore.subtract(dets, balance_key, price) do
+        balance_key = DetsPlux.tuple(account_id, @token)
+
+        case BalanceStore.subtract(dets, tx, balance_key, price) do
           :error ->
             :error
 
@@ -55,8 +56,8 @@ defmodule Ippan.Funx.Domain do
   def update(
         %{
           id: account_id,
+          balance: {dets, tx},
           conn: conn,
-          dets: dets,
           validator: validator,
           timestamp: timestamp
         },
@@ -66,10 +67,11 @@ defmodule Ippan.Funx.Domain do
     map_filter = Map.take(opts, Domain.editable())
 
     fee = EnvStore.network_fee()
-    balance_key = BalanceStore.gen_key(account_id, @token)
-    balance_validator = BalanceStore.gen_key(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance_key, balance_validator, fee) do
+    balance_key = DetsPlux.tuple(account_id, @token)
+    balance_validator = DetsPlux.tuple(validator.owner, @token)
+
+    case BalanceStore.pay(dets, tx, balance_key, balance_validator, fee) do
       :error ->
         :error
 
@@ -93,14 +95,15 @@ defmodule Ippan.Funx.Domain do
   end
 
   def renew(
-        %{id: account_id, conn: conn, dets: dets, stmts: stmts, timestamp: timestamp},
+        %{id: account_id, conn: conn, balance: {dets, tx}, stmts: stmts, timestamp: timestamp},
         name,
         days
       ) do
     price = Domain.price(name, days)
+    key = DetsPlux.tuple(account_id, @token)
 
-    case BalanceStore.subtract(dets, {account_id, @token}, price) do
-      :error ->
+    case BalanceStore.subtract(dets, tx, key, price) do
+      false ->
         :error
 
       _ ->

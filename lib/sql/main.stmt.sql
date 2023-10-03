@@ -11,19 +11,6 @@ SELECT name, value FROM main.env;
 DELETE FROM main.env WHERE name=?1;
 
 
---name: insert_wallet
-INSERT INTO account.wallet VALUES(?1,?2,?3,?4);
-
---name: get_wallet
-SELECT * FROM account.wallet WHERE id=? LIMIT 1;
-
---name: exists_wallet
-SELECT 1 FROM account.wallet WHERE id=?;
-
---name: delete_wallet
-DELETE FROM account.wallet WHERE id=?;
-
-
 --name: insert_token
 INSERT INTO assets.token VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10);
 

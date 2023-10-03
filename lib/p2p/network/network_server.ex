@@ -1,7 +1,7 @@
 defmodule Ippan.NetworkServer do
   use ThousandIsland.Handler
   alias Ippan.P2P
-  alias Ippan.NetworkNode
+  alias Ippan.NetworkNodes
   require Logger
 
   @impl ThousandIsland.Handler
@@ -12,10 +12,10 @@ defmodule Ippan.NetworkServer do
     case P2P.server_handshake(
            tcp_socket,
            :persistent_term.get(:net_privkey),
-           &NetworkNode.fetch/1
+           &NetworkNodes.fetch/1
          ) do
       {:ok, id, %{sharedkey: sharedkey} = node, timeout} ->
-        NetworkNode.on_connect(id, node)
+        NetworkNodes.on_connect(id, node)
 
         {:continue, %{id: id, socket: tcp_socket, sharedkey: sharedkey}, timeout}
 
@@ -32,7 +32,7 @@ defmodule Ippan.NetworkServer do
 
   # event data | id method data
   def handle_data(packet, _socket, state) do
-    NetworkNode.on_message(packet, state)
+    NetworkNodes.on_message(packet, state)
 
     {:continue, state}
   end
@@ -41,21 +41,21 @@ defmodule Ippan.NetworkServer do
   def handle_close(_socket, state) do
     Logger.debug("handle close socket")
 
-    NetworkNode.on_disconnect(state)
+    NetworkNodes.on_disconnect(state)
     {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_shutdown(_socket, state) do
     Logger.debug("handle shutdown")
-    NetworkNode.on_disconnect(state)
+    NetworkNodes.on_disconnect(state)
     {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_timeout(_socket, state) do
     Logger.debug("handle timeout")
-    NetworkNode.on_disconnect(state)
+    NetworkNodes.on_disconnect(state)
     {:close, state}
   end
 end

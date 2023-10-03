@@ -12,8 +12,8 @@ defmodule Ippan.Func.Dns do
   def new(
         %{
           id: account_id,
+          balance: {dets, tx},
           conn: conn,
-          dets: dets,
           stmts: stmts,
           size: size
         },
@@ -29,7 +29,7 @@ defmodule Ippan.Func.Dns do
     {_subdomain, domain} = Domain.split(fullname)
 
     dns_type = DNS.type_to_alpha(type)
-    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_key = DetsPlux.tuple(account_id, @token)
 
     cond do
       not Match.hostname?(fullname) ->
@@ -44,16 +44,13 @@ defmodule Ippan.Func.Dns do
       not SqliteStore.exists?(conn, stmts, "exists_domain", [domain, account_id]) ->
         raise IppanError, "Invalid owner"
 
-      not BalanceStore.has_balance?(dets, balance_key, size) ->
-        raise IppanError, "Insufficient balance"
-
       true ->
-        :ok
+        BalanceStore.requires(dets, tx, balance_key, size)
     end
   end
 
   def update(
-        %{id: account_id, conn: conn, dets: dets, stmts: stmts, size: size},
+        %{id: account_id, conn: conn, balance: {dets, tx}, stmts: stmts},
         fullname,
         dns_hash16,
         params
@@ -64,10 +61,12 @@ defmodule Ippan.Func.Dns do
 
     dns_hash = Base.decode16!(dns_hash16, case: :mixed)
 
+    fee = EnvStore.network_fee()
+
     dns =
       SqliteStore.lookup_map(:dns, conn, stmts, "get_dns", {domain, dns_hash}, DNS)
 
-    balance_key = BalanceStore.gen_key(account_id, @token)
+    balance_key = DetsPlux.tuple(account_id, @token)
 
     cond do
       map_filter == %{} ->
@@ -79,7 +78,7 @@ defmodule Ippan.Func.Dns do
       not SqliteStore.exists?(conn, stmts, "owner_domain", [domain, account_id]) ->
         raise IppanError, "Invalid owner"
 
-      not BalanceStore.has_balance?(dets, balance_key, size) ->
+      not BalanceStore.has?(dets, tx, balance_key, fee) ->
         raise IppanError, "Insufficient balance"
 
       not match?(

@@ -73,7 +73,7 @@ defmodule Builder do
     {pk, sk, Address.hash(1, pk)}
   end
 
-  # Builder.wallet_sub(client, 0, 0) |> Builder.print
+  # Builder.wallet_sub(client, 0) |> Builder.print
   def wallet_sub(
         client = %Client{
           address: address,
@@ -81,8 +81,7 @@ defmodule Builder do
           pk: pk,
           sig_type: sig_type
         },
-        validator_id,
-        sig_type
+        validator_id
       ) do
     body =
       [

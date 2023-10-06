@@ -35,11 +35,13 @@ defmodule RoundCommit do
     balance_tx = DetsPlux.tx(:balance)
     supply_tx = DetsPlux.tx(:supply)
     wallet_tx = DetsPlux.tx(:wallet)
+    cache_nonce_tx = DetsPlux.tx(:cache_nonce)
 
     SqliteStore.rollback(conn)
     DetsPlux.rollback(wallet_tx)
     DetsPlux.rollback(balance_tx)
     DetsPlux.rollback(supply_tx)
+    DetsPlux.clear_tx(cache_nonce_tx)
     clear_cache()
   end
 

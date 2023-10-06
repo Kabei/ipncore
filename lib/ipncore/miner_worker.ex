@@ -44,7 +44,7 @@ defmodule MinerWorker do
       IO.puts("Here 0")
       conn = :persistent_term.get(:asset_conn)
       stmts = :persistent_term.get(:asset_stmt)
-      dets = DetsPlux.get(:balance)
+      balances = DetsPlux.whereis(:balance)
 
       [block_height, prev_hash] =
         SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
@@ -102,7 +102,7 @@ defmodule MinerWorker do
       IO.puts("Here 5")
 
       count_rejected =
-        mine_fun(version, messages, conn, stmts, dets, creator, block_id)
+        mine_fun(version, messages, conn, stmts, balances, creator, block_id)
 
       IO.puts("Here 6")
 
@@ -122,7 +122,7 @@ defmodule MinerWorker do
   end
 
   # Process the block
-  defp mine_fun(@version, messages, conn, stmts, dets, validator, block_id) do
+  defp mine_fun(@version, messages, conn, stmts, balances, validator, block_id) do
     creator_id = validator.id
 
     Enum.reduce(messages, 0, fn
@@ -130,7 +130,7 @@ defmodule MinerWorker do
         case TxHandler.handle_regular(
                conn,
                stmts,
-               dets,
+               balances,
                validator,
                hash,
                type,

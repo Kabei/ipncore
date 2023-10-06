@@ -73,7 +73,7 @@ defmodule Ippan.TxHandler do
 
     source = %{
       conn: conn,
-      balance: DetsPlux.whereis(:balance),
+      balance: {DetsPlux.get(:balance), DetsPlux.tx(:cache_balance)},
       id: from,
       hash: hash,
       size: size,
@@ -156,7 +156,7 @@ defmodule Ippan.TxHandler do
 
     source = %{
       conn: conn,
-      balance: DetsPlux.whereis(:balance),
+      balance: {DetsPlux.get(:balance), DetsPlux.tx(:cache_balance)},
       id: from,
       hash: hash,
       size: size,
@@ -200,7 +200,7 @@ defmodule Ippan.TxHandler do
   defmacro handle_regular(
              conn,
              stmts,
-             balance,
+             balances,
              validator,
              hash,
              type,
@@ -213,7 +213,7 @@ defmodule Ippan.TxHandler do
     quote bind_quoted: [
             conn: conn,
             stmts: stmts,
-            balance: balance,
+            balance: balances,
             validator: validator,
             hash: hash,
             type: type,
@@ -266,7 +266,7 @@ defmodule Ippan.TxHandler do
   end
 
   # only deferred transactions
-  def run_deferred_txs(conn, stmts, balance) do
+  def run_deferred_txs(conn, stmts, balances) do
     for {{type, _key}, [hash, account_id, validator_id, args, timestamp, _nonce, size]} <-
           :ets.tab2list(:dtx) do
       %{modx: module, fun: fun} = Funcs.lookup(type)
@@ -275,7 +275,7 @@ defmodule Ippan.TxHandler do
         id: account_id,
         conn: conn,
         stmts: stmts,
-        balance: balance,
+        balance: balances,
         type: type,
         validator: validator_id,
         hash: hash,

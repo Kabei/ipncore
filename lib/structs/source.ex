@@ -1,10 +1,10 @@
-defmodule Ippan.Request.Source do
+defmodule Ippan.Source do
   alias Ippan.Event
 
   @type t :: %__MODULE__{
           hash: binary(),
           conn: reference(),
-          dets: pid(),
+          balance: pid(),
           stmts: map(),
           event: Event.t(),
           id: String.t() | nil,
@@ -13,5 +13,5 @@ defmodule Ippan.Request.Source do
           timestamp: non_neg_integer(),
           size: non_neg_integer()
         }
-  defstruct [:hash, :conn, :dets, :stmts, :event, :id, :validator, :node, :timestamp, :size]
+  defstruct [:hash, :conn, :balance, :stmts, :event, :id, :validator, :node, :timestamp, :size]
 end

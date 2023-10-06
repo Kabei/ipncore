@@ -118,13 +118,13 @@ SELECT count(1) FROM blockchain.block WHERE round = ?;
 
 
 --name: insert_round
-INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11);
+INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12);
 
 --name: get_round
 SELECT * FROM blockchain.round WHERE id = ? LIMIT 1;
 
 --name: get_rounds
-SELECT * FROM blockchain.round LIMIT ?1 OFFSET ?2;
+SELECT * FROM blockchain.round WHERE id >= ?1 LIMIT ?2 OFFSET ?3;
 
 --name: last_round
 SELECT id, hash FROM blockchain.round ORDER BY id DESC LIMIT 1;

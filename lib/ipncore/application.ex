@@ -15,15 +15,18 @@ defmodule Ipncore.Application do
     make_folders()
     load_keys()
 
-    stats_path = Path.join(:persistent_term.get(:store_dir), "stats.dets")
-    balance_path = Path.join(:persistent_term.get(:store_dir), "balance.dets")
+    store_dir = :persistent_term.get(:store_dir)
+    wallet_path = Path.join(store_dir, "wallet.dets")
+    balance_path = Path.join(store_dir, "balance.dets")
+    stats_path = Path.join(store_dir, "stats.dets")
 
     # services
     children =
       [
         MemTables,
-        {DetsPlux, [id: :stats, file: stats_path]},
+        {DetsPlux, [id: :wallet, file: wallet_path]},
         {DetsPlux, [id: :balance, file: balance_path]},
+        {DetsPlux, [id: :stats, file: stats_path]},
         NetStore,
         MainStore,
         Supervisor.child_spec({PubSub, [name: :cluster]}, id: :cluster),

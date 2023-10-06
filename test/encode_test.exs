@@ -8,8 +8,15 @@ defmodule RequestTest do
     "0x3jRrjwFU6EqYSdHYS9byJhhDygob",
     "0xUoYd2fz9DjrKnWkDiWkRyCqh2gn",
     "IPN",
-    [12, [45, 45564546], "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=", 454568.456458],
-    %{height: 0, hash: "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=", hashfile: "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=", signature: "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=", ev_count: 0},
+    [12, [45, 45_564_546], "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=", 454_568.456458],
+    %{
+      height: 0,
+      hash: "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=",
+      hashfile: "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=",
+      signature:
+        "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=",
+      ev_count: 0
+    },
     50000
   ]
 
@@ -21,15 +28,15 @@ defmodule RequestTest do
     input = @input
 
     json = Jason.encode!(input)
-    msgx = :msgpack.pack(input)
+    # msgx = :msgpack.pack(input)
     cbor = CBOR.encode(input)
-    ecbor = :ecbor.encode(input)
+    erl = :erlang.term_to_binary(input)
 
     Benchee.run(%{
       "jason" => fn -> Jason.decode!(json) end,
-      "msgpack" => fn -> :msgpack.unpack(msgx, use_nil: true) end,
+      # "msgpack" => fn -> :msgpack.unpack(msgx, use_nil: true) end,
       "cbor" => fn -> CBOR.decode(cbor) end,
-      "ecbor" => fn -> :ecbor.decode(ecbor) end
+      "erl" => fn -> :erlang.binary_to_term(erl) end
     })
   end
 
@@ -42,9 +49,10 @@ defmodule RequestTest do
 
     Benchee.run(%{
       "jason" => fn -> Jason.encode!(input) end,
-      "msgpack" => fn -> :msgpack.pack(input, use_nil: true) end,
+      # "msgpack" => fn -> :msgpack.pack(input, use_nil: true) end,
       "cbor" => fn -> CBOR.encode(input) end,
-      "ecbor" => fn -> :ecbor.encode(input) end
+      "erl" => fn -> :erlang.term_to_binary(input) end
+      # "ecbor" => fn -> :ecbor.encode(input) end
     })
   end
 end

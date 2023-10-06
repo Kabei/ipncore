@@ -6,15 +6,21 @@ defmodule Ippan.Round do
           hash: binary(),
           prev: binary() | nil,
           creator: non_neg_integer(),
-          signature: binary(),
+          signature: binary() | nil,
           coinbase: non_neg_integer(),
           count: non_neg_integer(),
           tx_count: non_neg_integer(),
           size: non_neg_integer(),
+          reason: 0 | 1 | 2 | 3,
           blocks: [map()] | nil,
           extra: [any()] | nil
         }
 
+  # Reason
+  # 0 = Success
+  # 1 = Timeout
+  # 2 = Round data failure
+  # 3 = Failure in all blocks of the round
   defstruct [
     :id,
     :hash,
@@ -25,6 +31,7 @@ defmodule Ippan.Round do
     :count,
     :tx_count,
     :size,
+    :reason,
     :blocks,
     :extra
   ]
@@ -41,6 +48,7 @@ defmodule Ippan.Round do
       x.count,
       x.tx_count,
       x.size,
+      x.reason,
       CBOR.encode(x.blocks),
       CBOR.encode(x.extra)
     ]
@@ -67,6 +75,7 @@ defmodule Ippan.Round do
         count,
         tx_count,
         size,
+        reason,
         blocks,
         extra
       ]) do
@@ -80,6 +89,7 @@ defmodule Ippan.Round do
       count: count,
       tx_count: tx_count,
       size: size,
+      reason: reason,
       blocks: CBOR.Decoder.decode(blocks) |> elem(0),
       extra: CBOR.Decoder.decode(extra) |> elem(0)
     }
@@ -119,6 +129,34 @@ defmodule Ippan.Round do
     msg_round
     |> MapUtil.to_atoms(~w(id creator hash prev signature))
     |> Map.put(:blocks, blocks)
+  end
+
+  def null?(%{reason: reason}) when reason > 0, do: true
+  def null?(_), do: false
+
+  @spec cancel(
+          pos_integer(),
+          binary() | nil,
+          binary() | nil,
+          binary() | nil,
+          pos_integer(),
+          pos_integer()
+        ) :: map
+  def cancel(id, hash, prev, signature, creator_id, reason) do
+    %{
+      id: id,
+      hash: hash || prev,
+      prev: prev,
+      creator: creator_id,
+      signature: signature,
+      coinbase: 0,
+      count: 0,
+      tx_count: 0,
+      size: 0,
+      reason: reason,
+      blocks: [],
+      extra: nil
+    }
   end
 
   defp normalize(nil), do: ""

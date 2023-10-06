@@ -47,7 +47,8 @@ defmodule DetsPlux do
   @start_offset byte_size(@suffixId)
   @page_cache_memory 1_000_000_000
   @ets_type :set
-  @txs_suffix :dbx
+  @dets_suffix :dets
+  @txs_suffix :txs
 
   alias DetsPlux.{Bloom, EntryWriter, FileReader, FileWriter}
   use GenServer
@@ -162,7 +163,7 @@ defmodule DetsPlux do
     }
 
     {:ok, pid} = GenServer.start_link(__MODULE__, state, hibernate_after: 5_000, name: name)
-    :persistent_term.put({:dets, name}, pid)
+    :persistent_term.put({@dets_suffix, name}, pid)
     {:ok, pid}
   end
 
@@ -297,9 +298,9 @@ defmodule DetsPlux do
     |> Enum.to_list()
   end
 
-  @spec get(atom) :: port()
+  @spec get(atom) :: db
   def get(name) do
-    :persistent_term.get({:dets, name})
+    :persistent_term.get({@dets_suffix, name})
   end
 
   @doc """
@@ -407,7 +408,7 @@ defmodule DetsPlux do
     tid
   end
 
-  @spec whereis(atom) :: {port(), transaction()}
+  @spec whereis(atom) :: {db(), transaction()}
   def whereis(name) do
     {:persistent_term.get(name), :persistent_term.get({@txs_suffix, name}, nil)}
   end
@@ -417,18 +418,31 @@ defmodule DetsPlux do
   """
   @spec tx(tx_name :: atom()) :: transaction()
   def tx(tx_name) do
-    case :persistent_term.get({@txs_suffix, tx_name}, nil) do
-      nil ->
-        begin(tx_name)
+    try do
+      case :persistent_term.get({@txs_suffix, tx_name}, nil) do
+        nil ->
+          begin(tx_name)
 
-      tid ->
-        tid
+        tid ->
+          case :ets.info(tid, :name) do
+            :undefined -> begin(tx_name)
+            tid -> tid
+          end
+      end
+    rescue
+      ArgumentError ->
+        begin(tx_name)
     end
   end
 
-  @spec tx_erase(atom()) :: boolean
-  def tx_erase(tx_name) do
-    :persistent_term.erase({@txs_suffix, tx_name})
+  @spec tx_erase(transaction()) :: boolean
+  def tx_erase(tx) when is_atom(tx) do
+    :persistent_term.erase({@txs_suffix, tx})
+  end
+
+  def tx_erase(tx) do
+    name = :ets.info(tx, :name)
+    :persistent_term.erase({@txs_suffix, name})
   end
 
   @spec put(transaction(), key(), value()) :: true
@@ -501,6 +515,7 @@ defmodule DetsPlux do
   """
   @spec sync(db(), transaction()) :: :ok
   def sync(pid, tx) do
+    tx_erase(tx)
     call(pid, {:sync, tx})
   end
 
@@ -509,6 +524,7 @@ defmodule DetsPlux do
   """
   @spec start_sync(db(), transaction()) :: :ok
   def start_sync(pid, tx) do
+    tx_erase(tx)
     call(pid, {:start_sync, tx})
   end
 
@@ -987,11 +1003,12 @@ defmodule DetsPlux do
   """
   @spec merge_tx(transaction(), transaction()) :: transaction()
   def merge_tx(ets1, ets2) do
+    tx_erase(ets2)
     do_merge_tables(ets1, ets2, :ets.first(ets2))
   end
 
   defp do_merge_tables(ets1, ets2, :"$end_of_table") do
-    rollback(ets2)
+    :ets.delete(ets2)
     ets1
   end
 

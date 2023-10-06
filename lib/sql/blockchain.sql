@@ -34,14 +34,15 @@ CREATE TABLE IF NOT EXISTS block(
 
 CREATE TABLE IF NOT EXISTS round(
   id BIGINT PRIMARY KEY NOT NULL,
-  hash BLOB NOT NULL,
+  hash BLOB,
   prev BLOB,
   creator BIGINT NOT NULL,
-  signature BLOB NOT NULL,
+  signature BLOB,
   coinbase BIGINT,
   count BIGINT,
   tx_count BIGINT,
   size BIGINT,
+  reason INTEGER,
   blocks BLOB,
   extra BLOB
 ) WITHOUT ROWID;

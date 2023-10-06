@@ -137,11 +137,11 @@ defmodule SqliteStore do
     end
   end
 
-  defmacro fetch_all(conn, stmts, name, limit \\ 100, offset \\ 0) do
-    quote bind_quoted: [conn: conn, stmts: stmts, name: name, limit: limit, offset: offset],
+  defmacro fetch_all(conn, stmts, name, args \\ []) do
+    quote bind_quoted: [conn: conn, stmts: stmts, name: name, args: args],
           location: :keep do
       stmt = Map.get(stmts, name)
-      Sqlite3NIF.bind(conn, stmt, [limit, offset])
+      Sqlite3NIF.bind(conn, stmt, args)
 
       case Sqlite3.fetch_all(conn, stmt, 100) do
         {:ok, data} -> data

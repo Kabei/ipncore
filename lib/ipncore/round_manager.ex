@@ -29,7 +29,7 @@ defmodule RoundManager do
 
   @impl true
   def init(_args) do
-    IO.puts("Init RoundManager")
+    IO.puts("RoundManager init")
 
     vid = :persistent_term.get(:vid)
     conn = :persistent_term.get(:asset_conn)
@@ -71,12 +71,16 @@ defmodule RoundManager do
     # Start block-timer: keep candidate updated
     BlockTimer.start_link(%{block_id: current_block_id, creator: vid, conn: conn, stmts: stmts})
 
+    # start round commit
+    # RoundCommit.start_link(nil)
+
     {:ok,
      %{
        block_id: current_block_id,
-       dets: DetsPlux.get(:balance),
+       balance: DetsPlux.get(:balance),
        conn: conn,
        stmts: stmts,
+       status: :starting,
        miner_pool: miner_pool_pid,
        players: ets_players,
        votes: ets_votes,
@@ -94,12 +98,40 @@ defmodule RoundManager do
   end
 
   @impl true
+  def handle_continue(:next, %{status: :starting, tRef: tRef} = init_state) do
+    IO.puts("next starting")
+    :timer.cancel(tRef)
+
+    new_state =
+      case Process.whereis(RoundSync) do
+        nil ->
+          # start round sync process
+          %{round_id: round_id, round_hash: round_hash, miner_pool: miner_pool_pid} =
+            state = get_state_after_check(init_state)
+
+          RoundSync.start_link(%{
+            round_id: round_id,
+            round_hash: round_hash,
+            miner_pool: miner_pool_pid,
+            pid: self()
+          })
+
+          state
+
+        _ ->
+          get_state_after_check(init_state)
+      end
+
+    {:noreply, %{new_state | status: :starting}, :hibernate}
+  end
+
   def handle_continue(:next, %{tRef: tRef} = state) do
+    IO.puts("next")
     :timer.cancel(tRef)
     new_state = get_state_after_check(state)
 
     if new_state.turn do
-      spawn_build_round(new_state)
+      spawn_build_local_round(new_state)
 
       {:noreply, new_state, :hibernate}
     else
@@ -135,6 +167,7 @@ defmodule RoundManager do
           votes: ets_votes,
           rcid: rcid,
           round_id: round_id,
+          status: status,
           vid: vid
         } =
           state
@@ -162,10 +195,15 @@ defmodule RoundManager do
         cond do
           count == div(n, 2) + 1 ->
             IO.puts("Vote ##{id}")
-            spawn_build_foreign_round(state, msg_round)
+
+            if status != :synced do
+              GenServer.cast(RoundSync, {:add, msg_round})
+            else
+              spawn_build_foreign_round(state, msg_round)
+            end
 
           true ->
-            :ok
+            nil
         end
       end
 
@@ -247,13 +285,14 @@ defmodule RoundManager do
           candidates: ets_candidates,
           conn: conn,
           stmts: stmts,
-          dets: dets,
           block_id: block_id,
           round_id: round_id,
           votes: ets_votes
         } = state
       ) do
-    Logger.debug("[completed] Round ##{round_id} | #{Base.encode16(round.hash)}")
+    run_id = round.id
+    next = run_id == round_id
+    Logger.debug("[completed] Round ##{run_id} | #{Base.encode16(round.hash)}")
 
     # Clear round-message-votes and block-candidates
     :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
@@ -261,65 +300,92 @@ defmodule RoundManager do
     :ets.delete_all_objects(ets_candidates)
 
     # Set last local height and prev hash and reset timer
-    BlockTimer.complete(conn, stmts)
+    if next do
+      BlockTimer.complete(conn, stmts)
+    end
 
     # IO.inspect("select_delete votes: #{c}")
 
+    # replicate data to cluster nodes
+    ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
+
     # save all round
-    spawn_link(fn ->
-      SqliteStore.sync(conn)
+    RoundCommit.sync(conn, round.tx_count)
 
-      if round.tx_count > 0 do
-        balance_tx = DetsPlux.tx(:balance)
-        tx_supply = DetsPlux.tx(:supply)
-        DetsPlux.begin(:balance)
-        DetsPlux.begin(:supply)
-        DetsPlux.sync(dets, balance_tx)
-        DetsPlux.sync(:stats, tx_supply)
-      end
-
-      # replicate data to cluster nodes
-      ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
-    end)
-
-    {:noreply,
-     %{
-       state
-       | block_id: block_id + length(round.blocks),
-         round_id: round.id + 1,
-         round_hash: round.hash
-     }, {:continue, :next}}
+    if next do
+      {:noreply,
+       %{
+         state
+         | block_id: block_id + length(round.blocks),
+           round_id: round.id + 1,
+           round_hash: round.hash
+       }, {:continue, :next}}
+    else
+      {:noreply, state, :hibernate}
+    end
   end
 
   def handle_cast(
-        :incomplete,
-        %{conn: conn, stmts: stmts, players: ets_players, rcid: rcid, vid: vid} =
+        {:incomplete, round_nulled},
+        %{
+          conn: conn,
+          stmts: stmts,
+          players: ets_players,
+          rcid: rcid,
+          round_id: round_id
+        } =
           state
       ) do
-    if rcid != vid do
-      # Reverse changes
-      SqliteStore.rollback(conn)
-      balance_tx = DetsPlux.tx(:balance)
-      DetsPlux.rollback(balance_tx)
+    next = round_nulled.id == round_id
 
-      # Delete validator
-      :done = SqliteStore.step(conn, stmts, "delete_validator", [rcid])
-      SqliteStore.sync(conn)
+    # Reverse changes
+    RoundCommit.rollback(conn)
 
-      # Delete player
-      :ets.delete(ets_players, rcid)
-      NetworkNodes.disconnect(rcid)
-      total_players = get_total_players(ets_players)
+    # round nulled
+    :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round_nulled))
 
-      # send event
-      PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
-        "event" => "validator.delete",
-        "data" => rcid
-      })
+    # Delete validator
+    :done = SqliteStore.step(conn, stmts, "delete_validator", [rcid])
+    SqliteStore.sync(conn)
 
-      {:noreply, %{state | total: total_players}, {:continue, :next}}
+    # Delete player
+    :ets.delete(ets_players, rcid)
+    NetworkNodes.disconnect(rcid)
+    total_players = get_total_players(ets_players)
+
+    # send event
+    PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
+      "event" => "validator.delete",
+      "data" => rcid
+    })
+
+    if next do
+      {:noreply, %{state | round_id: round_id + 1, total: total_players}, {:continue, :next}}
     else
-      {:noreply, state, {:continue, :next}}
+      {:noreply, %{state | total: total_players}, :hibernate}
+    end
+  end
+
+  def handle_cast(
+        {:put, %{"id" => round_id, "hash" => round_hash, "block_id" => block_id}},
+        state
+      ) do
+    {:noreply,
+     %{
+       state
+       | round_id: round_id,
+         round_hash: round_hash,
+         block_id: block_id
+     }}
+  end
+
+  def handle_cast({:status, status, next}, state) do
+    IO.puts("set status: #{status} - #{next}")
+
+    if next do
+      {:noreply, %{state | status: status}, {:continue, :next}}
+    else
+      {:noreply, %{state | status: status}, :hibernate}
     end
   end
 
@@ -336,6 +402,7 @@ defmodule RoundManager do
     PubSub.unsubscribe(@pubsub, "validator")
     PubSub.unsubscribe(@pubsub, "env")
     :poolboy.stop(miner_pool_pid)
+    # RoundCommit.stop()
   end
 
   defp ets_start(name, opts) do
@@ -361,10 +428,10 @@ defmodule RoundManager do
          %{
            block_id: block_id,
            round_id: round_id,
-           round_hash: round_hash,
+           round_hash: prev_hash,
            conn: conn,
            stmts: stmts,
-           dets: dets,
+           balance: balances,
            rcid: rcid,
            miner_pool: pool_pid,
            votes: ets_votes,
@@ -373,11 +440,10 @@ defmodule RoundManager do
          },
          message \\ nil
        ) do
+    :timer.cancel(tRef)
     pid = self()
 
     if rcid != vid do
-      :timer.cancel(tRef)
-
       spawn_link(fn ->
         msg_round =
           case message do
@@ -398,147 +464,136 @@ defmodule RoundManager do
               message
           end
 
-        if msg_round != nil do
-          blocks =
-            msg_round.blocks
-
-          {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
-
+        if msg_round do
           creator =
             SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", rcid, Validator)
 
-          hash_count = length(hashes)
-
-          # Tasks to create blocks
-          result =
-            Enum.with_index(blocks, fn element, index -> {block_id + index, element} end)
-            |> Enum.map(fn {id, block} ->
-              Task.async(fn ->
-                :poolboy.transaction(
-                  pool_pid,
-                  fn worker ->
-                    MinerWorker.mine(worker, Map.put(block, :id, id), creator, round_id)
-                  end,
-                  :infinity
-                )
-              end)
-            end)
-            |> Enum.map(fn t -> Task.await(t, :infinity) end)
-
-          IO.puts("MinerWorker: " <> inspect(result))
-
-          # Count Blocks and txs rejected
-          {blocks, txs_rejected} =
-            Enum.reduce(result, {[], 0}, fn x, {acc, acc_txr} ->
-              case x do
-                {:ok, block} -> {acc ++ [block], acc_txr + block.rejected}
-                :error -> {acc, acc_txr}
-              end
-            end)
-
-          block_count = length(blocks)
-
-          if (hash_count > 0 and block_count > 0) or hash_count == block_count do
-            # Run deferred txs
-            TxHandler.run_deferred_txs(conn, stmts, dets)
-
-            # Calculate reward
-            reward = Round.reward(tx_count, txs_rejected, size)
-
-            balance_tx = DetsPlux.tx(:balance)
-
-            if reward > 0 do
-              balance_key = DetsPlux.tuple(creator.owner, @token)
-              BalanceStore.income(dets, balance_tx, balance_key, reward)
-            end
-
-            # Run jackpot and events
-            jackpot_amount =
-              if rem(round_id, 100) == 0 do
-                last_block_id = block_id + block_count
-
-                run_jackpot(
-                  conn,
-                  stmts,
-                  dets,
-                  balance_tx,
-                  round_id,
-                  last_block_id,
-                  round_hash,
-                  reward
-                )
-              else
-                0
-              end
-
-            # save round
-            round = %{
+          build_round(
+            %{
               id: round_id,
-              creator: msg_round.creator,
-              hash: msg_round.hash,
-              prev: round_hash,
-              signature: msg_round.signature,
-              coinbase: reward + jackpot_amount,
-              count: block_count,
-              tx_count: tx_count,
-              size: size,
-              blocks: blocks,
-              extra: nil
-            }
-
-            # IO.inspect(round)
-
-            :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
-
-            GenServer.cast(pid, {:complete, round})
-          else
-            GenServer.cast(pid, :incomplete)
-          end
+              block: msg_round.blocks,
+              prev: prev_hash,
+              signature: msg_round.signature
+            },
+            block_id,
+            creator,
+            conn,
+            stmts,
+            balances,
+            pool_pid,
+            pid
+          )
         else
-          GenServer.cast(pid, :incomplete)
+          GenServer.cast(
+            pid,
+            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1)}
+          )
         end
       end)
     end
   end
 
-  defp spawn_build_round(%{
+  defp spawn_build_local_round(%{
          block_id: block_id,
          round_id: round_id,
-         round_hash: round_hash,
+         round_hash: prev_hash,
          candidates: ets_candidates,
          conn: conn,
          stmts: stmts,
-         dets: dets,
+         status: status,
+         balance: balances,
          miner_pool: pool_pid,
-         vid: creator_id
+         rcid: rcid,
+         vid: vid
        }) do
     pid = self()
 
-    spawn_link(fn ->
-      # Time to wait messages (msg_block) to arrived
-      blocks =
-        BlockTimer.get_blocks(block_id) ++
-          :ets.tab2list(ets_candidates)
+    if rcid == vid do
+      spawn_link(fn ->
+        IO.puts("RM: build_local_round")
 
-      {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
-      creator = :persistent_term.get(:validator)
-      hash = Round.compute_hash(round_id, round_hash, creator_id, hashes)
-      hash_count = length(blocks)
+        blocks =
+          case status do
+            :synced ->
+              BlockTimer.get_blocks(block_id) ++
+                :ets.tab2list(ets_candidates)
 
-      {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
+            # Time to wait messages (msg_block) to arrived
+            _ ->
+              []
+          end
 
-      # pre-build
-      pre_round = %{
-        id: round_id,
-        blocks: blocks,
-        creator: creator_id,
-        hash: hash,
-        signature: signature,
-        prev: round_hash
-      }
+        creator = :persistent_term.get(:validator)
+        {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
+        hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes)
+        {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
 
-      # send message
-      NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
+        # pre-build
+        pre_round = %{
+          id: round_id,
+          blocks: blocks,
+          creator: creator.id,
+          hash: hash,
+          signature: signature,
+          prev: prev_hash
+        }
+
+        # send message
+        NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
+
+        build_round(
+          %{
+            id: round_id,
+            hash: hash,
+            prev: prev_hash,
+            blocks: blocks,
+            signature: signature,
+            size: size,
+            tx_count: tx_count
+          },
+          block_id,
+          creator,
+          conn,
+          stmts,
+          balances,
+          pool_pid,
+          pid
+        )
+      end)
+    end
+  end
+
+  @spec build_round(map, pos_integer, map, reference(), map, pid, pid, pid) ::
+          {:ok, term} | :error
+  def build_round(
+        %{
+          id: round_id,
+          blocks: blocks,
+          prev: prev_hash,
+          signature: signature
+        } = map,
+        block_id,
+        creator,
+        conn,
+        stmts,
+        balances,
+        pool_pid,
+        pid
+      ) do
+    if Round.null?(map) do
+      GenServer.cast(pid, {:incomplete, map})
+    else
+      creator_id = creator.id
+      block_count = length(blocks)
+
+      {hash, tx_count, size} =
+        if map.hash do
+          {map.hash, map.tx_count, map.size}
+        else
+          {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
+          hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes)
+          {hash, tx_count, size}
+        end
 
       # Tasks to create blocks
       result =
@@ -567,122 +622,163 @@ defmodule RoundManager do
           end
         end)
 
-      block_count = length(blocks)
+      block_approved_count = length(blocks)
 
-      if (hash_count > 0 and block_count > 0) or hash_count == block_count do
+      if (block_count > 0 and block_count > 0) or block_count == block_approved_count do
         # Run deferred txs
-        TxHandler.run_deferred_txs(conn, stmts, dets)
+        TxHandler.run_deferred_txs(conn, stmts, balances)
+
+        balance_tx = DetsPlux.begin(:balance)
 
         # Calculate reward
-        reward = Round.reward(tx_count, txs_rejected, size)
-
-        balance_tx = DetsPlux.tx(:balance)
-
-        if reward > 0 do
-          balance_key = DetsPlux.tuple(creator.owner, @token)
-          BalanceStore.income(dets, balance_tx, balance_key, reward)
-        end
+        reward = run_reward(creator, balances, balance_tx, tx_count, txs_rejected, size)
 
         # Run jackpot and events
-        jackpot_amount =
-          if rem(round_id, 100) == 0 do
-            last_block_id = block_id + block_count
+        last_block_id = block_id + block_count
 
-            run_jackpot(
-              conn,
-              stmts,
-              dets,
-              balance_tx,
-              round_id,
-              last_block_id,
-              round_hash,
-              reward
-            )
-          else
-            0
-          end
+        jackpot_amount =
+          run_jackpot(
+            conn,
+            stmts,
+            balances,
+            balance_tx,
+            round_id,
+            prev_hash,
+            last_block_id,
+            reward
+          )
 
         # save round
         round = %{
           id: round_id,
           creator: creator_id,
           hash: hash,
-          prev: round_hash,
+          prev: prev_hash,
           signature: signature,
           coinbase: reward + jackpot_amount,
           count: block_count,
           tx_count: tx_count,
           size: size,
+          reason: 0,
           blocks: blocks,
           extra: nil
         }
 
-        # IO.inspect(round)
-
         :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
 
         GenServer.cast(pid, {:complete, round})
+
+        {:ok, round}
       else
-        GenServer.cast(pid, :incomplete)
+        GenServer.cast(
+          pid,
+          {:incomplete, Round.cancel(round_id, hash, prev_hash, signature, creator_id, 3)}
+        )
+
+        :error
       end
-    end)
+    end
   end
 
-  defp run_jackpot(_conn, _stmts, _dets, _balance_tx, _round_id, _block_id, _round_hash, 0), do: 0
+  defp run_reward(creator, balances, balance_tx, tx_count, txs_rejected, size) do
+    reward = Round.reward(tx_count, txs_rejected, size)
 
-  defp run_jackpot(_conn, _stmts, _dets, _balance_tx, _round_id, _block_id, nil, _reward), do: 0
+    if reward > 0 do
+      balance_key = DetsPlux.tuple(creator.owner, @token)
+      BalanceStore.income(balances, balance_tx, balance_key, reward)
+    end
 
-  defp run_jackpot(conn, stmts, dets, balance_tx, round_id, block_id, round_hash, reward) do
-    IO.inspect("jackpot")
-    n = BigNumber.to_int(round_hash)
-    dv = min(block_id + 1, 20_000)
-    b = rem(n, dv) + if(block_id >= 20_000, do: block_id, else: 0)
-    IO.inspect(dv)
-    IO.inspect(n)
-    IO.inspect(b)
+    reward
+  end
 
-    case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
-      nil ->
-        0
+  defp run_jackpot(
+         _conn,
+         _stmts,
+         _balances,
+         _balance_tx,
+         _round_id,
+         _round_hash,
+         _block_id,
+         0
+       ),
+       do: 0
 
-      block_list ->
-        block = Block.list_to_map(block_list)
-        tx_count = block.count
-        IO.inspect(tx_count)
+  defp run_jackpot(
+         _conn,
+         _stmts,
+         _balances,
+         _balance_tx,
+         _round_id,
+         nil,
+         _block_id,
+         _reward
+       ),
+       do: 0
 
-        cond do
-          tx_count > 0 ->
-            tx_n = rem(n, tx_count)
-            path = Block.decode_path(block.creator, block.height)
-            {:ok, content} = File.read(path)
-            %{"data" => data} = decode_file!(content)
+  defp run_jackpot(
+         conn,
+         stmts,
+         balances,
+         balance_tx,
+         round_id,
+         round_hash,
+         block_id,
+         reward
+       ) do
+    if rem(round_id, 100) == 0 do
+      IO.inspect("jackpot")
+      n = BigNumber.to_int(round_hash)
+      dv = min(block_id + 1, 20_000)
+      b = rem(n, dv) + if(block_id >= 20_000, do: block_id, else: 0)
+      # IO.inspect(dv)
+      # IO.inspect(n)
+      # IO.inspect(b)
 
-            winner_id =
-              case Enum.at(data, tx_n) do
-                [_hash, _type, account_id, _args, _timestamp, _size] ->
-                  balance_key = DetsPlux.tuple(account_id, @token)
-                  BalanceStore.income(dets, balance_tx, balance_key, reward)
+      case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
+        nil ->
+          0
 
-                  account_id
+        block_list ->
+          block = Block.list_to_map(block_list)
+          tx_count = block.count
+          IO.inspect(tx_count)
 
-                [_hash, _type, _arg_key, account_id, _args, _timestamp, _size] ->
-                  balance_key = DetsPlux.tuple(account_id, @token)
-                  BalanceStore.income(dets, balance_tx, balance_key, reward)
-                  account_id
-              end
+          cond do
+            tx_count > 0 ->
+              tx_n = rem(n, tx_count)
+              path = Block.decode_path(block.creator, block.height)
+              {:ok, content} = File.read(path)
+              %{"data" => data} = decode_file!(content)
 
-            :done =
-              SqliteStore.step(conn, stmts, "insert_jackpot", [
-                round_id,
-                winner_id,
-                reward
-              ])
+              winner_id =
+                case Enum.at(data, tx_n) do
+                  [_hash, _type, account_id, _args, _timestamp, _size] ->
+                    balance_key = DetsPlux.tuple(account_id, @token)
+                    BalanceStore.income(balances, balance_tx, balance_key, reward)
 
-            reward
+                    account_id
 
-          true ->
-            0
-        end
+                  [_hash, _type, _arg_key, account_id, _args, _timestamp, _size] ->
+                    balance_key = DetsPlux.tuple(account_id, @token)
+                    BalanceStore.income(balances, balance_tx, balance_key, reward)
+                    account_id
+                end
+
+              :done =
+                SqliteStore.step(conn, stmts, "insert_jackpot", [
+                  round_id,
+                  winner_id,
+                  reward
+                ])
+
+              reward
+
+            true ->
+              0
+          end
+      end
+    else
+      0
     end
   end
 

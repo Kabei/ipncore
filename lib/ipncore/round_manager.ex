@@ -609,7 +609,7 @@ defmodule RoundManager do
             )
           end)
         end)
-        |> Enum.map(&Task.await(&1, :infinity))
+        |> Task.await_many(:infinity)
 
       IO.puts("MinerWorker: " <> inspect(result))
 

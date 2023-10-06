@@ -764,12 +764,12 @@ defmodule RoundManager do
                     account_id
                 end
 
+              jackpot = [round_id, winner_id, reward]
+
               :done =
-                SqliteStore.step(conn, stmts, "insert_jackpot", [
-                  round_id,
-                  winner_id,
-                  reward
-                ])
+                SqliteStore.step(conn, stmts, "insert_jackpot", jackpot)
+
+              ClusterNodes.broadcast(%{"event" => "jackpot", "data" => jackpot})
 
               reward
 

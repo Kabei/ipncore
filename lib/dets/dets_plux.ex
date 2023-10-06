@@ -410,7 +410,7 @@ defmodule DetsPlux do
 
   @spec whereis(atom) :: {db(), transaction()}
   def whereis(name) do
-    {:persistent_term.get(name), :persistent_term.get({@txs_suffix, name}, nil)}
+    {:persistent_term.get({@dets_suffix, name}), DetsPlux.tx(name)}
   end
 
   @doc """

@@ -105,6 +105,7 @@ defmodule Ippan.ClusterNodes do
         height = :persistent_term.get(:height, 0)
         msg_key = {type, key}
 
+        IO.puts("The same hash")
         case :ets.insert_new(:dhash, {msg_key, hash, height}) do
           true ->
             [from, args, timestamp, nonce, msg_sig, size] = rest
@@ -112,15 +113,19 @@ defmodule Ippan.ClusterNodes do
             dets = DetsPlux.get(:wallet)
             cache = DetsPlux.tx(:cache_nonce)
 
+            IO.puts("The nonce")
+
             case Wallet.update_nonce(dets, cache, from, nonce) do
               :error ->
                 ["error", "Invalid nonce"]
 
               _ ->
+                IO.puts("The insert")
                 :ets.insert(:dmsg, {hash, [hash, type, key, from, args, timestamp, nonce, size]})
                 :ets.insert(:msg, {hash, msg_sig})
             end
 
+            IO.puts("The result")
             %{"height" => height}
 
           false ->

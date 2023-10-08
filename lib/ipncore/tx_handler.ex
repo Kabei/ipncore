@@ -54,7 +54,7 @@ defmodule Ippan.TxHandler do
     %{deferred: deferred, mod: mod, fun: fun, check: type_of_verification} = Funcs.lookup(type)
 
     wallet_dets = DetsPlux.get(:wallet)
-    wallet_cache = DetsPlux.tx(:wallet)
+    wallet_cache = DetsPlux.tx(:cache_wallet)
 
     wallet_pk =
       get_and_check_wallet!(

@@ -48,7 +48,9 @@ defmodule RoundCommit do
   end
 
   defp clear_cache do
+    cache_wallet_tx = DetsPlux.tx(:cache_wallet)
     cache_nonce_tx = DetsPlux.tx(:cache_nonce)
+    DetsPlux.clear_tx(cache_wallet_tx)
     DetsPlux.clear_tx(cache_nonce_tx)
     MemTables.clear_cache()
   end

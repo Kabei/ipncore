@@ -426,7 +426,7 @@ defmodule DetsPlux do
         tid ->
           case :ets.info(tid, :name) do
             :undefined -> begin(tx_name)
-            tid -> tid
+            _ -> tid
           end
       end
     rescue

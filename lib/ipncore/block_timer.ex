@@ -118,7 +118,7 @@ defmodule BlockTimer do
       {:noreply, %{state | candidate: nil, height: last_height + 1, prev: hash},
        {:continue, :next}}
     else
-      {:noreply, %{state | height: last_height + 1, prev: hash}, {:continue, :next}}
+      {:noreply, %{state | prev: hash}, {:continue, :next}}
     end
   end
 
@@ -132,22 +132,22 @@ defmodule BlockTimer do
          %{candidate: candidate, creator: creator_id, height: height, prev: prev} = state,
          priority
        ) do
-    candidate =
-      case candidate do
-        nil ->
-          case BlockHandler.generate_files(creator_id, height, prev, priority) do
-            nil ->
-              nil
+    case candidate do
+      nil ->
+        case BlockHandler.generate_files(creator_id, height, prev, priority) do
+          nil ->
+            state
 
-            block ->
-              block
-          end
+          block ->
+            new_height = height + 1
+            :persistent_term.put(:height, new_height)
 
-        x ->
-          x
-      end
+            %{state | candidate: block, height: new_height}
+        end
 
-    %{state | candidate: candidate}
+      x ->
+        x
+    end
   end
 
   @impl true

@@ -70,7 +70,7 @@ defmodule Ippan.TxHandler do
     check_signature!(sig_type, signature, hash, wallet_pk)
 
     cache_nonce_tx = DetsPlux.tx(:cache_nonce)
-    Wallet.update_nonce!(wallet_dets, cache_nonce_tx, from, nonce)
+    Wallet.gt_nonce!(wallet_dets, cache_nonce_tx, from, nonce)
 
     source = %{
       conn: conn,

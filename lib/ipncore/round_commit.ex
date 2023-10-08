@@ -1,7 +1,7 @@
 defmodule RoundCommit do
   require SqliteStore
 
-  def sync(conn, tx_count) do
+  def sync(conn, tx_count, is_some_block_mine) do
     if tx_count > 0 do
       [
         Task.async(fn -> SqliteStore.commit(conn) end),
@@ -25,7 +25,9 @@ defmodule RoundCommit do
       ]
       |> Task.await_many(:infinity)
 
-      clear_cache()
+      if is_some_block_mine do
+        clear_cache()
+      end
     else
       SqliteStore.commit(conn)
     end

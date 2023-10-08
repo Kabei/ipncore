@@ -285,6 +285,7 @@ defmodule RoundManager do
           candidates: ets_candidates,
           conn: conn,
           stmts: stmts,
+          vid: vid,
           block_id: block_id,
           round_id: round_id,
           votes: ets_votes
@@ -292,6 +293,7 @@ defmodule RoundManager do
       ) do
     run_id = round.id
     next = run_id == round_id
+    is_some_block_mine = Enum.any?(round.blocks, fn x -> x.creator == vid end)
     Logger.debug("[completed] Round ##{run_id} | #{Base.encode16(round.hash)}")
 
     # Clear round-message-votes and block-candidates
@@ -310,7 +312,7 @@ defmodule RoundManager do
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
     # save all round
-    RoundCommit.sync(conn, round.tx_count)
+    RoundCommit.sync(conn, round.tx_count, is_some_block_mine)
 
     if next do
       {:noreply,

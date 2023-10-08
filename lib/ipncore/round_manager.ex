@@ -280,7 +280,7 @@ defmodule RoundManager do
   @impl true
   # Process round
   def handle_cast(
-        {:complete, round},
+        {:complete, round = %{id: the_round_id}},
         %{
           candidates: ets_candidates,
           conn: conn,
@@ -291,10 +291,9 @@ defmodule RoundManager do
           votes: ets_votes
         } = state
       ) do
-    run_id = round.id
-    next = run_id == round_id
+    next = the_round_id == round_id
     is_some_block_mine = Enum.any?(round.blocks, fn x -> x.creator == vid end)
-    Logger.debug("[completed] Round ##{run_id} | #{Base.encode16(round.hash)}")
+    Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(round.hash)}")
 
     # Clear round-message-votes and block-candidates
     :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
@@ -302,7 +301,7 @@ defmodule RoundManager do
     :ets.delete_all_objects(ets_candidates)
 
     # Set last local height and prev hash and reset timer
-    if next do
+    if next and is_some_block_mine do
       BlockTimer.complete(conn, stmts)
     end
 
@@ -616,7 +615,7 @@ defmodule RoundManager do
       IO.puts("MinerWorker: " <> inspect(result))
 
       # Count Blocks and txs rejected
-      {blocks, txs_rejected} =
+      {blocks_approved, txs_rejected} =
         Enum.reduce(result, {[], 0}, fn x, {acc, acc_txr} ->
           case x do
             {:ok, block} -> {acc ++ [block], acc_txr + block.rejected}
@@ -624,9 +623,9 @@ defmodule RoundManager do
           end
         end)
 
-      block_approved_count = length(blocks)
+      block_approved_count = length(blocks_approved)
 
-      if (block_count > 0 and block_count > 0) or block_count == block_approved_count do
+      if block_approved_count > 0 or block_count == block_approved_count do
         # Run deferred txs
         TxHandler.run_deferred_txs(conn, stmts, balances)
 

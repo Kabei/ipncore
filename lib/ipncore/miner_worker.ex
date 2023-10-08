@@ -40,10 +40,11 @@ defmodule MinerWorker do
         _from,
         state
       ) do
+    conn = :persistent_term.get(:asset_conn)
+    stmts = :persistent_term.get(:asset_stmt)
+
     try do
       IO.puts("Here 0")
-      conn = :persistent_term.get(:asset_conn)
-      stmts = :persistent_term.get(:asset_stmt)
       balances = DetsPlux.whereis(:balance)
 
       [block_height, prev_hash] =
@@ -116,6 +117,10 @@ defmodule MinerWorker do
       {:reply, {:ok, result}, state}
     rescue
       error ->
+        # delete player
+        SqliteStore.step(conn, stmts, "delete_validator", [creator_id])
+        ClusterNodes.broadcast(%{"event" => "validator.delete", "data" => creator_id})
+
         Logger.error(inspect(error))
         {:reply, :error, state}
     end

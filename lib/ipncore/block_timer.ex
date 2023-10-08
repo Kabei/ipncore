@@ -107,19 +107,11 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_cast(
-        {:complete, conn, stmts},
-        %{creator: creator_id, height: height} = state
-      ) do
-    [last_height, hash] =
+  def handle_cast({:complete, conn, stmts}, %{creator: creator_id} = state) do
+    [_last_height, hash] =
       SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
 
-    if last_height >= height do
-      {:noreply, %{state | candidate: nil, height: last_height + 1, prev: hash},
-       {:continue, :next}}
-    else
-      {:noreply, %{state | prev: hash}, {:continue, :next}}
-    end
+    {:noreply, %{state | candidate: nil, prev: hash}}
   end
 
   @impl true

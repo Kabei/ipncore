@@ -116,7 +116,7 @@ defmodule Ippan.ClusterNodes do
 
             IO.puts("The nonce")
 
-            case Ippan.Wallet.update_nonce(dets, cache, "from", 1) do
+            case Ippan.Wallet.update_nonce(dets, cache, from, nonce) do
               :error ->
                 ["error", "Invalid nonce"]
 

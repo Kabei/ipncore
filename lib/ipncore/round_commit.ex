@@ -2,6 +2,7 @@ defmodule RoundCommit do
   require SqliteStore
 
   def sync(conn, tx_count, is_some_block_mine) do
+    IO.puts("RoundCommit: Sync #{tx_count} | #{is_some_block_mine}")
     if tx_count > 0 do
       [
         Task.async(fn -> SqliteStore.commit(conn) end),

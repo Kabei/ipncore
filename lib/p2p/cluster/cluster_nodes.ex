@@ -106,6 +106,7 @@ defmodule Ippan.ClusterNodes do
         msg_key = {type, key}
 
         IO.puts("The same hash")
+
         case :ets.insert_new(:dhash, {msg_key, hash, height}) do
           true ->
             [from, args, timestamp, nonce, msg_sig, size] = rest
@@ -115,7 +116,7 @@ defmodule Ippan.ClusterNodes do
 
             IO.puts("The nonce")
 
-            case Wallet.update_nonce(dets, cache, from, nonce) do
+            case Ippan.Wallet.update_nonce(dets, cache, "from", 1) do
               :error ->
                 ["error", "Invalid nonce"]
 

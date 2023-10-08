@@ -129,26 +129,22 @@ defmodule BlockTimer do
   end
 
   defp check(
-         %{candidate: candidate, creator: creator_id, height: height, prev: prev} = state,
+         %{candidate: nil, creator: creator_id, height: height, prev: prev} = state,
          priority
        ) do
-    case candidate do
+    case BlockHandler.generate_files(creator_id, height, prev, priority) do
       nil ->
-        case BlockHandler.generate_files(creator_id, height, prev, priority) do
-          nil ->
-            state
+        state
 
-          block ->
-            new_height = height + 1
-            :persistent_term.put(:height, new_height)
+      block ->
+        new_height = height + 1
+        :persistent_term.put(:height, new_height)
 
-            %{state | candidate: block, height: new_height}
-        end
-
-      x ->
-        x
+        %{state | candidate: block, height: new_height}
     end
   end
+
+  defp check(state, _priority), do: state
 
   @impl true
   def terminate(_reason, %{tRef: tRef}) do

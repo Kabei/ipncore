@@ -7,7 +7,10 @@ defmodule RoundCommit do
     if tx_count > 0 do
       r =
         [
-          Task.async(fn -> SqliteStore.commit(conn) end),
+          Task.async(fn ->
+            SqliteStore.commit(conn)
+            SqliteStore.begin(conn)
+          end),
           Task.async(fn ->
             wallet_dets = DetsPlux.get(:wallet)
             wallet_tx = DetsPlux.tx(:wallet)
@@ -35,6 +38,7 @@ defmodule RoundCommit do
       end
     else
       SqliteStore.commit(conn)
+      SqliteStore.begin(conn)
     end
   end
 

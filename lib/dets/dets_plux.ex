@@ -718,32 +718,31 @@ defmodule DetsPlux do
         _from,
         state = %State{sync: sync, sync_fallback: fallback, sync_waiters: waiters}
       ) do
-    new_state =
-      if :ets.info(ets, :size) > 0 do
-        {pid, new_fallback} =
-          case fallback do
-            [t1, t2] ->
-              {sync, [t1, merge_tx(t2, ets)]}
+    if :ets.info(ets, :size) > 0 do
+      {pid, new_fallback} =
+        case fallback do
+          [t1, t2] ->
+            {sync, [t1, merge_tx(t2, ets)]}
 
-            [t1] ->
-              {sync, [t1, ets]}
+          [t1] ->
+            {sync, [t1, ets]}
 
-            [] ->
-              pid = spawn_sync_worker(ets, state)
-              {pid, [ets]}
-          end
+          [] ->
+            pid = spawn_sync_worker(ets, state)
+            {pid, [ets]}
+        end
 
-        %State{
-          state
-          | sync: pid,
-            sync_fallback: new_fallback,
-            sync_waiters: waiters ++ [nil]
-        }
-      else
-        state
-      end
-
-    {:reply, :ok, new_state}
+      {:reply, :ok,
+       %State{
+         state
+         | sync: pid,
+           sync_fallback: new_fallback,
+           sync_waiters: waiters ++ [nil]
+       }}
+    else
+      :ets.delete(ets)
+      {:reply, :ok, state}
+    end
   end
 
   def handle_call(
@@ -752,6 +751,7 @@ defmodule DetsPlux do
         state = %State{sync: sync, sync_fallback: fallback, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) == 0 do
+      :ets.delete(ets)
       {:reply, :ok, state}
     else
       {pid, new_fallback} =
@@ -775,14 +775,6 @@ defmodule DetsPlux do
            sync_waiters: waiters ++ [from]
        }}
     end
-  end
-
-  def handle_call(
-        {:sync, ets},
-        from,
-        state = %State{sync_fallback: fallback, sync_waiters: waiters}
-      ) do
-    {:noreply, %State{state | sync_fallback: fallback ++ [ets], sync_waiters: waiters ++ [from]}}
   end
 
   defp do_lookup(key, hash, state = %State{sync: nil}) do
@@ -1003,6 +995,7 @@ defmodule DetsPlux do
   """
   @spec merge_tx(transaction(), transaction()) :: transaction()
   def merge_tx(ets1, ets2) do
+    IO.puts("merge_tx")
     do_merge_tables(:ets.first(ets2), ets1, ets2)
   end
 

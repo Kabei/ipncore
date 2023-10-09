@@ -270,6 +270,7 @@ defmodule Ippan.TxHandler do
   # only deferred transactions
   def run_deferred_txs(conn, stmts, balances) do
     IO.puts("txs deferred")
+    IO.inspect(:ets.tab2list(:dtx))
     for m = {{type, _key}, [hash, account_id, validator_id, args, timestamp, _nonce, size]} <-
           :ets.tab2list(:dtx) do
       %{modx: module, fun: fun} = Funcs.lookup(type)

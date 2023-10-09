@@ -629,7 +629,7 @@ defmodule RoundManager do
         # Run deferred txs
         TxHandler.run_deferred_txs(conn, stmts, balances)
 
-        balance_tx = DetsPlux.begin(:balance)
+        balance_tx = DetsPlux.tx(:balance)
 
         # Calculate reward
         reward = run_reward(creator, balances, balance_tx, tx_count, txs_rejected, size)

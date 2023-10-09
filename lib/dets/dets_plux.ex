@@ -514,6 +514,7 @@ defmodule DetsPlux do
   """
   @spec sync(db(), transaction()) :: :ok
   def sync(pid, tx) do
+    IO.puts("sync: #{inspect(pid)} #{inspect(tx)}")
     tx_erase(tx)
     call(pid, {:sync, tx})
   end

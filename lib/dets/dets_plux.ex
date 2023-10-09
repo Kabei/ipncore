@@ -420,15 +420,14 @@ defmodule DetsPlux do
   def tx(tx_name) do
     try do
       case :persistent_term.get({@txs_suffix, tx_name}, nil) do
-        nil ->
-          begin(tx_name)
-
-        tid ->
-          case :ets.info(tid, :name) do
-            :undefined -> begin(tx_name)
-            _ -> tid
-          end
+        nil -> begin(tx_name)
+        tid -> tid
       end
+
+      # case :ets.info(tid, :name) do
+      #   :undefined -> begin(tx_name)
+      #   _ ->
+      # end
     rescue
       ArgumentError ->
         begin(tx_name)

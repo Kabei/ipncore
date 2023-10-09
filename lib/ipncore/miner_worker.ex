@@ -42,11 +42,11 @@ defmodule MinerWorker do
       ) do
     conn = :persistent_term.get(:asset_conn)
     stmts = :persistent_term.get(:asset_stmt)
-    wallets = {DetsPlux.get(:wallet), DetsPlux.tx(:wallet)}
 
     try do
       IO.puts("Here 0")
       balances = DetsPlux.whereis(:balance)
+      wallets = {DetsPlux.get(:wallet), DetsPlux.tx(:wallet)}
 
       [block_height, prev_hash] =
         SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])

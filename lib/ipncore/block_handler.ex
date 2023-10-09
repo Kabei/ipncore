@@ -99,7 +99,7 @@ defmodule Ippan.BlockHandler do
        ),
        do: {UMap.values(acc_msg), UMap.values(acc_dmsg)}
 
-  defp do_iterate(ets_msg, ets_dmsg, key, acc_msg, acc_dmsg, acc_size) do
+  defp do_iterate(key, ets_msg, ets_dmsg, acc_msg, acc_dmsg, acc_size) do
     [{_, msg}] = :ets.lookup(ets_msg, key)
     [{_, dmsg}] = :ets.lookup(ets_dmsg, key)
 

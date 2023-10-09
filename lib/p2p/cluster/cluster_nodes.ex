@@ -84,7 +84,7 @@ defmodule Ippan.ClusterNodes do
             ["error", "Invalid nonce"]
 
           _ ->
-            :ets.insert(:dmsg, {hash, [hash, type, from, args, timestamp, nonce, size]})
+            :ets.insert(:dmsg, {hash, [hash, type, from, args, timestamp, size]})
             :ets.insert(:msg, {hash, msg_sig})
         end
 
@@ -122,7 +122,7 @@ defmodule Ippan.ClusterNodes do
 
               _ ->
                 IO.puts("The insert")
-                :ets.insert(:dmsg, {hash, [hash, type, key, from, args, timestamp, nonce, size]})
+                :ets.insert(:dmsg, {hash, [hash, type, key, from, args, timestamp, size]})
                 :ets.insert(:msg, {hash, msg_sig})
             end
 

@@ -584,6 +584,7 @@ defmodule RoundManager do
     if Round.null?(map) do
       GenServer.cast(pid, {:incomplete, map})
     else
+      wallets = {DetsPlux.get(:wallet), DetsPlux.tx(:wallet)}
       creator_id = creator.id
       block_count = length(blocks)
 
@@ -627,7 +628,7 @@ defmodule RoundManager do
 
       if block_approved_count > 0 or block_count == block_approved_count do
         # Run deferred txs
-        TxHandler.run_deferred_txs(conn, stmts, balances)
+        TxHandler.run_deferred_txs(conn, stmts, balances, wallets)
 
         balance_tx = DetsPlux.tx(:balance)
 

@@ -42,6 +42,7 @@ defmodule MinerWorker do
       ) do
     conn = :persistent_term.get(:asset_conn)
     stmts = :persistent_term.get(:asset_stmt)
+    wallets = {DetsPlux.get(:wallet), DetsPlux.tx(:wallet)}
 
     try do
       IO.puts("Here 0")
@@ -103,7 +104,7 @@ defmodule MinerWorker do
       IO.puts("Here 5")
 
       count_rejected =
-        mine_fun(version, messages, conn, stmts, balances, creator, block_id)
+        mine_fun(version, messages, conn, stmts, balances, wallets, creator, block_id)
 
       IO.puts("Here 6")
 
@@ -127,7 +128,7 @@ defmodule MinerWorker do
   end
 
   # Process the block
-  defp mine_fun(@version, messages, conn, stmts, balances, validator, block_id) do
+  defp mine_fun(@version, messages, conn, stmts, balances, wallets, validator, block_id) do
     creator_id = validator.id
 
     Enum.reduce(messages, 0, fn
@@ -136,6 +137,7 @@ defmodule MinerWorker do
                conn,
                stmts,
                balances,
+               wallets,
                validator,
                hash,
                type,
@@ -160,7 +162,7 @@ defmodule MinerWorker do
     end)
   end
 
-  defp mine_fun(version, _messages, _conn, _stmts, _dets, _creator_id, _block_id) do
+  defp mine_fun(version, _messages, _conn, _stmts, _balances, _wallets, _creator_id, _block_id) do
     raise IppanError, "Error block version #{inspect(version)}"
   end
 

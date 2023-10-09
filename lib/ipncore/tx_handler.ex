@@ -203,6 +203,7 @@ defmodule Ippan.TxHandler do
              conn,
              stmts,
              balances,
+             wallets,
              validator,
              hash,
              type,
@@ -223,6 +224,7 @@ defmodule Ippan.TxHandler do
             args: args,
             timestamp: timestamp,
             size: size,
+            wallets: wallets,
             block_id: block_id
           ],
           location: :keep do
@@ -238,7 +240,8 @@ defmodule Ippan.TxHandler do
         validator: validator,
         hash: hash,
         timestamp: timestamp,
-        size: size
+        size: size,
+        wallets: wallets
       }
 
       apply(module, fun, [source | args])
@@ -269,13 +272,15 @@ defmodule Ippan.TxHandler do
   end
 
   # only deferred transactions
-  def run_deferred_txs(conn, stmts, balances) do
+  def run_deferred_txs(conn, stmts, balances, wallets) do
     IO.puts("txs deferred")
     IO.inspect(:ets.tab2list(:dtx))
+
     for m = {{type, _key}, [hash, account_id, validator_id, args, timestamp, size]} <-
           :ets.tab2list(:dtx) do
       %{modx: module, fun: fun} = Funcs.lookup(type)
-IO.inspect(m)
+      IO.inspect(m)
+
       source = %{
         id: account_id,
         conn: conn,
@@ -285,7 +290,8 @@ IO.inspect(m)
         validator: validator_id,
         hash: hash,
         timestamp: timestamp,
-        size: size
+        size: size,
+        wallets: wallets
       }
 
       r = apply(module, fun, [source | args])

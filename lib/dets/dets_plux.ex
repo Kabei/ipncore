@@ -716,22 +716,26 @@ defmodule DetsPlux do
   def handle_call(
         {:start_sync, ets},
         _from,
-        state = %State{sync: nil, sync_fallback: fallback, sync_waiters: waiters}
+        state = %State{sync: sync, sync_fallback: fallback, sync_waiters: waiters}
       ) do
     new_state =
       if :ets.info(ets, :size) > 0 do
-        sync = spawn_sync_worker(ets, state)
-
-        new_fallback =
+        {pid, new_fallback} =
           case fallback do
-            [t1, t2] -> [t1, merge_tx(t2, ets)]
-            [t1] -> [t1, ets]
-            [] -> [ets]
+            [t1, t2] ->
+              {sync, [t1, merge_tx(t2, ets)]}
+
+            [t1] ->
+              {sync, [t1, ets]}
+
+            [] ->
+              pid = spawn_sync_worker(ets, state)
+              {pid, [ets]}
           end
 
         %State{
           state
-          | sync: sync,
+          | sync: pid,
             sync_fallback: new_fallback,
             sync_waiters: waiters ++ [nil]
         }
@@ -743,34 +747,30 @@ defmodule DetsPlux do
   end
 
   def handle_call(
-        {:start_sync, ets},
-        _from,
-        state = %State{sync_fallback: fallback, sync_waiters: waiters}
-      ) do
-    {:noreply, %State{state | sync_fallback: fallback ++ [ets], sync_waiters: waiters ++ [nil]}}
-  end
-
-  def handle_call(
         {:sync, ets},
         from,
-        state = %State{sync: nil, sync_fallback: fallback, sync_waiters: waiters}
+        state = %State{sync: sync, sync_fallback: fallback, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) == 0 do
       {:reply, :ok, state}
     else
-      sync = spawn_sync_worker(ets, state)
-
-      new_fallback =
+      {pid, new_fallback} =
         case fallback do
-          [t1, t2] -> [t1, merge_tx(t2, ets)]
-          [t1] -> [t1, ets]
-          [] -> [ets]
+          [t1, t2] ->
+            {sync, [t1, merge_tx(t2, ets)]}
+
+          [t1] ->
+            {sync, [t1, ets]}
+
+          [] ->
+            pid = spawn_sync_worker(ets, state)
+            {pid, [ets]}
         end
 
       {:noreply,
        %State{
          state
-         | sync: sync,
+         | sync: pid,
            sync_fallback: new_fallback,
            sync_waiters: waiters ++ [from]
        }}

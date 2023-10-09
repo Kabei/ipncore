@@ -807,7 +807,7 @@ defmodule DetsPlux do
 
   @impl true
   def handle_cast(
-        {:sync_complete, ets, sync_pid, new_filename, state = %State{}},
+        {:sync_complete, ets, sync_pid, new_filename, state},
         %State{
           fp: fp,
           filename: filename,
@@ -824,7 +824,7 @@ defmodule DetsPlux do
     fp = file_open(filename)
 
     # delete transaction
-    rollback(ets)
+    :ets.delete(ets)
 
     [_ | new_fallback] = fallback
     [w | new_waiters] = waiters
@@ -858,7 +858,7 @@ defmodule DetsPlux do
           pid = spawn_sync_worker(new_ets, new_state)
 
           %State{
-            state
+            new_state
             | fp: fp,
               sync: pid,
               sync_fallback: new_fallback,
@@ -952,6 +952,7 @@ defmodule DetsPlux do
       {_, stats} = add_stats(stats, :file_close)
 
       state = %State{state | creation_stats: stats}
+
       GenServer.cast(dets, {:sync_complete, ets, self(), new_filename, state})
     end)
 
@@ -1002,18 +1003,17 @@ defmodule DetsPlux do
   """
   @spec merge_tx(transaction(), transaction()) :: transaction()
   def merge_tx(ets1, ets2) do
-    tx_erase(ets2)
-    do_merge_tables(ets1, ets2, :ets.first(ets2))
+    do_merge_tables(:ets.first(ets2), ets1, ets2)
   end
 
-  defp do_merge_tables(ets1, ets2, :"$end_of_table") do
+  defp do_merge_tables(:"$end_of_table", ets1, ets2) do
     :ets.delete(ets2)
     ets1
   end
 
-  defp do_merge_tables(ets1, ets2, key) do
+  defp do_merge_tables(key, ets1, ets2) do
     :ets.insert(ets1, :ets.lookup(ets2, key))
-    do_merge_tables(ets1, ets2, :ets.next(ets2, key))
+    do_merge_tables(:ets.next(ets2, key), ets1, ets2)
   end
 
   defp task_async(fun) do

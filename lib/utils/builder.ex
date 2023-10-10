@@ -59,6 +59,23 @@ defmodule Builder do
     client
   end
 
+  def post({client, body, sig64}, hostname) do
+    url = "https://#{hostname}/v1/call"
+
+    case HTTPoison.post(url, body, [{"auth", sig64}]) do
+      {:ok, %{status_code: code, body: res}} ->
+        case code do
+          200 ->
+            {:ok, client}
+
+            {:error, code, res}
+        end
+
+      error ->
+        error
+    end
+  end
+
   # {pk, sk, address} = Builder.gen_ed25519(seed)
   def gen_ed25519(seed) do
     {:ok, {pk, sk}} = Cafezinho.Impl.keypair_from_seed(seed)

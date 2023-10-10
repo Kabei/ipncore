@@ -3,7 +3,6 @@ defmodule Builder do
   require Logger
 
   @compile {:inline, hash_fun: 1, encode_fun!: 1}
-  @type response :: {Client.t(), {binary, binary}}
 
   defmodule Client do
     @type t :: %Client{
@@ -53,7 +52,7 @@ defmodule Builder do
   end
 
   @spec print({Client.t(), binary, binary}) :: Client.t()
-  def print({client, body, sig}) do
+  def print({client, {body, sig}}) do
     IO.puts(body)
     IO.puts(sig)
     client
@@ -62,12 +61,13 @@ defmodule Builder do
   def post({client, body, sig64}, hostname) do
     url = "https://#{hostname}/v1/call"
 
-    case HTTPoison.post(url, body, [{"auth", sig64}]) do
+    case HTTPoison.post(url, body, [{"auth", sig64}], hackney: [:insecure]) do
       {:ok, %{status_code: code, body: res}} ->
         case code do
           200 ->
             {:ok, client}
 
+          code ->
             {:error, code, res}
         end
 

@@ -153,7 +153,7 @@ defmodule Ippan.TxHandler do
     [sig_type, _] = String.split(from, "x", parts: 2)
     check_signature!(sig_type, signature, hash, wallet_pk)
 
-    nonce_tx = DetsPlux.tx(:nonce)
+    nonce_tx = DetsPlux.tx(wallet_dets, :nonce)
     Wallet.update_nonce!(wallet_dets, nonce_tx, from, nonce)
 
     source = %{
@@ -294,10 +294,7 @@ defmodule Ippan.TxHandler do
         wallets: wallets
       }
 
-      r = apply(module, fun, [source | args])
-
-      IO.inspect(r)
-      r
+      apply(module, fun, [source | args])
     end
 
     :ets.delete_all_objects(:dtx)

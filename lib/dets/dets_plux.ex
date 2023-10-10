@@ -72,6 +72,7 @@ defmodule DetsPlux do
             key_fun: 1,
             tuple: 2,
             tuple: 3,
+            tx: 1,
             tx: 2}
 
   defmodule State do
@@ -398,7 +399,6 @@ defmodule DetsPlux do
       :ets.new(name, [
         @ets_type,
         :public,
-        # :named_table,
         read_concurrency: true,
         write_concurrency: true
       ])
@@ -408,6 +408,7 @@ defmodule DetsPlux do
     tid
   end
 
+  @spec tx(atom) :: transaction()
   def tx(name) do
     tx(name, name)
   end

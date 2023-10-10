@@ -588,6 +588,12 @@ defmodule RoundManager do
       creator_id = creator.id
       block_count = length(blocks)
 
+      blocks =
+        Enum.with_index(blocks, fn element, index -> {block_id + index, element} end)
+        |> Enum.map(fn {id, block} ->
+          Map.put(block, :id, id)
+        end)
+
       {hash, tx_count, size} =
         if map.hash do
           {map.hash, map.tx_count, map.size}
@@ -599,13 +605,12 @@ defmodule RoundManager do
 
       # Tasks to create blocks
       result =
-        Enum.with_index(blocks, fn element, index -> {block_id + index, element} end)
-        |> Enum.map(fn {id, block} ->
+        Enum.each(blocks, fn block ->
           Task.async(fn ->
             :poolboy.transaction(
               pool_pid,
               fn worker ->
-                MinerWorker.mine(worker, Map.put(block, :id, id), creator, round_id)
+                MinerWorker.mine(worker, block, creator, round_id)
               end,
               :infinity
             )

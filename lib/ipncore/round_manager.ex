@@ -798,13 +798,8 @@ defmodule RoundManager do
 
     new_state = %{state | position: position, rcid: rcid, rc_node: rc_node, turn: turn}
 
-    t =
-      Task.async(fn ->
-        connect_to_peers(ets_players, vid, total_players)
-        sync_to_round_creator(new_state)
-      end)
-
-    Task.await(t, :infinity)
+    connect_to_peers(ets_players, vid, total_players)
+    sync_to_round_creator(new_state)
 
     new_state
   end
@@ -838,15 +833,18 @@ defmodule RoundManager do
       :ets.tab2list(ets_players)
       |> Enum.filter(fn {id, _} = x -> id != vid and x not in players_connected end)
       |> Enum.take_random(take)
-      |> Enum.reduce_while(0, fn {_id, node}, acc ->
-        if acc < take do
-          case NetworkNodes.connect(node) do
-            true -> {:cont, acc + 1}
-            false -> {:cont, acc}
-          end
-        else
-          {:halt, acc}
-        end
+      |> Enum.map(fn node ->
+        Task.async(fn ->
+          NetworkNodes.connect(node)
+        end)
+      end)
+      |> Task.await_many(:infinity)
+      |> Enum.reduce_while(0, fn
+        true, acc ->
+          {:cont, acc + 1}
+
+        _false, acc ->
+          {:cont, acc}
       end)
     else
       0

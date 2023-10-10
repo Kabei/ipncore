@@ -51,6 +51,7 @@ defmodule RoundSync do
           end
         end)
       end)
+      |> Task.await_many(:infinity)
       |> Enum.filter(fn x -> match?({:ok, _}, x) end)
       |> Enum.map(fn {_, x} -> x end)
       |> Enum.group_by(fn x -> Map.get(x, "hash") end)

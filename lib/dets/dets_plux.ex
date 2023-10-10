@@ -72,7 +72,7 @@ defmodule DetsPlux do
             key_fun: 1,
             tuple: 2,
             tuple: 3,
-            tx: 1}
+            tx: 2}
 
   defmodule State do
     @moduledoc false
@@ -398,6 +398,7 @@ defmodule DetsPlux do
       :ets.new(name, [
         @ets_type,
         :public,
+        # :named_table,
         read_concurrency: true,
         write_concurrency: true
       ])
@@ -407,24 +408,21 @@ defmodule DetsPlux do
     tid
   end
 
+  def tx(name) do
+    tx(name, name)
+  end
+
   @doc """
   Create if not exists a transaction. Return a transaction
   """
-  @spec tx(tx_name :: atom()) :: transaction()
-  def tx(tx_name) do
-    try do
-      case :persistent_term.get({@txs_suffix, tx_name}, nil) do
-        nil -> begin(tx_name)
-        tid -> tid
-      end
+  @spec tx(db(), atom()) :: transaction()
+  def tx(dets, name) do
+    case :persistent_term.get({@txs_suffix, name}, nil) do
+      nil ->
+        call(dets, {:tx, name})
 
-      # case :ets.info(tid, :name) do
-      #   :undefined -> begin(tx_name)
-      #   _ ->
-      # end
-    rescue
-      ArgumentError ->
-        begin(tx_name)
+      tid ->
+        tid
     end
   end
 
@@ -488,16 +486,6 @@ defmodule DetsPlux do
   def rollback(tx, name) do
     :persistent_term.erase({@txs_suffix, name})
     :ets.delete(tx)
-  end
-
-  @doc """
-  Delete a list of transtions
-  """
-  @spec drop_all([transaction()]) :: term()
-  def drop_all(txs) do
-    for tx <- txs do
-      rollback(tx)
-    end
   end
 
   @doc """
@@ -578,6 +566,10 @@ defmodule DetsPlux do
     {:reply, state, state}
   end
 
+  def handle_call({:tx, name}, _from, state) do
+    {:reply, begin(name), state}
+  end
+
   def handle_call({:handle, ets}, _from, %{filename: filename, sync_fallback: fallback} = state) do
     {:reply, %DetsPlux{ets: ets, filename: filename, sync_fallback: fallback}, state}
   end
@@ -598,8 +590,10 @@ defmodule DetsPlux do
       Process.exit(sync, :kill)
     end
 
-    # delete all transactions
-    drop_all(fallback)
+    # delete transaction
+    if fallback do
+      :ets.delete(fallback)
+    end
 
     for w when not is_nil(w) <- waiters do
       :ok = GenServer.reply(w, :ok)
@@ -897,7 +891,7 @@ defmodule DetsPlux do
 
     spawn_link(fn ->
       Process.flag(:priority, :low)
-      register_name()
+      # register_name()
       stats = {:erlang.timestamp(), []}
       new_dataset = :ets.tab2list(ets)
       stats = add_stats(stats, :ets_flush)
@@ -957,23 +951,23 @@ defmodule DetsPlux do
     # Profiler.fprof(worker)
   end
 
-  @max 1
-  defp register_name(n \\ 0) do
-    n =
-      if n == @max do
-        0
-      else
-        n + 1
-      end
+  # @max 1
+  # defp register_name(n \\ 0) do
+  #   n =
+  #     if n == @max do
+  #       0
+  #     else
+  #       n + 1
+  #     end
 
-    try do
-      Process.register(self(), String.to_atom("DetsPlux_Flush_#{n}"))
-    rescue
-      _e ->
-        Process.sleep(100)
-        register_name(n)
-    end
-  end
+  #   try do
+  #     Process.register(self(), String.to_atom("DetsPlux_Flush_#{n}"))
+  #   rescue
+  #     _e ->
+  #       Process.sleep(100)
+  #       register_name(n)
+  #   end
+  # end
 
   @min_chunk_size 10_000
   @max_tasks 4

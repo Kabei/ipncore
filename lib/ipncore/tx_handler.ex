@@ -54,7 +54,7 @@ defmodule Ippan.TxHandler do
     %{deferred: deferred, mod: mod, fun: fun, check: type_of_verification} = Funcs.lookup(type)
 
     wallet_dets = DetsPlux.get(:wallet)
-    wallet_cache = DetsPlux.tx(:cache_wallet)
+    wallet_cache = DetsPlux.tx(:wallet, :cache_wallet)
 
     wallet_pk =
       get_and_check_wallet!(
@@ -69,12 +69,12 @@ defmodule Ippan.TxHandler do
     [sig_type, _] = String.split(from, "x", parts: 2)
     check_signature!(sig_type, signature, hash, wallet_pk)
 
-    cache_nonce_tx = DetsPlux.tx(:cache_nonce)
+    cache_nonce_tx = DetsPlux.tx(:wallet, :cache_nonce)
     Wallet.gte_nonce!(wallet_dets, cache_nonce_tx, from, nonce)
 
     source = %{
       conn: conn,
-      balance: {DetsPlux.get(:balance), DetsPlux.tx(:cache_balance)},
+      balance: {DetsPlux.get(:balance), DetsPlux.tx(:balance, :cache_balance)},
       id: from,
       hash: hash,
       size: size,
@@ -158,7 +158,7 @@ defmodule Ippan.TxHandler do
 
     source = %{
       conn: conn,
-      balance: {DetsPlux.get(:balance), DetsPlux.tx(:cache_balance)},
+      balance: {DetsPlux.get(:balance), DetsPlux.tx(:balance, :cache_balance)},
       id: from,
       hash: hash,
       size: size,

@@ -59,7 +59,7 @@ defmodule DetsPlux do
   @type transaction :: :ets.tid() | atom()
   @type key :: binary() | nil
   @type value :: binary() | number() | list() | map() | nil
-  @type t :: %__MODULE__{ets: transaction(), filename: binary(), sync_fallback: [transaction()]}
+  @type t :: %__MODULE__{ets: transaction(), filename: binary(), sync_fallback: transaction()}
 
   # Inline common instructions
   @compile {:inline,
@@ -152,7 +152,7 @@ defmodule DetsPlux do
             file_size: 0,
             sync: nil,
             sync_waiters: [],
-            sync_fallback: []
+            sync_fallback: nil
           }
       end
 
@@ -514,7 +514,6 @@ defmodule DetsPlux do
   """
   @spec sync(db(), transaction()) :: :ok
   def sync(pid, tx) do
-    IO.puts("sync: #{inspect(pid)} #{inspect(tx)}")
     tx_erase(tx)
     call(pid, {:sync, tx})
   end
@@ -623,7 +622,7 @@ defmodule DetsPlux do
        state
        | sync: nil,
          sync_waiters: [],
-         sync_fallback: [],
+         sync_fallback: nil,
          fp: nil,
          bloom: "",
          bloom_size: 0,
@@ -812,19 +811,11 @@ defmodule DetsPlux do
     file_lookup(state, key, hash)
   end
 
-  defp do_lookup(key, hash, state = %State{sync_fallback: fallback}) do
-    Enum.reduce_while(fallback, [], fn ets, _ ->
-      result = :ets.lookup(ets, key)
-
-      case result do
-        [] -> {:cont, result}
-        [{_key, :delete}] -> {:halt, nil}
-        [{_key, {_, object}}] -> {:halt, object}
-      end
-    end)
-    |> case do
+  defp do_lookup(key, hash, state = %State{sync_fallback: ets_fallback}) do
+    case :ets.lookup(ets_fallback, key) do
       [] -> file_lookup(state, key, hash)
-      x -> x
+      [{_key, :delete}] -> {:halt, nil}
+      [{_key, {_, object}}] -> {:halt, object}
     end
   end
 
@@ -849,7 +840,6 @@ defmodule DetsPlux do
     # delete transaction
     :ets.delete(ets)
 
-    [_ | new_fallback] = fallback
     [w | new_waiters] = waiters
 
     unless is_nil(w) do
@@ -861,31 +851,21 @@ defmodule DetsPlux do
         state
         | fp: fp,
           sync: nil,
-          sync_fallback: new_fallback,
           sync_waiters: new_waiters
       }
 
     new_state =
-      case new_fallback do
-        [] ->
-          if new_waiters != [] do
-            for w <- new_waiters do
-              :ok = GenServer.reply(w, :ok)
-            end
-          end
-
+      case fallback do
+        nil ->
           new_state
 
-        _ ->
-          new_ets = hd(new_fallback)
+        new_ets ->
           pid = spawn_sync_worker(new_ets, new_state)
 
           %State{
             new_state
-            | fp: fp,
-              sync: pid,
-              sync_fallback: new_fallback,
-              sync_waiters: new_waiters
+            | sync: pid,
+              sync_fallback: nil
           }
       end
 
@@ -915,6 +895,7 @@ defmodule DetsPlux do
            file_entries: file_entries
          }
        ) do
+    IO.puts("spawn_sync_worker: #{inspect(ets)}")
     # assumptions here
     # 1. ets data set is small enough to fit into memory
     # 2. fp entries are sorted by hash
@@ -1541,8 +1522,8 @@ defmodule DetsPlux do
   @impl true
   def terminate(_reason, %State{fp: fp, sync: sync, sync_fallback: fallback}) do
     if sync do
-      # delete all transactions
-      drop_all(fallback)
+      # delete transaction
+      :ets.delete(fallback)
     end
 
     if fp != nil and Process.alive?(fp) do
@@ -1560,14 +1541,14 @@ defimpl Enumerable, for: DetsPlux do
   def member?(_pid, _key), do: {:error, __MODULE__}
   def slice(_pid), do: {:error, __MODULE__}
 
-  defp tables_to_map([]), do: %{}
+  # defp tables_to_map([]), do: %{}
 
-  defp tables_to_map(tables) do
-    Enum.reduce(tables, [], fn ets, acc ->
-      acc ++ :ets.tab2list(ets)
-    end)
-    |> Enum.reduce(%{}, fn {key, object}, map -> Map.put(map, key, object) end)
-  end
+  # defp tables_to_map(tables) do
+  #   Enum.reduce(tables, [], fn ets, acc ->
+  #     acc ++ :ets.tab2list(ets)
+  #   end)
+  #   |> Enum.reduce(%{}, fn {key, object}, map -> Map.put(map, key, object) end)
+  # end
 
   defp ets_to_map(nil), do: %{}
 
@@ -1577,9 +1558,7 @@ defimpl Enumerable, for: DetsPlux do
   end
 
   def reduce(%DetsPlux{ets: ets, filename: filename, sync_fallback: fallback}, acc, fun) do
-    new_data = ets_to_map(ets)
-
-    new_data = Map.merge(new_data, tables_to_map(fallback))
+    new_data = Map.merge(ets_to_map(ets), ets_to_map(fallback))
 
     opts = [page_size: 1_000_000, max_pages: 1000]
 

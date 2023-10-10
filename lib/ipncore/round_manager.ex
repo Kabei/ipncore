@@ -731,9 +731,6 @@ defmodule RoundManager do
       n = BigNumber.to_int(round_hash)
       dv = min(block_id + 1, 20_000)
       b = rem(n, dv) + if(block_id >= 20_000, do: block_id, else: 0)
-      # IO.inspect(dv)
-      # IO.inspect(n)
-      # IO.inspect(b)
 
       case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
         nil ->

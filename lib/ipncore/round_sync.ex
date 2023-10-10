@@ -34,7 +34,7 @@ defmodule RoundSync do
 
     data =
       Enum.take_random(list, 10)
-      |> Enum.map(fn node ->
+      |> Enum.map(fn {_node_id, node} ->
         Task.async(fn ->
           case NetworkNodes.connect(node) do
             true ->

@@ -4,6 +4,7 @@ defmodule Builder do
 
   @compile {:inline, hash_fun: 1, encode_fun!: 1}
   @type response :: {Client.t(), binary, binary}
+
   defmodule Client do
     @type t :: %Client{
             seed: binary,

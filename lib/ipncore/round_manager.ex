@@ -753,13 +753,13 @@ defmodule RoundManager do
 
               winner_id =
                 case Enum.at(data, tx_n) do
-                  [_hash, _type, account_id, _args, _timestamp, _size] ->
+                  [_hash, _type, account_id, _args, _timestamp, _nonce, _size] ->
                     balance_key = DetsPlux.tuple(account_id, @token)
                     BalanceStore.income(balances, balance_tx, balance_key, reward)
 
                     account_id
 
-                  [_hash, _type, _arg_key, account_id, _args, _timestamp, _size] ->
+                  [_hash, _type, _arg_key, account_id, _args, _timestamp, _nonce, _size] ->
                     balance_key = DetsPlux.tuple(account_id, @token)
                     BalanceStore.income(balances, balance_tx, balance_key, reward)
                     account_id

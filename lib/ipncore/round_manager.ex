@@ -432,7 +432,7 @@ defmodule RoundManager do
            round_hash: prev_hash,
            conn: conn,
            stmts: stmts,
-           balance: balances,
+           balance: balance,
            rcid: rcid,
            miner_pool: pool_pid,
            votes: ets_votes,
@@ -480,7 +480,7 @@ defmodule RoundManager do
             creator,
             conn,
             stmts,
-            balances,
+            balance,
             pool_pid,
             pid
           )
@@ -577,7 +577,7 @@ defmodule RoundManager do
         creator,
         conn,
         stmts,
-        balances,
+        balance_pid,
         pool_pid,
         pid
       ) do
@@ -627,13 +627,12 @@ defmodule RoundManager do
       block_approved_count = length(blocks_approved)
 
       if block_approved_count > 0 or block_count == block_approved_count do
-        # Run deferred txs
-        TxHandler.run_deferred_txs(conn, stmts, balances, wallets)
-
         balance_tx = DetsPlux.tx(:balance)
+        # Run deferred txs
+        TxHandler.run_deferred_txs(conn, stmts, balance_pid, balance_tx, wallets)
 
         # Calculate reward
-        reward = run_reward(creator, balances, balance_tx, tx_count, txs_rejected, size)
+        reward = run_reward(creator, balance_pid, balance_tx, tx_count, txs_rejected, size)
 
         # Run jackpot and events
         last_block_id = block_id + block_count
@@ -642,7 +641,7 @@ defmodule RoundManager do
           run_jackpot(
             conn,
             stmts,
-            balances,
+            balance_pid,
             balance_tx,
             round_id,
             prev_hash,
@@ -682,12 +681,12 @@ defmodule RoundManager do
     end
   end
 
-  defp run_reward(creator, balances, balance_tx, tx_count, txs_rejected, size) do
+  defp run_reward(creator, balance_pid, balance_tx, tx_count, txs_rejected, size) do
     reward = Round.reward(tx_count, txs_rejected, size)
 
     if reward > 0 do
       balance_key = DetsPlux.tuple(creator.owner, @token)
-      BalanceStore.income(balances, balance_tx, balance_key, reward)
+      BalanceStore.income(balance_pid, balance_tx, balance_key, reward)
     end
 
     reward

@@ -272,7 +272,7 @@ defmodule Ippan.TxHandler do
   end
 
   # only deferred transactions
-  def run_deferred_txs(conn, stmts, balances, wallets) do
+  def run_deferred_txs(conn, stmts, balance_pid, balance_tx, wallets) do
     IO.puts("txs deferred")
     IO.inspect(:ets.tab2list(:dtx))
 
@@ -285,7 +285,7 @@ defmodule Ippan.TxHandler do
         id: account_id,
         conn: conn,
         stmts: stmts,
-        balance: balances,
+        balance: {balance_pid, balance_tx},
         type: type,
         validator: validator_id,
         hash: hash,

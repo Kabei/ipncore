@@ -1,6 +1,6 @@
 defmodule BalanceStore do
   defmacro requires(dets, tx, key, value) do
-    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value] do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
       {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})
 
       case balance >= value do
@@ -14,7 +14,7 @@ defmodule BalanceStore do
   end
 
   def has?(dets, tx, key, value) do
-    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value] do
+    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
       {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})
 
       case balance >= value do

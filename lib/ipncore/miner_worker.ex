@@ -45,7 +45,7 @@ defmodule MinerWorker do
 
     try do
       IO.puts("Here 0")
-      balances = DetsPlux.whereis(:balance)
+      balances = {DetsPlux.get(:balance), DetsPlux.tx(:balance)}
       wallets = {DetsPlux.get(:wallet), DetsPlux.tx(:wallet)}
 
       [block_height, prev_hash] =

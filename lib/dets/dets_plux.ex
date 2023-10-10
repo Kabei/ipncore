@@ -72,8 +72,7 @@ defmodule DetsPlux do
             key_fun: 1,
             tuple: 2,
             tuple: 3,
-            tx: 1,
-            whereis: 1}
+            tx: 1}
 
   defmodule State do
     @moduledoc false
@@ -406,11 +405,6 @@ defmodule DetsPlux do
     :persistent_term.put({@txs_suffix, name}, tid)
 
     tid
-  end
-
-  @spec whereis(atom) :: {db(), transaction()}
-  def whereis(name) do
-    {:persistent_term.get({@dets_suffix, name}), DetsPlux.tx(name)}
   end
 
   @doc """

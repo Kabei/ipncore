@@ -251,7 +251,7 @@ defmodule Ippan.TxHandler do
   # Dispute resolution in deferred transaction
   @spec insert_deferred(list(), pos_integer(), pos_integer()) :: boolean
   def insert_deferred(
-        [hash, type, arg_key, account_id, args, timestamp, size],
+        [hash, type, arg_key, account_id, args, timestamp, _nonce, size],
         validator_id,
         block_id
       ) do
@@ -274,6 +274,7 @@ defmodule Ippan.TxHandler do
   end
 
   # only deferred transactions
+  @spec run_deferred_txs(any, any, any, any, any) :: true
   def run_deferred_txs(conn, stmts, balance_pid, balance_tx, wallets) do
     IO.puts("txs deferred")
     IO.inspect(:ets.tab2list(:dtx))

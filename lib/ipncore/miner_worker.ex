@@ -132,7 +132,7 @@ defmodule MinerWorker do
     creator_id = validator.id
 
     Enum.reduce(messages, 0, fn
-      [hash, type, from, args, timestamp, size], acc ->
+      [hash, type, from, args, timestamp, _nonce, size], acc ->
         case TxHandler.handle_regular(
                conn,
                stmts,

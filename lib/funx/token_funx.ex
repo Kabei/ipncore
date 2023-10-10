@@ -90,7 +90,7 @@ defmodule Ippan.Funx.Token do
   end
 
   def delete(%{id: account_id, conn: conn, stmts: stmts}, id) do
-    tx = DetsPlux.tx(:supply)
+    tx = DetsPlux.tx(:stats, :supply)
 
     if TokenSupply.get(tx, id) == 0 do
       SqliteStore.step(conn, stmts, "delete_token", [id, account_id])

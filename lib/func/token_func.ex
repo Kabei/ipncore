@@ -82,7 +82,7 @@ defmodule Ippan.Func.Token do
   end
 
   def delete(%{id: account_id, conn: conn, stmts: stmts}, id) when byte_size(id) <= 10 do
-    tx = DetsPlux.tx(:supply)
+    tx = DetsPlux.tx(:stats, :supply)
 
     cond do
       TokenSupply.get(tx, id) != 0 ->

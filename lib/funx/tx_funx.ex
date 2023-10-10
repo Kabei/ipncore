@@ -27,7 +27,7 @@ defmodule Ippan.Funx.Tx do
     balance_key = DetsPlux.tuple(account_id, token)
     to_balance_key = DetsPlux.tuple(to, token)
 
-    supply_tx = DetsPlux.tx(:supply)
+    supply_tx = DetsPlux.tx(:stats, :supply)
     {supply_key, supply} = TokenSupply.fetch(supply_tx, @token)
 
     if is_validator do
@@ -91,7 +91,7 @@ defmodule Ippan.Funx.Tx do
   end
 
   def coinbase(%{balance: {dets, tx}}, token_id, outputs) do
-    supply_tx = DetsPlux.tx(:supply)
+    supply_tx = DetsPlux.tx(:stats, :supply)
     {supply_key, supply} = TokenSupply.fetch(supply_tx, @token)
 
     total =
@@ -106,7 +106,7 @@ defmodule Ippan.Funx.Tx do
   end
 
   def burn(%{id: account_id, balance: {dets, tx}}, token_id, amount) do
-    supply_tx = DetsPlux.tx(:supply)
+    supply_tx = DetsPlux.tx(:stats, :supply)
     {supply_key, supply} = TokenSupply.fetch(supply_tx, token_id)
 
     balance_key = DetsPlux.tuple(account_id, token_id)

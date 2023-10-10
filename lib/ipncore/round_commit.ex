@@ -13,19 +13,19 @@ defmodule RoundCommit do
           end),
           Task.async(fn ->
             wallet_dets = DetsPlux.get(:wallet)
-            wallet_tx = DetsPlux.tx(:wallet)
-            nonce_tx = DetsPlux.tx(:nonce)
+            wallet_tx = DetsPlux.tx(wallet_dets, :wallet)
+            nonce_tx = DetsPlux.tx(wallet_dets, :nonce)
             DetsPlux.sync(wallet_dets, wallet_tx)
             DetsPlux.sync(wallet_dets, nonce_tx)
           end),
           Task.async(fn ->
             balance_dets = DetsPlux.get(:balance)
-            balance_tx = DetsPlux.tx(:balance)
+            balance_tx = DetsPlux.tx(balance_dets, :balance)
             DetsPlux.sync(balance_dets, balance_tx)
           end),
           Task.async(fn ->
             stats_dets = DetsPlux.get(:stats)
-            supply_tx = DetsPlux.tx(:supply)
+            supply_tx = DetsPlux.tx(stats_dets, :supply)
             DetsPlux.sync(stats_dets, supply_tx)
           end)
         ]
@@ -44,7 +44,7 @@ defmodule RoundCommit do
 
   def rollback(conn) do
     balance_tx = DetsPlux.tx(:balance)
-    supply_tx = DetsPlux.tx(:supply)
+    supply_tx = DetsPlux.tx(:stats, :supply)
     wallet_tx = DetsPlux.tx(:wallet)
 
     SqliteStore.rollback(conn)

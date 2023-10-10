@@ -833,7 +833,7 @@ defmodule RoundManager do
       :ets.tab2list(ets_players)
       |> Enum.filter(fn {id, _} = x -> id != vid and x not in players_connected end)
       |> Enum.take_random(take)
-      |> Enum.map(fn node ->
+      |> Enum.map(fn {_id, node} ->
         Task.async(fn ->
           NetworkNodes.connect(node)
         end)

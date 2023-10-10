@@ -717,27 +717,42 @@ defmodule DetsPlux do
   def handle_call(
         {:start_sync, ets},
         _from,
-        state = %State{sync: sync, sync_fallback: fallback, sync_waiters: waiters}
+        state = %State{sync: nil, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) > 0 do
-      {pid, new_fallback} =
-        case fallback do
-          [t1, t2] ->
-            {sync, [t1, merge_tx(t2, ets)]}
-
-          [t1] ->
-            {sync, [t1, ets]}
-
-          [] ->
-            pid = spawn_sync_worker(ets, state)
-            {pid, [ets]}
-        end
+      pid = spawn_sync_worker(ets, state)
 
       {:reply, :ok,
        %State{
          state
          | sync: pid,
-           sync_fallback: new_fallback,
+           sync_waiters: waiters ++ [nil]
+       }}
+    else
+      :ets.delete(ets)
+      {:reply, :ok, state}
+    end
+  end
+
+  def handle_call(
+        {:start_sync, ets},
+        _from,
+        state = %State{sync_fallback: fallback, sync_waiters: waiters}
+      ) do
+    if :ets.info(ets, :size) > 0 do
+      new_fallback =
+        case fallback do
+          nil ->
+            ets
+
+          table ->
+            merge_tx(table, ets)
+        end
+
+      {:reply, :ok,
+       %State{
+         state
+         | sync_fallback: new_fallback,
            sync_waiters: waiters ++ [nil]
        }}
     else
@@ -749,30 +764,45 @@ defmodule DetsPlux do
   def handle_call(
         {:sync, ets},
         from,
-        state = %State{sync: sync, sync_fallback: fallback, sync_waiters: waiters}
+        state = %State{sync: nil, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) == 0 do
       :ets.delete(ets)
       {:reply, :ok, state}
     else
-      {pid, new_fallback} =
-        case fallback do
-          [t1, t2] ->
-            {sync, [t1, merge_tx(t2, ets)]}
-
-          [t1] ->
-            {sync, [t1, ets]}
-
-          [] ->
-            pid = spawn_sync_worker(ets, state)
-            {pid, [ets]}
-        end
+      pid = spawn_sync_worker(ets, state)
 
       {:noreply,
        %State{
          state
          | sync: pid,
-           sync_fallback: new_fallback,
+           sync_waiters: waiters ++ [from]
+       }}
+    end
+  end
+
+  def handle_call(
+        {:sync, ets},
+        from,
+        state = %State{sync_fallback: fallback, sync_waiters: waiters}
+      ) do
+    if :ets.info(ets, :size) == 0 do
+      :ets.delete(ets)
+      {:reply, :ok, state}
+    else
+      new_fallback =
+        case fallback do
+          nil ->
+            ets
+
+          table ->
+            merge_tx(table, ets)
+        end
+
+      {:noreply,
+       %State{
+         state
+         | sync_fallback: new_fallback,
            sync_waiters: waiters ++ [from]
        }}
     end
@@ -996,7 +1026,6 @@ defmodule DetsPlux do
   """
   @spec merge_tx(transaction(), transaction()) :: transaction()
   def merge_tx(ets1, ets2) do
-    IO.puts("merge_tx")
     do_merge_tables(:ets.first(ets2), ets1, ets2)
   end
 

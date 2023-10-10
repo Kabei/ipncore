@@ -605,7 +605,7 @@ defmodule RoundManager do
 
       # Tasks to create blocks
       result =
-        Enum.each(blocks, fn block ->
+        Enum.map(blocks, fn block ->
           Task.async(fn ->
             :poolboy.transaction(
               pool_pid,

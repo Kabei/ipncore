@@ -450,7 +450,7 @@ defmodule RoundManager do
 
       spawn_link(fn ->
         msg_round =
-          check_votes(%{round_id: round_id, votes: ets_votes})
+          message || check_votes(%{round_id: round_id, votes: ets_votes})
 
         IO.inspect(msg_round)
 

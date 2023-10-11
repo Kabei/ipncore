@@ -578,7 +578,7 @@ defmodule RoundManager do
       block_count = length(blocks)
 
       {hash, tx_count, size} =
-        if map.hash do
+        if Map.get(map, :hash) do
           {map.hash, map.tx_count, map.size}
         else
           {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)

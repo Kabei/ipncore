@@ -461,7 +461,7 @@ defmodule RoundManager do
           build_round(
             %{
               id: round_id,
-              block: msg_round.blocks,
+              blocks: msg_round.blocks,
               prev: prev_hash,
               signature: msg_round.signature
             },

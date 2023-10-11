@@ -338,7 +338,7 @@ defmodule RoundManager do
           state
       ) do
     next = round_nulled_id == round_id
-    Logger.debug("[Incomplete] Round ##{round_nulled_id} | #{Base.encode16(round_nulled.hash)}")
+    Logger.debug("[Incomplete] Round ##{round_nulled_id} | #{Base.encode16(round_nulled.reason)}")
 
     # Reverse changes
     RoundCommit.rollback(conn)
@@ -450,23 +450,7 @@ defmodule RoundManager do
 
       spawn_link(fn ->
         msg_round =
-          case message do
-            nil ->
-              # Choose msg round with more votes
-              # :ets.fun2ms(fn {{id, _hash}, _, _} = x when id == 1 -> x end)
-              :ets.select(ets_votes, [
-                {{{:"$1", :"$2"}, :_, :_}, [{:==, :"$1", round_id}], [:"$_"]}
-              ])
-              |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
-              |> List.first()
-              |> case do
-                nil -> nil
-                x -> elem(x, 1)
-              end
-
-            message ->
-              message
-          end
+          check_votes(%{round_id: round_id, votes: ets_votes})
 
         IO.inspect(msg_round)
 
@@ -867,7 +851,8 @@ defmodule RoundManager do
        ) do
     if vid != node_id do
       case check_votes(state) do
-        :ok ->
+        nil ->
+          IO.puts("sync_to_round_creator. no votes")
           # connect to round creator
           case NetworkNodes.connect(node) do
             true ->
@@ -895,6 +880,7 @@ defmodule RoundManager do
           end
 
         message ->
+          IO.puts("sync_to_round_creator #{inspect(message)}")
           spawn_build_foreign_round(state, message)
       end
     end
@@ -914,8 +900,6 @@ defmodule RoundManager do
       {_, x, count} ->
         if count == div(n, 2) + 1 do
           x
-        else
-          :ok
         end
     end
   end

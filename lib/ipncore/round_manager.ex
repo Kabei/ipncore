@@ -355,6 +355,9 @@ defmodule RoundManager do
     NetworkNodes.disconnect(rcid)
     total_players = get_total_players(ets_players)
 
+    # replicate data to cluster nodes
+    ClusterNodes.broadcast(%{"event" => "round.new", "data" => round_nulled})
+
     # send event
     PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
       "event" => "validator.delete",

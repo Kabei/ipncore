@@ -35,8 +35,7 @@ defmodule Ippan.ClusterClient do
            hostname: hostname,
            port: port,
            net_pubkey: net_pubkey,
-           opts: opts,
-           pid: pid
+           opts: opts
          } =
            state
        ) do
@@ -52,7 +51,7 @@ defmodule Ippan.ClusterClient do
 
           new_state =
             state
-            |> Map.take([:id, :hostname, :port, :role, :net_pubkey, :opts, :pid])
+            |> Map.take([:id, :hostname, :port, :role, :net_pubkey, :opts])
             |> Map.put(:socket, socket)
             |> Map.put(:sharedkey, sharedkey)
 
@@ -60,7 +59,7 @@ defmodule Ippan.ClusterClient do
           {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
 
           # callback
-          callback(pid, :ok)
+          callback(state[:pid], :ok)
 
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 

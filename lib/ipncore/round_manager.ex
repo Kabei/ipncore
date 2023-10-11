@@ -327,7 +327,7 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {:incomplete, round_nulled},
+        {:incomplete, %{id: round_nulled_id} = round_nulled},
         %{
           conn: conn,
           stmts: stmts,
@@ -337,7 +337,8 @@ defmodule RoundManager do
         } =
           state
       ) do
-    next = round_nulled.id == round_id
+    next = round_nulled_id == round_id
+    Logger.debug("[Incomplete] Round ##{round_nulled_id} | #{Base.encode16(round_nulled.hash)}")
 
     # Reverse changes
     RoundCommit.rollback(conn)
@@ -445,6 +446,8 @@ defmodule RoundManager do
     pid = self()
 
     if rcid != vid do
+      IO.puts("RM: spawn_build_foreign_round #{round_id}")
+
       spawn_link(fn ->
         msg_round =
           case message do
@@ -464,6 +467,8 @@ defmodule RoundManager do
             message ->
               message
           end
+
+        IO.inspect(msg_round)
 
         if msg_round do
           creator =
@@ -511,7 +516,7 @@ defmodule RoundManager do
 
     if rcid == vid do
       spawn_link(fn ->
-        IO.puts("RM: build_local_round")
+        IO.puts("RM: build_local_round #{round_id}")
 
         blocks =
           case status do

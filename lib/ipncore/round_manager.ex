@@ -629,7 +629,8 @@ defmodule RoundManager do
         # Run jackpot and events
         last_block_id = block_id + block_count
 
-        jackpot_amount =
+        jackpot_result =
+          {jackpot_amount, _jackpot_winner} =
           run_jackpot(
             conn,
             stmts,
@@ -654,7 +655,10 @@ defmodule RoundManager do
           size: size,
           reason: 0,
           blocks: blocks_approved,
-          extra: nil
+          extra: nil,
+          # extra data
+          reward: reward,
+          jackpot: jackpot_result
         }
 
         :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
@@ -694,7 +698,7 @@ defmodule RoundManager do
          _block_id,
          0
        ),
-       do: 0
+       do: {0, nil}
 
   defp run_jackpot(
          _conn,
@@ -706,7 +710,7 @@ defmodule RoundManager do
          _block_id,
          _reward
        ),
-       do: 0
+       do: {0, nil}
 
   defp run_jackpot(
          conn,
@@ -726,7 +730,7 @@ defmodule RoundManager do
 
       case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
         nil ->
-          0
+          {0, nil}
 
         block_list ->
           block = Block.list_to_map(block_list)
@@ -759,12 +763,10 @@ defmodule RoundManager do
               :done =
                 SqliteStore.step(conn, stmts, "insert_jackpot", jackpot)
 
-              ClusterNodes.broadcast(%{"event" => "jackpot", "data" => jackpot})
-
-              reward
+              {reward, winner_id}
 
             true ->
-              0
+              {0, nil}
           end
       end
     else

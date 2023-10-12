@@ -770,7 +770,7 @@ defmodule RoundManager do
           end
       end
     else
-      0
+      {0, nil}
     end
   end
 

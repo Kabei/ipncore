@@ -627,8 +627,6 @@ defmodule RoundManager do
         reward = run_reward(creator, balance_pid, balance_tx, tx_count, txs_rejected, size)
 
         # Run jackpot and events
-        last_block_id = block_id + block_count
-
         jackpot_result =
           {jackpot_amount, _jackpot_winner} =
           run_jackpot(
@@ -638,7 +636,7 @@ defmodule RoundManager do
             balance_tx,
             round_id,
             prev_hash,
-            last_block_id,
+            block_id + block_count,
             reward
           )
 
@@ -688,29 +686,9 @@ defmodule RoundManager do
     reward
   end
 
-  defp run_jackpot(
-         _conn,
-         _stmts,
-         _balances,
-         _balance_tx,
-         _round_id,
-         _round_hash,
-         _block_id,
-         0
-       ),
-       do: {0, nil}
+  defp run_jackpot(_, _, _, _, _, _, _, 0), do: {0, nil}
 
-  defp run_jackpot(
-         _conn,
-         _stmts,
-         _balances,
-         _balance_tx,
-         _round_id,
-         nil,
-         _block_id,
-         _reward
-       ),
-       do: {0, nil}
+  defp run_jackpot(_, _, _, _, _, nil, _, _), do: {0, nil}
 
   defp run_jackpot(
          conn,
@@ -719,14 +697,14 @@ defmodule RoundManager do
          balance_tx,
          round_id,
          round_hash,
-         block_id,
+         total_blocks,
          reward
        ) do
     if rem(round_id, 100) == 0 do
       IO.inspect("jackpot")
       n = BigNumber.to_int(round_hash)
-      dv = min(block_id + 1, 20_000)
-      b = rem(n, dv) + if(block_id >= 20_000, do: block_id, else: 0)
+      dv = min(total_blocks + 1, 20_000)
+      b = rem(n, dv) + if(total_blocks >= 20_000, do: total_blocks, else: 0)
 
       case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
         nil ->

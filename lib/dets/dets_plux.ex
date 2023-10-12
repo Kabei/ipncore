@@ -58,7 +58,7 @@ defmodule DetsPlux do
   @type db :: pid | atom()
   @type transaction :: :ets.tid() | atom()
   @type key :: binary() | nil
-  @type value :: binary() | number() | list() | map() | nil
+  @type value :: binary() | number() | list() | map() | tuple() | nil
   @type t :: %__MODULE__{ets: transaction(), filename: binary(), sync_fallback: transaction()}
 
   # Inline common instructions

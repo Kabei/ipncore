@@ -37,6 +37,9 @@ defmodule RoundCommit do
         clear_cache()
       end
     else
+      balance_dets = DetsPlux.get(:balance)
+      balance_tx = DetsPlux.tx(balance_dets, :balance)
+      DetsPlux.sync(balance_dets, balance_tx)
       SqliteStore.commit(conn)
       SqliteStore.begin(conn)
     end

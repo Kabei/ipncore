@@ -14,7 +14,7 @@ defmodule RoundManager do
   @miner_pool :miner_pool
   @pubsub :cluster
   @token Application.compile_env(:ipncore, :token)
-  @timeout 15_000
+  @timeout 20_000
   @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)
 
   def start_link(args) do
@@ -338,7 +338,7 @@ defmodule RoundManager do
           state
       ) do
     next = round_nulled_id == round_id
-    Logger.debug("[Incomplete] Round ##{round_nulled_id} | #{Base.encode16(round_nulled.reason)}")
+    Logger.debug("[Incomplete] Round ##{round_nulled_id} | Reason: #{round_nulled.reason}")
 
     # Reverse changes
     RoundCommit.rollback(conn)

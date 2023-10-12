@@ -45,7 +45,7 @@ defmodule Ippan.Func.Dns do
         raise IppanError, "Invalid owner"
 
       true ->
-        BalanceStore.requires(dets, tx, balance_key, size)
+        BalanceStore.requires!(dets, tx, balance_key, size)
     end
   end
 

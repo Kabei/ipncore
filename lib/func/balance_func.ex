@@ -18,7 +18,7 @@ defmodule Ippan.Func.Balance do
       "lock" not in token.props ->
         raise IppanError, "Invalid property"
 
-        BalanceStore.requires(dets, tx, balance_key, amount)
+        BalanceStore.requires!(dets, tx, balance_key, amount)
     end
   end
 
@@ -43,7 +43,7 @@ defmodule Ippan.Func.Balance do
         raise IppanError, "Invalid property"
 
       true ->
-        BalanceStore.requires(dets, tx, balance_key, amount)
+        BalanceStore.requires!(dets, tx, balance_key, amount)
     end
   end
 end

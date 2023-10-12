@@ -73,13 +73,13 @@ defmodule Ippan.Wallet do
   end
 
   @spec gte_nonce!(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) ::
-          boolean() | no_return()
+          binary() | no_return()
   def gte_nonce!(dets, tx, from, nonce) do
     key = DetsPlux.tuple(from, "N")
     count = DetsPlux.get_tx(dets, tx, key, 0)
 
     if nonce > count do
-      DetsPlux.put(tx, key, count)
+      key
     else
       raise IppanError, "Invalid nonce"
     end

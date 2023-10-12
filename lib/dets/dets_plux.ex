@@ -367,6 +367,7 @@ defmodule DetsPlux do
 
           ret ->
             :ets.insert(tx, {key, {key, ret}})
+            ret
         end
     end
   end

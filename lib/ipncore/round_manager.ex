@@ -1,5 +1,6 @@
 defmodule RoundManager do
   use GenServer, restart: :transient
+  alias Ippan.Token
   alias Ippan.{NetworkNodes, ClusterNodes, Block, Round, TxHandler, Validator}
   alias Phoenix.PubSub
 
@@ -623,8 +624,26 @@ defmodule RoundManager do
         # Run deferred txs
         TxHandler.run_deferred_txs(conn, stmts, balance_pid, balance_tx, wallets)
 
+        # Get info native token and current supply
+        %{max_supply: max_supply} =
+          SqliteStore.lookup_map(:token, conn, stmts, "get_token", @token, Token)
+
+        supply_tx = DetsPlux.tx(:supply)
+        {supply_key, supply} = TokenSupply.fetch(supply_tx, @token)
+
+        token_supply = {supply_tx, supply_key, supply, max_supply}
+
         # Calculate reward
-        reward = run_reward(creator, balance_pid, balance_tx, tx_count, txs_rejected, size)
+        reward =
+          run_reward(
+            creator,
+            balance_pid,
+            balance_tx,
+            tx_count,
+            txs_rejected,
+            size,
+            token_supply
+          )
 
         # Run jackpot and events
         jackpot_result =
@@ -637,7 +656,8 @@ defmodule RoundManager do
             round_id,
             prev_hash,
             block_id + block_count,
-            reward
+            reward,
+            token_supply
           )
 
         # save round
@@ -675,20 +695,31 @@ defmodule RoundManager do
     end
   end
 
-  defp run_reward(creator, balance_pid, balance_tx, tx_count, txs_rejected, size) do
+  defp run_reward(
+         creator,
+         balance_pid,
+         balance_tx,
+         tx_count,
+         txs_rejected,
+         size,
+         {supply_tx, supply_key, supply, max_supply}
+       ) do
     reward = Round.reward(tx_count, txs_rejected, size)
+    supply_amount = supply + reward
 
-    if reward > 0 do
+    if reward > 0 and max_supply >= supply_amount do
       balance_key = DetsPlux.tuple(creator.owner, @token)
+      # Update balance
       BalanceStore.income(balance_pid, balance_tx, balance_key, reward)
+      # Update Token Supply
+      TokenSupply.set(supply_tx, supply_key, supply_amount)
     end
 
     reward
   end
 
-  defp run_jackpot(_, _, _, _, _, _, _, 0), do: {0, nil}
-
-  defp run_jackpot(_, _, _, _, _, nil, _, _), do: {0, nil}
+  defp run_jackpot(_, _, _, _, _, _, _, 0, _), do: {0, nil}
+  defp run_jackpot(_, _, _, _, _, nil, _, _, _), do: {0, nil}
 
   defp run_jackpot(
          conn,
@@ -698,7 +729,8 @@ defmodule RoundManager do
          round_id,
          round_hash,
          total_blocks,
-         reward
+         reward,
+         {supply_tx, supply_key, supply, max_supply}
        ) do
     if rem(round_id, 100) == 0 do
       IO.inspect("jackpot")
@@ -706,46 +738,56 @@ defmodule RoundManager do
       dv = min(total_blocks + 1, 20_000)
       b = rem(n, dv) + if(total_blocks >= 20_000, do: total_blocks, else: 0)
 
-      case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
-        nil ->
-          {0, nil}
+      supply_amount = reward + supply
 
-        block_list ->
-          block = Block.list_to_map(block_list)
-          tx_count = block.count
-          IO.inspect(tx_count)
+      if max_supply >= supply_amount do
+        case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
+          nil ->
+            {0, nil}
 
-          cond do
-            tx_count > 0 ->
-              tx_n = rem(n, tx_count)
-              path = Block.decode_path(block.creator, block.height)
-              {:ok, content} = File.read(path)
-              %{"data" => data} = decode_file!(content)
+          block_list ->
+            block = Block.list_to_map(block_list)
+            tx_count = block.count
+            IO.inspect(tx_count)
 
-              winner_id =
-                case Enum.at(data, tx_n) do
-                  [_hash, _type, account_id, _args, _timestamp, _nonce, _size] ->
-                    balance_key = DetsPlux.tuple(account_id, @token)
-                    BalanceStore.income(balances, balance_tx, balance_key, reward)
+            cond do
+              tx_count > 0 ->
+                tx_n = rem(n, tx_count)
+                path = Block.decode_path(block.creator, block.height)
+                {:ok, content} = File.read(path)
+                %{"data" => data} = decode_file!(content)
 
-                    account_id
+                winner_id =
+                  case Enum.at(data, tx_n) do
+                    [_hash, _type, account_id, _args, _timestamp, _nonce, _size] ->
+                      balance_key = DetsPlux.tuple(account_id, @token)
+                      BalanceStore.income(balances, balance_tx, balance_key, reward)
+                      # Update Token Supply
+                      TokenSupply.set(supply_tx, supply_key, supply_amount)
 
-                  [_hash, _type, _arg_key, account_id, _args, _timestamp, _nonce, _size] ->
-                    balance_key = DetsPlux.tuple(account_id, @token)
-                    BalanceStore.income(balances, balance_tx, balance_key, reward)
-                    account_id
-                end
+                      account_id
 
-              jackpot = [round_id, winner_id, reward]
+                    [_hash, _type, _arg_key, account_id, _args, _timestamp, _nonce, _size] ->
+                      balance_key = DetsPlux.tuple(account_id, @token)
+                      BalanceStore.income(balances, balance_tx, balance_key, reward)
+                      # Update Token Supply
+                      TokenSupply.set(supply_tx, supply_key, supply_amount)
+                      account_id
+                  end
 
-              :done =
-                SqliteStore.step(conn, stmts, "insert_jackpot", jackpot)
+                jackpot = [round_id, winner_id, reward]
 
-              {reward, winner_id}
+                :done =
+                  SqliteStore.step(conn, stmts, "insert_jackpot", jackpot)
 
-            true ->
-              {0, nil}
-          end
+                {reward, winner_id}
+
+              true ->
+                {0, nil}
+            end
+        end
+      else
+        {0, nil}
       end
     else
       {0, nil}

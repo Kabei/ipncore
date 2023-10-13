@@ -9,7 +9,7 @@ defmodule Ippan.Funx.Wallet do
       ) do
     pubkey = Fast64.decode64(pubkey)
     id = Address.hash(sig_type, pubkey)
-IO.inspect("wallet.sub")
+
     DetsPlux.put(wallet_tx, id, {pubkey, validator_id})
   end
 

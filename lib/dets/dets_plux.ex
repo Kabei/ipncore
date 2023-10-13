@@ -411,7 +411,10 @@ defmodule DetsPlux do
 
   @spec tx(atom) :: transaction()
   def tx(name) do
-    tx(name, name)
+    tx(
+      :persistent_term.get({@dets_suffix, name}, nil),
+      :persistent_term.get({@txs_suffix, name}, nil)
+    )
   end
 
   @doc """

@@ -82,7 +82,6 @@ defmodule Ipncore.MixProject do
       {:bandit, ">= 0.7.7"},
       {:phoenix_pubsub, "~> 2.1"},
       {:httpoison, "~> 2.0"},
-      {:dnslib, git: "https://github.com/lateio/dnslib", branch: "master", override: true},
       {:cafezinho, "~> 0.4.0"},
       {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
       {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},

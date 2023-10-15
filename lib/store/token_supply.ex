@@ -1,53 +1,62 @@
 defmodule TokenSupply do
   @db :stats
+  @tx :supply
+  @cache_tx :cache_supply
+  @word "supply"
 
-  @spec get(tx :: DetsPlux.transaction(), token_id :: binary) :: supply :: integer()
-  def get(tx, token_id) do
-    key = DetsPlux.tuple(token_id, "supply")
-    dets = DetsPlux.get(@db)
-    DetsPlux.get_tx(dets, tx, key, 0)
-  end
+  defstruct db: nil, tx: nil, key: nil
 
-  @spec fetch(tx :: DetsPlux.transaction(), token_id :: binary) ::
-          {DetsPlux.key(), supply :: integer}
-  def fetch(tx, token_id) do
-    key = DetsPlux.tuple(token_id, "supply")
-    dets = DetsPlux.get(@db)
-    {key, DetsPlux.get_tx(dets, tx, key, 0)}
-  end
-
-  @spec set(DetsPlux.transaction(), DetsPlux.key(), integer()) :: true
-  def set(tx, key, amount) do
-    DetsPlux.put(tx, key, amount)
-  end
-
-  @spec add(DetsPlux.transaction(), DetsPlux.key(), integer(), integer()) :: true
-  def add(tx, key, supply, amount) do
-    DetsPlux.put(tx, key, supply + amount)
-  end
-
-  @spec add_if(DetsPlux.transaction(), DetsPlux.key(), integer(), integer(), pos_integer()) ::
-          true
-  def add_if(tx, key, supply, amount, 0) do
-    DetsPlux.put(tx, key, supply + amount)
-  end
-
-  def add_if(tx, key, supply, amount, max_supply) do
-    total = supply + amount
-
-    if max_supply >= total do
-      DetsPlux.put(tx, key, supply + amount)
-    else
-      false
+  defmacrop key(token_id) do
+    quote do
+      DetsPlux.tuple(unquote(token_id), @word)
     end
   end
 
-  def valid?(supply, amount, max_supply) do
-    max_supply >= supply + amount
+  def new(id) do
+    db = DetsPlux.get(@db)
+    tx = DetsPlux.tx(db, @tx)
+    key = key(id)
+
+    %__MODULE__{
+      db: db,
+      tx: tx,
+      key: key
+    }
   end
 
-  @spec subtract(DetsPlux.transaction(), DetsPlux.key(), integer(), integer()) :: true
-  def subtract(tx, key, supply, amount) do
-    DetsPlux.put(tx, key, supply - amount)
+  def cache(id) do
+    db = DetsPlux.get(@db)
+    tx = DetsPlux.tx(db, @cache_tx)
+    key = key(id)
+
+    %__MODULE__{
+      db: db,
+      tx: tx,
+      key: key
+    }
+  end
+
+  def get(%{dets: dets, tx: tx, key: key}) do
+    DetsPlux.get_tx(dets, tx, key, 0)
+  end
+
+  @spec get(DetsPlux.db(), DetsPlux.transaction(), binary) :: supply :: integer()
+  def get(dets, tx, key) do
+    DetsPlux.get_tx(dets, tx, key, 0)
+  end
+
+  @spec put(map, integer()) :: true
+  def put(%{tx: tx, key: key}, amount) do
+    DetsPlux.put(tx, key, amount)
+  end
+
+  @spec add(map, integer()) :: true
+  def add(%{dets: dets, tx: tx, key: key}, amount) do
+    DetsPlux.put(tx, key, get(dets, tx, key) + amount)
+  end
+
+  @spec subtract(map, integer()) :: true
+  def subtract(%{dets: dets, tx: tx, key: key}, amount) do
+    DetsPlux.put(tx, key, get(dets, tx, key) - amount)
   end
 end

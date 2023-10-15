@@ -557,6 +557,33 @@ defmodule RoundManager do
     end
   end
 
+  # creator,
+  # balance_pid,
+  # balance_tx,
+  # tx_count,
+  # txs_rejected,
+  # size,
+  # {supply_tx, supply_key, supply, max_supply}
+  defmacrop run_reward do
+    quote location: :keep do
+      reward = Round.reward(var!(tx_count), var!(txs_rejected), var!(size))
+      total = TokenSupply.get(var!(supply)) + reward
+
+      case reward > 0 and var!(max_supply) >= total do
+        true ->
+          balance_key = DetsPlux.tuple(var!(creator).owner, @token)
+          # Update balance
+          BalanceStore.income(var!(balance_pid), var!(balance_tx), balance_key, reward)
+          # Update Token Supply
+          TokenSupply.put(var!(supply), total)
+          reward
+
+        false ->
+          0
+      end
+    end
+  end
+
   @spec build_round(map, pos_integer, map, reference(), map, pid, pid, pid) ::
           {:ok, term} | :error
   def build_round(
@@ -628,22 +655,10 @@ defmodule RoundManager do
         %{max_supply: max_supply} =
           SqliteStore.lookup_map(:token, conn, stmts, "get_token", @token, Token)
 
-        supply_tx = DetsPlux.tx(:supply)
-        {supply_key, supply} = TokenSupply.fetch(supply_tx, @token)
-
-        token_supply = {supply_tx, supply_key, supply, max_supply}
+        supply = TokenSupply.new(@token)
 
         # Calculate reward
-        reward =
-          run_reward(
-            creator,
-            balance_pid,
-            balance_tx,
-            tx_count,
-            txs_rejected,
-            size,
-            token_supply
-          )
+        reward = run_reward()
 
         # Run jackpot and events
         jackpot_result =
@@ -657,7 +672,8 @@ defmodule RoundManager do
             prev_hash,
             block_id + block_count,
             reward,
-            token_supply
+            supply,
+            max_supply
           )
 
         # save round
@@ -695,31 +711,8 @@ defmodule RoundManager do
     end
   end
 
-  defp run_reward(
-         creator,
-         balance_pid,
-         balance_tx,
-         tx_count,
-         txs_rejected,
-         size,
-         {supply_tx, supply_key, supply, max_supply}
-       ) do
-    reward = Round.reward(tx_count, txs_rejected, size)
-    supply_amount = supply + reward
-
-    if reward > 0 and max_supply >= supply_amount do
-      balance_key = DetsPlux.tuple(creator.owner, @token)
-      # Update balance
-      BalanceStore.income(balance_pid, balance_tx, balance_key, reward)
-      # Update Token Supply
-      TokenSupply.set(supply_tx, supply_key, supply_amount)
-    end
-
-    reward
-  end
-
-  defp run_jackpot(_, _, _, _, _, _, _, 0, _), do: {0, nil}
-  defp run_jackpot(_, _, _, _, _, nil, _, _, _), do: {0, nil}
+  defp run_jackpot(_, _, _, _, _, _, _, 0, _, _), do: {0, nil}
+  defp run_jackpot(_, _, _, _, _, nil, _, _, _, _), do: {0, nil}
 
   defp run_jackpot(
          conn,
@@ -730,7 +723,8 @@ defmodule RoundManager do
          round_hash,
          total_blocks,
          reward,
-         {supply_tx, supply_key, supply, max_supply}
+         supply,
+         max_supply
        ) do
     if rem(round_id, 100) == 0 do
       IO.inspect("jackpot")
@@ -738,9 +732,9 @@ defmodule RoundManager do
       dv = min(total_blocks + 1, 20_000)
       b = rem(n, dv) + if(total_blocks >= 20_000, do: total_blocks, else: 0)
 
-      supply_amount = reward + supply
+      new_amount = TokenSupply.get(supply) + reward
 
-      if max_supply >= supply_amount do
+      if max_supply >= new_amount do
         case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
           nil ->
             {0, nil}
@@ -763,7 +757,7 @@ defmodule RoundManager do
                       balance_key = DetsPlux.tuple(account_id, @token)
                       BalanceStore.income(balances, balance_tx, balance_key, reward)
                       # Update Token Supply
-                      TokenSupply.set(supply_tx, supply_key, supply_amount)
+                      TokenSupply.put(supply, new_amount)
 
                       account_id
 
@@ -771,7 +765,7 @@ defmodule RoundManager do
                       balance_key = DetsPlux.tuple(account_id, @token)
                       BalanceStore.income(balances, balance_tx, balance_key, reward)
                       # Update Token Supply
-                      TokenSupply.set(supply_tx, supply_key, supply_amount)
+                      TokenSupply.put(supply, new_amount)
                       account_id
                   end
 

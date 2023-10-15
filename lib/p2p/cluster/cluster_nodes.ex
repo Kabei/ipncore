@@ -1,5 +1,6 @@
 defmodule Ippan.ClusterNodes do
   require Logger
+  require BalanceStore
   alias Ippan.Wallet
   alias Ippan.{LocalNode, Network}
   require SqliteStore
@@ -14,6 +15,21 @@ defmodule Ippan.ClusterNodes do
     opts: Application.compile_env(:ipncore, :p2p_client),
     conn_opts: [retry: 1, reconnect: false],
     sup: Ippan.ClusterSup
+
+  defmacro check_balance! do
+    quote location: :keep do
+      if is_map(var!(return)) do
+        # Check balance
+        dets = DetsPlux.get(:balance)
+        cache = DetsPlux.tx(:cache_balance)
+
+        Enum.each(var!(return), fn {token, value} ->
+          key = DetsPlux.tuple(var!(from), token)
+          BalanceStore.requires!(dets, cache, key, value)
+        end)
+      end
+    end
+  end
 
   def on_init(_) do
     nodes = System.get_env("NODES")
@@ -68,7 +84,7 @@ defmodule Ippan.ClusterNodes do
   @impl Network
   def handle_request(
         "new_msg",
-        [false, [hash, type, from, args, timestamp, nonce, msg_sig, size]],
+        [false, [hash, type, from, args, timestamp, nonce, msg_sig, size], return],
         _state
       ) do
     case :ets.member(:msg, hash) do
@@ -84,6 +100,8 @@ defmodule Ippan.ClusterNodes do
             ["error", "Invalid nonce"]
 
           _ ->
+            check_balance!()
+
             :ets.insert(:dmsg, {hash, [hash, type, from, args, timestamp, nonce, size]})
             :ets.insert(:msg, {hash, msg_sig})
         end
@@ -94,7 +112,7 @@ defmodule Ippan.ClusterNodes do
 
   def handle_request(
         "new_msg",
-        [true, [hash, type, key | rest]],
+        [true, [hash, type, key | rest], return],
         _state
       ) do
     case :ets.member(:msg, hash) do
@@ -122,6 +140,7 @@ defmodule Ippan.ClusterNodes do
 
               _ ->
                 IO.puts("The insert")
+                check_balance!()
                 :ets.insert(:dmsg, {hash, [hash, type, key, from, args, timestamp, nonce, size]})
                 :ets.insert(:msg, {hash, msg_sig})
             end

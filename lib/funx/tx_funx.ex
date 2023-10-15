@@ -15,27 +15,27 @@ defmodule Ippan.Funx.Tx do
         %{
           id: account_id,
           balance: {dets, tx},
-          validator: validator,
+          validator: %{owner: owner, fee_type: fee_type, fee: vfee},
           size: size
         },
         to,
-        token,
+        token_id,
         amount,
         _note \\ <<>>
       ) do
-    is_validator = validator.owner != account_id
-    balance_key = DetsPlux.tuple(account_id, token)
-    to_balance_key = DetsPlux.tuple(to, token)
+    is_validator = owner == account_id
+    is_native_token = @token == token_id
+    balance_key = DetsPlux.tuple(account_id, token_id)
+    to_balance_key = DetsPlux.tuple(to, token_id)
 
-    supply_tx = DetsPlux.tx(:stats, :supply)
-    {supply_key, supply} = TokenSupply.fetch(supply_tx, @token)
+    supply = TokenSupply.new(token_id)
 
     if is_validator do
-      fee = Utils.calc_fees!(validator.fee_type, validator.fee, amount, size)
-      burn = trunc(fee * 0.3)
+      fees = Utils.calc_fees!(fee_type, vfee, amount, size)
+      burn = trunc(fees * 0.3)
 
-      case token do
-        @token ->
+      case is_native_token do
+        true ->
           BalanceStore.subtract(dets, tx, balance_key, amount + burn)
           BalanceStore.income(dets, tx, to_balance_key, amount)
 
@@ -46,27 +46,27 @@ defmodule Ippan.Funx.Tx do
           BalanceStore.income(dets, tx, to_balance_key, amount)
       end
 
-      TokenSupply.subtract(supply_tx, supply_key, supply, burn)
+      TokenSupply.subtract(supply, burn)
     else
-      fee = Utils.calc_fees!(validator.fee_type, validator.fee, amount, size)
-      burn = trunc(fee * 0.3)
-      result_fee = fee - burn
+      fees = Utils.calc_fees!(fee_type, vfee, amount, size)
+      burn = trunc(fees * 0.3)
+      result_fee = fees - burn
 
-      case token do
-        @token ->
-          BalanceStore.subtract(dets, tx, balance_key, amount + fee)
+      case is_native_token do
+        true ->
+          BalanceStore.subtract(dets, tx, balance_key, amount + fees)
           BalanceStore.income(dets, tx, to_balance_key, amount)
 
         _ ->
           native_balance_key = DetsPlux.tuple(account_id, @token)
           BalanceStore.subtract(dets, tx, balance_key, amount)
-          BalanceStore.subtract(dets, tx, native_balance_key, fee)
+          BalanceStore.subtract(dets, tx, native_balance_key, fees)
           BalanceStore.income(dets, tx, to_balance_key, amount)
       end
 
-      validator_balance_key = DetsPlux.tuple(validator.owner, @token)
+      validator_balance_key = DetsPlux.tuple(owner, @token)
       BalanceStore.income(dets, tx, validator_balance_key, result_fee)
-      TokenSupply.subtract(supply_tx, supply_key, supply, burn)
+      TokenSupply.subtract(supply, burn)
     end
   end
 
@@ -78,7 +78,7 @@ defmodule Ippan.Funx.Tx do
         amount,
         note \\ <<>>
       ) do
-    :ok = send(source, to, token, amount, note)
+    send(source, to, token, amount, note)
 
     SqliteStore.step(conn, stmts, "insert_refund", [
       hash,
@@ -91,8 +91,7 @@ defmodule Ippan.Funx.Tx do
   end
 
   def coinbase(%{balance: {dets, tx}}, token_id, outputs) do
-    supply_tx = DetsPlux.tx(:stats, :supply)
-    {supply_key, supply} = TokenSupply.fetch(supply_tx, @token)
+    supply = TokenSupply.new(token_id)
 
     total =
       for [address, value] <- outputs do
@@ -102,16 +101,15 @@ defmodule Ippan.Funx.Tx do
       end
       |> Enum.sum()
 
-    TokenSupply.add(supply_tx, supply_key, supply, total)
+    TokenSupply.add(supply, total)
   end
 
   def burn(%{id: account_id, balance: {dets, tx}}, token_id, amount) do
-    supply_tx = DetsPlux.tx(:stats, :supply)
-    {supply_key, supply} = TokenSupply.fetch(supply_tx, token_id)
+    supply = TokenSupply.new(token_id)
 
     balance_key = DetsPlux.tuple(account_id, token_id)
     BalanceStore.subtract(dets, tx, balance_key, amount)
-    TokenSupply.subtract(supply_tx, supply_key, supply, amount)
+    TokenSupply.subtract(supply, amount)
   end
 
   def refund(

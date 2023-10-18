@@ -1,6 +1,20 @@
 defmodule Ippan.TxHandler do
   alias Ippan.Funcs
 
+  defmacro check_balance! do
+    quote location: :keep do
+      if is_map(var!(return)) do
+        # Check balance
+        dets = DetsPlux.get(:balance)
+        cache = DetsPlux.tx(:cache_balance)
+
+        Enum.each(var!(return), fn {key, value} ->
+          BalanceStore.requires!(dets, cache, key, value)
+        end)
+      end
+    end
+  end
+
   defmacro handle_regular(
              conn,
              stmts,

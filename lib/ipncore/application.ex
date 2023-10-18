@@ -17,6 +17,7 @@ defmodule Ipncore.Application do
 
     store_dir = :persistent_term.get(:store_dir)
     wallet_path = Path.join(store_dir, "wallet.dets")
+    nonce_path = Path.join(store_dir, "nonce.dets")
     balance_path = Path.join(store_dir, "balance.dets")
     stats_path = Path.join(store_dir, "stats.dets")
 
@@ -25,6 +26,7 @@ defmodule Ipncore.Application do
       [
         MemTables,
         {DetsPlux, [id: :wallet, file: wallet_path]},
+        {DetsPlux, [id: :nonce, file: nonce_path]},
         {DetsPlux, [id: :balance, file: balance_path]},
         {DetsPlux, [id: :stats, file: stats_path]},
         NetStore,

@@ -47,7 +47,6 @@ defmodule MinerWorker do
     try do
       IO.puts("Here 0")
       balances = {DetsPlux.get(:balance), DetsPlux.tx(:balance)}
-      wallets = {DetsPlux.get(:wallet), DetsPlux.tx(:wallet)}
 
       [block_height, prev_hash] =
         SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
@@ -105,7 +104,7 @@ defmodule MinerWorker do
       IO.puts("Here 5")
 
       count_rejected =
-        mine_fun(version, messages, conn, stmts, balances, wallets, creator, block_id)
+        mine_fun(version, messages, conn, stmts, balances, creator, block_id)
 
       IO.puts("Here 6")
 
@@ -135,17 +134,16 @@ defmodule MinerWorker do
          conn,
          stmts,
          balances,
-         {wallet_dets, _wallet_tx} = wallets,
          validator,
          block_id
        ) do
     creator_id = validator.id
-
-    nonce_tx = DetsPlux.tx(wallet_dets, :nonce)
+    nonce_dets = DetsPlux.get(:nonce)
+    nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
 
     Enum.reduce(messages, 0, fn
       [hash, type, from, args, timestamp, nonce, size], acc ->
-        case Wallet.update_nonce(wallet_dets, nonce_tx, from, nonce) do
+        case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             acc + 1
 
@@ -154,7 +152,8 @@ defmodule MinerWorker do
                    conn,
                    stmts,
                    balances,
-                   wallets,
+                   # wallets,
+                   nil,
                    validator,
                    hash,
                    type,
@@ -170,7 +169,7 @@ defmodule MinerWorker do
         end
 
       msg = [_hash, _type, _arg_key, from, _args, _timestamp, nonce, _size], acc ->
-        case Wallet.update_nonce(wallet_dets, nonce_tx, from, nonce) do
+        case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             acc + 1
 
@@ -186,7 +185,7 @@ defmodule MinerWorker do
     end)
   end
 
-  defp mine_fun(version, _messages, _conn, _stmts, _balances, _wallets, _creator_id, _block_id) do
+  defp mine_fun(version, _messages, _conn, _stmts, _balances, _creator_id, _block_id) do
     raise IppanError, "Error block version #{inspect(version)}"
   end
 

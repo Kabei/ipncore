@@ -1,5 +1,4 @@
 defmodule Ippan.Network do
-  require Logger
   @callback on_connect(node_id :: term(), map :: map()) :: any()
   @callback on_disconnect(state :: term()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
@@ -11,15 +10,17 @@ defmodule Ippan.Network do
   @callback info(node_id :: term()) :: map() | nil
   @callback list() :: [term()]
   @callback alive?(node :: term()) :: boolean()
-  @callback count() :: pos_integer()
-  @callback cast(node_id :: term(), message :: term) :: :ok | :disconnect
-  @callback cast(node_id :: term(), event :: binary, data :: term) :: :ok | :disconnect
+  @callback count() :: non_neg_integer()
+  @callback cast(node_or_id :: binary | term(), message :: term) :: :ok | :disconnect
+  @callback cast(node_or_id :: term(), event :: binary, data :: term) :: :ok | :disconnect
+  @callback call(node_or_id :: binary | map, method :: binary) :: {:ok, term()} | {:error, term()}
+  @callback call(node_or_id :: binary | map, method :: binary, message :: term) ::
+              {:ok, term()} | {:error, term()}
   @callback call(
-              node_id :: term(),
+              node_or_id :: binary() | map(),
               method :: binary,
               message :: term,
-              timeout :: integer(),
-              retry :: integer()
+              opts :: Keyword.t()
             ) :: {:ok, term()} | {:error, term()}
   @callback broadcast(message :: term()) :: :ok
   @callback broadcast(message :: term(), role :: binary()) :: :ok
@@ -199,9 +200,9 @@ defmodule Ippan.Network do
               bin = encode(%{"_id" => id, "data" => response}, sharedkey)
               @adapter.send(state.socket, bin)
             rescue
-              x ->
-                Logger.error(inspect(x))
-                bin = %{"_id" => id, "data" => ["error", "Unknown"]}
+              e ->
+                Logger.error(inspect(e))
+                bin = %{"_id" => id, "data" => ["error", e.message]}
                 @adapter.send(state.socket, encode(bin, sharedkey))
             end
 
@@ -291,6 +292,10 @@ defmodule Ippan.Network do
       end
 
       @impl Network
+      def cast(%{sharedkey: sharedkey, socket: socket}, message) do
+        @adapter.send(socket, encode(message, sharedkey))
+      end
+
       def cast(node_id, message) do
         case info(node_id) do
           %{sharedkey: sharedkey, socket: socket} ->
@@ -302,6 +307,10 @@ defmodule Ippan.Network do
       end
 
       @impl Network
+      def cast(%{sharedkey: sharedkey, socket: socket}, event, data) do
+        @adapter.send(socket, encode(%{"event" => event, "data" => data}, sharedkey))
+      end
+
       def cast(node_id, event, data) do
         case info(node_id) do
           %{sharedkey: sharedkey, socket: socket} ->
@@ -313,14 +322,32 @@ defmodule Ippan.Network do
       end
 
       @impl Network
-      def call(node_id, method, data \\ nil, timeout \\ 10_000, retry \\ 0) do
+      def call(node, method), do: call(node, method, nil, [])
+
+      @impl Network
+      def call(node, method, message), do: call(node, method, message, [])
+
+      @impl Network
+      def call(%{sharedkey: sharedkey, socket: socket}, method, data, opts) do
+        timeout = Keyword.get(opts, :timeout, 10_000)
+        retry = Keyword.get(opts, :retry, 0)
+        id = :rand.bytes(8)
+        topic = "call:#{id}"
+        message = %{"_id" => id, "method" => method, "data" => data}
+        PubSub.subscribe(@pubsub, topic)
+        call_retry(socket, message, sharedkey, topic, timeout, retry)
+      end
+
+      def call(node_id, method, data, opts) do
+        timeout = Keyword.get(opts, :timeout, 10_000)
+        retry = Keyword.get(opts, :retry, 0)
         id = :rand.bytes(8)
         topic = "call:#{id}"
         message = %{"_id" => id, "method" => method, "data" => data}
 
         case info(node_id) do
           nil ->
-            {:error, :not_exists}
+            {:error, :disconnect}
 
           %{sharedkey: sharedkey, socket: socket} ->
             PubSub.subscribe(@pubsub, topic)

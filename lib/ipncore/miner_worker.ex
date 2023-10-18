@@ -76,7 +76,7 @@ defmodule MinerWorker do
 
         {node_id, node} = random_node()
 
-        case ClusterNodes.call(node_id, "verify_block", block_check, 10_000, 2) do
+        case ClusterNodes.call(node_id, "verify_block", block_check, timeout: 10_000, retry: 2) do
           {:ok, true} ->
             url = Block.cluster_decode_url(node.hostname, creator_id, height)
             :ok = Download.from(url, decode_path)

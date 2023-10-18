@@ -16,15 +16,14 @@ defmodule Ippan.ClusterNodes do
     conn_opts: [retry: 1, reconnect: false],
     sup: Ippan.ClusterSup
 
-  defmacro check_balance! do
+  defmacrop check_balance! do
     quote location: :keep do
       if is_map(var!(return)) do
         # Check balance
         dets = DetsPlux.get(:balance)
         cache = DetsPlux.tx(:cache_balance)
 
-        Enum.each(var!(return), fn {token, value} ->
-          key = DetsPlux.tuple(var!(from), token)
+        Enum.each(var!(return), fn {key, value} ->
           BalanceStore.requires!(dets, cache, key, value)
         end)
       end

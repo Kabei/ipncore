@@ -1,6 +1,8 @@
 defmodule Ippan.P2P do
   require Logger
-  require BigNumber
+
+  @compile :inline_list_funcs
+  @compile {:inline, [decode!: 2, encode: 2]}
 
   @version <<0::16>>
   @seconds <<0>>

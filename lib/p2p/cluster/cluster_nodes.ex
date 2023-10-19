@@ -85,7 +85,7 @@ defmodule Ippan.ClusterNodes do
             ["error", "Invalid nonce"]
 
           _ ->
-            TxHandler.check_balance!()
+            TxHandler.check_return!()
 
             :ets.insert(:dmsg, {hash, [hash, type, from, args, timestamp, nonce, size]})
             :ets.insert(:msg, {hash, msg_sig})
@@ -125,7 +125,7 @@ defmodule Ippan.ClusterNodes do
 
               _ ->
                 IO.puts("The insert")
-                TxHandler.check_balance!()
+                TxHandler.check_return!()
                 :ets.insert(:dmsg, {hash, [hash, type, key, from, args, timestamp, nonce, size]})
                 :ets.insert(:msg, {hash, msg_sig})
             end

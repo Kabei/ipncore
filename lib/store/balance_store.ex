@@ -13,6 +13,25 @@ defmodule BalanceStore do
     end
   end
 
+  defmacro multi_requires!(dets, tx, key_value_list) do
+    quote bind_quoted: [dets: dets, tx: tx, list: key_value_list], location: :keep do
+      Enum.map(list, fn {key, value} ->
+        {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})
+
+        case balance >= value do
+          true ->
+            {key, value, balance, lock}
+
+          false ->
+            raise IppanError, "Insufficient balance"
+        end
+      end)
+      |> Enum.each(fn {key, value, balance, lock} ->
+        DetsPlux.put(tx, key, {balance - value, lock})
+      end)
+    end
+  end
+
   def has?(dets, tx, key, value) do
     quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
       {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})

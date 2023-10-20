@@ -645,7 +645,7 @@ defmodule RoundManager do
 
         # Run jackpot and events
         jackpot_result =
-          {jackpot_amount, _jackpot_winner} =
+          {_jackpot_winner, jackpot_amount} =
           run_jackpot(
             db_ref,
             balance_pid,
@@ -755,17 +755,17 @@ defmodule RoundManager do
                 :done =
                   Sqlite.step("insert_jackpot", jackpot)
 
-                {reward, winner_id}
+                {winner_id, reward}
 
               true ->
-                {0, nil}
+                {nil, 0}
             end
         end
       else
-        {0, nil}
+        {nil, 0}
       end
     else
-      {0, nil}
+      {nil, 0}
     end
   end
 

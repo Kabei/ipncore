@@ -76,7 +76,11 @@ defmodule Ippan.Node do
 
   defmacro get(id) do
     quote location: :keep do
-      Sqlite.get(:cluster, "get_node", [unquote(id)], Ippan.Node)
+      Sqlite.fetch("get_node", [unquote(id)])
+      |> case do
+        nil -> nil
+        x -> Ippan.Node.list_to_map(x)
+      end
     end
   end
 

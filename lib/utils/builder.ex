@@ -231,8 +231,8 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.token_new(client, "IPN", address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
-  # Builder.token_new(client, "USD", address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Builder.print
+  # Builder.token_new(client, "IPN", client2.address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]})
+  # Builder.token_new(client, "USD", client2.address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["coinbase", "lock", "burn"]}) |> Builder.print
   def token_new(
         client = %Client{address: address, nonce: nonce},
         token_id,
@@ -294,32 +294,8 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def balance_lock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
-    body =
-      [250, nonce, address, to, token_id, amount]
-      |> encode_fun!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(client, hash)
-
-    {Client.cont(client), body, sig}
-  end
-
-  def balance_unlock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
-    body =
-      [251, nonce, address, to, token_id, amount]
-      |> encode_fun!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(client, hash)
-
-    {Client.cont(client), body, sig}
-  end
-
-  # Builder.tx_coinbase(client, "IPN", [[address2, 50000000]]) |> Builder.print()
-  def tx_coinbase(client = %Client{address: address, nonce: nonce}, token, outputs) do
+  # Builder.coin_coinbase(client, "IPN", [[address2, 50000000]]) |> Builder.print()
+  def coin_coinbase(client = %Client{address: address, nonce: nonce}, token, outputs) do
     body =
       [300, nonce, address, token, outputs]
       |> encode_fun!()
@@ -331,11 +307,32 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.tx_send(client, address, "IPN", 50000) |> Builder.print()
-  # Builder.tx_send(client, address, "IPN", 4000) |> Builder.print()
-  def tx_send(client = %Client{address: address, nonce: nonce}, to, token, amount) do
+  # Builder.coin_send(client, client2.address, "IPN", 50000, "Test note", true) |> Builder.print()
+  # Builder.coin_send(client, client2.address, "IPN", 4000) |> Builder.print()
+  def coin_send(
+        client = %Client{address: address, nonce: nonce},
+        to,
+        token,
+        amount,
+        note \\ "",
+        refund \\ false
+      ) do
+    count = String.length(note)
+
     body =
-      [301, nonce, address, to, token, amount]
+      cond do
+        count == 0 and refund == false ->
+          [301, nonce, address, to, token, amount]
+
+        count == 0 and refund ->
+          [301, nonce, address, to, token, amount, "", refund]
+
+        refund == false ->
+          [301, nonce, address, to, token, amount, note]
+
+        true ->
+          [301, nonce, address, to, token, amount, note, true]
+      end
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -345,9 +342,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def tx_send(client = %Client{address: address, nonce: nonce}, to, token, amount, note) do
+  # Builder.coin_refund(client, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.print()
+  def coin_refund(client = %Client{address: address, nonce: nonce}, hash) do
     body =
-      [301, nonce, address, to, token, amount, note]
+      [302, nonce, address, hash]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -357,9 +355,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def tx_refundable(client = %Client{address: address, nonce: nonce}, to, token, amount) do
+  def coin_lock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
     body =
-      [302, nonce, address, to, token, amount]
+      [303, nonce, address, to, token_id, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -369,10 +367,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.tx_refund(client, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.print()
-  def tx_refund(client = %Client{address: address, nonce: nonce}, hash) do
+  def coin_unlock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
     body =
-      [303, nonce, address, hash]
+      [304, nonce, address, to, token_id, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -382,10 +379,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.tx_burn(client, "IPN", 1000) |> Builder.print()
-  def tx_burn(client = %Client{address: address, nonce: nonce}, token, amount) do
+  # Builder.coin_burn(client, "IPN", 1000) |> Builder.print()
+  def coin_burn(client = %Client{address: address, nonce: nonce}, token, amount) do
     body =
-      [304, nonce, address, token, amount]
+      [305, nonce, address, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)

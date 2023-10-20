@@ -112,34 +112,12 @@ defmodule Ippan.Funcs do
     }
   end
 
-  def lookup(250) do
-    %Func{
-      id: 250,
-      name: "balance.lock",
-      mod: Func.Balance,
-      modx: Funx.Balance,
-      fun: :lock,
-      check: 2
-    }
-  end
-
-  def lookup(251) do
-    %Func{
-      id: 251,
-      name: "balance.unlock",
-      mod: Func.Balance,
-      modx: Funx.Balance,
-      fun: :unlock,
-      check: 2
-    }
-  end
-
   def lookup(300) do
     %Func{
       id: 300,
-      name: "tx.coinbase",
-      mod: Func.Tx,
-      modx: Funx.Tx,
+      name: "coin.coinbase",
+      mod: Func.Coin,
+      modx: Funx.Coin,
       fun: :coinbase
     }
   end
@@ -147,9 +125,9 @@ defmodule Ippan.Funcs do
   def lookup(301) do
     %Func{
       id: 301,
-      name: "tx.send",
-      mod: Func.Tx,
-      modx: Funx.Tx,
+      name: "coin.send",
+      mod: Func.Coin,
+      modx: Funx.Coin,
       fun: :send
     }
   end
@@ -157,29 +135,41 @@ defmodule Ippan.Funcs do
   def lookup(302) do
     %Func{
       id: 302,
-      name: "tx.refundable",
-      mod: Func.Tx,
-      modx: Funx.Tx,
-      fun: :send_refundable
+      name: "coin.refund",
+      mod: Func.Coin,
+      modx: Funx.Coin,
+      fun: :refund
     }
   end
 
   def lookup(303) do
     %Func{
       id: 303,
-      name: "tx.refund",
-      mod: Func.Tx,
-      modx: Funx.Tx,
-      fun: :refund
+      name: "coin.lock",
+      mod: Func.Balance,
+      modx: Funx.Balance,
+      fun: :lock,
+      check: 2
     }
   end
 
   def lookup(304) do
     %Func{
       id: 304,
+      name: "coin.unlock",
+      mod: Func.Balance,
+      modx: Funx.Balance,
+      fun: :unlock,
+      check: 2
+    }
+  end
+
+  def lookup(305) do
+    %Func{
+      id: 305,
       name: "tx.burn",
-      mod: Func.Tx,
-      modx: Funx.Tx,
+      mod: Func.Coin,
+      modx: Funx.Coin,
       fun: :burn
     }
   end

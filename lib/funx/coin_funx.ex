@@ -1,34 +1,29 @@
-defmodule Ippan.Funx.Tx do
+defmodule Ippan.Funx.Coin do
   alias Ippan.Utils
   require Sqlite
   require BalanceStore
 
-  @token Application.compile_env(:ipncore, :token)
+  @token Application.compile_env(:ipnworker, :token)
   # Three days aprox.
   @refund_timeout 3 * 20_000
-
-  def send(_, token, outputs)
-      when byte_size(token) <= 10 and is_list(outputs) do
-    raise IppanError, "multisend no supported yet"
-  end
 
   def send(
         %{
           id: account_id,
-          balance: {dets, tx},
           validator: %{owner: owner, fee_type: fee_type, fee: vfee},
           size: size
         },
         to,
         token_id,
-        amount,
-        _note \\ <<>>
+        amount
       ) do
     is_validator = owner == account_id
     is_native_token = @token == token_id
     balance_key = DetsPlux.tuple(account_id, token_id)
     to_balance_key = DetsPlux.tuple(to, token_id)
 
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(dets, :balance)
     supply = TokenSupply.new(token_id)
 
     if is_validator do
@@ -71,15 +66,19 @@ defmodule Ippan.Funx.Tx do
     end
   end
 
-  # with refund enabled
-  def send_refundable(
-        %{id: account_id, hash: hash, round: round_id} = source,
+  def send(source, to, token_id, amount, _note) do
+    send(source, to, token_id, amount)
+  end
+
+  def send(
+        source = %{hash: hash, id: account_id, round: round_id},
         to,
-        token,
+        token_id,
         amount,
-        note \\ <<>>
+        _note,
+        true
       ) do
-    send(source, to, token, amount, note)
+    send(source, to, token_id, amount)
 
     db_ref = :persistent_term.get(:main_conn)
 
@@ -87,7 +86,7 @@ defmodule Ippan.Funx.Tx do
       hash,
       account_id,
       to,
-      token,
+      token_id,
       amount,
       round_id + @refund_timeout
     ])
@@ -129,5 +128,21 @@ defmodule Ippan.Funx.Tx do
 
     balance_key = DetsPlux.tuple(sender_id, token_id)
     BalanceStore.income(dets, tx, balance_key, refund_amount)
+  end
+
+  def lock(_, to_id, token_id, amount) do
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(dets, :balance)
+    key = DetsPlux.tuple(to_id, token_id)
+
+    BalanceStore.lock(dets, tx, key, amount)
+  end
+
+  def unlock(_, to_id, token_id, amount) do
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(dets, :balance)
+    key = DetsPlux.tuple(to_id, token_id)
+
+    BalanceStore.unlock(dets, tx, key, amount)
   end
 end

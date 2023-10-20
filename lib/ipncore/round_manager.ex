@@ -693,8 +693,8 @@ defmodule RoundManager do
     end
   end
 
-  defp run_jackpot(_, _, _, _, _, _, 0, _, _), do: {0, nil}
-  defp run_jackpot(_, _, _, _, nil, _, _, _, _), do: {0, nil}
+  defp run_jackpot(_, _, _, _, _, _, 0, _, _), do: {nil, 0}
+  defp run_jackpot(_, _, _, _, nil, _, _, _, _), do: {nil, 0}
 
   defp run_jackpot(
          db_ref,
@@ -718,7 +718,7 @@ defmodule RoundManager do
       if max_supply >= new_amount do
         case Block.get(b) do
           nil ->
-            {0, nil}
+            {nil, 0}
 
           block_list ->
             block = Block.list_to_map(block_list)

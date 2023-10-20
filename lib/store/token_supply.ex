@@ -36,13 +36,13 @@ defmodule TokenSupply do
     }
   end
 
-  def get(%{dets: dets, tx: tx, key: key}) do
-    DetsPlux.get_tx(dets, tx, key, 0)
+  def get(%{db: db, tx: tx, key: key}) do
+    DetsPlux.get_tx(db, tx, key, 0)
   end
 
   @spec get(DetsPlux.db(), DetsPlux.transaction(), binary) :: supply :: integer()
-  def get(dets, tx, key) do
-    DetsPlux.get_tx(dets, tx, key, 0)
+  def get(db, tx, key) do
+    DetsPlux.get_tx(db, tx, key, 0)
   end
 
   @spec put(map, integer()) :: true
@@ -51,12 +51,12 @@ defmodule TokenSupply do
   end
 
   @spec add(map, integer()) :: true
-  def add(%{dets: dets, tx: tx, key: key}, amount) do
-    DetsPlux.put(tx, key, get(dets, tx, key) + amount)
+  def add(%{db: db, tx: tx, key: key}, amount) do
+    DetsPlux.put(tx, key, get(db, tx, key) + amount)
   end
 
   @spec subtract(map, integer()) :: true
-  def subtract(%{dets: dets, tx: tx, key: key}, amount) do
-    DetsPlux.put(tx, key, get(dets, tx, key) - amount)
+  def subtract(%{db: db, tx: tx, key: key}, amount) do
+    DetsPlux.put(tx, key, get(db, tx, key) - amount)
   end
 end

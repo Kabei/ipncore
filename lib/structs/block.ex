@@ -11,12 +11,15 @@ defmodule Ippan.Block do
           signature: binary(),
           timestamp: non_neg_integer(),
           count: non_neg_integer(),
-          rejected: pos_integer(),
+          rejected: non_neg_integer(),
           size: non_neg_integer(),
-          vsn: pos_integer()
+          vsn: non_neg_integer()
         }
 
   @block_extension Application.compile_env(:ipncore, :block_extension)
+  @decode_extension Application.compile_env(:ipncore, :decode_extension)
+  @hash_module Blake3.Native
+
   defstruct [
     :id,
     :creator,
@@ -132,10 +135,10 @@ defmodule Ippan.Block do
       to_string(timestamp)
     ]
     |> IO.iodata_to_binary()
-    |> Blake3.hash()
+    |> @hash_module.hash()
   end
 
-  @spec sign(binary()) :: {:ok, signature :: binary()} | {:error, term()}
+  @spec sign(binary()) :: {:ok, binary()} | {:error, term()}
   def sign(hash) do
     privkey = :persistent_term.get(:privkey)
     Cafezinho.Impl.sign(hash, privkey)
@@ -163,21 +166,21 @@ defmodule Ippan.Block do
 
   def decode_path(validator_id, height) do
     decode_dir = :persistent_term.get(:decode_dir)
-    Path.join([decode_dir, "#{validator_id}.#{height}.#{@block_extension}"])
+    Path.join([decode_dir, "#{validator_id}.#{height}.#{@decode_extension}"])
   end
 
   def url(hostname, creator_id, height) do
-    "https://#{hostname}/v1/download/block/#{creator_id}/#{height}"
+    "https://#{hostname}/v1/dl/block/#{creator_id}/#{height}"
   end
 
   def cluster_block_url(hostname, creator_id, height) do
     port = Application.get_env(:ipncore, :http)[:port]
-    "http://#{hostname}:#{port}/v1/download/block/#{creator_id}/#{height}"
+    "http://#{hostname}:#{port}/v1/dl/block/#{creator_id}/#{height}"
   end
 
   def cluster_decode_url(hostname, creator_id, height) do
     port = Application.get_env(:ipncore, :http)[:port]
-    "http://#{hostname}:#{port}/v1/download/block/decoded/#{creator_id}/#{height}"
+    "http://#{hostname}:#{port}/v1/dl/decode/#{creator_id}/#{height}"
   end
 
   def encode_file!(content) do
@@ -188,7 +191,6 @@ defmodule Ippan.Block do
     elem(CBOR.Decoder.decode(content), 0)
   end
 
-  @hash_module Blake3.Native
   def hash_file(path) do
     state = @hash_module.new()
 
@@ -199,4 +201,46 @@ defmodule Ippan.Block do
 
   defp normalize(nil), do: ""
   defp normalize(x), do: x
+
+  defmacro get(id) do
+    quote bind_quoted: [id: id], location: :keep do
+      Sqlite.fetch("get_block", [id])
+    end
+  end
+
+  defmacro exists?(id) do
+    quote bind_quoted: [id: id], location: :keep do
+      Sqlite.exists?("exists_block", [id])
+    end
+  end
+
+  defmacro exists_local?(creator_id, height) do
+    quote bind_quoted: [creator_id: creator_id, height: height], location: :keep do
+      Sqlite.exists?("exists_local_block", [creator_id, height])
+    end
+  end
+
+  defmacro last_created(creator_id, default) do
+    quote bind_quoted: [id: creator_id, default: default], location: :keep do
+      Sqlite.fetch("last_block_created", [id], default)
+    end
+  end
+
+  defmacro last_id do
+    quote location: :keep do
+      Sqlite.one("last_block_id", [], 0)
+    end
+  end
+
+  defmacro total_created(create_id) do
+    quote location: :keep do
+      Sqlite.one("total_blocks_created", [unquote(create_id)], 0)
+    end
+  end
+
+  defmacro insert(args) do
+    quote location: :keep do
+      Sqlite.step("insert_block", unquote(args))
+    end
+  end
 end

@@ -2,18 +2,16 @@ defmodule Ippan.Env do
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           name: String.t(),
-          value: binary(),
-          timestamp: non_neg_integer()
+          value: binary()
         }
 
-  defstruct [:name, :value, :timestamp]
+  defstruct [:name, :value]
 
   @impl true
   def to_list(x) do
     [
       x.name,
-      :erlang.term_to_binary(x.value),
-      x.timestamp
+      :erlang.term_to_binary(x.value)
     ]
   end
 
@@ -23,8 +21,8 @@ defmodule Ippan.Env do
   end
 
   @impl true
-  def list_to_map([name, value, timestamp]) do
-    %{name: name, value: :erlang.binary_to_term(value), timestamp: timestamp}
+  def list_to_map([name, value]) do
+    %{name: name, value: :erlang.binary_to_term(value)}
   end
 
   @impl true

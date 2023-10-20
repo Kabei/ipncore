@@ -1,11 +1,9 @@
 defmodule MinerWorker do
   use GenServer
-  alias Ippan.Wallet
+  alias Ippan.{Block, TxHandler, Validator, Wallet}
   alias Ippan.ClusterNodes
-  alias Ippan.TxHandler
-  alias Ippan.Block
-  require SqliteStore
-  require TxHandler
+  require Ippan.{Block, Validator, TxHandler}
+  require Sqlite
   require Logger
 
   @version Application.compile_env(:ipncore, :version)
@@ -41,15 +39,14 @@ defmodule MinerWorker do
         _from,
         state
       ) do
-    conn = :persistent_term.get(:asset_conn)
-    stmts = :persistent_term.get(:asset_stmt)
+    db_ref = :persistent_term.get(:main_conn)
 
     try do
       IO.puts("Here 0")
-      balances = {DetsPlux.get(:balance), DetsPlux.tx(:balance)}
+      nonce_dets = DetsPlux.get(:nonce)
 
       [block_height, prev_hash] =
-        SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
+        Block.last_created(creator_id, [-1, nil])
 
       IO.puts("height #{height} sql-height #{block_height}")
 
@@ -96,15 +93,16 @@ defmodule MinerWorker do
 
       IO.puts("Here 4")
 
-      %{"data" => messages, "vsn" => version_file} =
+      %{"data" => txs, "vsn" => version_file} =
         Block.decode_file!(content)
 
-      if version != version_file, do: raise(IppanError, "Block file version failed")
+      if version != version_file or version != @version,
+        do: raise(IppanError, "Block file version failed")
 
       IO.puts("Here 5")
 
       count_rejected =
-        mine_fun(version, messages, conn, stmts, balances, creator, block_id)
+        run_miner(current_round_id, block_id, creator, txs, nonce_dets)
 
       IO.puts("Here 6")
 
@@ -113,13 +111,13 @@ defmodule MinerWorker do
         |> Map.merge(%{prev: prev_hash, round: current_round_id, rejected: count_rejected})
 
       IO.puts("Here 7")
-      :done = SqliteStore.step(conn, stmts, "insert_block", Block.to_list(result))
+      :done = Block.insert(Block.to_list(result))
 
       {:reply, {:ok, result}, state}
     rescue
       error ->
         # delete player
-        SqliteStore.step(conn, stmts, "delete_validator", [creator_id])
+        Validator.delete(creator_id)
         ClusterNodes.broadcast(%{"event" => "validator.delete", "data" => creator_id})
 
         Logger.error(inspect(error))
@@ -128,53 +126,29 @@ defmodule MinerWorker do
   end
 
   # Process the block
-  defp mine_fun(
-         @version,
-         messages,
-         conn,
-         stmts,
-         balances,
-         validator,
-         block_id
-       ) do
-    creator_id = validator.id
-    nonce_dets = DetsPlux.get(:nonce)
+  defp run_miner(round_id, block_id, validator, transactions, nonce_dets) do
     nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
 
-    Enum.reduce(messages, 0, fn
-      [hash, type, from, args, timestamp, nonce, size], acc ->
+    Enum.reduce(transactions, 0, fn
+      [hash, type, from, nonce, args, size], acc ->
         case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             acc + 1
 
           _number ->
-            case TxHandler.handle_regular(
-                   conn,
-                   stmts,
-                   balances,
-                   # wallets,
-                   nil,
-                   validator,
-                   hash,
-                   type,
-                   from,
-                   args,
-                   size,
-                   timestamp,
-                   block_id
-                 ) do
+            case TxHandler.regular() do
               :error -> acc + 1
               _ -> acc
             end
         end
 
-      msg = [_hash, _type, _arg_key, from, _args, _timestamp, nonce, _size], acc ->
+      body = [hash, type, arg_key, from, nonce, _args, _size], acc ->
         case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             acc + 1
 
           _number ->
-            case TxHandler.insert_deferred(msg, creator_id, block_id) do
+            case TxHandler.insert_deferred() do
               true ->
                 acc
 
@@ -183,10 +157,6 @@ defmodule MinerWorker do
             end
         end
     end)
-  end
-
-  defp mine_fun(version, _messages, _conn, _stmts, _balances, _creator_id, _block_id) do
-    raise IppanError, "Error block version #{inspect(version)}"
   end
 
   defp random_node do

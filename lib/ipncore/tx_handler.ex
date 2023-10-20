@@ -17,108 +17,77 @@ defmodule Ippan.TxHandler do
     end
   end
 
-  defmacro handle_regular(
-             conn,
-             stmts,
-             balances,
-             wallets,
-             validator,
-             hash,
-             type,
-             from,
-             args,
-             size,
-             timestamp,
-             block_id
-           ) do
-    quote bind_quoted: [
-            conn: conn,
-            stmts: stmts,
-            balance: balances,
-            validator: validator,
-            hash: hash,
-            type: type,
-            from: from,
-            args: args,
-            timestamp: timestamp,
-            size: size,
-            wallets: wallets,
-            block_id: block_id
-          ],
-          location: :keep do
-      %{fun: fun, modx: module} = Funcs.lookup(type)
+  @spec regular() :: any | :error
+  defmacro regular do
+    quote location: :keep do
+      %{fun: fun, modx: module} = Funcs.lookup(var!(type))
 
       source = %{
-        balance: balance,
-        conn: conn,
-        block_id: block_id,
-        stmts: stmts,
-        id: from,
-        type: type,
-        validator: validator,
-        hash: hash,
-        timestamp: timestamp,
-        size: size,
-        wallets: wallets
+        block: var!(block_id),
+        hash: var!(hash),
+        id: var!(from),
+        round: var!(round_id),
+        size: var!(size),
+        type: var!(type),
+        validator: var!(validator)
       }
 
-      apply(module, fun, [source | args])
+      apply(module, fun, [source | var!(args)])
     end
   end
 
   # Dispute resolution in deferred transaction
-  @spec insert_deferred(list(), pos_integer(), pos_integer()) :: boolean
-  def insert_deferred(
-        [hash, type, arg_key, account_id, args, timestamp, _nonce, size],
-        validator_id,
-        block_id
-      ) do
-    key = {type, arg_key}
-    body = [hash, account_id, validator_id, args, timestamp, size, block_id]
+  @spec insert_deferred() :: boolean()
+  defmacro insert_deferred do
+    quote location: :keep do
+      key = {var!(type), var!(arg_key)}
+      # body = [hash, account_id, validator_id, args, size, block_id]
 
-    case :ets.lookup(:dtx, key) do
-      [] ->
-        :ets.insert(:dtx, {key, body})
+      case :ets.lookup(:dtx, key) do
+        [] ->
+          :ets.insert(:dtx, {key, var!(body)})
 
-      [{_msg_key, [xhash | _rest] = xbody}] ->
-        xblock_id = List.last(xbody)
+        [{_msg_key, [xhash | _rest] = xbody}] ->
+          xblock_id = List.last(xbody)
 
-        if hash < xhash or (hash == xhash and block_id < xblock_id) do
-          :ets.insert(:dtx, {key, body})
-        else
-          false
-        end
+          if var!(hash) < xhash or (var!(hash) == xhash and var!(block_id) < xblock_id) do
+            :ets.insert(:dtx, {key, var!(body)})
+          else
+            false
+          end
+      end
     end
   end
 
   # only deferred transactions
-  @spec run_deferred_txs(any, any, any, any, any) :: true
-  def run_deferred_txs(conn, stmts, balance_pid, balance_tx, wallets) do
-    IO.puts("txs deferred")
-    IO.inspect(:ets.tab2list(:dtx))
+    defmacro run_deferred_txs do
+      quote location: :keep do
+        :ets.tab2list(:dtx)
+        |> Enum.each(fn {{type, _key},
+                         [
+                           hash,
+                           account_id,
+                           validator_id,
+                           args,
+                           size,
+                           block_id
+                         ]} ->
+          %{modx: module, fun: fun} = Funcs.lookup(type)
 
-    for m = {{type, _key}, [hash, account_id, validator_id, args, timestamp, size, block_id]} <-
-          :ets.tab2list(:dtx) do
-      %{modx: module, fun: fun} = Funcs.lookup(type)
-      IO.inspect(m)
+          source = %{
+            block: block_id,
+            hash: hash,
+            id: account_id,
+            round: var!(round_id),
+            size: size,
+            type: type,
+            validator: validator_id
+          }
 
-      source = %{
-        id: account_id,
-        block_id: block_id,
-        conn: conn,
-        stmts: stmts,
-        balance: {balance_pid, balance_tx},
-        type: type,
-        validator: validator_id,
-        hash: hash,
-        timestamp: timestamp,
-        size: size,
-        wallets: wallets
-      }
+          apply(module, fun, [source | args])
+        end)
 
-      apply(module, fun, [source | args])
+        :ets.delete_all_objects(:dtx)
+      end
     end
-
-    :ets.delete_all_objects(:dtx)
-  end
 end

@@ -4,7 +4,7 @@ defmodule Ippan.BlockHandler do
   import Ippan.Block,
     only: [decode_file!: 1, encode_file!: 1, hash_file: 1]
 
-  require SqliteStore
+  require Sqlite
 
   @version Application.compile_env(:ipncore, :version)
   @block_extension Application.compile_env(:ipncore, :block_extension)

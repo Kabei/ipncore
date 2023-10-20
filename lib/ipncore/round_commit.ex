@@ -1,38 +1,33 @@
 defmodule RoundCommit do
-  require SqliteStore
+  require Sqlite
 
-  def sync(conn, tx_count, is_some_block_mine) do
-    IO.puts("RoundCommit: Sync #{tx_count} | #{is_some_block_mine}")
-
+  def sync(db_ref, tx_count, is_some_block_mine) do
     if tx_count > 0 do
-      r =
-        [
-          Task.async(fn ->
-            SqliteStore.commit(conn)
-            SqliteStore.begin(conn)
-          end),
-          Task.async(fn ->
-            wallet_dets = DetsPlux.get(:wallet)
-            nonce_dets = DetsPlux.get(:nonce)
-            wallet_tx = DetsPlux.tx(wallet_dets, :wallet)
-            nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
-            DetsPlux.sync(wallet_dets, wallet_tx)
-            DetsPlux.sync(wallet_dets, nonce_tx)
-          end),
-          Task.async(fn ->
-            balance_dets = DetsPlux.get(:balance)
-            balance_tx = DetsPlux.tx(balance_dets, :balance)
-            DetsPlux.sync(balance_dets, balance_tx)
-          end),
-          Task.async(fn ->
-            stats_dets = DetsPlux.get(:stats)
-            supply_tx = DetsPlux.tx(stats_dets, :supply)
-            DetsPlux.sync(stats_dets, supply_tx)
-          end)
-        ]
-        |> Task.await_many(:infinity)
-
-      IO.inspect(r)
+      [
+        Task.async(fn ->
+          Sqlite.commit(db_ref)
+          Sqlite.begin(db_ref)
+        end),
+        Task.async(fn ->
+          wallet_dets = DetsPlux.get(:wallet)
+          wallet_tx = DetsPlux.tx(:wallet)
+          nonce_dets = DetsPlux.get(:nonce)
+          nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
+          DetsPlux.sync(wallet_dets, wallet_tx)
+          DetsPlux.sync(nonce_dets, nonce_tx)
+        end),
+        Task.async(fn ->
+          balance_dets = DetsPlux.get(:balance)
+          balance_tx = DetsPlux.tx(:balance)
+          DetsPlux.sync(balance_dets, balance_tx)
+        end),
+        Task.async(fn ->
+          stats_dets = DetsPlux.get(:stats)
+          supply_tx = DetsPlux.tx(stats_dets, :supply)
+          DetsPlux.sync(stats_dets, supply_tx)
+        end)
+      ]
+      |> Task.await_many(:infinity)
 
       if is_some_block_mine do
         clear_cache()
@@ -41,17 +36,17 @@ defmodule RoundCommit do
       balance_dets = DetsPlux.get(:balance)
       balance_tx = DetsPlux.tx(balance_dets, :balance)
       DetsPlux.sync(balance_dets, balance_tx)
-      SqliteStore.commit(conn)
-      SqliteStore.begin(conn)
+      Sqlite.commit(db_ref)
+      Sqlite.begin(db_ref)
     end
   end
 
-  def rollback(conn) do
+  def rollback(db_ref) do
     balance_tx = DetsPlux.tx(:balance)
     supply_tx = DetsPlux.tx(:stats, :supply)
     wallet_tx = DetsPlux.tx(:wallet)
 
-    SqliteStore.rollback(conn)
+    Sqlite.rollback(db_ref)
     DetsPlux.rollback(wallet_tx)
     DetsPlux.rollback(balance_tx)
     DetsPlux.rollback(supply_tx)
@@ -59,12 +54,12 @@ defmodule RoundCommit do
   end
 
   defp clear_cache do
-    cache_wallet_tx = DetsPlux.tx(:nonce, :cache_wallet)
+    cache_wallet_tx = DetsPlux.tx(:wallet, :cache_wallet)
     cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
-    cache_nonce_tx = DetsPlux.tx(:wallet, :cache_nonce)
+    cache_nonce_tx = DetsPlux.tx(:nonce, :cache_nonce)
     DetsPlux.clear_tx(cache_wallet_tx)
-    DetsPlux.clear_tx(cache_nonce_tx)
     DetsPlux.clear_tx(cache_balance_tx)
+    DetsPlux.clear_tx(cache_nonce_tx)
     MemTables.clear_cache()
   end
 end

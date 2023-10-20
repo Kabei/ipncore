@@ -1,21 +1,18 @@
 defmodule RoundManager do
-  use GenServer, restart: :transient
-  alias Ippan.Token
-  alias Ippan.{NetworkNodes, ClusterNodes, Block, Round, TxHandler, Validator}
+  use GenServer
+  alias Ippan.{NetworkNodes, ClusterNodes, Block, Round, Token, TxHandler, Validator, Round}
   alias Phoenix.PubSub
-
   import Ippan.Block, only: [decode_file!: 1]
-
-  require SqliteStore
-  require Ippan.TxHandler
+  require Ippan.{Block, Round, Token, TxHandler, Validator}
+  require Sqlite
   require BalanceStore
   require BigNumber
   require Logger
 
   @miner_pool :miner_pool
-  @pubsub :cluster
+  @pubsub :pubsub
   @token Application.compile_env(:ipncore, :token)
-  @timeout 20_000
+  @timeout 15_000
   @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)
 
   def start_link(args) do
@@ -33,8 +30,7 @@ defmodule RoundManager do
     IO.puts("RoundManager init")
 
     vid = :persistent_term.get(:vid)
-    conn = :persistent_term.get(:asset_conn)
-    stmts = :persistent_term.get(:asset_stmt)
+    db_ref = :persistent_term.get(:main_conn)
 
     ets_players =
       ets_start(:players, [:ordered_set, :public, read_concurrency: true, write_concurrency: true])
@@ -45,11 +41,9 @@ defmodule RoundManager do
     ets_candidates =
       ets_start(:candidates, [:set, :public, read_concurrency: true, write_concurrency: true])
 
-    [round_id, round_hash] =
-      SqliteStore.fetch(conn, stmts, "last_round", [], [-1, nil])
+    [round_id, round_hash] = Sqlite.fetch("last_round", [], [-1, nil])
 
-    [block_id] =
-      SqliteStore.fetch(conn, stmts, "last_block_id", [], [-1])
+    block_id = Sqlite.one("last_block_id", [], -1)
 
     current_block_id = block_id + 1
     current_round_id = round_id + 1
@@ -59,7 +53,7 @@ defmodule RoundManager do
     PubSub.subscribe(@pubsub, "env")
 
     # Get all players
-    players = SqliteStore.all(conn, stmts, "get_players")
+    players = Sqlite.all("get_players")
     total_players = length(players)
 
     miner_pool_pid = start_miner_pool()
@@ -70,7 +64,7 @@ defmodule RoundManager do
     end
 
     # Start block-timer: keep candidate updated
-    BlockTimer.start_link(%{block_id: current_block_id, creator: vid, conn: conn, stmts: stmts})
+    BlockTimer.start_link(%{block_id: current_block_id, creator: vid, db_ref: db_ref})
 
     # start round commit
     # RoundCommit.start_link(nil)
@@ -79,8 +73,7 @@ defmodule RoundManager do
      %{
        block_id: current_block_id,
        balance: DetsPlux.get(:balance),
-       conn: conn,
-       stmts: stmts,
+       db_ref: db_ref,
        status: :starting,
        miner_pool: miner_pool_pid,
        players: ets_players,
@@ -233,13 +226,13 @@ defmodule RoundManager do
           },
           _node_id
         },
-        %{conn: conn, stmts: stmts, candidates: ets_candidates, players: ets_players} = state
+        %{db_ref: db_ref, candidates: ets_candidates, players: ets_players} = state
       ) do
     with [{_, player}] <- :ets.lookup(ets_players, creator_id),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
          true <- Block.compute_hash(creator_id, height, prev, hashfile, timestamp),
          true <-
-           height == 1 + SqliteStore.one(conn, stmts, "last_block_height_created", [creator_id]) do
+           height == 1 + Sqlite.one("last_block_height_created", [creator_id]) do
       block =
         block
         |> Map.take(Block.fields())
@@ -284,8 +277,7 @@ defmodule RoundManager do
         {:complete, round = %{id: the_round_id}},
         %{
           candidates: ets_candidates,
-          conn: conn,
-          stmts: stmts,
+          db_ref: db_ref,
           vid: vid,
           block_id: block_id,
           round_id: round_id,
@@ -303,7 +295,7 @@ defmodule RoundManager do
 
     # Set last local height and prev hash and reset timer
     if next and is_some_block_mine do
-      BlockTimer.complete(conn, stmts)
+      BlockTimer.complete(db_ref)
     end
 
     # IO.inspect("select_delete votes: #{c}")
@@ -312,7 +304,7 @@ defmodule RoundManager do
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
     # save all round
-    RoundCommit.sync(conn, round.tx_count, is_some_block_mine)
+    RoundCommit.sync(db_ref, round.tx_count, is_some_block_mine)
 
     if next do
       {:noreply,
@@ -330,8 +322,7 @@ defmodule RoundManager do
   def handle_cast(
         {:incomplete, %{id: round_nulled_id} = round_nulled},
         %{
-          conn: conn,
-          stmts: stmts,
+          db_ref: db_ref,
           players: ets_players,
           rcid: rcid,
           round_id: round_id
@@ -342,14 +333,14 @@ defmodule RoundManager do
     Logger.debug("[Incomplete] Round ##{round_nulled_id} | Reason: #{round_nulled.reason}")
 
     # Reverse changes
-    RoundCommit.rollback(conn)
+    RoundCommit.rollback(db_ref)
 
     # round nulled
-    :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round_nulled))
+    :done = Round.insert(Round.to_list(round_nulled))
 
     # Delete validator
-    :done = SqliteStore.step(conn, stmts, "delete_validator", [rcid])
-    SqliteStore.sync(conn)
+    :done = Validator.delete(rcid)
+    Sqlite.sync(db_ref)
 
     # Delete player
     :ets.delete(ets_players, rcid)
@@ -435,8 +426,7 @@ defmodule RoundManager do
            block_id: block_id,
            round_id: round_id,
            round_hash: prev_hash,
-           conn: conn,
-           stmts: stmts,
+           db_ref: db_ref,
            balance: balance,
            rcid: rcid,
            miner_pool: pool_pid,
@@ -459,8 +449,7 @@ defmodule RoundManager do
         IO.inspect(msg_round)
 
         if msg_round do
-          creator =
-            SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", rcid, Validator)
+          creator = Validator.get(rcid)
 
           build_round(
             %{
@@ -471,8 +460,7 @@ defmodule RoundManager do
             },
             block_id,
             creator,
-            conn,
-            stmts,
+            db_ref,
             balance,
             pool_pid,
             pid
@@ -492,8 +480,7 @@ defmodule RoundManager do
          round_id: round_id,
          round_hash: prev_hash,
          candidates: ets_candidates,
-         conn: conn,
-         stmts: stmts,
+         db_ref: db_ref,
          status: status,
          balance: balances,
          miner_pool: pool_pid,
@@ -547,8 +534,7 @@ defmodule RoundManager do
           },
           block_id,
           creator,
-          conn,
-          stmts,
+          db_ref,
           balances,
           pool_pid,
           pid
@@ -566,7 +552,7 @@ defmodule RoundManager do
   # {supply_tx, supply_key, supply, max_supply}
   defmacrop run_reward do
     quote location: :keep do
-      reward = Round.reward(var!(tx_count), var!(txs_rejected), var!(size))
+      reward = Round.calc_reward(var!(tx_count), var!(txs_rejected), var!(size))
       total = TokenSupply.get(var!(supply)) + reward
 
       case reward > 0 and var!(max_supply) >= total do
@@ -584,7 +570,7 @@ defmodule RoundManager do
     end
   end
 
-  @spec build_round(map, pos_integer, map, reference(), map, pid, pid, pid) ::
+  @spec build_round(map, pos_integer, map, reference(), pid, pid, pid) ::
           {:ok, term} | :error
   def build_round(
         %{
@@ -595,8 +581,7 @@ defmodule RoundManager do
         } = map,
         block_id,
         creator,
-        conn,
-        stmts,
+        db_ref,
         balance_pid,
         pool_pid,
         pid
@@ -604,7 +589,6 @@ defmodule RoundManager do
     if Round.null?(map) do
       GenServer.cast(pid, {:incomplete, map})
     else
-      wallets = {DetsPlux.get(:wallet), DetsPlux.tx(:wallet)}
       creator_id = creator.id
       block_count = length(blocks)
 
@@ -649,11 +633,10 @@ defmodule RoundManager do
       if block_approved_count > 0 or block_count == block_approved_count do
         balance_tx = DetsPlux.tx(:balance)
         # Run deferred txs
-        TxHandler.run_deferred_txs(conn, stmts, balance_pid, balance_tx, wallets)
+        TxHandler.run_deferred_txs()
 
         # Get info native token and current supply
-        %{max_supply: max_supply} =
-          SqliteStore.lookup_map(:token, conn, stmts, "get_token", @token, Token)
+        %{max_supply: max_supply} = Token.get(@token)
 
         supply = TokenSupply.new(@token)
 
@@ -664,8 +647,7 @@ defmodule RoundManager do
         jackpot_result =
           {jackpot_amount, _jackpot_winner} =
           run_jackpot(
-            conn,
-            stmts,
+            db_ref,
             balance_pid,
             balance_tx,
             round_id,
@@ -695,7 +677,7 @@ defmodule RoundManager do
           jackpot: jackpot_result
         }
 
-        :done = SqliteStore.step(conn, stmts, "insert_round", Round.to_list(round))
+        :done = Round.to_list(round) |> Round.insert()
 
         GenServer.cast(pid, {:complete, round})
 
@@ -711,12 +693,11 @@ defmodule RoundManager do
     end
   end
 
-  defp run_jackpot(_, _, _, _, _, _, _, 0, _, _), do: {0, nil}
-  defp run_jackpot(_, _, _, _, _, nil, _, _, _, _), do: {0, nil}
+  defp run_jackpot(_, _, _, _, _, _, 0, _, _), do: {0, nil}
+  defp run_jackpot(_, _, _, _, nil, _, _, _, _), do: {0, nil}
 
   defp run_jackpot(
-         conn,
-         stmts,
+         db_ref,
          balances,
          balance_tx,
          round_id,
@@ -735,7 +716,7 @@ defmodule RoundManager do
       new_amount = TokenSupply.get(supply) + reward
 
       if max_supply >= new_amount do
-        case SqliteStore.fetch(conn, stmts, "get_block", [b]) do
+        case Block.get(b) do
           nil ->
             {0, nil}
 
@@ -772,7 +753,7 @@ defmodule RoundManager do
                 jackpot = [round_id, winner_id, reward]
 
                 :done =
-                  SqliteStore.step(conn, stmts, "insert_jackpot", jackpot)
+                  Sqlite.step("insert_jackpot", jackpot)
 
                 {reward, winner_id}
 
@@ -878,10 +859,10 @@ defmodule RoundManager do
               candidate = BlockTimer.get_block()
 
               if candidate do
-                NetworkNodes.cast(node_id, "msg_block", candidate)
+                NetworkNodes.cast(node, "msg_block", candidate)
               end
 
-              case NetworkNodes.call(node_id, "get_round", round_id) do
+              case NetworkNodes.call(node, "get_round", round_id) do
                 {:ok, response} when is_map(response) ->
                   send(RoundManager, {"msg_round", Round.from_remote(response), node_id})
 

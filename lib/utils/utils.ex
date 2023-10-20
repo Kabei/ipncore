@@ -1,4 +1,7 @@
 defmodule Ippan.Utils do
+  @compile :inline_list_funcs
+  @compile {:inline, [encode16: 1, encode64: 1]}
+
   def empty?(nil), do: true
   def empty?(<<>>), do: true
   def empty?([]), do: true
@@ -9,6 +12,13 @@ defmodule Ippan.Utils do
 
   def to_atom(nil), do: nil
   def to_atom(text), do: String.to_atom(text)
+
+  def cast_boolean("true"), do: true
+  def cast_boolean("TRUE"), do: true
+  def cast_boolean("1"), do: true
+  def cast_boolean(1), do: true
+  def cast_boolean(true), do: true
+  def cast_boolean(_), do: false
 
   # def to_decimal(text_number, 0), do: text_number
   # def to_decimal(text_number, decimals) do
@@ -129,4 +139,44 @@ defmodule Ippan.Utils do
         :inet6_udp.getaddr(String.to_charlist(hostname))
     end
   end
+
+  defmacro json(data) do
+    quote bind_quoted: [data: data] do
+      var!(conn)
+      |> put_resp_content_type("application/json")
+      |> send_resp(200, Jason.encode!(data))
+    end
+  end
+
+  defmacro send_json(data) do
+    quote bind_quoted: [data: data] do
+      case data do
+        nil ->
+          send_resp(var!(conn), 204, "")
+
+        [] ->
+          send_resp(var!(conn), 204, "")
+
+        _ ->
+          var!(conn)
+          |> put_resp_content_type("application/json")
+          |> send_resp(200, Jason.encode!(data))
+      end
+    end
+  end
+
+  def fetch_query(%{query_string: query_string}) do
+    Plug.Conn.Query.decode(
+      query_string,
+      %{},
+      Plug.Conn.InvalidQueryError,
+      true
+    )
+  end
+
+  def encode16(nil), do: nil
+  def encode16(x), do: Base.encode16(x)
+
+  def encode64(nil), do: nil
+  def encode64(x), do: Fast64.encode64(x)
 end

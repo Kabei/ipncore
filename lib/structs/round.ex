@@ -1,5 +1,6 @@
 defmodule Ippan.Round do
   alias Ippan.Block
+
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: non_neg_integer(),
@@ -8,6 +9,7 @@ defmodule Ippan.Round do
           creator: non_neg_integer(),
           signature: binary() | nil,
           coinbase: non_neg_integer(),
+          reward: non_neg_integer(),
           count: non_neg_integer(),
           tx_count: non_neg_integer(),
           size: non_neg_integer(),
@@ -18,8 +20,8 @@ defmodule Ippan.Round do
 
   # Reason
   # 0 = Success
-  # 1 = Timeout
-  # 2 = Round data failure
+  # 1 = Error timeout
+  # 2 = Error round data failure
   # 3 = Failure in all blocks of the round
   defstruct [
     :id,
@@ -28,6 +30,7 @@ defmodule Ippan.Round do
     :creator,
     :signature,
     :coinbase,
+    :reward,
     :count,
     :tx_count,
     :size,
@@ -45,6 +48,7 @@ defmodule Ippan.Round do
       x.creator,
       x.signature,
       x.coinbase,
+      x.reward,
       x.count,
       x.tx_count,
       x.size,
@@ -72,6 +76,7 @@ defmodule Ippan.Round do
         creator,
         signature,
         coinbase,
+        reward,
         count,
         tx_count,
         size,
@@ -86,6 +91,7 @@ defmodule Ippan.Round do
       creator: creator,
       signature: signature,
       coinbase: coinbase,
+      reward: reward,
       count: count,
       tx_count: tx_count,
       size: size,
@@ -109,9 +115,9 @@ defmodule Ippan.Round do
     |> Blake3.hash()
   end
 
-  def reward(0, _txs_rejected, _size), do: 5
+  def calc_reward(0, _txs_rejected, _size), do: 5
 
-  def reward(txs_count, txs_rejected, size) do
+  def calc_reward(txs_count, txs_rejected, size) do
     ((txs_count - txs_rejected) / size)
     |> Kernel.*(1000)
     |> trunc()
@@ -135,12 +141,12 @@ defmodule Ippan.Round do
   def null?(_), do: false
 
   @spec cancel(
-          pos_integer(),
+          non_neg_integer(),
           binary() | nil,
           binary() | nil,
           binary() | nil,
-          pos_integer(),
-          pos_integer()
+          non_neg_integer(),
+          non_neg_integer()
         ) :: map
   def cancel(id, hash, prev, signature, creator_id, reason) do
     %{
@@ -150,6 +156,7 @@ defmodule Ippan.Round do
       creator: creator_id,
       signature: signature,
       coinbase: 0,
+      reward: 0,
       count: 0,
       tx_count: 0,
       size: 0,
@@ -161,4 +168,26 @@ defmodule Ippan.Round do
 
   defp normalize(nil), do: ""
   defp normalize(x), do: x
+
+  defmacro exists?(id) do
+    quote bind_quoted: [id: id], location: :keep do
+      Sqlite.exists?("exists_round", [id])
+    end
+  end
+
+  defmacro insert(args) do
+    quote location: :keep do
+      Sqlite.step("insert_round", unquote(args))
+    end
+  end
+
+  defmacro last do
+    quote location: :keep do
+      Sqlite.fetch("last_round", [])
+      |> case do
+        nil -> {0, nil}
+        [x, y] -> {x, y}
+      end
+    end
+  end
 end

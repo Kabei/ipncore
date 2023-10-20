@@ -1,10 +1,11 @@
 defmodule Ippan.Funx.Tx do
   alias Ippan.Utils
-  require SqliteStore
+  require Sqlite
   require BalanceStore
 
   @token Application.compile_env(:ipncore, :token)
-  @refund_timeout :timer.hours(72)
+  # Three days aprox.
+  @refund_timeout 3 * 20_000
 
   def send(_, token, outputs)
       when byte_size(token) <= 10 and is_list(outputs) do
@@ -72,7 +73,7 @@ defmodule Ippan.Funx.Tx do
 
   # with refund enabled
   def send_refundable(
-        %{id: account_id, conn: conn, stmts: stmts, hash: hash, timestamp: timestamp} = source,
+        %{id: account_id, hash: hash, round: round_id} = source,
         to,
         token,
         amount,
@@ -80,13 +81,15 @@ defmodule Ippan.Funx.Tx do
       ) do
     send(source, to, token, amount, note)
 
-    SqliteStore.step(conn, stmts, "insert_refund", [
+    db_ref = :persistent_term.get(:main_conn)
+
+    Sqlite.step("insert_refund", [
       hash,
       account_id,
       to,
       token,
       amount,
-      timestamp + @refund_timeout
+      round_id + @refund_timeout
     ])
   end
 
@@ -113,13 +116,16 @@ defmodule Ippan.Funx.Tx do
   end
 
   def refund(
-        %{id: account_id, conn: conn, balance: {dets, tx}, stmts: stmts, timestamp: timestamp},
+        %{id: account_id, round: round_id},
         hash16
       ) do
     hash = Base.decode16!(hash16, case: :mixed)
+    db_ref = :persistent_term.get(:main_conn)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
 
     {:row, [sender_id, token_id, refund_amount]} =
-      SqliteStore.step(conn, stmts, "get_delete_refund", [hash, account_id, timestamp])
+      Sqlite.step("get_delete_refund", [hash, account_id, round_id])
 
     balance_key = DetsPlux.tuple(sender_id, token_id)
     BalanceStore.income(dets, tx, balance_key, refund_amount)

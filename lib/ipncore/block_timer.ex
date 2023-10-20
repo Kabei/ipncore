@@ -1,7 +1,9 @@
 defmodule BlockTimer do
   use GenServer, restart: :transient
+  alias Ippan.Block
   alias Ippan.BlockHandler
-  require SqliteStore
+  require Block
+  require Sqlite
 
   @module __MODULE__
   @timeout Application.compile_env(:ipncore, :block_interval)
@@ -20,9 +22,9 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def init(%{conn: conn, stmts: stmts, block_id: block_id, creator: creator_id}) do
+  def init(%{db_ref: db_ref, block_id: block_id, creator: creator_id}) do
     [last_height, prev] =
-      SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
+      Block.last_created(creator_id, [-1, nil])
 
     {:ok,
      %{
@@ -71,9 +73,9 @@ defmodule BlockTimer do
   @doc """
   Update block height, prev hash and candidate in state
   """
-  @spec complete(conn :: reference(), stmts :: map()) :: :ok
-  def complete(conn, stmts) do
-    GenServer.cast(@module, {:complete, conn, stmts})
+  @spec complete(db_ref :: reference()) :: :ok
+  def complete(db_ref) do
+    GenServer.cast(@module, {:complete, db_ref})
   end
 
   @spec stop :: :ok
@@ -107,9 +109,8 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_cast({:complete, conn, stmts}, %{creator: creator_id} = state) do
-    [_last_height, hash] =
-      SqliteStore.fetch(conn, stmts, "last_block_created", [creator_id], [-1, nil])
+  def handle_cast({:complete, db_ref}, %{creator: creator_id} = state) do
+    [_last_height, hash] = Block.last_created(creator_id, [-1, nil])
 
     {:noreply, %{state | candidate: nil, prev: hash}}
   end

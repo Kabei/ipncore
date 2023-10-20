@@ -1,15 +1,15 @@
 defmodule Ippan.NetworkNodes do
-  alias Ippan.Round
-  alias Ippan.Validator
-  alias Ippan.Network
-  require SqliteStore
+  alias Ippan.{Network, Round, Validator}
+  require Round
+  require Validator
+  require Sqlite
 
   use Network,
     app: :ipncore,
     name: :network,
     table: :nw,
     server: Ippan.NetworkNodes.Server,
-    pubsub: :network,
+    pubsub: :pubsub,
     topic: "network",
     opts: Application.compile_env(:ipncore, :p2p_client),
     conn_opts: [retry: 2, reconnect: false],
@@ -17,43 +17,34 @@ defmodule Ippan.NetworkNodes do
 
   @impl Network
   def fetch(id) do
-    SqliteStore.lookup_map(
-      :validator,
-      :persistent_term.get(:asset_conn),
-      :persistent_term.get(:asset_stmt),
-      "get_validator",
-      id,
-      Validator
-    )
+    db_ref = :persistent_term.get(:main_conn)
+    Validator.get(id)
   end
 
   @impl Network
   def handle_request("get_rounds", data, _state) do
-    conn = :persistent_term.get(:asset_conn)
-    stmts = :persistent_term.get(:asset_stmt)
+    db_ref = :persistent_term.get(:main_conn)
     round_id = Map.get(data, "from")
     limit = Map.get(data, "limit", 200) |> min(200) |> trunc()
     offset = Map.get(data, "offset", 0)
-    SqliteStore.fetch_all(conn, stmts, "get_rounds", [round_id, limit, offset])
+    Sqlite.fetch_all("get_rounds", [round_id, limit, offset])
   end
 
   def handle_request("get_round", id, _state) when is_integer(id) do
-    conn = :persistent_term.get(:asset_conn)
-    stmts = :persistent_term.get(:asset_stmt)
+    db_ref = :persistent_term.get(:main_conn)
 
-    case SqliteStore.fetch(conn, stmts, "get_round", [id]) do
+    case Sqlite.fetch("get_round", [id]) do
       nil -> nil
       data -> Round.list_to_map(data)
     end
   end
 
   def handle_request("last_round", nil, _state) do
-    conn = :persistent_term.get(:asset_conn)
-    stmts = :persistent_term.get(:asset_stmt)
+    db_ref = :persistent_term.get(:main_conn)
 
-    case SqliteStore.fetch(conn, stmts, "last_round", []) do
+    case Round.last() do
       nil -> nil
-      [id, hash] -> %{"id" => id, "hash" => hash}
+      {id, hash} -> %{"id" => id, "hash" => hash}
     end
   end
 

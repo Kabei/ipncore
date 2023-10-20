@@ -1,16 +1,16 @@
 defmodule Ippan.ClusterNodes do
-  alias Ippan.{LocalNode, Network, TxHandler, Wallet}
-  require Logger
+  alias Ippan.{Node, Network, TxHandler, Wallet}
+  require Ippan.{Node, TxHandler}
   require BalanceStore
-  require SqliteStore
-  require TxHandler
+  require Sqlite
+  require Logger
 
   use Network,
     app: :ipncore,
     name: :cluster,
     table: :cnw,
     server: Ippan.ClusterNode.Server,
-    pubsub: :cluster,
+    pubsub: :pubsub,
     topic: "cluster",
     opts: Application.compile_env(:ipncore, :p2p_client),
     conn_opts: [retry: 1, reconnect: false],
@@ -26,11 +26,10 @@ defmodule Ippan.ClusterNodes do
 
     pk = :persistent_term.get(:pubkey)
     net_pk = :persistent_term.get(:net_pubkey)
-    net_conn = :persistent_term.get(:net_conn)
-    net_stmts = :persistent_term.get(:net_stmt)
+    db_ref = :persistent_term.get(:net_conn)
     default_port = Application.get_env(:ipncore, :cluster)[:port]
 
-    SqliteStore.step(net_conn, net_stmts, "delete_nodes", [])
+    Node.delete_all()
 
     # registry cluster nodes
     String.split(nodes, ",", trim: true)
@@ -39,37 +38,31 @@ defmodule Ippan.ClusterNodes do
     end)
     |> Enum.each(fn [name_id, hostname] ->
       data =
-        %LocalNode{
+        %Node{
           id: name_id,
           hostname: hostname,
           port: default_port,
           pubkey: pk,
           net_pubkey: net_pk
         }
-        |> LocalNode.to_list()
+        |> Node.to_list()
 
-      SqliteStore.step(net_conn, net_stmts, "insert_node", data)
+      Node.insert(data)
     end)
 
-    SqliteStore.sync(net_conn)
+    Sqlite.sync(db_ref)
   end
 
   @impl Network
   def fetch(id) do
-    SqliteStore.lookup_map(
-      :cluster,
-      :persistent_term.get(:net_conn),
-      :persistent_term.get(:net_stmt),
-      "get_node",
-      id,
-      LocalNode
-    )
+    db_ref = :persistent_term.get(:net_conn)
+    Node.get(id)
   end
 
   @impl Network
   def handle_request(
         "new_msg",
-        [false, [hash, type, from, args, timestamp, nonce, msg_sig, size], return],
+        [false, [hash, type, from, nonce, args, msg_sig, size], return],
         _state
       ) do
     case :ets.member(:msg, hash) do
@@ -87,7 +80,7 @@ defmodule Ippan.ClusterNodes do
           _ ->
             TxHandler.check_return!()
 
-            :ets.insert(:dmsg, {hash, [hash, type, from, args, timestamp, nonce, size]})
+            :ets.insert(:dmsg, {hash, [hash, type, from, nonce, args, size]})
             :ets.insert(:msg, {hash, msg_sig})
         end
 
@@ -112,7 +105,7 @@ defmodule Ippan.ClusterNodes do
 
         case :ets.insert_new(:dhash, {msg_key, hash, height}) do
           true ->
-            [from, args, timestamp, nonce, msg_sig, size] = rest
+            [from, nonce, args, msg_sig, size] = rest
 
             dets = DetsPlux.get(:wallet)
             cache = DetsPlux.tx(:wallet, :cache_nonce)
@@ -126,7 +119,7 @@ defmodule Ippan.ClusterNodes do
               _ ->
                 IO.puts("The insert")
                 TxHandler.check_return!()
-                :ets.insert(:dmsg, {hash, [hash, type, key, from, args, timestamp, nonce, size]})
+                :ets.insert(:dmsg, {hash, [hash, type, key, from, nonce, args, size]})
                 :ets.insert(:msg, {hash, msg_sig})
             end
 

@@ -45,7 +45,7 @@ defmodule Ippan.Wallet do
   end
 
   @spec update_nonce(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) ::
-          pos_integer() | :error
+          non_neg_integer() | :error
   def update_nonce(dets, tx, from, nonce) do
     key = DetsPlux.tuple(from, "N")
     count = DetsPlux.get_tx(dets, tx, key, 0) + 1
@@ -59,7 +59,7 @@ defmodule Ippan.Wallet do
   end
 
   @spec update_nonce!(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) ::
-          pos_integer() | :error
+          non_neg_integer() | :error
   def update_nonce!(dets, tx, from, nonce) do
     key = DetsPlux.tuple(from, "N")
     count = DetsPlux.get_tx(dets, tx, key, 0) + 1

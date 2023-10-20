@@ -1,15 +1,14 @@
 defmodule Ippan.Funx.Token do
   alias Ippan.Token
-  require SqliteStore
+  require Token
+  require Sqlite
   require BalanceStore
 
-  @type result :: Ippan.Request.result()
   @token Application.compile_env(:ipncore, :token)
   @max_tokens Application.compile_env(:ipncore, :max_tokens)
-  @table_name "assets.token"
 
   def new(
-        %{id: account_id, conn: conn, balance: {dets, tx}, stmts: stmts, timestamp: timestamp},
+        %{id: account_id, round: round_id},
         id,
         owner_id,
         name,
@@ -18,11 +17,12 @@ defmodule Ippan.Funx.Token do
         max_supply \\ 0,
         opts \\ %{}
       ) do
-    cond do
-      SqliteStore.exists?(:token, conn, stmts, "exists_token", id) ->
-        :error
+    db_ref = :persistent_term.get(:main_conn)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
 
-      @max_tokens > SqliteStore.one(conn, stmts, "total_tokens") ->
+    cond do
+      @max_tokens > Token.total() ->
         :error
 
       true ->
@@ -44,13 +44,13 @@ defmodule Ippan.Funx.Token do
                 decimal: decimal,
                 symbol: symbol,
                 max_supply: max_supply,
-                created_at: timestamp,
-                updated_at: timestamp
+                created_at: round_id,
+                updated_at: round_id
               }
               |> Map.merge(MapUtil.to_atoms(map_filter))
               |> Token.to_list()
 
-            SqliteStore.step(conn, stmts, "insert_token", token)
+            Token.insert(token)
         end
     end
   end
@@ -58,42 +58,41 @@ defmodule Ippan.Funx.Token do
   def update(
         %{
           id: account_id,
-          conn: conn,
-          balance: {dets, tx},
-          timestamp: timestamp,
+          round: round_id,
           validator: validator
         },
         id,
         opts \\ %{}
       )
       when byte_size(id) <= 10 do
+    db_ref = :persistent_term.get(:main_conn)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+
     map_filter = Map.take(opts, Token.editable())
-    fee = EnvStore.network_fee()
+    fees = EnvStore.network_fee()
     balance_key = DetsPlux.tuple(account_id, @token)
     balance_validator_key = DetsPlux.tuple(validator.owner, @token)
 
-    case BalanceStore.pay(dets, tx, balance_key, balance_validator_key, fee) do
+    case BalanceStore.pay(dets, tx, balance_key, balance_validator_key, fees) do
       :error ->
         :error
 
       _ ->
         map =
           MapUtil.to_atoms(map_filter)
-          |> Map.put(:updated_at, timestamp)
+          |> Map.put(:updated_at, round_id)
 
-        # if @token == id do
-        #   Platform.update()
-        # end
-
-        SqliteStore.update(conn, @table_name, map, id: id)
+        Token.update(map, id: id)
     end
   end
 
-  def delete(%{id: account_id, conn: conn, stmts: stmts}, id) do
+  def delete(%{id: account_id}, id) do
+    db_ref = :persistent_term.get(:main_conn)
     supply = TokenSupply.new(id)
 
     if TokenSupply.get(supply) == 0 do
-      SqliteStore.step(conn, stmts, "delete_token", [id, account_id])
+      Token.delete(id, account_id)
     end
   end
 end

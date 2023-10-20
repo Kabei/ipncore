@@ -72,14 +72,20 @@ npk =
 150, 46, 243, 127, 185, 186, 144, 79, 233, 251, 32, 6, 138, 219, 74, 18, 65,
 222, 71, 228, 32, 0, 97, 92, 3>>
 
-timestamp = DateTime.to_unix(~U[2023-08-25 00:00:00.00Z], 1000)
 address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
 
 %{
+  "env" => [
+    %{name: "NETWORK.FEE", value: 1},
+    %{name: "OWNER", value: address},
+    %{name: "ROUND.BLOCKS", value: 50_000},
+    %{name: "TOKEN.PRICE", value: 50_000},
+    %{name: "VALIDATOR.PRICE", value: 100_000}
+  ],
   "tokens" => [
     %{
       avatar: nil,
-      created_at: timestamp,
+      created_at: 0,
       decimal: 9,
       id: "IPN",
       max_supply: 42_000_000_000_000_000,
@@ -87,13 +93,13 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       owner: address,
       props: ["coinbase", "lock", "burn"],
       symbol: "Þ",
-      updated_at: timestamp
+      updated_at: 0
     }
   ],
   "validators" => [
     %{
       avatar: nil,
-      created_at: timestamp,
+      created_at: 0,
       failures: 0,
       fee: 1.0,
       fee_type: 2,
@@ -105,11 +111,11 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       port: 5815,
       pubkey: pk,
       stake: 0,
-      updated_at: timestamp
+      updated_at: 0
     },
     %{
       avatar: nil,
-      created_at: timestamp,
+      created_at: 0,
       failures: 0,
       fee: 1.0,
       fee_type: 2,
@@ -121,12 +127,12 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       port: 5815,
       pubkey: pk,
       stake: 0,
-      updated_at: timestamp
+      updated_at: 0
     }
   ],
   "wallets" => [
     %{
-      created_at: timestamp,
+      created_at: 0,
       id: "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc",
       pubkey: pk,
       validator: 0

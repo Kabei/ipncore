@@ -110,4 +110,60 @@ defmodule Ippan.Validator do
   end
 
   def calc_price(next_id), do: (next_id + 1) * EnvStore.validator_price()
+
+  require Sqlite
+
+  defmacro insert(args) do
+    quote location: :keep do
+      Sqlite.step("insert_validator", unquote(args))
+    end
+  end
+
+  defmacro get(id) do
+    quote location: :keep do
+      Sqlite.get(:validator, "get_validator", unquote(id), Ippan.Validator)
+    end
+  end
+
+  defmacro next_id do
+    quote location: :keep do
+      Sqlite.one("next_id_validator")
+    end
+  end
+
+  defmacro exists?(id) do
+    quote location: :keep do
+      Sqlite.exists?("exists_validator", [unquote(id)])
+    end
+  end
+
+  defmacro exists_host?(hostname) do
+    quote location: :keep do
+      Sqlite.exists?("exists_host_validator", [unquote(hostname)])
+    end
+  end
+
+  defmacro owner?(id, owner) do
+    quote bind_quoted: [id: id, owner: owner], location: :keep do
+      Sqlite.exists?("owner_validator", [id, owner])
+    end
+  end
+
+  defmacro total do
+    quote location: :keep do
+      Sqlite.one("total_validators", [], 0)
+    end
+  end
+
+  defmacro delete(id) do
+    quote bind_quoted: [id: id], location: :keep do
+      Sqlite.step("delete_validator", [id])
+    end
+  end
+
+  defmacro update(map, id) do
+    quote location: :keep do
+      Sqlite.update("blockchain.validator", unquote(map), id: unquote(id))
+    end
+  end
 end

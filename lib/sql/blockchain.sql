@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS round(
   creator BIGINT NOT NULL,
   signature BLOB,
   coinbase BIGINT,
+  reward BIGINT,
   count BIGINT,
   tx_count BIGINT,
   size BIGINT,
@@ -49,9 +50,9 @@ CREATE TABLE IF NOT EXISTS round(
 
 CREATE TABLE IF NOT EXISTS jackpot(
   round_id BIGINT NOT NULL,
-  winner_id BLOB,
+  winner BLOB,
   amount BIGINT DEFAULT 0,
-  PRIMARY KEY(round_id, winner_id)
+  PRIMARY KEY(round_id, winner)
 ) WITHOUT ROWID;
 
 CREATE TABLE IF NOT EXISTS snapshot(

@@ -2,7 +2,6 @@ defmodule Builder do
   alias Ippan.Address
   require Logger
 
-  @compile {:inline, hash_fun: 1, encode_fun!: 1}
   @type response :: {Client.t(), binary, binary}
 
   defmodule Client do
@@ -14,8 +13,6 @@ defmodule Builder do
             sig_type: 0 | 1 | 2,
             nonce: pos_integer()
           }
-
-    @compile {:inline, cont: 1}
 
     defstruct [:seed, :address, :pk, :secret, :sig_type, nonce: 1]
 
@@ -112,7 +109,6 @@ defmodule Builder do
     body =
       [
         0,
-        :os.system_time(:millisecond),
         nonce,
         address,
         Base.encode64(pk),
@@ -131,7 +127,7 @@ defmodule Builder do
   # Builder.wallet_unsub(client) |> Builder.print
   def wallet_unsub(client = %Client{address: address, nonce: nonce}) do
     body =
-      [1, :os.system_time(:millisecond), nonce, address]
+      [1, nonce, address]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -148,7 +144,7 @@ defmodule Builder do
         value
       ) do
     body =
-      [50, :os.system_time(:millisecond), nonce, address, name, value]
+      [50, nonce, address, name, value]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -161,7 +157,7 @@ defmodule Builder do
   # Builder.env_delete(client, "test") |> Builder.print
   def env_delete(client = %Client{address: address, nonce: nonce}, name) do
     body =
-      [51, :os.system_time(:millisecond), nonce, address, name]
+      [51, nonce, address, name]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -188,7 +184,6 @@ defmodule Builder do
     body =
       [
         100,
-        :os.system_time(:millisecond),
         nonce,
         address,
         hostname,
@@ -213,7 +208,7 @@ defmodule Builder do
   # Builder.validator_update(client, 1, %{"fee" => 7.0}) |> Builder.print()
   def validator_update(client = %Client{address: address, nonce: nonce}, id, params) do
     body =
-      [101, :os.system_time(:millisecond), nonce, address, id, params]
+      [101, nonce, address, id, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -226,7 +221,7 @@ defmodule Builder do
   # Builder.validator_delete(client, 1) |> Builder.print()
   def validator_delete(client = %Client{address: address, nonce: nonce}, id) do
     body =
-      [102, :os.system_time(:millisecond), nonce, address, id]
+      [102, nonce, address, id]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -254,7 +249,6 @@ defmodule Builder do
     body =
       [
         200,
-        :os.system_time(:millisecond),
         nonce,
         address,
         token_id,
@@ -277,7 +271,7 @@ defmodule Builder do
   # Builder.token_update(client, "USD", %{"name" => "Dollar"}) |> Builder.print()
   def token_update(client = %Client{address: address, nonce: nonce}, id, params) do
     body =
-      [201, :os.system_time(:millisecond), nonce, address, id, params]
+      [201, nonce, address, id, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -290,7 +284,7 @@ defmodule Builder do
   # Builder.token_delete(client, "USD") |> Builder.print()
   def token_delete(client = %Client{address: address, nonce: nonce}, id) do
     body =
-      [202, :os.system_time(:millisecond), nonce, address, id]
+      [202, nonce, address, id]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -302,7 +296,7 @@ defmodule Builder do
 
   def balance_lock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
     body =
-      [250, :os.system_time(:millisecond), nonce, address, to, token_id, amount]
+      [250, nonce, address, to, token_id, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -314,7 +308,7 @@ defmodule Builder do
 
   def balance_unlock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
     body =
-      [251, :os.system_time(:millisecond), nonce, address, to, token_id, amount]
+      [251, nonce, address, to, token_id, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -327,7 +321,7 @@ defmodule Builder do
   # Builder.tx_coinbase(client, "IPN", [[address2, 50000000]]) |> Builder.print()
   def tx_coinbase(client = %Client{address: address, nonce: nonce}, token, outputs) do
     body =
-      [300, :os.system_time(:millisecond), nonce, address, token, outputs]
+      [300, nonce, address, token, outputs]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -341,7 +335,7 @@ defmodule Builder do
   # Builder.tx_send(client, address, "IPN", 4000) |> Builder.print()
   def tx_send(client = %Client{address: address, nonce: nonce}, to, token, amount) do
     body =
-      [301, :os.system_time(:millisecond), nonce, address, to, token, amount]
+      [301, nonce, address, to, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -353,7 +347,7 @@ defmodule Builder do
 
   def tx_send(client = %Client{address: address, nonce: nonce}, to, token, amount, note) do
     body =
-      [301, :os.system_time(:millisecond), nonce, address, to, token, amount, note]
+      [301, nonce, address, to, token, amount, note]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -365,7 +359,7 @@ defmodule Builder do
 
   def tx_refundable(client = %Client{address: address, nonce: nonce}, to, token, amount) do
     body =
-      [302, :os.system_time(:millisecond), nonce, address, to, token, amount]
+      [302, nonce, address, to, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -378,7 +372,7 @@ defmodule Builder do
   # Builder.tx_refund(client, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.print()
   def tx_refund(client = %Client{address: address, nonce: nonce}, hash) do
     body =
-      [303, :os.system_time(:millisecond), nonce, address, hash]
+      [303, nonce, address, hash]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -391,7 +385,7 @@ defmodule Builder do
   # Builder.tx_burn(client, "IPN", 1000) |> Builder.print()
   def tx_burn(client = %Client{address: address, nonce: nonce}, token, amount) do
     body =
-      [304, :os.system_time(:millisecond), nonce, address, token, amount]
+      [304, nonce, address, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -413,7 +407,7 @@ defmodule Builder do
         } = params
       ) do
     body =
-      [400, :os.system_time(:millisecond), nonce, address, domain_name, owner, days, params]
+      [400, nonce, address, domain_name, owner, days, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -430,7 +424,7 @@ defmodule Builder do
         params
       ) do
     body =
-      [401, :os.system_time(:millisecond), nonce, address, domain_name, params]
+      [401, nonce, address, domain_name, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -443,7 +437,7 @@ defmodule Builder do
   # Builder.domain_delete(client, "example.ipn") |> Builder.print()
   def domain_delete(client = %Client{address: address, nonce: nonce}, domain_name) do
     body =
-      [402, :os.system_time(:millisecond), nonce, address, domain_name]
+      [402, nonce, address, domain_name]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -456,7 +450,7 @@ defmodule Builder do
   # Builder.domain_renew(client, "example.ipn", 1000) |> Builder.print()
   def domain_renew(client = %Client{address: address, nonce: nonce}, domain_name, days) do
     body =
-      [403, :os.system_time(:millisecond), nonce, address, domain_name, days]
+      [403, nonce, address, domain_name, days]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -468,7 +462,7 @@ defmodule Builder do
 
   def dns_new(client = %Client{address: address, nonce: nonce}, fullname, type, data, ttl) do
     body =
-      [500, :os.system_time(:millisecond), nonce, address, fullname, type, data, ttl]
+      [500, nonce, address, fullname, type, data, ttl]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -480,7 +474,7 @@ defmodule Builder do
 
   def dns_update(client = %Client{address: address, nonce: nonce}, fullname, dns_hash16, params) do
     body =
-      [501, :os.system_time(:millisecond), nonce, address, fullname, dns_hash16, params]
+      [501, nonce, address, fullname, dns_hash16, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -492,7 +486,7 @@ defmodule Builder do
 
   def dns_delete(client = %Client{address: address, nonce: nonce}, fullname) do
     body =
-      [502, :os.system_time(:millisecond), nonce, address, fullname]
+      [502, nonce, address, fullname]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -505,7 +499,7 @@ defmodule Builder do
   def dns_delete(client = %Client{address: address, nonce: nonce}, fullname, type)
       when is_integer(type) do
     body =
-      [502, :os.system_time(:millisecond), nonce, address, fullname, type]
+      [502, nonce, address, fullname, type]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -517,7 +511,7 @@ defmodule Builder do
 
   def dns_delete(client = %Client{address: address, nonce: nonce}, address, fullname, hash16) do
     body =
-      [502, :os.system_time(:millisecond), nonce, address, fullname, hash16]
+      [502, nonce, address, fullname, hash16]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -527,10 +521,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def custom(client = %Client{address: address}, type, timestamp, args) do
+  def custom(client = %Client{address: address}, type, args) do
     {:ok, body} =
-      [type, timestamp, address, args]
-      |> Jason.encode()
+      [type, address, args] |> Jason.encode()
 
     hash = hash_fun(body)
 

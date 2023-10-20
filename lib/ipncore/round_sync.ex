@@ -2,7 +2,8 @@ defmodule RoundSync do
   use GenServer, restart: :trasient
   alias Ippan.Validator
   alias Ippan.NetworkNodes
-  require SqliteStore
+  require Validator
+  require Sqlite
 
   #  @type t :: %__MODULE__{status: :synced | :syncing}
 
@@ -133,20 +134,17 @@ defmodule RoundSync do
 
   # Build a list of rounds
   defp build(rounds, %{miner_pool: miner_pool_pid, pid: round_manager_pid} = old_state) do
-    conn = :persistent_term.get(:asset_conn)
-    stmts = :persistent_term.get(:asset_stmt)
+    db_ref = :persistent_term.get(:main_conn)
     balances = DetsPlux.get(:balance)
 
     Enum.reduce(rounds, old_state, fn round, %{block_id: block_id} = acc ->
-      creator =
-        SqliteStore.lookup_map(:validator, conn, stmts, "get_validator", round.creator, Validator)
+      creator = Validator.get(round.creator)
 
       case RoundManager.build_round(
              round,
              block_id,
              creator,
-             conn,
-             stmts,
+             db_ref,
              balances,
              miner_pool_pid,
              round_manager_pid

@@ -1,5 +1,5 @@
 --name: insert_env
-REPLACE INTO main.env values(?1, ?2, ?3);
+REPLACE INTO main.env values(?1, ?2);
 
 --name: get_env
 SELECT value FROM main.env WHERE name=?1 LIMIT 1;
@@ -118,7 +118,7 @@ SELECT count(1) FROM blockchain.block WHERE round = ?;
 
 
 --name: insert_round
-INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12);
+INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
 
 --name: get_round
 SELECT * FROM blockchain.round WHERE id = ? LIMIT 1;
@@ -162,13 +162,14 @@ DELETE FROM blockchain.validator WHERE id = ?1;
 REPLACE INTO assets.refund VALUES(?1,?2,?3,?4,?5,?6);
 
 --name: exists_refund
-SELECT 1 FROM assets.refund WHERE hash = ?1 AND `to` = ?2 AND expiry_in > ?3;
+SELECT 1 FROM assets.refund WHERE hash = ?1 AND `to` = ?2;
 
 --name: delete_get_refund
 DELETE FROM assets.refund WHERE hash = ? RETURNING sender, token, amount;
 
 --name: delete_expiry_refund
 DELETE FROM assets.refund WHERE expiry_in < ?1;
+
 
 --name: insert_jackpot
 INSERT INTO blockchain.jackpot VALUES(?1,?2,?3);

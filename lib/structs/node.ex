@@ -1,4 +1,4 @@
-defmodule Ippan.LocalNode do
+defmodule Ippan.Node do
   @behaviour Ippan.Struct
 
   @type t :: %__MODULE__{
@@ -67,4 +67,28 @@ defmodule Ippan.LocalNode do
 
   @impl true
   def to_map({_id, x}), do: x
+
+  defmacro insert(node) do
+    quote do
+      Sqlite.step("insert_node", unquote(node))
+    end
+  end
+
+  defmacro get(id) do
+    quote location: :keep do
+      Sqlite.get(:cluster, "get_node", [unquote(id)], Ippan.Node)
+    end
+  end
+
+  defmacro fetch(id) do
+    quote location: :keep do
+      Sqlite.fetch("get_node", [unquote(id)])
+    end
+  end
+
+  defmacro delete_all do
+    quote location: :keep do
+      Sqlite.step("delete_nodes", [])
+    end
+  end
 end

@@ -1,29 +1,27 @@
 defmodule Ippan.Funx.Dns do
   alias Ippan.{Domain, DNS}
-  require SqliteStore
   require BalanceStore
+  require Sqlite
+  require DNS
 
   @token Application.compile_env(:ipncore, :token)
-  @table_name "dns.dns"
 
   def new(
-        %{
-          id: account_id,
-          conn: conn,
-          balance: {dets, balance_tx},
-          stmts: stmts,
-          validator: validator
-        },
+        %{id: account_id, validator: validator},
         fullname,
         type,
         data,
         ttl
       ) do
+    db_ref = :persistent_term.get(:main_conn)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+
     fee = EnvStore.network_fee()
     key = DetsPlux.tuple(account_id, @token)
     to_key = DetsPlux.tuple(validator.owner, @token)
 
-    case BalanceStore.pay(dets, balance_tx, key, to_key, fee) do
+    case BalanceStore.pay(dets, tx, key, to_key, fee) do
       :error ->
         :error
 
@@ -41,16 +39,20 @@ defmodule Ippan.Funx.Dns do
           }
           |> DNS.to_list()
 
-        SqliteStore.step(conn, stmts, "insert_dns", dns)
+        DNS.insert(dns)
     end
   end
 
   def update(
-        %{id: account_id, conn: conn, balance: {dets, tx}, validator: validator},
+        %{id: account_id, validator: validator},
         fullname,
         dns_hash16,
         params
       ) do
+    db_ref = :persistent_term.get(:main_conn)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+
     dns_hash = Base.decode16(dns_hash16, case: :mixed)
     fee = EnvStore.network_fee()
     balance_key = DetsPlux.tuple(account_id, @token)
@@ -67,31 +69,33 @@ defmodule Ippan.Funx.Dns do
           Map.take(params, DNS.editable())
           |> MapUtil.to_atoms()
 
-        SqliteStore.update(conn, @table_name, ref, domain: domain, hash: dns_hash)
+        DNS.update(ref, domain: domain, hash: dns_hash)
     end
   end
 
-  def delete(%{conn: conn, stmts: stmts}, fullname) do
+  def delete(_, fullname) do
+    db_ref = :persistent_term.get(:main_conn)
     {subdomain, domain} = Domain.split(fullname)
 
     case subdomain do
       "" ->
-        SqliteStore.step(conn, stmts, "delete_dns", [domain])
+        DNS.delete(domain)
 
       _ ->
-        SqliteStore.step(conn, stmts, "delete_name_dns", [domain, subdomain])
+        DNS.delete(domain, subdomain)
     end
   end
 
-  def delete(%{conn: conn, stmts: stmts}, fullname, type) when is_integer(type) do
+  def delete(_, fullname, type) when is_integer(type) do
     {subdomain, domain} = Domain.split(fullname)
-
-    SqliteStore.step(conn, stmts, "delete_type_dns", [domain, subdomain, type])
+    db_ref = :persistent_term.get(:main_conn)
+    DNS.delete_type(domain, subdomain, type)
   end
 
-  def delete(%{conn: conn, stmts: stmts}, fullname, hash16) do
+  def delete(_, fullname, hash16) do
     {subdomain, domain} = Domain.split(fullname)
     hash = Base.decode16!(hash16, case: :mixed)
-    SqliteStore.step(conn, stmts, "delete_hash_dns", [domain, subdomain, hash])
+    db_ref = :persistent_term.get(:main_conn)
+    DNS.delete_hash(domain, subdomain, hash)
   end
 end

@@ -52,7 +52,7 @@ defmodule Ippan.Network do
       alias Phoenix.PubSub
       alias IO.ANSI
       alias Ippan.P2P
-      require SqliteStore
+      require Sqlite
       require Logger
 
       @behaviour Ippan.Network

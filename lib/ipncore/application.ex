@@ -35,7 +35,7 @@ defmodule Ipncore.Application do
         ClusterNodes,
         NetworkNodes,
         RoundManager,
-        {Bandit, [plug: Ipncore.Endpoint, scheme: :http] ++ Application.get_env(@otp_app, :http)}
+        {Bandit, Application.get_env(@otp_app, :http)}
       ]
 
     Supervisor.start_link(children, @opts)

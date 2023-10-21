@@ -167,7 +167,7 @@ defmodule Ippan.Funcs do
   def lookup(305) do
     %Func{
       id: 305,
-      name: "tx.burn",
+      name: "coin.burn",
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :burn

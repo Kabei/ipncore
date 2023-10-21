@@ -120,7 +120,7 @@ defmodule MinerWorker do
         Validator.delete(creator_id)
         ClusterNodes.broadcast(%{"event" => "validator.delete", "data" => creator_id})
 
-        Logger.error(inspect(error))
+        Logger.error(Exception.format(:error, error, __STACKTRACE__))
         {:reply, :error, state}
     end
   end

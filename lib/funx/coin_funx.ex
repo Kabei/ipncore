@@ -3,7 +3,7 @@ defmodule Ippan.Funx.Coin do
   require Sqlite
   require BalanceStore
 
-  @token Application.compile_env(:ipnworker, :token)
+  @token Application.compile_env(:ipncore, :token)
   # Three days aprox.
   @refund_timeout 3 * 20_000
 

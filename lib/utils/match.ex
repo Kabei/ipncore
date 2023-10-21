@@ -17,7 +17,7 @@ defmodule Match do
   # @username ~r/((?!^[\.\-\_])([a-z0-9\.\-\_])(?![\.\_\-][\.\_\-])(?![\.\-\_]$)){1,30}/
   @username ~r/^[a-z0-9]+([._-]?[a-z0-9]+)*$/
   @token ~r/^[A-Z0-9]{1,10}$/
-  @no_binary ~r/^[A-Za-z0-9:punct:\s]+$/
+  @text ~r/^[\x20-\x26|\x28-\x7E]+$/
 
   def hostname?(x), do: Regex.match?(@hostname, x)
   def domain?(x), do: Regex.match?(@domain, x)
@@ -34,7 +34,7 @@ defmodule Match do
   def wallet_address?(x), do: Regex.match?(@wallet_address, x)
   def username?(x), do: Regex.match?(@username, x)
   def token?(x), do: Regex.match?(@token, x)
-  def no_binary(x), do: Regex.match?(@no_binary, x)
+  def text?(x), do: Regex.match?(@text, x)
   def ipv4(x), do: Regex.match?(@ipv4, x)
   def host_or_ipv4?(x), do: Regex.match?(@host_ipv4, x)
 

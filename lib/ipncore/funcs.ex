@@ -146,8 +146,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 303,
       name: "coin.lock",
-      mod: Func.Balance,
-      modx: Funx.Balance,
+      mod: Func.Coin,
+      modx: Funx.Coin,
       fun: :lock,
       check: 2
     }
@@ -157,8 +157,8 @@ defmodule Ippan.Funcs do
     %Func{
       id: 304,
       name: "coin.unlock",
-      mod: Func.Balance,
-      modx: Funx.Balance,
+      mod: Func.Coin,
+      modx: Funx.Coin,
       fun: :unlock,
       check: 2
     }

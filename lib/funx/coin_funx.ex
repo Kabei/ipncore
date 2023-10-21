@@ -3,14 +3,14 @@ defmodule Ippan.Funx.Coin do
   require Sqlite
   require BalanceStore
 
-  @token Application.compile_env(:ipncore, :token)
+  @token Application.compile_env(:ipnworker, :token)
   # Three days aprox.
   @refund_timeout 3 * 20_000
 
   def send(
         %{
           id: account_id,
-          validator: %{owner: owner, fee_type: fee_type, fee: vfee},
+          validator: %{fee: vfee, fee_type: fee_type, owner: owner},
           size: size
         },
         to,

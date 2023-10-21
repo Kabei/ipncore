@@ -41,17 +41,17 @@ defmodule Ippan.TxHandler do
   defmacro insert_deferred do
     quote location: :keep do
       key = {var!(type), var!(arg_key)}
-      # body = [hash, account_id, validator_id, args, size, block_id]
+      body = [var!(hash), var!(from), var!(validator), var!(args), var!(size), var!(block_id)]
 
       case :ets.lookup(:dtx, key) do
         [] ->
-          :ets.insert(:dtx, {key, var!(body)})
+          :ets.insert(:dtx, {key, body})
 
         [{_msg_key, [xhash | _rest] = xbody}] ->
           xblock_id = List.last(xbody)
 
           if var!(hash) < xhash or (var!(hash) == xhash and var!(block_id) < xblock_id) do
-            :ets.insert(:dtx, {key, var!(body)})
+            :ets.insert(:dtx, {key, body})
           else
             false
           end
@@ -60,34 +60,34 @@ defmodule Ippan.TxHandler do
   end
 
   # only deferred transactions
-    defmacro run_deferred_txs do
-      quote location: :keep do
-        :ets.tab2list(:dtx)
-        |> Enum.each(fn {{type, _key},
-                         [
-                           hash,
-                           account_id,
-                           validator_id,
-                           args,
-                           size,
-                           block_id
-                         ]} ->
-          %{modx: module, fun: fun} = Funcs.lookup(type)
+  defmacro run_deferred_txs do
+    quote location: :keep do
+      :ets.tab2list(:dtx)
+      |> Enum.each(fn {{type, _key},
+                       [
+                         hash,
+                         account_id,
+                         validator,
+                         args,
+                         size,
+                         block_id
+                       ]} ->
+        %{modx: module, fun: fun} = Funcs.lookup(type)
 
-          source = %{
-            block: block_id,
-            hash: hash,
-            id: account_id,
-            round: var!(round_id),
-            size: size,
-            type: type,
-            validator: validator_id
-          }
+        source = %{
+          block: block_id,
+          hash: hash,
+          id: account_id,
+          round: var!(round_id),
+          size: size,
+          type: type,
+          validator: validator
+        }
 
-          apply(module, fun, [source | args])
-        end)
+        apply(module, fun, [source | args])
+      end)
 
-        :ets.delete_all_objects(:dtx)
-      end
+      :ets.delete_all_objects(:dtx)
     end
+  end
 end

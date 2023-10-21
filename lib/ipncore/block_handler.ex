@@ -8,15 +8,19 @@ defmodule Ippan.BlockHandler do
 
   @version Application.compile_env(:ipncore, :version)
   @block_extension Application.compile_env(:ipncore, :block_extension)
+  @decode_extension Application.compile_env(:ipncore, :decode_extension)
   @max_block_data_size Application.compile_env(:ipncore, :max_block_data_size)
 
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
           map | nil
   def generate_files(creator_id, height, prev, priority \\ 0) do
-    filename = "#{creator_id}.#{height}.#{@block_extension}"
-    block_path = Path.join(:persistent_term.get(:block_dir), filename)
-    decode_path = Path.join(:persistent_term.get(:decode_dir), filename)
+    block_path =
+      Path.join(:persistent_term.get(:block_dir), "#{creator_id}.#{height}.#{@block_extension}")
+
+    decode_path =
+      Path.join(:persistent_term.get(:decode_dir), "#{creator_id}.#{height}.#{@decode_extension}")
+
     ets_msg = :ets.whereis(:msg)
 
     cond do

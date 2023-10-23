@@ -220,7 +220,7 @@ defmodule Ippan.Round do
       Sqlite.fetch("get_round", [id])
       |> case do
         nil -> nil
-        x -> list_to_map(x)
+        x -> Ippan.Round.list_to_map(x)
       end
     end
   end

@@ -143,7 +143,7 @@ defmodule Ippan.ClusterNodes do
     Round.last()
   end
 
-  def handle_request("get_round", %{"id" => id}, _state) do
+  def handle_request("get_round", id, _state) do
     db_ref = :persistent_term.get(:main_conn)
 
     round =

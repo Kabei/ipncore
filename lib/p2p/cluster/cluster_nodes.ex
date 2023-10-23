@@ -1,6 +1,8 @@
 defmodule Ippan.ClusterNodes do
+  require Ippan.Round
+  alias Ippan.Round
   alias Ippan.{Node, Network, TxHandler, Wallet}
-  require Ippan.{Node, TxHandler}
+  require Ippan.{Node, TxHandler, Round}
   require BalanceStore
   require Sqlite
   require Logger
@@ -132,6 +134,29 @@ defmodule Ippan.ClusterNodes do
           false ->
             ["error", "Deferred transaction already exists"]
         end
+    end
+  end
+
+  def handle_request("last_round", _params, _state) do
+    db_ref = :persistent_term.get(:main_conn)
+
+    Round.last()
+    |> Round.list_to_map()
+  end
+
+  def handle_request("get_round", %{"id" => id}, _state) do
+    db_ref = :persistent_term.get(:main_conn)
+
+    round =
+      Round.get(id)
+      |> Round.list_to_map()
+
+    case Sqlite.fetch("get_jackpot") do
+      nil ->
+        round
+
+      [winner, amount] ->
+        Map.put(round, :jackpot, {winner, amount})
     end
   end
 

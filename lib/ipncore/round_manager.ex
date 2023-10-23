@@ -157,6 +157,7 @@ defmodule RoundManager do
           node_id
         },
         %{
+          db_ref: db_ref,
           players: ets_players,
           votes: ets_votes,
           rcid: rcid,
@@ -174,6 +175,10 @@ defmodule RoundManager do
     with true <- creator_id == rcid,
          true <- limit >= length(blocks),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
+         false <-
+           Enum.any?(blocks, fn block ->
+             block_pre_verificacion(block, db_ref, ets_players) == :error
+           end),
          hashes <- Enum.map(blocks, & &1.hash),
          true <- hash == Round.compute_hash(id, prev, creator_id, hashes),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
@@ -213,26 +218,10 @@ defmodule RoundManager do
   end
 
   def handle_info(
-        {
-          "msg_block",
-          block = %{
-            "creator" => creator_id,
-            "height" => height,
-            "hash" => hash,
-            "signature" => signature,
-            "prev" => prev,
-            "hashfile" => hashfile,
-            "timestamp" => timestamp
-          },
-          _node_id
-        },
-        %{db_ref: db_ref, candidates: ets_candidates, players: ets_players} = state
+        {"msg_block", block = %{"creator" => creator_id, "height" => height}, _node_id},
+        state = %{db_ref: db_ref, candidates: ets_candidates, players: ets_players}
       ) do
-    with [{_, player}] <- :ets.lookup(ets_players, creator_id),
-         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- Block.compute_hash(creator_id, height, prev, hashfile, timestamp),
-         true <-
-           height == 1 + Sqlite.one("last_block_height_created", [creator_id]) do
+    with :ok <- block_pre_verificacion(block, db_ref, ets_players) do
       block =
         block
         |> Map.take(Block.fields())
@@ -330,7 +319,7 @@ defmodule RoundManager do
           state
       ) do
     next = round_nulled_id == round_id
-    Logger.debug("[Incomplete] Round ##{round_nulled_id} | Reason: #{round_nulled.reason}")
+    Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_nulled.status}")
 
     # Reverse changes
     RoundCommit.rollback(db_ref)
@@ -400,6 +389,30 @@ defmodule RoundManager do
     PubSub.unsubscribe(@pubsub, "env")
     :poolboy.stop(miner_pool_pid)
     # RoundCommit.stop()
+  end
+
+  @spec block_pre_verificacion(block :: map(), reference, :ets.tid()) :: :ok | :error
+  def block_pre_verificacion(
+        %{
+          "creator" => creator_id,
+          "height" => height,
+          "hash" => hash,
+          "signature" => signature,
+          "prev" => prev,
+          "hashfile" => hashfile,
+          "timestamp" => timestamp
+        },
+        db_ref,
+        ets_players
+      ) do
+    with [{_, player}] <- :ets.lookup(ets_players, creator_id),
+         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
+         true <- hash == Block.compute_hash(creator_id, height, prev, hashfile, timestamp),
+         true <- height == 1 + Sqlite.one("last_block_height_created", [creator_id]) do
+      :ok
+    else
+      _ -> :error
+    end
   end
 
   defp ets_start(name, opts) do
@@ -669,7 +682,7 @@ defmodule RoundManager do
           count: block_count,
           tx_count: tx_count,
           size: size,
-          reason: 0,
+          status: 0,
           blocks: blocks_approved,
           extra: nil,
           # extra data

@@ -1,5 +1,5 @@
 defmodule Ippan.Round do
-  alias Ippan.Block
+  alias Ippan.{Block, Utils}
 
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
@@ -13,12 +13,12 @@ defmodule Ippan.Round do
           count: non_neg_integer(),
           tx_count: non_neg_integer(),
           size: non_neg_integer(),
-          reason: 0 | 1 | 2 | 3,
+          status: 0 | 1 | 2 | 3,
           blocks: [map()] | nil,
           extra: [any()] | nil
         }
 
-  # Reason
+  # Status
   # 0 = Success
   # 1 = Error timeout
   # 2 = Error round data failure
@@ -34,7 +34,7 @@ defmodule Ippan.Round do
     :count,
     :tx_count,
     :size,
-    :reason,
+    :status,
     :blocks,
     :extra
   ]
@@ -52,7 +52,7 @@ defmodule Ippan.Round do
       x.count,
       x.tx_count,
       x.size,
-      x.reason,
+      x.status,
       CBOR.encode(x.blocks),
       CBOR.encode(x.extra)
     ]
@@ -80,7 +80,7 @@ defmodule Ippan.Round do
         count,
         tx_count,
         size,
-        reason,
+        status,
         blocks,
         extra
       ]) do
@@ -95,7 +95,7 @@ defmodule Ippan.Round do
       count: count,
       tx_count: tx_count,
       size: size,
-      reason: reason,
+      status: status,
       blocks: CBOR.Decoder.decode(blocks) |> elem(0),
       extra: CBOR.Decoder.decode(extra) |> elem(0)
     }
@@ -103,6 +103,40 @@ defmodule Ippan.Round do
 
   @impl true
   def to_map({_id, map}), do: map
+
+  def to_text(
+        x = %{
+          hash: hash,
+          prev: prev,
+          jackpot: {winner, amount},
+          signature: signature,
+          blocks: blocks
+        }
+      ) do
+    blocks = Enum.map(blocks, &Block.to_text(&1))
+
+    %{
+      x
+      | blocks: blocks,
+        hash: Utils.encode16(hash),
+        prev: Utils.encode16(prev),
+        jackpot: %{winner: winner, amount: amount},
+        signature: Utils.encode64(signature)
+    }
+  end
+
+  def to_text(x = %{hash: hash, prev: prev, signature: signature}) do
+    %{
+      x
+      | hash: Utils.encode16(hash),
+        prev: Utils.encode16(prev),
+        signature: Utils.encode64(signature)
+    }
+  end
+
+  def to_text(x = %{hash: hash, prev: prev}) do
+    %{x | hash: Utils.encode16(hash), prev: Utils.encode16(prev)}
+  end
 
   def compute_hash(id, prev, creator, hashes) do
     ([
@@ -137,7 +171,7 @@ defmodule Ippan.Round do
     |> Map.put(:blocks, blocks)
   end
 
-  def null?(%{reason: reason}) when reason > 0, do: true
+  def null?(%{status: status}) when status > 0, do: true
   def null?(_), do: false
 
   @spec cancel(
@@ -148,7 +182,7 @@ defmodule Ippan.Round do
           non_neg_integer(),
           non_neg_integer()
         ) :: map
-  def cancel(id, hash, prev, signature, creator_id, reason) do
+  def cancel(id, hash, prev, signature, creator_id, status) do
     %{
       id: id,
       hash: hash || prev,
@@ -160,7 +194,7 @@ defmodule Ippan.Round do
       count: 0,
       tx_count: 0,
       size: 0,
-      reason: reason,
+      status: status,
       blocks: [],
       extra: nil
     }
@@ -178,6 +212,16 @@ defmodule Ippan.Round do
   defmacro insert(args) do
     quote location: :keep do
       Sqlite.step("insert_round", unquote(args))
+    end
+  end
+
+  defmacro get(id) do
+    quote bind_quoted: [id: id], location: :keep do
+      Sqlite.fetch("get_round", [id])
+      |> case do
+        nil -> {0, nil}
+        [x, y] -> {x, y}
+      end
     end
   end
 

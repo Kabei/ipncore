@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS block(
   count INTEGER DEFAULT 0,
   rejected INTEGER,
   size BIGINT DEFAULT 0,
+  status INTEGER,
   vsn INTEGER,
   UNIQUE(creator, height)
 ) WITHOUT ROWID;

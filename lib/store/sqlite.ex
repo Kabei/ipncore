@@ -73,22 +73,7 @@ defmodule Sqlite do
     end
   end
 
-  # defmacro exists?(table, name, args) when is_list(args) do
-  #   key = List.to_tuple(args)
-
-  #   quote bind_quoted: [table: table, name: name, key: key, args: args],
-  #         location: :keep do
-  #     case :ets.member(table, key) do
-  #       true ->
-  #         true
-
-  #       false ->
-  #         Sqlite.exists?(name, args)
-  #     end
-  #   end
-  # end
-
-  defmacro fetch(name, args, default \\ nil) do
+  defmacro fetch(name, args \\ [], default \\ nil) do
     quote bind_quoted: [name: name, args: args, default: default],
           location: :keep do
       stmt = :persistent_term.get({:stmt, name})

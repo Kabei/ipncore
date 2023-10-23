@@ -108,7 +108,12 @@ defmodule MinerWorker do
 
       result =
         block
-        |> Map.merge(%{prev: prev_hash, round: current_round_id, rejected: count_rejected})
+        |> Map.merge(%{
+          prev: prev_hash,
+          round: current_round_id,
+          rejected: count_rejected,
+          status: 0
+        })
 
       IO.puts("Here 7")
       :done = Block.insert(Block.to_list(result))
@@ -119,6 +124,8 @@ defmodule MinerWorker do
         # delete player
         Validator.delete(creator_id)
         ClusterNodes.broadcast(%{"event" => "validator.delete", "data" => creator_id})
+        b = Block.cancel(block, 1)
+        :done = Block.insert(Block.to_list(b))
 
         Logger.error(Exception.format(:error, error, __STACKTRACE__))
         {:reply, :error, state}

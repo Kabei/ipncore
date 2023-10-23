@@ -43,7 +43,6 @@ defmodule MinerWorker do
 
     try do
       IO.puts("Here 0")
-      nonce_dets = DetsPlux.get(:nonce)
 
       [block_height, prev_hash] =
         Block.last_created(creator_id, [-1, nil])
@@ -102,7 +101,7 @@ defmodule MinerWorker do
       IO.puts("Here 5")
 
       count_rejected =
-        run_miner(current_round_id, block_id, creator, txs, nonce_dets)
+        run_miner(current_round_id, block_id, creator, txs)
 
       IO.puts("Here 6")
 
@@ -133,7 +132,8 @@ defmodule MinerWorker do
   end
 
   # Process the block
-  defp run_miner(round_id, block_id, validator, transactions, nonce_dets) do
+  defp run_miner(round_id, block_id, validator, transactions) do
+    nonce_dets = DetsPlux.get(:nonce)
     nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
 
     Enum.reduce(transactions, 0, fn

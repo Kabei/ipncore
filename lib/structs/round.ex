@@ -219,8 +219,8 @@ defmodule Ippan.Round do
     quote bind_quoted: [id: id], location: :keep do
       Sqlite.fetch("get_round", [id])
       |> case do
-        nil -> {0, nil}
-        [x, y] -> {x, y}
+        nil -> nil
+        x -> list_to_map(x)
       end
     end
   end

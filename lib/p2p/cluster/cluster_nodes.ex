@@ -141,7 +141,6 @@ defmodule Ippan.ClusterNodes do
     db_ref = :persistent_term.get(:main_conn)
 
     Round.last()
-    |> Round.list_to_map()
   end
 
   def handle_request("get_round", %{"id" => id}, _state) do

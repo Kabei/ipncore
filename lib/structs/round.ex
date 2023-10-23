@@ -225,11 +225,11 @@ defmodule Ippan.Round do
     end
   end
 
-  defmacro last do
+  defmacro last(default \\ {0, nil}) do
     quote location: :keep do
       Sqlite.fetch("last_round", [])
       |> case do
-        nil -> {0, nil}
+        nil -> unquote(default)
         [x, y] -> {x, y}
       end
     end

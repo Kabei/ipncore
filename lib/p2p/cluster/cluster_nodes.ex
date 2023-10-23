@@ -147,7 +147,7 @@ defmodule Ippan.ClusterNodes do
     db_ref = :persistent_term.get(:main_conn)
 
     round =
-      Round.get(id)
+      Round.fetch(id)
       |> Round.list_to_map()
 
     case Sqlite.fetch("get_jackpot") do

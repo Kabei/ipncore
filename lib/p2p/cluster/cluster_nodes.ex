@@ -156,6 +156,29 @@ defmodule Ippan.ClusterNodes do
     end
   end
 
+  def handle_request("get_rounds", params, _state) do
+    db_ref = :persistent_term.get(:main_conn)
+    round_id = Map.get(params, "from")
+    limit = Map.get(params, "limit", 50) |> min(100) |> trunc()
+    offset = Map.get(params, "offset", 0)
+
+    case Sqlite.fetch_all("get_rounds", [round_id, limit, offset]) do
+      [] ->
+        []
+
+      data ->
+        Enum.map(data, fn round ->
+          case Sqlite.fetch("get_jackpot") do
+            nil ->
+              Map.put(round, "jackpot", {nil, 0})
+
+            [winner, amount] ->
+              Map.put(round, "jackpot", {winner, amount})
+          end
+        end)
+    end
+  end
+
   def handle_request(_method, _data, _state), do: ["error", "Not found"]
 
   @impl Network

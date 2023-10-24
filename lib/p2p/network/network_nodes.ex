@@ -24,7 +24,7 @@ defmodule Ippan.NetworkNodes do
   @impl Network
   def handle_request("get_rounds", data, _state) do
     db_ref = :persistent_term.get(:main_conn)
-    round_id = Map.get(data, "from")
+    round_id = Map.get(data, "starts", 0)
     limit = Map.get(data, "limit", 200) |> min(200) |> trunc()
     offset = Map.get(data, "offset", 0)
     Sqlite.fetch_all("get_rounds", [round_id, limit, offset])

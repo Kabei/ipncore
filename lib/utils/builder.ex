@@ -96,8 +96,8 @@ defmodule Builder do
     {pk, sk, Address.hash(1, pk)}
   end
 
-  # Builder.wallet_sub(client, 0) |> Builder.print
-  def wallet_sub(
+  # Builder.wallet_new(client, 0) |> Builder.print
+  def wallet_new(
         client = %Client{
           address: address,
           nonce: nonce,
@@ -124,10 +124,16 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.wallet_unsub(client) |> Builder.print
-  def wallet_unsub(client = %Client{address: address, nonce: nonce}) do
+  # Builder.wallet_sub(client) |> Builder.print
+  def wallet_sub(
+        client = %Client{
+          address: address,
+          nonce: nonce
+        },
+        validator_id
+      ) do
     body =
-      [1, nonce, address]
+      [1, nonce, address, validator_id]
       |> encode_fun!()
 
     hash = hash_fun(body)

@@ -134,7 +134,7 @@ defmodule Ippan.Domain do
 
   defmacro get(id) do
     quote location: :keep do
-      Sqlite.fetch("get_domain", unquote(id))
+      Sqlite.fetch("get_domain", [unquote(id)])
     end
   end
 

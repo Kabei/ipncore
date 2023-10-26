@@ -34,13 +34,13 @@ DELETE FROM assets.token WHERE id = ?1 AND owner = ?2;
 INSERT INTO assets.domain VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);
 
 --name: get_domain
-SELECT * FROM assets.domain WHERE name = ?1;
+SELECT * FROM assets.domain WHERE name = ? LIMIT 1;
 
 --name: exists_domain
-SELECT 1 FROM assets.domain WHERE name = ?1;
+SELECT 1 FROM assets.domain WHERE name = ? LIMIT 1;
 
 --name: owner_domain
-SELECT 1 FROM assets.domain WHERE name = ?1 AND owner = ?2;
+SELECT 1 FROM assets.domain WHERE name = ?1 AND owner = ?2 LIMIT 1;
 
 --name: delete_domain
 DELETE FROM assets.domain WHERE name = ?1 AND owner =?2;
@@ -71,7 +71,7 @@ DELETE FROM dns.dns WHERE domain = ?1 AND name=?2 AND type=?3;
 DELETE FROM dns.dns WHERE domain = ?1 AND name=?2;
 
 --name: delete_dns
-DELETE FROM dns.dns WHERE domain = ?1;
+DELETE FROM dns.dns WHERE domain = ?;
 
 
 --name: next_block_id

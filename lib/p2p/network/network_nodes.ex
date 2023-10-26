@@ -4,14 +4,16 @@ defmodule Ippan.NetworkNodes do
   require Validator
   require Sqlite
 
+  @app Mix.Project.config()[:app]
+
   use Network,
-    app: :ipncore,
+    app: @app,
     name: :network,
     table: :nw,
     server: Ippan.NetworkNodes.Server,
     pubsub: :pubsub,
     topic: "network",
-    opts: Application.compile_env(:ipncore, :p2p_client),
+    opts: Application.compile_env(@app, :p2p_client),
     conn_opts: [retry: 2, reconnect: false],
     sup: Ippan.NetworkSup
 

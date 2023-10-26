@@ -4,8 +4,8 @@ defmodule Ippan.Funx.Token do
   require Sqlite
   require BalanceStore
 
-  @token Application.compile_env(:ipncore, :token)
-  @max_tokens Application.compile_env(:ipncore, :max_tokens)
+  @app Mix.Project.config()[:app]
+  @max_tokens Application.compile_env(@app, :max_tokens)
 
   def new(
         %{id: account_id, round: round_id},
@@ -26,10 +26,8 @@ defmodule Ippan.Funx.Token do
         :error
 
       true ->
-        balance_key = DetsPlux.tuple(account_id, @token)
-
-        case BalanceStore.subtract(dets, tx, balance_key, EnvStore.token_price()) do
-          false ->
+        case BalanceStore.pay_burn(account_id, EnvStore.token_price()) do
+          :error ->
             :error
 
           _true ->
@@ -59,7 +57,7 @@ defmodule Ippan.Funx.Token do
         %{
           id: account_id,
           round: round_id,
-          validator: validator
+          validator: %{owner: vOwner}
         },
         id,
         opts \\ %{}
@@ -71,10 +69,8 @@ defmodule Ippan.Funx.Token do
 
     map_filter = Map.take(opts, Token.editable())
     fees = EnvStore.network_fee()
-    balance_key = DetsPlux.tuple(account_id, @token)
-    balance_validator_key = DetsPlux.tuple(validator.owner, @token)
 
-    case BalanceStore.pay(dets, tx, balance_key, balance_validator_key, fees) do
+    case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->
         :error
 

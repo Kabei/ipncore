@@ -2,14 +2,14 @@ defmodule Ippan.Funcs do
   alias Ippan.Func
   alias Ippan.Funx
 
-  @spec lookup(event_id :: non_neg_integer()) :: Func.t() | :undefined
+  @spec lookup(fun_id :: non_neg_integer()) :: Func.t() | :undefined
   def lookup(0) do
     %Func{
       id: 0,
-      name: "wallet.sub",
+      name: "wallet.new",
       mod: Func.Wallet,
       modx: Funx.Wallet,
-      fun: :subscribe,
+      fun: :new,
       deferred: true,
       check: 1
     }
@@ -18,11 +18,11 @@ defmodule Ippan.Funcs do
   def lookup(1) do
     %Func{
       id: 1,
-      name: "wallet.unsub",
+      name: "wallet.sub",
       mod: Func.Wallet,
       modx: Funx.Wallet,
-      fun: :unsubscribe,
-      deferred: false
+      fun: :subscribe,
+      deferred: true
     }
   end
 

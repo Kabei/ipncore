@@ -2,7 +2,9 @@ defmodule Ippan.Token do
   require BigNumber
 
   @behaviour Ippan.Struct
-  @json Application.compile_env(:ipncore, :json)
+  @app Mix.Project.config()[:app]
+  @json Application.compile_env(@app, :json)
+
   @type t :: %__MODULE__{
           id: String.t(),
           name: String.t(),

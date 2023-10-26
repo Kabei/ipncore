@@ -9,11 +9,12 @@ defmodule RoundManager do
   require BigNumber
   require Logger
 
+  @app Mix.Project.config()[:app]
   @miner_pool :miner_pool
   @pubsub :pubsub
-  @token Application.compile_env(:ipncore, :token)
+  @token Application.compile_env(@app, :token)
   @timeout 15_000
-  @max_peers_conn Application.compile_env(:ipncore, :max_peers_conn)
+  @max_peers_conn Application.compile_env(@app, :max_peers_conn)
 
   def start_link(args) do
     case System.get_env("test") do

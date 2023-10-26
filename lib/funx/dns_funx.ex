@@ -4,10 +4,8 @@ defmodule Ippan.Funx.Dns do
   require Sqlite
   require DNS
 
-  @token Application.compile_env(:ipncore, :token)
-
   def new(
-        %{id: account_id, validator: validator},
+        %{id: account_id, validator: %{owner: vOwner}},
         fullname,
         type,
         data,
@@ -16,12 +14,9 @@ defmodule Ippan.Funx.Dns do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
+    fees = EnvStore.network_fee()
 
-    fee = EnvStore.network_fee()
-    key = DetsPlux.tuple(account_id, @token)
-    to_key = DetsPlux.tuple(validator.owner, @token)
-
-    case BalanceStore.pay(dets, tx, key, to_key, fee) do
+    case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->
         :error
 
@@ -44,7 +39,7 @@ defmodule Ippan.Funx.Dns do
   end
 
   def update(
-        %{id: account_id, validator: validator},
+        %{id: account_id, validator: %{owner: vOwner}},
         fullname,
         dns_hash16,
         params
@@ -52,17 +47,14 @@ defmodule Ippan.Funx.Dns do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
+    fees = EnvStore.network_fee()
 
-    dns_hash = Base.decode16(dns_hash16, case: :mixed)
-    fee = EnvStore.network_fee()
-    balance_key = DetsPlux.tuple(account_id, @token)
-    balance_validator_key = DetsPlux.tuple(validator.owner, @token)
-
-    case BalanceStore.pay(dets, tx, balance_key, balance_validator_key, fee) do
+    case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->
         :error
 
       _ ->
+        dns_hash = Base.decode16(dns_hash16, case: :mixed)
         {_subdomain, domain} = Domain.split(fullname)
 
         ref =

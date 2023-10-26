@@ -5,8 +5,9 @@ defmodule BlockTimer do
   require Block
   require Sqlite
 
+  @app Mix.Project.config()[:app]
   @module __MODULE__
-  @timeout Application.compile_env(:ipncore, :block_interval)
+  @timeout Application.compile_env(@app, :block_interval)
   @message :mine
   @wait_time 5_000
 

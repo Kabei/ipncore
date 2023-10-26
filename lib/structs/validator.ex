@@ -1,4 +1,5 @@
 defmodule Ippan.Validator do
+  alias Ippan.Utils
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: non_neg_integer(),
@@ -107,6 +108,10 @@ defmodule Ippan.Validator do
   @impl true
   def to_map({_id, x}) do
     x
+  end
+
+  def to_text(x = %{pubkey: pk, net_pubkey: npk}) do
+    %{x | pubkey: Utils.encode64(pk), net_pubkey: Utils.encode64(npk)}
   end
 
   def calc_price(next_id), do: (next_id + 1) * EnvStore.validator_price()

@@ -6,7 +6,8 @@ defmodule MinerWorker do
   require Sqlite
   require Logger
 
-  @version Application.compile_env(:ipncore, :version)
+  @app Mix.Project.config()[:app]
+  @version Application.compile_env(@app, :version)
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, hibernate_after: 10_000)

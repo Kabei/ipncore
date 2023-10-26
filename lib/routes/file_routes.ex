@@ -1,8 +1,9 @@
 defmodule Ipncore.FileRoutes do
   use Plug.Router
 
-  @block_extension Application.compile_env(:ipncore, :block_extension)
-  @decode_extension Application.compile_env(:ipncore, :decode_extension)
+  @app Mix.Project.config()[:app]
+  @block_extension Application.compile_env(@app, :block_extension)
+  @decode_extension Application.compile_env(@app, :decode_extension)
   @content_type "application/octet-stream"
 
   plug(:match)

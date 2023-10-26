@@ -7,14 +7,16 @@ defmodule Ippan.ClusterNodes do
   require Sqlite
   require Logger
 
+  @app Mix.Project.config()[:app]
+
   use Network,
-    app: :ipncore,
+    app: @app,
     name: :cluster,
     table: :cnw,
     server: Ippan.ClusterNode.Server,
     pubsub: :pubsub,
     topic: "cluster",
-    opts: Application.compile_env(:ipncore, :p2p_client),
+    opts: Application.compile_env(@app, :p2p_client),
     conn_opts: [retry: 1, reconnect: false],
     sup: Ippan.ClusterSup
 
@@ -29,7 +31,7 @@ defmodule Ippan.ClusterNodes do
     pk = :persistent_term.get(:pubkey)
     net_pk = :persistent_term.get(:net_pubkey)
     db_ref = :persistent_term.get(:net_conn)
-    default_port = Application.get_env(:ipncore, :cluster)[:port]
+    default_port = Application.get_env(@app, :cluster)[:port]
 
     Node.delete_all()
 

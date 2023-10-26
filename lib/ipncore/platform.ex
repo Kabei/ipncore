@@ -4,7 +4,8 @@ defmodule Platform do
   require Validator
   require Sqlite
 
-  @token Application.compile_env(:ipncore, :token)
+  @app Mix.Project.config()[:app]
+  @token Application.compile_env(@app, :token)
 
   def start do
     db_ref = :persistent_term.get(:main_conn)
@@ -28,7 +29,7 @@ defmodule Platform do
 
   defp load_genesis_file(db_ref) do
     {data = %{"tokens" => _, "validators" => _, "wallets" => _}, _binding} =
-      Path.join(:code.priv_dir(:ipncore), "genesis.exs")
+      Path.join(:code.priv_dir(@app), "genesis.exs")
       |> Code.eval_file()
 
     wallet_dets = DetsPlux.get(:wallet)

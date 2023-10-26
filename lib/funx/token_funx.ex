@@ -22,7 +22,7 @@ defmodule Ippan.Funx.Token do
     tx = DetsPlux.tx(:balance)
 
     cond do
-      @max_tokens > Token.total() ->
+      @max_tokens <= Token.total() ->
         :error
 
       true ->

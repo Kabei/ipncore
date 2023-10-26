@@ -3,66 +3,48 @@ defmodule Ippan.Funx.Coin do
   require Sqlite
   require BalanceStore
 
-  @token Application.compile_env(:ipncore, :token)
+  @app Mix.Project.config()[:app]
+  @token Application.compile_env(@app, :token)
   # Three days aprox.
-  @refund_timeout 3 * 20_000
+  @refund_timeout 3 * 18_000
 
   def send(
         %{
-          id: account_id,
-          validator: %{fee: vfee, fee_type: fee_type, owner: owner},
+          id: from,
+          validator: %{fee: vfee, fee_type: fee_type, owner: vOwner},
           size: size
         },
         to,
         token_id,
         amount
       ) do
-    is_validator = owner == account_id
+    is_validator = vOwner == from
     is_native_token = @token == token_id
-    balance_key = DetsPlux.tuple(account_id, token_id)
-    to_balance_key = DetsPlux.tuple(to, token_id)
-
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
     supply = TokenSupply.new(token_id)
+    fees = Utils.calc_fees!(fee_type, vfee, amount, size)
+    sacrifice = trunc(fees * 0.3)
+    fees = fees - sacrifice
 
     if is_validator do
-      fees = Utils.calc_fees!(fee_type, vfee, amount, size)
-      burn = trunc(fees * 0.3)
-
       case is_native_token do
         true ->
-          BalanceStore.subtract(dets, tx, balance_key, amount + burn)
-          BalanceStore.income(dets, tx, to_balance_key, amount)
+          BalanceStore.send(amount, fees + sacrifice)
 
         _ ->
-          native_balance_key = DetsPlux.tuple(account_id, @token)
-          BalanceStore.subtract(dets, tx, balance_key, amount)
-          BalanceStore.subtract(dets, tx, native_balance_key, burn)
-          BalanceStore.income(dets, tx, to_balance_key, amount)
+          BalanceStore.send(fees, sacrifice)
+          BalanceStore.fees(fees, sacrifice)
       end
-
-      TokenSupply.subtract(supply, burn)
     else
-      fees = Utils.calc_fees!(fee_type, vfee, amount, size)
-      burn = trunc(fees * 0.3)
-      result_fee = fees - burn
-
       case is_native_token do
         true ->
-          BalanceStore.subtract(dets, tx, balance_key, amount + fees)
-          BalanceStore.income(dets, tx, to_balance_key, amount)
+          BalanceStore.send(amount, fees, sacrifice)
 
         _ ->
-          native_balance_key = DetsPlux.tuple(account_id, @token)
-          BalanceStore.subtract(dets, tx, balance_key, amount)
-          BalanceStore.subtract(dets, tx, native_balance_key, fees)
-          BalanceStore.income(dets, tx, to_balance_key, amount)
+          BalanceStore.send(amount)
+          BalanceStore.fees(fees, sacrifice)
       end
-
-      validator_balance_key = DetsPlux.tuple(owner, @token)
-      BalanceStore.income(dets, tx, validator_balance_key, result_fee)
-      TokenSupply.subtract(supply, burn)
     end
   end
 
@@ -92,13 +74,14 @@ defmodule Ippan.Funx.Coin do
     ])
   end
 
-  def coinbase(%{balance: {dets, tx}}, token_id, outputs) do
+  def coinbase(_source, token_id, outputs) do
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(dets, :balance)
     supply = TokenSupply.new(token_id)
 
     total =
-      for [address, value] <- outputs do
-        balance_key = DetsPlux.tuple(address, token_id)
-        BalanceStore.income(dets, tx, balance_key, value)
+      for [account, value] <- outputs do
+        BalanceStore.coinbase(account, value)
         value
       end
       |> Enum.sum()
@@ -106,16 +89,16 @@ defmodule Ippan.Funx.Coin do
     TokenSupply.add(supply, total)
   end
 
-  def burn(%{id: account_id, balance: {dets, tx}}, token_id, amount) do
+  def burn(%{id: account_id}, token_id, amount) do
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(dets, :balance)
     supply = TokenSupply.new(token_id)
 
-    balance_key = DetsPlux.tuple(account_id, token_id)
-    BalanceStore.subtract(dets, tx, balance_key, amount)
-    TokenSupply.subtract(supply, amount)
+    BalanceStore.burn(account_id, token_id, amount)
   end
 
   def refund(
-        %{id: account_id, round: round_id},
+        %{id: from, round: round_id},
         hash16
       ) do
     hash = Base.decode16!(hash16, case: :mixed)
@@ -123,26 +106,23 @@ defmodule Ippan.Funx.Coin do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
 
-    {:row, [sender_id, token_id, refund_amount]} =
-      Sqlite.step("get_delete_refund", [hash, account_id, round_id])
+    {:row, [to, token_id, refund_amount]} =
+      Sqlite.step("get_delete_refund", [hash, from, round_id])
 
-    balance_key = DetsPlux.tuple(sender_id, token_id)
-    BalanceStore.income(dets, tx, balance_key, refund_amount)
+    BalanceStore.send(refund_amount)
   end
 
-  def lock(_, to_id, token_id, amount) do
+  def lock(_source, to, token_id, amount) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-    key = DetsPlux.tuple(to_id, token_id)
 
-    BalanceStore.lock(dets, tx, key, amount)
+    BalanceStore.lock(to, token_id, amount)
   end
 
-  def unlock(_, to_id, token_id, amount) do
+  def unlock(_source, to, token_id, amount) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-    key = DetsPlux.tuple(to_id, token_id)
 
-    BalanceStore.unlock(dets, tx, key, amount)
+    BalanceStore.unlock(to, token_id, amount)
   end
 end

@@ -5,7 +5,7 @@ defmodule Ipncore.Application do
   use Application
   # import Ippan.Utils, only: [to_atom: 1]
 
-  @otp_app :ipncore
+  @app Mix.Project.config()[:app]
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
 
   @impl true
@@ -35,7 +35,7 @@ defmodule Ipncore.Application do
         ClusterNodes,
         NetworkNodes,
         RoundManager,
-        {Bandit, Application.get_env(@otp_app, :http)}
+        {Bandit, Application.get_env(@app, :http)}
       ]
 
     Supervisor.start_link(children, @opts)

@@ -5,7 +5,6 @@ defmodule Ippan.Funx.Domain do
   require Domain
   require DNS
 
-  @token Application.compile_env(:ipncore, :token)
   @one_day 18_000
 
   def new(
@@ -16,7 +15,6 @@ defmodule Ippan.Funx.Domain do
         opts \\ %{}
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    price = Domain.price(name, days)
 
     cond do
       Domain.exists?(name) ->
@@ -25,9 +23,9 @@ defmodule Ippan.Funx.Domain do
       true ->
         dets = DetsPlux.get(:balance)
         tx = DetsPlux.tx(:balance)
-        balance_key = DetsPlux.tuple(account_id, @token)
+        price = Domain.price(name, days)
 
-        case BalanceStore.subtract(dets, tx, balance_key, price) do
+        case BalanceStore.pay_burn(account_id, price) do
           :error ->
             :error
 
@@ -51,19 +49,16 @@ defmodule Ippan.Funx.Domain do
   end
 
   def update(
-        %{id: account_id, round: round_id, validator: validator},
+        %{id: account_id, round: round_id, validator: %{owner: vOwner}},
         name,
         opts \\ %{}
       ) do
-    db_ref = :persistent_term.get(:main_conn)
     map_filter = Map.take(opts, Domain.editable())
-    fee = EnvStore.network_fee()
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    balance_key = DetsPlux.tuple(account_id, @token)
-    balance_validator = DetsPlux.tuple(validator.owner, @token)
+    fees = EnvStore.network_fee()
 
-    case BalanceStore.pay(dets, tx, balance_key, balance_validator, fee) do
+    case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->
         :error
 
@@ -72,6 +67,7 @@ defmodule Ippan.Funx.Domain do
           MapUtil.to_atoms(map_filter)
           |> Map.put(:updated_at, round_id)
 
+        db_ref = :persistent_term.get(:main_conn)
         Domain.update(map, name: name)
     end
   end
@@ -93,15 +89,17 @@ defmodule Ippan.Funx.Domain do
         name,
         days
       ) do
-    db_ref = :persistent_term.get(:main_conn)
-    price = Domain.price(name, days)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    key = DetsPlux.tuple(account_id, @token)
+    price = Domain.price(name, days)
 
-    case BalanceStore.subtract(dets, tx, key, price) do
-      false -> :error
-      _ -> Domain.renew(name, account_id, days * @one_day, round_id)
+    case BalanceStore.pay_burn(account_id, price) do
+      false ->
+        :error
+
+      _ ->
+        db_ref = :persistent_term.get(:main_conn)
+        Domain.renew(name, account_id, days * @one_day, round_id)
     end
   end
 end

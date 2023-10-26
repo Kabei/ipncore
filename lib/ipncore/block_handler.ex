@@ -6,10 +6,11 @@ defmodule Ippan.BlockHandler do
 
   require Sqlite
 
-  @version Application.compile_env(:ipncore, :version)
-  @block_extension Application.compile_env(:ipncore, :block_extension)
-  @decode_extension Application.compile_env(:ipncore, :decode_extension)
-  @max_block_data_size Application.compile_env(:ipncore, :max_block_data_size)
+  @app Mix.Project.config()[:app]
+  @version Application.compile_env(@app, :version)
+  @block_extension Application.compile_env(@app, :block_extension)
+  @decode_extension Application.compile_env(@app, :decode_extension)
+  @max_block_data_size Application.compile_env(@app, :max_block_data_size)
 
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::

@@ -35,20 +35,6 @@ defmodule BalanceStore do
     end
   end
 
-  # defmacro has?(dets, tx, key, value) do
-  #   quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
-  #     {balance, lock} = DetsPlux.get_tx(dets, tx, key, {0, 0})
-
-  #     case balance >= value do
-  #       true ->
-  #         DetsPlux.put(tx, key, {balance - value, lock})
-
-  #       false ->
-  #         false
-  #     end
-  #   end
-  # end
-
   ######################################################################
 
   defmacro send(amount) do
@@ -130,45 +116,45 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro coinbase(account, value) do
-    quote bind_quoted: [account: account, value: value], location: :keep do
-      key = DetsPlux.tuple(account, value)
+  defmacro coinbase(account, token_id, value) do
+    quote bind_quoted: [account: account, token: token_id, value: value], location: :keep do
+      key = DetsPlux.tuple(account, token)
       {balance, lock} = DetsPlux.get_tx(var!(dets), var!(tx), key, {0, 0})
 
       DetsPlux.put(var!(tx), key, {balance + value, lock})
     end
   end
 
-  defmacro burn(account, token_id, amount) do
-    quote location: :keep do
-      key = DetsPlux.tuple(unquote(account), unquote(token_id))
+  defmacro burn(account, token, amount) do
+    quote bind_quoted: [account: account, token: token, amount: amount], location: :keep do
+      key = DetsPlux.tuple(account, token)
       {balance, lock} = DetsPlux.get_tx(var!(dets), var!(tx), key, {0, 0})
 
-      DetsPlux.put(var!(tx), key, {balance - unquote(amount), lock})
-      TokenSupply.subtract(var!(supply), unquote(amount))
+      DetsPlux.put(var!(tx), key, {balance - amount, lock})
+      TokenSupply.subtract(var!(supply), amount)
     end
   end
 
-  defmacro lock(to, token_id, value) do
-    quote location: :keep do
-      key = DetsPlux.tuple(unquote(to), unquote(token_id))
+  defmacro lock(to, token, value) do
+    quote bind_quoted: [to: to, token: token, value: value], location: :keep do
+      key = DetsPlux.tuple(to, token)
       {balance, lock} = DetsPlux.get_tx(var!(dets), var!(tx), key, {0, 0})
 
-      if balance >= unquote(value) do
-        DetsPlux.put(var!(tx), key, {balance - unquote(value), lock + unquote(value)})
+      if balance >= value do
+        DetsPlux.put(var!(tx), key, {balance - value, lock + value})
       else
         :error
       end
     end
   end
 
-  defmacro unlock(to, token_id, value) do
-    quote location: :keep do
-      key = DetsPlux.tuple(unquote(to), unquote(token_id))
+  defmacro unlock(to, token, value) do
+    quote bind_quoted: [to: to, token: token, value: value], location: :keep do
+      key = DetsPlux.tuple(to, token)
       {balance, lock} = DetsPlux.get_tx(var!(dets), var!(tx), key, {0, 0})
 
-      if lock >= unquote(value) do
-        DetsPlux.put(var!(tx), key, {balance + unquote(value), lock - unquote(value)})
+      if lock >= value do
+        DetsPlux.put(var!(tx), key, {balance + value, lock - value})
       else
         :error
       end

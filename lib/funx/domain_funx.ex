@@ -94,7 +94,7 @@ defmodule Ippan.Funx.Domain do
     price = Domain.price(name, days)
 
     case BalanceStore.pay_burn(account_id, price) do
-      false ->
+      :error ->
         :error
 
       _ ->

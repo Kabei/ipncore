@@ -81,7 +81,7 @@ defmodule Ippan.Funx.Coin do
 
     total =
       for [account, value] <- outputs do
-        BalanceStore.coinbase(account, value)
+        BalanceStore.coinbase(account, token_id, value)
         value
       end
       |> Enum.sum()

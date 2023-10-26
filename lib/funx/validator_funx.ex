@@ -8,6 +8,7 @@ defmodule Ippan.Funx.Validator do
 
   @app Mix.Project.config()[:app]
   @pubsub :pubsub
+  @token Application.compile_env(@app, :token)
   @max_validators Application.compile_env(@app, :max_validators)
   @topic "validator"
 
@@ -113,7 +114,7 @@ defmodule Ippan.Funx.Validator do
     validator = Validator.get(id)
 
     if validator.stake > 0 do
-      BalanceStore.coinbase(account_id, validator.stake)
+      BalanceStore.coinbase(account_id, @token, validator.stake)
     end
 
     Validator.delete(id)

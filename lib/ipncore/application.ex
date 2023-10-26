@@ -3,7 +3,6 @@ defmodule Ipncore.Application do
   alias Phoenix.PubSub
   alias Ippan.{ClusterNodes, NetworkNodes}
   use Application
-  # import Ippan.Utils, only: [to_atom: 1]
 
   @app Mix.Project.config()[:app]
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]

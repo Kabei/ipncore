@@ -80,7 +80,7 @@ defmodule Ippan.Funx.Validator do
     map_filter = Map.take(opts, Validator.editable())
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    fees = EnvStore.network_fee()
+    fees = EnvStore.fees()
 
     case BalanceStore.pay_burn(account_id, fees) do
       :error ->

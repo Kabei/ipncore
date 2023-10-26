@@ -56,7 +56,7 @@ defmodule Ippan.Funx.Domain do
     map_filter = Map.take(opts, Domain.editable())
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    fees = EnvStore.network_fee()
+    fees = EnvStore.fees()
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->

@@ -23,27 +23,28 @@ defmodule Ippan.Funx.Coin do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
     supply = TokenSupply.new(token_id)
-    fees = Utils.calc_fees!(fee_type, vfee, amount, size)
-    sacrifice = trunc(fees * 0.3)
-    fees = fees - sacrifice
+    tfees = Utils.calc_fees!(fee_type, vfee, amount, size)
 
     if is_validator do
       case is_native_token do
         true ->
-          BalanceStore.send(amount, fees + sacrifice)
-
-        _ ->
-          BalanceStore.send(fees, sacrifice)
-          BalanceStore.fees(fees, sacrifice)
-      end
-    else
-      case is_native_token do
-        true ->
-          BalanceStore.send(amount, fees, sacrifice)
+          BalanceStore.send(amount, tfees)
 
         _ ->
           BalanceStore.send(amount)
-          BalanceStore.fees(fees, sacrifice)
+          BalanceStore.delete(from, @token, tfees)
+      end
+    else
+      remove = ceil(tfees * 0.3)
+      fees = tfees - remove
+
+      case is_native_token do
+        true ->
+          BalanceStore.send(amount, fees, remove)
+
+        _ ->
+          BalanceStore.send(amount)
+          BalanceStore.fees(fees, remove)
       end
     end
   end
@@ -109,7 +110,7 @@ defmodule Ippan.Funx.Coin do
     {:row, [to, token_id, refund_amount]} =
       Sqlite.step("get_delete_refund", [hash, from, round_id])
 
-    BalanceStore.send(refund_amount)
+    BalanceStore.refund(refund_amount)
   end
 
   def lock(_source, to, token_id, amount) do

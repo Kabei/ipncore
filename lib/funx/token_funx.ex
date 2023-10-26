@@ -68,7 +68,7 @@ defmodule Ippan.Funx.Token do
     tx = DetsPlux.tx(:balance)
 
     map_filter = Map.take(opts, Token.editable())
-    fees = EnvStore.network_fee()
+    fees = EnvStore.fees()
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->

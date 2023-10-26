@@ -76,7 +76,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
 
 %{
   "env" => [
-    %{name: "NETWORK.FEE", value: 1},
+    %{name: "FEES", value: 1},
     %{name: "OWNER", value: address},
     %{name: "ROUND.BLOCKS", value: 50_000},
     %{name: "TOKEN.PRICE", value: 50_000},
@@ -132,7 +132,6 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
   ],
   "wallets" => [
     %{
-      created_at: 0,
       id: "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc",
       pubkey: pk,
       validator: 0

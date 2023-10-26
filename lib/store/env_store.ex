@@ -43,8 +43,8 @@ defmodule EnvStore do
     :persistent_term.get({:env, "VALIDATOR.PRICE"}, 100_000)
   end
 
-  def network_fee do
-    :persistent_term.get({:env, "NETWORK.FEE"}, 1)
+  def fees do
+    :persistent_term.get({:env, "FEES"}, 1)
   end
 
   def round_blocks do
@@ -55,7 +55,7 @@ defmodule EnvStore do
 
   defp transform("VALIDATOR.PRICE", x), do: if(is_integer(x) and x > 0, do: x, else: 100_000)
 
-  defp transform("NETWORK.FEE", x), do: if(is_integer(x) and x > 0, do: x, else: 1)
+  defp transform("FEES", x), do: if(is_integer(x) and x > 0, do: x, else: 1)
 
   defp transform("ROUND.BLOCKS", x), do: if(x in 1..100, do: x, else: 10)
 

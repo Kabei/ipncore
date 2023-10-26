@@ -14,7 +14,7 @@ defmodule Ippan.Funx.Dns do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    fees = EnvStore.network_fee()
+    fees = EnvStore.fees()
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->
@@ -47,7 +47,7 @@ defmodule Ippan.Funx.Dns do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    fees = EnvStore.network_fee()
+    fees = EnvStore.fees()
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->

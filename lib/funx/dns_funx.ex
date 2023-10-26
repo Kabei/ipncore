@@ -61,7 +61,7 @@ defmodule Ippan.Funx.Dns do
           Map.take(params, DNS.editable())
           |> MapUtil.to_atoms()
 
-        DNS.update(ref, domain: domain, hash: dns_hash)
+        DNS.update(ref, domain, dns_hash)
     end
   end
 

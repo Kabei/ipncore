@@ -61,8 +61,7 @@ defmodule Ippan.Funx.Token do
         },
         id,
         opts \\ %{}
-      )
-      when byte_size(id) <= 10 do
+      ) do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)

@@ -43,6 +43,7 @@ defmodule Sqlite do
 
       n = Sqlite3NIF.bind_step(var!(db_ref), statement, values ++ w_values)
       Sqlite3NIF.release(var!(db_ref), statement)
+      n
     end
   end
 

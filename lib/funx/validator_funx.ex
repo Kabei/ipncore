@@ -91,7 +91,7 @@ defmodule Ippan.Funx.Validator do
           |> Map.put(:updated_at, round_id)
 
         db_ref = :persistent_term.get(:main_conn)
-        Validator.update(map, id: id)
+        Validator.update(map, id)
 
         # transform to text
         fun = fn x -> Utils.encode64(x) end

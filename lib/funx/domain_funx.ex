@@ -68,7 +68,7 @@ defmodule Ippan.Funx.Domain do
           |> Map.put(:updated_at, round_id)
 
         db_ref = :persistent_term.get(:main_conn)
-        Domain.update(map, name: name)
+        Domain.update(map, name)
     end
   end
 

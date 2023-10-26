@@ -81,9 +81,9 @@ defmodule Ippan.DNS do
     end
   end
 
-  defmacro update(map, args) do
+  defmacro update(map, domain, hash) do
     quote location: :keep do
-      Sqlite.update("dns.dns", unquote(map), unquote(args))
+      Sqlite.update("dns.dns", unquote(map), domain: unquote(domain), hash: unquote(hash))
     end
   end
 

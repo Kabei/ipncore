@@ -571,9 +571,15 @@ defmodule RoundManager do
 
       case reward > 0 and var!(max_supply) >= total do
         true ->
-          balance_key = DetsPlux.tuple(var!(creator).owner, @token)
           # Update balance
-          BalanceStore.income(var!(balance_pid), var!(balance_tx), balance_key, reward)
+          BalanceStore.income(
+            var!(balance_pid),
+            var!(balance_tx),
+            var!(creator).owner,
+            @token,
+            reward
+          )
+
           # Update Token Supply
           TokenSupply.put(var!(supply), total)
           reward
@@ -749,16 +755,14 @@ defmodule RoundManager do
                 winner_id =
                   case Enum.at(data, tx_n) do
                     [_hash, _type, account_id, _nonce, _args, _size] ->
-                      balance_key = DetsPlux.tuple(account_id, @token)
-                      BalanceStore.income(balances, balance_tx, balance_key, reward)
+                      BalanceStore.income(balances, balance_tx, account_id, @token, reward)
                       # Update Token Supply
                       TokenSupply.put(supply, new_amount)
 
                       account_id
 
                     [_hash, _type, _arg_key, account_id, _nonce, _args, _size] ->
-                      balance_key = DetsPlux.tuple(account_id, @token)
-                      BalanceStore.income(balances, balance_tx, balance_key, reward)
+                      BalanceStore.income(balances, balance_tx, account_id, @token, reward)
                       # Update Token Supply
                       TokenSupply.put(supply, new_amount)
                       account_id

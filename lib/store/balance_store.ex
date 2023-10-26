@@ -225,8 +225,10 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro income(dets, tx, key, value) do
-    quote bind_quoted: [dets: dets, tx: tx, key: key, value: value], location: :keep do
+  defmacro income(dets, tx, account, token, value) do
+    quote bind_quoted: [dets: dets, tx: tx, account: account, token: token, value: value],
+          location: :keep do
+      key = DetsPlux.tuple(account, token)
       {balance, lock_amount} = DetsPlux.get_tx(dets, tx, key, {0, 0})
 
       DetsPlux.put(tx, key, {balance + value, lock_amount})

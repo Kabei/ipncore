@@ -115,12 +115,12 @@ defmodule Ippan.ClusterNodes do
           true ->
             [from, nonce, args, msg_sig, size] = rest
 
-            dets = DetsPlux.get(:wallet)
-            cache = DetsPlux.tx(:wallet, :cache_nonce)
+            dets = DetsPlux.get(:nonce)
+            cache = DetsPlux.tx(:nonce, :cache_nonce)
 
             IO.puts("The nonce")
 
-            case Ippan.Wallet.update_nonce(dets, cache, from, nonce) do
+            case Wallet.update_nonce(dets, cache, from, nonce) do
               :error ->
                 ["error", "Invalid nonce"]
 

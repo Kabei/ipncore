@@ -8,7 +8,6 @@ defmodule Ippan.Funx.Validator do
 
   @app Mix.Project.config()[:app]
   @pubsub :pubsub
-  @token Application.compile_env(@app, :token)
   @max_validators Application.compile_env(@app, :max_validators)
   @topic "validator"
 
@@ -40,9 +39,9 @@ defmodule Ippan.Funx.Validator do
         net_pubkey = Fast64.decode64(net_pubkey)
         dets = DetsPlux.get(:balance)
         tx = DetsPlux.tx(:balance)
-        stake = Validator.calc_price(next_id)
+        price = Validator.calc_price(next_id)
 
-        case BalanceStore.pay_burn(account_id, stake) do
+        case BalanceStore.pay_burn(account_id, price) do
           :error ->
             :error
 
@@ -58,7 +57,7 @@ defmodule Ippan.Funx.Validator do
                 owner: owner_id,
                 fee: fee,
                 fee_type: fee_type,
-                stake: trunc(stake * 0.7),
+                stake: 0,
                 created_at: round_id,
                 updated_at: round_id
               }
@@ -107,16 +106,8 @@ defmodule Ippan.Funx.Validator do
     end
   end
 
-  def delete(%{id: account_id}, id) do
+  def delete(_source, id) do
     db_ref = :persistent_term.get(:main_conn)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
-    validator = Validator.get(id)
-
-    if validator.stake > 0 do
-      BalanceStore.coinbase(account_id, @token, validator.stake)
-    end
-
     Validator.delete(id)
 
     event = %{"event" => "validator.delete", "data" => id}

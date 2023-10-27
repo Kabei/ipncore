@@ -300,8 +300,8 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_coinbase(client, "IPN", [[address2, 50000000]]) |> Builder.print()
-  def coin_coinbase(client = %Client{address: address, nonce: nonce}, token, outputs) do
+  # Builder.coin_new(client, "IPN", [[address2, 50000000]]) |> Builder.print()
+  def coin_new(client = %Client{address: address, nonce: nonce}, token, outputs) do
     body =
       [300, nonce, address, token, outputs]
       |> encode_fun!()

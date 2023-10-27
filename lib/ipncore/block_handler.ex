@@ -61,12 +61,16 @@ defmodule Ippan.BlockHandler do
         :ets.tab2list(ets_dmsg) |> IO.inspect()
 
         {acc_msg, acc_decode} =
-          do_iterate(:ets.first(ets_msg), ets_msg, ets_dmsg, UMap.new(), UMap.new(), 0)
+          do_iterate(:ets.first(ets_msg), ets_msg, ets_dmsg, [], [], 0)
 
         content = encode_file!(%{"data" => acc_msg, "vsn" => @version})
 
         File.write(block_path, content)
-        File.write(decode_path, encode_file!(%{"data" => acc_decode, "vsn" => @version}))
+
+        File.write(
+          decode_path,
+          encode_file!(%{"data" => acc_decode, "vsn" => @version})
+        )
 
         {:ok, file_info} = File.stat(block_path)
 
@@ -102,7 +106,7 @@ defmodule Ippan.BlockHandler do
          acc_dmsg,
          _
        ),
-       do: {UMap.values(acc_msg), UMap.values(acc_dmsg)}
+       do: {Enum.reverse(acc_msg), Enum.reverse(acc_dmsg)}
 
   defp do_iterate(key, ets_msg, ets_dmsg, acc_msg, acc_dmsg, acc_size) do
     [{_, msg}] = :ets.lookup(ets_msg, key)
@@ -111,8 +115,8 @@ defmodule Ippan.BlockHandler do
     :ets.delete(ets_msg, key)
     :ets.delete(ets_dmsg, key)
     acc_size = acc_size + List.last(dmsg)
-    acc_msg = UMap.put(acc_msg, key, msg)
-    acc_dmsg = UMap.put(acc_dmsg, key, dmsg)
+    acc_msg = [msg | acc_msg]
+    acc_dmsg = [dmsg | acc_dmsg]
 
     case @max_block_data_size > acc_size do
       false ->
@@ -126,7 +130,7 @@ defmodule Ippan.BlockHandler do
         )
 
       _true ->
-        {UMap.values(acc_msg), UMap.values(acc_dmsg)}
+        {Enum.reverse(acc_msg), Enum.reverse(acc_dmsg)}
     end
   end
 end

@@ -348,6 +348,18 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
+  def coin_multisend(client = %Client{address: address, nonce: nonce}, token, outputs) do
+    body =
+      [306, nonce, address, token, outputs]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
   # Builder.coin_refund(client, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.print()
   def coin_refund(client = %Client{address: address, nonce: nonce}, hash) do
     body =

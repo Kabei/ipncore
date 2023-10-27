@@ -174,6 +174,16 @@ defmodule Ippan.Funcs do
     }
   end
 
+  def lookup(306) do
+    %Func{
+      id: 306,
+      name: "coin.multisend",
+      mod: Func.Coin,
+      modx: Funx.Coin,
+      fun: :multisend
+    }
+  end
+
   def lookup(400) do
     %Func{
       id: 400,

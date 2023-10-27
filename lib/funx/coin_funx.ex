@@ -18,33 +18,19 @@ defmodule Ippan.Funx.Coin do
         amount
       ) do
     is_validator = vOwner == from
-    is_native_token = @token == token_id
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
     supply = TokenSupply.new(token_id)
     tfees = Utils.calc_fees!(fee_type, vfee, amount, size)
+    remove = ceil(tfees * 0.3)
+
+    BalanceStore.send(amount)
 
     if is_validator do
-      case is_native_token do
-        true ->
-          BalanceStore.send(amount, tfees)
-
-        _ ->
-          BalanceStore.send(amount)
-          BalanceStore.delete(from, @token, tfees)
-      end
+      BalanceStore.delete(from, @token, remove)
     else
-      remove = ceil(tfees * 0.3)
       fees = tfees - remove
-
-      case is_native_token do
-        true ->
-          BalanceStore.send(amount, fees, remove)
-
-        _ ->
-          BalanceStore.send(amount)
-          BalanceStore.fees(fees, remove)
-      end
+      BalanceStore.fees(fees, remove)
     end
   end
 
@@ -110,11 +96,11 @@ defmodule Ippan.Funx.Coin do
       end)
 
     tfees = Utils.calc_fees!(fee_type, vfee, total, size)
+    remove = ceil(tfees * 0.3)
 
     if is_validator do
-      BalanceStore.delete(from, @token, total)
+      BalanceStore.delete(from, @token, remove)
     else
-      remove = ceil(tfees * 0.3)
       fees = tfees - remove
       BalanceStore.fees(fees, remove)
     end

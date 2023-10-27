@@ -399,9 +399,9 @@ defmodule DetsPlux do
     tid =
       :ets.new(name, [
         @ets_type,
-        :public,
-        read_concurrency: true,
-        write_concurrency: true
+        :public
+        # read_concurrency: true,
+        # write_concurrency: false
       ])
 
     :persistent_term.put({@txs_suffix, name}, tid)

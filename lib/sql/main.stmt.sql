@@ -48,7 +48,7 @@ DELETE FROM assets.domain WHERE name = ?1 AND owner =?2;
 --name: renew_domain
 UPDATE assets.domain SET renewed_at = renewed_at + ?3, updated_at = ?4 WHERE name=?1 AND owner=?2;
 
---name: delete_expiry_domain
+--name: expiry_domain
 DELETE FROM assets.domain WHERE renewed_at < ?;
 
 
@@ -66,7 +66,6 @@ SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 AND type=?3 LIMIT 1;
 
 --name: exists_dns_hash
 SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 AND hash=?3 LIMIT 1;
-
 
 --name: delete_hash_dns
 DELETE FROM dns.dns WHERE domain = ?1 AND name=?2 AND hash=?3;
@@ -177,7 +176,7 @@ SELECT 1 FROM assets.refund WHERE hash = ?1 AND `to` = ?2;
 --name: delete_get_refund
 DELETE FROM assets.refund WHERE hash = ? RETURNING sender, token, amount;
 
---name: delete_expiry_refund
+--name: expiry_refund
 DELETE FROM assets.refund WHERE expiry_in < ?1;
 
 

@@ -5,8 +5,7 @@ defmodule Ippan.Funx.Coin do
 
   @app Mix.Project.config()[:app]
   @token Application.compile_env(@app, :token)
-  # Three days aprox.
-  @refund_timeout 3 * 18_000
+  @refund_timeout Application.compile_env(@app, :timeout_refund)
 
   def send(
         %{

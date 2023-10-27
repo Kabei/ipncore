@@ -699,6 +699,8 @@ defmodule RoundManager do
 
         :done = Round.to_list(round) |> Round.insert()
 
+        run_maintenance(round_id, db_ref)
+
         GenServer.cast(pid, {:complete, round})
 
         {:ok, round}
@@ -784,6 +786,15 @@ defmodule RoundManager do
       end
     else
       {nil, 0}
+    end
+  end
+
+  defp run_maintenance(0, _), do: nil
+
+  defp run_maintenance(round_id, db_ref) do
+    if rem(round_id, 25_000) == 0 do
+      Sqlite.step("expiry_refund", [round_id])
+      Sqlite.step("expiry_domain", [round_id])
     end
   end
 

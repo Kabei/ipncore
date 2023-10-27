@@ -74,14 +74,8 @@ defmodule Ippan.Funx.Domain do
 
   def delete(%{id: account_id}, name) do
     db_ref = :persistent_term.get(:main_conn)
-
-    case Domain.delete(name, account_id) do
-      :done ->
-        DNS.delete(name)
-
-      _ ->
-        :error
-    end
+    Domain.delete(name, account_id)
+    DNS.delete(name)
   end
 
   def renew(

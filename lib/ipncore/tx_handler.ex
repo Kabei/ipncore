@@ -7,7 +7,7 @@ defmodule Ippan.TxHandler do
         x when is_map(x) ->
           # Check balance
           dets = DetsPlux.get(:balance)
-          cache = DetsPlux.tx(:cache_balance)
+          cache = DetsPlux.tx(dets, :cache_balance)
 
           BalanceStore.multi_requires!(dets, cache, x)
 

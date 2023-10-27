@@ -115,17 +115,21 @@ defmodule BalanceStore do
 
   defmacro fees(fees, remove) do
     quote bind_quoted: [fees: fees, remove: remove, token: @token], location: :keep do
-      balance_key = DetsPlux.tuple(var!(from), token)
-      validator_balance_key = DetsPlux.tuple(var!(vOwner), token)
+      if fees > 0 do
+        balance_key = DetsPlux.tuple(var!(from), token)
+        validator_balance_key = DetsPlux.tuple(var!(vOwner), token)
 
-      {balance, lock1} = DetsPlux.get_tx(var!(dets), var!(tx), balance_key, {0, 0})
+        {balance, lock1} = DetsPlux.get_tx(var!(dets), var!(tx), balance_key, {0, 0})
 
-      {balance3, lock3} =
-        DetsPlux.get_tx(var!(dets), var!(tx), validator_balance_key, {0, 0})
+        {balance3, lock3} =
+          DetsPlux.get_tx(var!(dets), var!(tx), validator_balance_key, {0, 0})
 
-      DetsPlux.put(var!(tx), balance_key, {balance - fees - remove, lock1})
-      DetsPlux.put(var!(tx), validator_balance_key, {balance3 + fees, lock3})
-      TokenSupply.subtract(var!(supply), remove)
+        DetsPlux.put(var!(tx), balance_key, {balance - fees - remove, lock1})
+        DetsPlux.put(var!(tx), validator_balance_key, {balance3 + fees, lock3})
+        TokenSupply.subtract(var!(supply), remove)
+      else
+        BalanceStore.delete(var!(from), var!(token_id), var!(remove))
+      end
     end
   end
 

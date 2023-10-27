@@ -90,7 +90,7 @@ defmodule Ippan.Funx.Coin do
   end
 
   def multisend(
-        source = %{
+        %{
           id: from,
           validator: %{fee: vfee, fee_type: fee_type, owner: vOwner},
           size: size

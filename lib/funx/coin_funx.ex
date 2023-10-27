@@ -106,6 +106,10 @@ defmodule Ippan.Funx.Coin do
     end
   end
 
+  def multisend(source, token_id, outputs, _note) do
+    multisend(source, token_id, outputs)
+  end
+
   def burn(%{id: account_id}, token_id, amount) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)

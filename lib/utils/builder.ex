@@ -348,9 +348,13 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def coin_multisend(client = %Client{address: address, nonce: nonce}, token, outputs) do
+  def coin_multisend(client = %Client{address: address, nonce: nonce}, token, outputs, note \\ "") do
     body =
-      [306, nonce, address, token, outputs]
+      if String.length(note) != 0 do
+        [306, nonce, address, token, outputs]
+      else
+        [306, nonce, address, token, outputs, note]
+      end
       |> encode_fun!()
 
     hash = hash_fun(body)

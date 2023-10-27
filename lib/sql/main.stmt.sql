@@ -59,7 +59,14 @@ INSERT OR REPLACE INTO dns.dns VALUES(?1, ?2, ?3, ?4, ?5, ?6);
 SELECT * FROM dns.dns WHERE domain=?1 AND hash=?2;
 
 --name: exists_dns
-SELECT 1 FROM dns.dns WHERE domain=?1 AND hash=?2;
+SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 LIMIT 1;
+
+--name: exists_dns_type
+SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 AND type=?3 LIMIT 1;
+
+--name: exists_dns_hash
+SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 AND hash=?3 LIMIT 1;
+
 
 --name: delete_hash_dns
 DELETE FROM dns.dns WHERE domain = ?1 AND name=?2 AND hash=?3;

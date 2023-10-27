@@ -75,9 +75,21 @@ defmodule Ippan.DNS do
     end
   end
 
-  defmacro exists?(domain, hash) do
-    quote bind_quoted: [domain: domain, hash: hash], location: :keep do
-      Sqlite.exists?("exists_dns", [domain, hash])
+  defmacro exists?(domain, subdomain) do
+    quote bind_quoted: [domain: domain, name: subdomain], location: :keep do
+      Sqlite.exists?("exists_dns", [domain, name])
+    end
+  end
+
+  defmacro exists_type?(domain, subdomain, type) do
+    quote bind_quoted: [domain: domain, name: subdomain, type: type], location: :keep do
+      Sqlite.exists?("exists_dns_hash", [domain, name, type])
+    end
+  end
+
+  defmacro exists_hash?(domain, subdomain, hash) do
+    quote bind_quoted: [domain: domain, name: subdomain, hash: hash], location: :keep do
+      Sqlite.exists?("exists_dns_hash", [domain, name, hash])
     end
   end
 

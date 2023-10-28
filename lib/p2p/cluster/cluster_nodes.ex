@@ -70,7 +70,7 @@ defmodule Ippan.ClusterNodes do
         [false, [hash, type, from, nonce, args, msg_sig, size], return],
         _state
       ) do
-    case :ets.insert_new(:hash, hash) do
+    case :ets.insert_new(:hash, {hash, nil}) do
       true ->
         ["error", "Already exists"]
 
@@ -105,7 +105,7 @@ defmodule Ippan.ClusterNodes do
         [true, [hash, type, key | rest], return],
         _state
       ) do
-    case :ets.insert_new(:hash, hash) do
+    case :ets.insert_new(:hash, {hash, nil}) do
       true ->
         ["error", "Already exists"]
 

@@ -3,8 +3,8 @@ defmodule MemTables do
     :ordered_set,
     :named_table,
     :public,
-    read_concurrency: false,
-    write_concurrency: false
+    read_concurrency: true,
+    write_concurrency: true
   ]
   @set_named_concurrent_opts [
     :set,

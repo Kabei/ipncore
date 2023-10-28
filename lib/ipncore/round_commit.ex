@@ -59,10 +59,10 @@ defmodule RoundCommit do
   defp clear_cache do
     cache_wallet_tx = DetsPlux.tx(:wallet, :cache_wallet)
     cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
-    cache_nonce_tx = DetsPlux.tx(:nonce, :cache_nonce)
+    # cache_nonce_tx = DetsPlux.tx(:nonce, :cache_nonce)
     DetsPlux.clear_tx(cache_wallet_tx)
     DetsPlux.clear_tx(cache_balance_tx)
-    DetsPlux.clear_tx(cache_nonce_tx)
+    # DetsPlux.clear_tx(cache_nonce_tx)
     MemTables.clear_cache()
   end
 end

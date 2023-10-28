@@ -114,7 +114,7 @@ defmodule Ippan.BlockHandler do
 
     :ets.delete(ets_msg, key)
     :ets.delete(ets_dmsg, key)
-    acc_size = acc_size + List.last(dmsg)
+    acc_size = acc_size + :lists.last(dmsg)
     acc_msg = [msg | acc_msg]
     acc_dmsg = [dmsg | acc_dmsg]
 

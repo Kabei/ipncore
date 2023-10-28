@@ -149,7 +149,7 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :lock,
-      check: 2
+      deferred: true
     }
   end
 
@@ -160,7 +160,7 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :unlock,
-      check: 2
+      deferred: true
     }
   end
 

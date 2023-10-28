@@ -16,6 +16,7 @@ defmodule TokenSupply do
     db = DetsPlux.get(@db)
     tx = DetsPlux.tx(db, @tx)
     key = key(id)
+    DetsPlux.get_cache(db, tx, key, 0)
 
     %__MODULE__{
       db: db,
@@ -42,7 +43,7 @@ defmodule TokenSupply do
 
   @spec get(DetsPlux.db(), DetsPlux.transaction(), binary) :: supply :: integer()
   def get(db, tx, key) do
-    DetsPlux.get_tx(db, tx, key, 0)
+    DetsPlux.get_cache(db, tx, key, 0)
   end
 
   @spec put(map, integer()) :: true
@@ -50,13 +51,13 @@ defmodule TokenSupply do
     DetsPlux.put(tx, key, amount)
   end
 
-  @spec add(map, integer()) :: true
-  def add(%{db: db, tx: tx, key: key}, amount) do
-    DetsPlux.put(tx, key, get(db, tx, key) + amount)
+  @spec add(map, number()) :: number()
+  def add(%{tx: tx, key: key}, amount) do
+    DetsPlux.update_counter(tx, key, amount)
   end
 
-  @spec subtract(map, integer()) :: true
-  def subtract(%{db: db, tx: tx, key: key}, amount) do
-    DetsPlux.put(tx, key, get(db, tx, key) - amount)
+  @spec subtract(map, number()) :: number()
+  def subtract(%{tx: tx, key: key}, amount) do
+    DetsPlux.update_counter(tx, key, -amount)
   end
 end

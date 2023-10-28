@@ -136,35 +136,52 @@ defmodule MinerWorker do
   defp run_miner(round_id, block_id, validator, transactions) do
     nonce_dets = DetsPlux.get(:nonce)
     nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
+    dtx = :ets.whereis(:dtx)
+    dtmp = :ets.new(:tmp, [:set])
+    # 1. Count txs
+    # 2. Count errors
+    cref = :counters.new(2, [])
 
-    Enum.reduce(transactions, 0, fn
-      [hash, type, from, nonce, args, size], acc ->
+    Enum.each(transactions, fn
+      [hash, type, from, nonce, args, size] ->
         case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
-            acc + 1
+            :counters.add(cref, 2, 1)
+            :error
 
           _number ->
             case TxHandler.regular() do
-              :error -> acc + 1
-              _ -> acc
+              :error ->
+                :counters.add(cref, 2, 1)
+                :error
+
+              _ ->
+                nil
             end
         end
 
-      [hash, type, arg_key, from, nonce, args, size], acc ->
+        :counters.add(cref, 1, 1)
+
+      [hash, type, arg_key, from, nonce, args, size] ->
         case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
-            acc + 1
+            :counters.add(cref, 1, 1)
 
           _number ->
-            case TxHandler.insert_deferred() do
+            case TxHandler.insert_deferred(dtx, dtmp) do
               true ->
-                acc
+                :counters.add(cref, 1, 1)
 
               false ->
-                acc + 1
+                nil
             end
         end
+
+        :counters.add(cref, 2, 1)
     end)
+
+    :ets.delete(dtmp)
+    :counters.get(cref, 2)
   end
 
   defp random_node do

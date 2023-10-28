@@ -37,21 +37,20 @@ defmodule Ippan.TxHandler do
   end
 
   # Dispute resolution in deferred transaction
-  @spec insert_deferred() :: boolean()
-  defmacro insert_deferred do
-    quote location: :keep do
+  defmacro insert_deferred(table, tmp_table) do
+    quote bind_quoted: [table: table, tmp: tmp_table], location: :keep do
       key = {var!(type), var!(arg_key)}
-      body = [var!(hash), var!(from), var!(validator), var!(args), var!(size), var!(block_id)]
+      body = [var!(hash), var!(type), var!(from), var!(validator), var!(args), var!(size)]
 
-      case :ets.lookup(:dtx, key) do
+      case :ets.lookup(tmp, key) do
         [] ->
-          :ets.insert(:dtx, {key, body})
+          :ets.insert(tmp, {key, var!(hash), var!(block_id)})
 
-        [{_msg_key, [xhash | _rest] = xbody}] ->
-          xblock_id = List.last(xbody)
-
+        [{_msg_key, xhash, xblock_id}] ->
           if var!(hash) < xhash or (var!(hash) == xhash and var!(block_id) < xblock_id) do
-            :ets.insert(:dtx, {key, body})
+            order = {var!(block_id), :counters.get(var!(cref), 1)}
+            :ets.insert(table, {key, body})
+            :ets.insert(tmp, {order, var!(hash), var!(block_id)})
           else
             false
           end
@@ -63,14 +62,14 @@ defmodule Ippan.TxHandler do
   defmacro run_deferred_txs do
     quote location: :keep do
       :ets.tab2list(:dtx)
-      |> Enum.each(fn {{type, _key},
+      |> Enum.each(fn {{block_id, _ix},
                        [
                          hash,
+                         type,
                          account_id,
                          validator,
                          args,
-                         size,
-                         block_id
+                         size
                        ]} ->
         %{modx: module, fun: fun} = Funcs.lookup(type)
 

@@ -1,7 +1,7 @@
 defmodule Ipncore.Application do
   @moduledoc false
   alias Phoenix.PubSub
-  alias Ippan.{ClusterNodes, NetworkNodes}
+  alias Ippan.{ClusterNodes, NetworkNodes, DetsSup}
   use Application
 
   @app Mix.Project.config()[:app]
@@ -14,22 +14,13 @@ defmodule Ipncore.Application do
     make_folders()
     load_keys()
 
-    store_dir = :persistent_term.get(:store_dir)
-    wallet_path = Path.join(store_dir, "wallet.dets")
-    nonce_path = Path.join(store_dir, "nonce.dets")
-    balance_path = Path.join(store_dir, "balance.dets")
-    stats_path = Path.join(store_dir, "stats.dets")
-
     # services
     children =
       [
         MemTables,
-        {DetsPlux, [id: :wallet, file: wallet_path]},
-        {DetsPlux, [id: :nonce, file: nonce_path]},
-        {DetsPlux, [id: :balance, file: balance_path]},
-        {DetsPlux, [id: :stats, file: stats_path]},
         NetStore,
         MainStore,
+        DetsSup,
         {PubSub, [name: :pubsub]},
         ClusterNodes,
         NetworkNodes,
@@ -82,7 +73,7 @@ defmodule Ipncore.Application do
     block_dir = Path.join(data_dir, "blocks") |> String.to_charlist()
     decode_dir = Path.join(data_dir, "blocks/decoded") |> String.to_charlist()
     store_dir = Path.join(data_dir, "store") |> String.to_charlist()
-    save_dir = Path.join(data_dir, "store/save") |> String.to_charlist()
+    save_dir = Path.join(data_dir, "save") |> String.to_charlist()
     # set variables
     :persistent_term.put(:data_dir, data_dir)
     :persistent_term.put(:block_dir, block_dir)

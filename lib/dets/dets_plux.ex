@@ -63,7 +63,16 @@ defmodule DetsPlux do
   @type t :: %__MODULE__{ets: transaction(), filename: binary(), sync_fallback: transaction()}
 
   # Inline common instructions
-  @compile {:inline, get: 1, key_fun: 1, tuple: 2, tuple: 3, tx: 1, tx: 2}
+  @compile {:inline,
+            get: 1,
+            get: 2,
+            key_fun: 1,
+            tuple: 2,
+            tuple: 3,
+            tx: 1,
+            tx: 2,
+            update_counter: 3,
+            update_counter: 4}
 
   defmodule State do
     @moduledoc false
@@ -344,8 +353,11 @@ defmodule DetsPlux do
       [{_key, :delete}] ->
         nil
 
-      [{_key, {_, value}}] ->
+      [{_key, value}] ->
         value
+
+      [{_key, v1, v2}] ->
+        {v1, v2}
 
       [] ->
         call(pid, {:lookup, key, key_hash(key)}) || default
@@ -362,16 +374,24 @@ defmodule DetsPlux do
       [{_key, :delete}] ->
         nil
 
-      [{_key, {_, value}}] ->
+      [{_key, value}] ->
         value
+
+      [{_key, v1, v2}] ->
+        {v1, v2}
 
       [] ->
         case call(pid, {:lookup, key, key_hash(key)}) do
           nil ->
             default
 
+          z = {x, y} ->
+            :ets.insert(tx, {key, x, y})
+            z
+
           ret ->
-            :ets.insert(tx, {key, {key, ret}})
+            # :ets.insert(tx, {key, {key, ret}})
+            :ets.insert(tx, {key, ret})
             ret
         end
     end
@@ -386,7 +406,7 @@ defmodule DetsPlux do
       [{_key, :delete}] ->
         false
 
-      [{_key, {_, _value}}] ->
+      [_object] ->
         true
 
       _ ->
@@ -441,52 +461,28 @@ defmodule DetsPlux do
 
   @spec put(transaction(), key(), value()) :: true
   def put(tx, key, value) do
-    :ets.insert(tx, {key, {key, value}})
+    :ets.insert(tx, {key, value})
+    # :ets.insert(tx, {key, {key, value}})
+  end
+
+  @spec put(transaction(), key(), value(), value()) :: true
+  def put(tx, key, v1, v2) do
+    :ets.insert(tx, {key, v1, v2})
+  end
+
+  @spec update_counter(transaction(), key(), term()) :: term()
+  def update_counter(tx, key, updateOp) do
+    :ets.update_counter(tx, key, updateOp)
+  end
+
+  @spec update_counter(transaction(), key(), term(), term()) :: term()
+  def update_counter(tx, key, updateOp, default) do
+    :ets.update_counter(tx, key, updateOp, default)
   end
 
   @spec put_new(db(), transaction(), key(), value()) :: boolean()
   def put_new(pid, tx, key, value) do
     call(pid, {:put_new, tx, key, key_hash(key), value})
-  end
-
-  @spec update_counter(db(), transaction(), key(), number(), number()) :: true
-  def update_counter(pid, tx, key, count, default \\ 0) do
-    keyhash = key_hash(key)
-
-    value =
-      case :ets.lookup(tx, key) do
-        [{_key, :delete}] ->
-          default
-
-        [{_key, {_, value}}] ->
-          value
-
-        [] ->
-          call(pid, {:lookup, key, keyhash}) || default
-      end
-
-    :ets.insert(tx, {key, {key, value + count}})
-  end
-
-  @spec update_element(db(), transaction(), key(), integer(), number(), number()) :: true
-  def update_element(pid, tx, key, index, count, default \\ 0) do
-    keyhash = key_hash(key)
-
-    tuple =
-      case :ets.lookup(tx, key) do
-        [{_key, :delete}] ->
-          default
-
-        [{_key, {_, value}}] ->
-          value
-
-        [] ->
-          call(pid, {:lookup, key, keyhash}) || default
-      end
-
-    value = elem(tuple, index)
-
-    :ets.insert(tx, {key, {key, put_elem(tuple, index, value + count)}})
   end
 
   @doc """
@@ -859,7 +855,8 @@ defmodule DetsPlux do
     case :ets.lookup(ets_fallback, key) do
       [] -> file_lookup(state, key, hash)
       [{_key, :delete}] -> {:halt, nil}
-      [{_key, {_, object}}] -> {:halt, object}
+      [{_key, object}] -> {:halt, object}
+      [{_key, o1, o2}] -> {:halt, {o1, o2}}
     end
   end
 
@@ -1043,8 +1040,16 @@ defmodule DetsPlux do
       result = parallel_hash(b, tasks * 2)
       :lists.merge(Task.await(task, :infinity), result)
     else
-      Enum.map(new_dataset, fn {key, object} ->
-        {{key_hash(key), key}, object}
+      Enum.map(new_dataset, fn
+        {key, :delete} ->
+          {{key_hash(key), key}, :delete}
+
+        {key, object} ->
+          # {{key_hash(key), key}, object}
+          {{key_hash(key), key}, {key, object}}
+
+        {key, o1, o2} ->
+          {{key_hash(key), key}, {key, {o1, o2}}}
       end)
       |> :lists.sort()
     end
@@ -1056,6 +1061,12 @@ defmodule DetsPlux do
   The second transaction is delete
   """
   @spec merge_tx(transaction(), transaction()) :: transaction()
+  def merge_tx(nil, nil), do: nil
+
+  def merge_tx(nil, ets2), do: ets2
+
+  def merge_tx(ets1, nil), do: ets1
+
   def merge_tx(ets1, ets2) do
     do_merge_tables(:ets.first(ets2), ets1, ets2)
   end
@@ -1584,7 +1595,7 @@ end
 
 defimpl Enumerable, for: DetsPlux do
   alias DetsPlux.FileReader
-  require DetsPlux
+  import DetsPlux, only: [merge_tx: 2, decode: 1]
 
   @suffixId "DEX+"
   @start_offset byte_size(@suffixId)
@@ -1592,15 +1603,12 @@ defimpl Enumerable, for: DetsPlux do
   def member?(_pid, _key), do: {:error, __MODULE__}
   def slice(_pid), do: {:error, __MODULE__}
 
-  defp ets_to_map(nil), do: %{}
-
-  defp ets_to_map(ets) do
-    :ets.tab2list(ets)
-    |> Enum.reduce(%{}, fn {key, object}, map -> Map.put(map, key, object) end)
-  end
-
   def reduce(%DetsPlux{ets: ets, filename: filename, sync_fallback: fallback}, acc, fun) do
-    new_data = Map.merge(ets_to_map(ets), ets_to_map(fallback))
+    new_data =
+      case merge_tx(ets, fallback) do
+        nil -> []
+        tid -> :ets.tab2list(tid)
+      end
 
     opts = [page_size: 1_000_000, max_pages: 1000]
 
@@ -1614,12 +1622,19 @@ defimpl Enumerable, for: DetsPlux do
       end
 
     # Ensuring hash function sort order
-    new_dataset = DetsPlux.parallel_hash(Map.to_list(new_data))
+    new_dataset = DetsPlux.parallel_hash(new_data)
 
     ret =
       DetsPlux.iterate(acc, new_dataset, old_file, fn acc, _entry_hash, entry_blob, entry ->
         if entry != :delete do
-          fun.(entry || DetsPlux.decode(entry_blob), acc)
+          fun.(
+            entry ||
+              case decode(entry_blob) do
+                {key, {x, y}} -> {key, x, y}
+                x -> x
+              end,
+            acc
+          )
         else
           {:cont, acc}
         end

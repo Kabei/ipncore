@@ -87,7 +87,8 @@ defmodule Ippan.ClusterNodes do
 
             IO.puts("The insert")
             cref = :persistent_term.get(:msg_counter)
-            ix = :counters.add(cref, 1, 1)
+            :counters.add(cref, 1, 1)
+            ix = :counters.get(cref, 1)
 
             :ets.insert(:dmsg, {ix, [hash, type, from, nonce, args, size]})
             :ets.insert(:msg, {ix, msg_sig})
@@ -126,10 +127,14 @@ defmodule Ippan.ClusterNodes do
                 ["error", "Invalid nonce"]
 
               _ ->
-                IO.puts("The insert")
                 TxHandler.check_return!()
-                :ets.insert(:dmsg, {hash, [hash, type, key, from, nonce, args, size]})
-                :ets.insert(:msg, {hash, msg_sig})
+                IO.puts("The insert")
+                cref = :persistent_term.get(:msg_counter)
+                :counters.add(cref, 1, 1)
+                ix = :counters.get(cref, 1)
+
+                :ets.insert(:dmsg, {ix, [hash, type, key, from, nonce, args, size]})
+                :ets.insert(:msg, {ix, msg_sig})
                 IO.puts("The result")
                 %{"height" => height}
             end

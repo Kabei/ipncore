@@ -163,14 +163,14 @@ defmodule DetsPlux do
     end
   end
 
-  defmacrop encode(term) do
+  defmacro encode(term) do
     quote location: :keep do
       # :erlang.term_to_binary(unquote(term))
       CBOR.Encoder.encode_into(unquote(term), <<>>)
     end
   end
 
-  defmacrop decode(bin) do
+  defmacro decode(bin) do
     quote location: :keep do
       # :erlang.binary_to_term(unquote(bin))
       CBOR.Decoder.decode(unquote(bin)) |> elem(0)
@@ -1584,6 +1584,7 @@ end
 
 defimpl Enumerable, for: DetsPlux do
   alias DetsPlux.FileReader
+  require DetsPlux
 
   @suffixId "DEX+"
   @start_offset byte_size(@suffixId)

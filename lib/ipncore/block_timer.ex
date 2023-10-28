@@ -1,7 +1,6 @@
 defmodule BlockTimer do
-  use GenServer, restart: :transient
-  alias Ippan.Block
-  alias Ippan.BlockHandler
+  use GenServer
+  alias Ippan.{Block, BlockHandler}
   require Block
   require Sqlite
 
@@ -9,7 +8,8 @@ defmodule BlockTimer do
   @module __MODULE__
   @timeout Application.compile_env(@app, :block_interval)
   @message :mine
-  @wait_time 5_000
+  @min_time 750
+  @max_time 5_000
 
   def start_link(args) do
     case Process.whereis(@module) do
@@ -92,20 +92,20 @@ defmodule BlockTimer do
   def handle_call({:get, current_block_id}, _from, %{block_id: block_id, tRef: tRef} = state) do
     :timer.cancel(tRef)
 
+    new_state = check(%{state | block_id: current_block_id}, 1)
     diff = current_block_id - block_id
 
     cond do
-      diff > 10 ->
-        :ok
+      diff > 5 ->
+        :timer.sleep(@min_time)
 
       diff <= 1 ->
-        :timer.sleep(@wait_time)
+        :timer.sleep(@max_time)
 
-      diff < 10 ->
-        :timer.sleep(div(@wait_time, diff))
+      true ->
+        :timer.sleep(@max_time - diff * @min_time)
     end
 
-    new_state = check(%{state | block_id: current_block_id}, 1)
     {:reply, new_state.candidate, new_state}
   end
 

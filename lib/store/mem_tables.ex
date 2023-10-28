@@ -30,6 +30,7 @@ defmodule MemTables do
   @tables_opt %{
     msg: @ordered_named_opts,
     dmsg: @ordered_named_opts,
+    hash: @set_named_opts,
     dhash: @set_named_opts,
     dtx: @ordered_named_opts,
     # cache

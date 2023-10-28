@@ -32,6 +32,7 @@ defmodule Ippan.ClusterNodes do
     net_pk = :persistent_term.get(:net_pubkey)
     db_ref = :persistent_term.get(:net_conn)
     default_port = Application.get_env(@app, :cluster)[:port]
+    :persistent_term.put(:msg_counter, :counters.new(1, []))
 
     Node.delete_all()
 
@@ -69,7 +70,7 @@ defmodule Ippan.ClusterNodes do
         [false, [hash, type, from, nonce, args, msg_sig, size], return],
         _state
       ) do
-    case :ets.member(:msg, hash) do
+    case :ets.insert_new(:hash, hash) do
       true ->
         ["error", "Already exists"]
 
@@ -88,8 +89,11 @@ defmodule Ippan.ClusterNodes do
             TxHandler.check_return!()
 
             IO.puts("The insert")
-            :ets.insert(:dmsg, {hash, [hash, type, from, nonce, args, size]})
-            :ets.insert(:msg, {hash, msg_sig})
+            cref = :persistent_term.get(:msg_counter)
+            ix = :counters.add(cref, 1, 1)
+
+            :ets.insert(:dmsg, {ix, [hash, type, from, nonce, args, size]})
+            :ets.insert(:msg, {ix, msg_sig})
             IO.puts("The result")
             %{"height" => :persistent_term.get(:height, 0)}
         end
@@ -101,7 +105,7 @@ defmodule Ippan.ClusterNodes do
         [true, [hash, type, key | rest], return],
         _state
       ) do
-    case :ets.member(:msg, hash) do
+    case :ets.insert_new(:hash, hash) do
       true ->
         ["error", "Already exists"]
 

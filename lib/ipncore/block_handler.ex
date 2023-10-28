@@ -119,7 +119,7 @@ defmodule Ippan.BlockHandler do
     acc_dmsg = [dmsg | acc_dmsg]
 
     case @max_block_data_size > acc_size do
-      false ->
+      true ->
         do_iterate(
           :ets.next(ets_msg, key),
           ets_msg,
@@ -129,7 +129,7 @@ defmodule Ippan.BlockHandler do
           acc_size
         )
 
-      _true ->
+      false ->
         {Enum.reverse(acc_msg), Enum.reverse(acc_dmsg)}
     end
   end

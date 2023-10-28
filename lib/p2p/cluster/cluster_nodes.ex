@@ -72,9 +72,6 @@ defmodule Ippan.ClusterNodes do
       ) do
     case :ets.insert_new(:hash, {hash, nil}) do
       true ->
-        ["error", "Already exists"]
-
-      false ->
         dets = DetsPlux.get(:nonce)
         cache = DetsPlux.tx(dets, :cache_nonce)
 
@@ -97,6 +94,9 @@ defmodule Ippan.ClusterNodes do
             IO.puts("The result")
             %{"height" => :persistent_term.get(:height, 0)}
         end
+
+      false ->
+        ["error", "Already exists"]
     end
   end
 
@@ -107,9 +107,6 @@ defmodule Ippan.ClusterNodes do
       ) do
     case :ets.insert_new(:hash, {hash, nil}) do
       true ->
-        ["error", "Already exists"]
-
-      false ->
         height = :persistent_term.get(:height, 0)
         msg_key = {type, key}
 
@@ -140,6 +137,9 @@ defmodule Ippan.ClusterNodes do
           false ->
             ["error", "Deferred transaction already exists"]
         end
+
+      false ->
+        ["error", "Already exists"]
     end
   end
 

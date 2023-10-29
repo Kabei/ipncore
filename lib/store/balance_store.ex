@@ -63,12 +63,12 @@ defmodule BalanceStore do
     quote bind_quoted: [fees: fees, remove: remove, token: @token], location: :keep do
       if fees > 0 do
         balance_key = DetsPlux.tuple(var!(from), var!(token_id))
-        validator_balance_key = DetsPlux.tuple(var!(vOwner), var!(token_id))
+        validator_key = DetsPlux.tuple(var!(vOwner), var!(token_id))
         DetsPlux.get_cache(var!(dets), var!(tx), balance_key, {0, 0})
-        DetsPlux.get_cache(var!(dets), var!(tx), validator_balance_key, {0, 0})
+        DetsPlux.get_cache(var!(dets), var!(tx), validator_key, {0, 0})
 
         DetsPlux.update_counter(var!(tx), balance_key, {2, -fees - remove})
-        DetsPlux.update_counter(var!(tx), validator_balance_key, {2, fees})
+        DetsPlux.update_counter(var!(tx), validator_key, {2, fees})
       else
         BalanceStore.delete(var!(from), var!(token_id), var!(remove))
       end

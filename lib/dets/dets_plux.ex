@@ -371,8 +371,8 @@ defmodule DetsPlux do
   Get a value from a Only-Read Transaction or Disk.
   If the value does not exist in the transaction. Insert it
   """
-  @spec get_cache(db(), transaction(), binary(), term()) :: any()
-  def get_cache(pid, tx, key, default \\ nil) do
+  @spec get_cache(db(), transaction(), binary()) :: any()
+  def get_cache(pid, tx, key) do
     case :ets.lookup(tx, key) do
       [{_key, :delete}] ->
         nil
@@ -386,6 +386,40 @@ defmodule DetsPlux do
       [] ->
         case call(pid, {:lookup, key, key_hash(key)}) do
           nil ->
+            nil
+
+          z = {x, y} ->
+            :ets.insert(tx, {key, x, y})
+            z
+
+          ret ->
+            # :ets.insert(tx, {key, {key, ret}})
+            :ets.insert(tx, {key, ret})
+            ret
+        end
+    end
+  end
+
+  @spec get_cache(db(), transaction(), binary(), term()) :: any()
+  def get_cache(pid, tx, key, default) do
+    case :ets.lookup(tx, key) do
+      [{_key, :delete}] ->
+        nil
+
+      [{_key, value}] ->
+        value
+
+      [{_key, v1, v2}] ->
+        {v1, v2}
+
+      [] ->
+        case call(pid, {:lookup, key, key_hash(key)}) do
+          nil ->
+            case is_tuple(default) do
+              false -> :ets.insert(tx, Tuple.insert_at(default, 0, key))
+              true -> :ets.insert(tx, default)
+            end
+
             default
 
           z = {x, y} ->

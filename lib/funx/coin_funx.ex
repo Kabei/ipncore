@@ -27,7 +27,7 @@ defmodule Ippan.Funx.Coin do
     BalanceStore.send(amount)
 
     if is_validator do
-      BalanceStore.delete(from, @token, remove)
+      BalanceStore.burn(from, @token, remove)
     else
       fees = tfees - remove
       BalanceStore.fees(fees, remove)
@@ -99,7 +99,7 @@ defmodule Ippan.Funx.Coin do
     remove = ceil(tfees * 0.3)
 
     if is_validator do
-      BalanceStore.delete(from, @token, remove)
+      BalanceStore.burn(from, @token, remove)
     else
       fees = tfees - remove
       BalanceStore.fees(fees, remove)

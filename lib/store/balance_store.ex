@@ -70,7 +70,7 @@ defmodule BalanceStore do
         DetsPlux.update_counter(var!(tx), balance_key, {2, -fees - remove})
         DetsPlux.update_counter(var!(tx), validator_key, {2, fees})
       else
-        BalanceStore.delete(var!(from), var!(token_id), var!(remove))
+        BalanceStore.burn(var!(from), token, remove)
       end
     end
   end
@@ -80,15 +80,6 @@ defmodule BalanceStore do
       key = DetsPlux.tuple(account, token)
       DetsPlux.get_cache(var!(dets), var!(tx), key, {0, 0})
       DetsPlux.update_counter(var!(tx), key, {2, value})
-    end
-  end
-
-  defmacro delete(account, token, amount) do
-    quote bind_quoted: [account: account, token: token, amount: amount], location: :keep do
-      key = DetsPlux.tuple(account, token)
-      DetsPlux.get_cache(var!(dets), var!(tx), key, {0, 0})
-      DetsPlux.update_counter(var!(tx), key, {2, -amount})
-      TokenSupply.subtract(var!(supply), amount)
     end
   end
 

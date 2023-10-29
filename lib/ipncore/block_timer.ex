@@ -6,7 +6,8 @@ defmodule BlockTimer do
 
   @app Mix.Project.config()[:app]
   @module __MODULE__
-  @timeout Application.compile_env(@app, :block_interval)
+  # @timeout Application.compile_env(@app, :block_interval)
+  @timeout 15_000
   @message :mine
   @min_time 750
   @max_time 5_000
@@ -92,7 +93,6 @@ defmodule BlockTimer do
   def handle_call({:get, current_block_id}, _from, %{block_id: block_id, tRef: tRef} = state) do
     :timer.cancel(tRef)
 
-    new_state = check(%{state | block_id: current_block_id}, 1)
     diff = current_block_id - block_id
 
     cond do
@@ -105,6 +105,8 @@ defmodule BlockTimer do
       true ->
         :timer.sleep(@max_time - diff * @min_time)
     end
+
+    new_state = check(%{state | block_id: current_block_id}, 1)
 
     {:reply, new_state.candidate, new_state}
   end

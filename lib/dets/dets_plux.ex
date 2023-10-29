@@ -416,8 +416,8 @@ defmodule DetsPlux do
         case call(pid, {:lookup, key, key_hash(key)}) do
           nil ->
             case is_tuple(default) do
-              false -> :ets.insert(tx, Tuple.insert_at(default, 0, key))
-              true -> :ets.insert(tx, default)
+              false -> :ets.insert(tx, default)
+              true -> :ets.insert(tx, Tuple.insert_at(default, 0, key))
             end
 
             default

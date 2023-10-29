@@ -1,6 +1,5 @@
 defmodule Ippan.Funx.Validator do
-  alias Ippan.Utils
-  alias Ippan.Validator
+  alias Ippan.{Validator, Utils}
   alias Phoenix.PubSub
   require Validator
   require Sqlite
@@ -19,8 +18,8 @@ defmodule Ippan.Funx.Validator do
         name,
         pubkey,
         net_pubkey,
-        fee_type,
-        fee,
+        fa \\ 0,
+        fb \\ 1,
         opts \\ %{}
       ) do
     db_ref = :persistent_term.get(:main_conn)
@@ -55,8 +54,8 @@ defmodule Ippan.Funx.Validator do
                 pubkey: pubkey,
                 net_pubkey: net_pubkey,
                 owner: owner_id,
-                fee: fee,
-                fee_type: fee_type,
+                fa: fa,
+                fb: fb,
                 stake: 0,
                 created_at: round_id,
                 updated_at: round_id
@@ -75,11 +74,15 @@ defmodule Ippan.Funx.Validator do
     end
   end
 
-  def update(%{id: account_id, round: round_id}, id, opts) do
+  def update(
+        %{id: account_id, round: round_id, size: size, validator: %{fa: fa, fb: fb}},
+        id,
+        opts
+      ) do
     map_filter = Map.take(opts, Validator.editable())
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    fees = EnvStore.fees()
+    fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_burn(account_id, fees) do
       :error ->

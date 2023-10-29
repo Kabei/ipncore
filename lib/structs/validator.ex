@@ -10,8 +10,8 @@ defmodule Ippan.Validator do
           pubkey: binary(),
           net_pubkey: binary(),
           avatar: String.t() | nil,
-          fee_type: integer(),
-          fee: 0 | 1 | 2,
+          fa: integer(),
+          fb: integer(),
           stake: non_neg_integer(),
           failures: integer(),
           created_at: non_neg_integer(),
@@ -27,8 +27,8 @@ defmodule Ippan.Validator do
     :pubkey,
     :net_pubkey,
     :avatar,
-    :fee_type,
-    :fee,
+    :fa,
+    :fb,
     :stake,
     :created_at,
     :updated_at,
@@ -36,7 +36,7 @@ defmodule Ippan.Validator do
   ]
 
   @impl true
-  def editable, do: ~w(hostname port name avatar pubkey net_pubkey fee fee_type owner)
+  def editable, do: ~w(hostname port name avatar pubkey net_pubkey fa fb owner)
   @impl true
   def optionals, do: ~w(avatar)
 
@@ -51,8 +51,8 @@ defmodule Ippan.Validator do
       x.pubkey,
       x.net_pubkey,
       x.avatar,
-      x.fee_type,
-      x.fee,
+      x.fa,
+      x.fb,
       x.stake,
       x.failures,
       x.created_at,
@@ -80,8 +80,8 @@ defmodule Ippan.Validator do
         pubkey,
         net_pubkey,
         avatar,
-        fee_type,
-        fee,
+        fa,
+        fb,
         stake,
         failures,
         created_at,
@@ -96,8 +96,8 @@ defmodule Ippan.Validator do
       avatar: avatar,
       pubkey: pubkey,
       net_pubkey: net_pubkey,
-      fee: fee,
-      fee_type: fee_type,
+      fb: fb,
+      fa: fa,
       stake: stake,
       failures: failures,
       created_at: created_at,

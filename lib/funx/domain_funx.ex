@@ -1,5 +1,5 @@
 defmodule Ippan.Funx.Domain do
-  alias Ippan.{Domain, DNS}
+  alias Ippan.{Domain, DNS, Utils}
   require BalanceStore
   require Sqlite
   require Domain
@@ -49,14 +49,19 @@ defmodule Ippan.Funx.Domain do
   end
 
   def update(
-        %{id: account_id, round: round_id, validator: %{owner: vOwner}},
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
         name,
         opts \\ %{}
       ) do
     map_filter = Map.take(opts, Domain.editable())
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    fees = EnvStore.fees()
+    fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->

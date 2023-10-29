@@ -1,5 +1,5 @@
 defmodule Ippan.Funx.Token do
-  alias Ippan.Token
+  alias Ippan.{Token, Utils}
   require Token
   require Sqlite
   require BalanceStore
@@ -57,7 +57,8 @@ defmodule Ippan.Funx.Token do
         %{
           id: account_id,
           round: round_id,
-          validator: %{owner: vOwner}
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
         },
         id,
         opts \\ %{}
@@ -67,7 +68,7 @@ defmodule Ippan.Funx.Token do
     tx = DetsPlux.tx(:balance)
 
     map_filter = Map.take(opts, Token.editable())
-    fees = EnvStore.fees()
+    fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->

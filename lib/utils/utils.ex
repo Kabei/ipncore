@@ -20,21 +20,6 @@ defmodule Ippan.Utils do
   def cast_boolean(true), do: true
   def cast_boolean(_), do: false
 
-  # def to_decimal(text_number, 0), do: text_number
-  # def to_decimal(text_number, decimals) do
-  #   {a, b} = String.split_at(text_number, -decimals)
-  #   :erlang.iolist_to_binary([a, ~c".", b])
-  # end
-
-  # def to_decimal(number, 0), do: number
-
-  # def to_decimal(number, decimals) do
-  #   (number / :math.pow(10, decimals))
-  #   |> Decimal.from_float()
-
-  #   # |> :erlang.float_to_binary([:compact, decimals: 18])
-  # end
-
   def sqlite_in(values) do
     Enum.reduce(values, "(", fn
       x, acc when is_binary(x) -> IO.iodata_to_binary([acc, x, ","])
@@ -82,22 +67,9 @@ defmodule Ippan.Utils do
     end
   end
 
-  #  Fee types:
-  #  0 -> by size
-  #  1 -> by percent
-  #  2 -> fixed price
-  # by size
-  def calc_fees!(0, fee_amount, _tx_amount, size),
-    do: trunc(fee_amount) * size
-
-  # by percent
-  def calc_fees!(1, fee_amount, tx_amount, _size),
-    do: :math.ceil(tx_amount * fee_amount) |> trunc()
-
-  # fixed price
-  def calc_fees!(2, fee_amount, _tx_amount, _size), do: trunc(fee_amount)
-
-  def calc_fees!(_, _, _, _), do: raise(IppanError, "Fee calculation error")
+  @spec calc_fees(a :: integer(), b :: integer(), size :: pos_integer()) :: integer()
+  def calc_fees(0, 0, _size), do: 1
+  def calc_fees(a, b, size), do: a * size + b
 
   def get_name_from_node(node_name) do
     node_name |> to_string() |> String.split("@") |> hd

@@ -173,7 +173,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_new(client, "ippan.net", 5815, address, "net core", pkv, 1, 5.0, %{"avatar" => "https://avatar.com"}) |> Builder.print()
+  # Builder.validator_new(client, "ippan.net", 5815, address, "net core", pkv, 1, 5, %{"avatar" => "https://avatar.com"}) |> Builder.print()
   def validator_new(
         client = %Client{address: address, nonce: nonce},
         hostname,
@@ -182,11 +182,11 @@ defmodule Builder do
         name,
         pubkey,
         net_pubkey,
-        fee_type,
-        fee,
+        fa \\ 0,
+        fb \\ 1,
         opts \\ %{}
       )
-      when is_float(fee) and fee_type in 0..2 do
+      when fa >= 0 and fb >= 0 do
     body =
       [
         100,
@@ -198,8 +198,8 @@ defmodule Builder do
         name,
         Fast64.encode64(pubkey),
         Fast64.encode64(net_pubkey),
-        fee_type,
-        fee,
+        fa,
+        fb,
         opts
       ]
       |> encode_fun!()
@@ -211,7 +211,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_update(client, 1, %{"fee" => 7.0}) |> Builder.print()
+  # Builder.validator_update(client, 1, %{"fa" => 7}) |> Builder.print()
   def validator_update(client = %Client{address: address, nonce: nonce}, id, params) do
     body =
       [101, nonce, address, id, params]

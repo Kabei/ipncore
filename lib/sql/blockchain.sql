@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS validator(
   pubkey BLOB NOT NULL,
   net_pubkey BLOB NOT NULL,
   avatar TEXT,
-  fee_type TINYINT NOT NULL,
-  fee DOUBLE NOT NULL,
+  fa INTEGER NOT NULL,
+  fb INTEGER NOT NULL,
   stake BIGINT,
   failures INTEGER,
   created_at BIGINT NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS round(
   count BIGINT,
   tx_count BIGINT,
   size BIGINT,
-  reason INTEGER,
+  status INTEGER,
   blocks BLOB,
   extra BLOB
 ) WITHOUT ROWID;

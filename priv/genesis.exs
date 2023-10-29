@@ -100,9 +100,9 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
     %{
       avatar: nil,
       created_at: 0,
+      fa: 0,
       failures: 0,
-      fee: 1.0,
-      fee_type: 2,
+      fb: 0,
       hostname: "visurpay.com",
       id: 0,
       name: "Speedy",
@@ -116,9 +116,9 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
     %{
       avatar: nil,
       created_at: 0,
+      fa: 0,
       failures: 0,
-      fee: 1.0,
-      fee_type: 2,
+      fb: 0,
       hostname: "ippan.co.uk",
       id: 1,
       name: "Raptor",

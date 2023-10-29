@@ -1,11 +1,11 @@
 defmodule Ippan.Funx.Dns do
-  alias Ippan.{Domain, DNS}
+  alias Ippan.{Domain, DNS, Utils}
   require BalanceStore
   require Sqlite
   require DNS
 
   def new(
-        %{id: account_id, validator: %{owner: vOwner}},
+        %{id: account_id, size: size, validator: %{fa: fa, fb: fb, owner: vOwner}},
         fullname,
         type,
         data,
@@ -14,7 +14,7 @@ defmodule Ippan.Funx.Dns do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    fees = EnvStore.fees()
+    fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->
@@ -39,7 +39,7 @@ defmodule Ippan.Funx.Dns do
   end
 
   def update(
-        %{id: account_id, validator: %{owner: vOwner}},
+        %{id: account_id, size: size, validator: %{fa: fa, fb: fb, owner: vOwner}},
         fullname,
         dns_hash16,
         params
@@ -47,7 +47,7 @@ defmodule Ippan.Funx.Dns do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
-    fees = EnvStore.fees()
+    fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->

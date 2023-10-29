@@ -31,16 +31,21 @@ defmodule RoundCommit do
 
       if is_some_block_mine do
         clear_cache()
+      else
+        cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
+        DetsPlux.clear_tx(cache_balance_tx)
       end
     else
       balance_dets = DetsPlux.get(:balance)
       balance_tx = DetsPlux.tx(balance_dets, :balance)
+      cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
       stats_dets = DetsPlux.get(:stats)
       supply_tx = DetsPlux.tx(stats_dets, :supply)
       DetsPlux.sync(balance_dets, balance_tx)
       DetsPlux.sync(stats_dets, supply_tx)
       Sqlite.commit(db_ref)
       Sqlite.begin(db_ref)
+      DetsPlux.clear_tx(cache_balance_tx)
     end
   end
 

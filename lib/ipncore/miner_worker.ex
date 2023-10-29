@@ -168,6 +168,8 @@ defmodule MinerWorker do
             :counters.add(cref, 1, 1)
 
           _number ->
+            ix = :counters.get(cref, 1)
+
             case TxHandler.insert_deferred(dtx, dtmp) do
               true ->
                 :counters.add(cref, 1, 1)

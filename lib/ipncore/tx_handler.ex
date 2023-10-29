@@ -48,9 +48,9 @@ defmodule Ippan.TxHandler do
 
         [{_msg_key, xhash, xblock_id}] ->
           if var!(hash) < xhash or (var!(hash) == xhash and var!(block_id) < xblock_id) do
-            order = {var!(block_id), :counters.get(var!(cref), 1)}
-            :ets.insert(table, {key, body})
-            :ets.insert(tmp, {order, var!(hash), var!(block_id)})
+            order = {var!(block_id), var!(ix)}
+            :ets.insert(tmp, {key, body})
+            :ets.insert(table, {order, var!(hash), var!(block_id)})
           else
             false
           end

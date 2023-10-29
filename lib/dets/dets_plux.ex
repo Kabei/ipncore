@@ -66,6 +66,8 @@ defmodule DetsPlux do
   @compile {:inline,
             get: 1,
             get: 2,
+            put: 3,
+            put: 4,
             key_fun: 1,
             tuple: 2,
             tuple: 3,

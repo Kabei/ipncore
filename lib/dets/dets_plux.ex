@@ -71,6 +71,7 @@ defmodule DetsPlux do
             tuple: 3,
             tx: 1,
             tx: 2,
+            update_element: 4,
             update_counter: 3,
             update_counter: 4}
 
@@ -468,6 +469,11 @@ defmodule DetsPlux do
   @spec put(transaction(), key(), value(), value()) :: true
   def put(tx, key, v1, v2) do
     :ets.insert(tx, {key, v1, v2})
+  end
+
+  @spec update_element(transaction(), key(), pos_integer(), value()) :: true
+  def update_element(tx, key, pos, value) do
+    :ets.update_element(tx, key, {pos, value})
   end
 
   @spec update_counter(transaction(), key(), term()) :: term()

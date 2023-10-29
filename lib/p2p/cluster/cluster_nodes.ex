@@ -70,7 +70,7 @@ defmodule Ippan.ClusterNodes do
         [false, [hash, type, from, nonce, args, msg_sig, size], return],
         _state
       ) do
-    case :ets.insert_new(:hash, {hash, nil}) do
+    case :ets.insert_new(:hash, {{from, nonce}, nil}) do
       true ->
         dets = DetsPlux.get(:nonce)
         cache = DetsPlux.tx(dets, :cache_nonce)
@@ -103,10 +103,10 @@ defmodule Ippan.ClusterNodes do
 
   def handle_request(
         "new_msg",
-        [true, [hash, type, key | rest], return],
+        [true, [hash, type, key, from, nonce | rest], return],
         _state
       ) do
-    case :ets.insert_new(:hash, {hash, nil}) do
+    case :ets.insert_new(:hash, {{from, nonce}, nil}) do
       true ->
         height = :persistent_term.get(:height, 0)
         msg_key = {type, key}
@@ -115,7 +115,7 @@ defmodule Ippan.ClusterNodes do
 
         case :ets.insert_new(:dhash, {msg_key, hash, height}) do
           true ->
-            [from, nonce, args, msg_sig, size] = rest
+            [args, msg_sig, size] = rest
 
             dets = DetsPlux.get(:nonce)
             cache = DetsPlux.tx(:nonce, :cache_nonce)

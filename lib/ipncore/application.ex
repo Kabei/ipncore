@@ -18,9 +18,9 @@ defmodule Ipncore.Application do
     children =
       [
         MemTables,
+        DetsSup,
         NetStore,
         MainStore,
-        DetsSup,
         {PubSub, [name: :pubsub]},
         ClusterNodes,
         NetworkNodes,

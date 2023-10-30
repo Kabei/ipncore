@@ -106,7 +106,6 @@ defmodule Ippan.ClusterNodes do
         end
 
       false ->
-        :ets.delete(:hash, hash_key)
         ["error", "Already exists"]
     end
   end
@@ -166,7 +165,6 @@ defmodule Ippan.ClusterNodes do
         end
 
       false ->
-        :ets.delete(:hash, hash_key)
         ["error", "Already exists"]
     end
   end

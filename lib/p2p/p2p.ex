@@ -93,17 +93,19 @@ defmodule Ippan.P2P do
         <<iv::bytes-size(@iv_bytes), tag::bytes-size(@tag_bytes), ciphertext::binary>>,
         sharedkey
       ) do
-    :crypto.crypto_one_time_aead(
-      :chacha20_poly1305,
-      sharedkey,
-      iv,
-      ciphertext,
-      @seconds,
-      tag,
-      false
-    )
-    |> CBOR.Decoder.decode()
-    |> elem(0)
+    x =
+      :crypto.crypto_one_time_aead(
+        :chacha20_poly1305,
+        sharedkey,
+        iv,
+        ciphertext,
+        @seconds,
+        tag,
+        false
+      )
+      |> CBOR.Decoder.decode()
+
+    :erlang.element(1, x)
   end
 
   def decode!(packet, _sharedkey), do: packet

@@ -66,8 +66,8 @@ defmodule DetsPlux do
   @compile {:inline,
             get: 1,
             get: 2,
+            put: 2,
             put: 3,
-            put: 4,
             key_fun: 1,
             tuple: 2,
             tuple: 3,
@@ -185,7 +185,7 @@ defmodule DetsPlux do
   defmacro decode(bin) do
     quote location: :keep do
       # :erlang.binary_to_term(unquote(bin))
-      CBOR.Decoder.decode(unquote(bin)) |> elem(0)
+      :erlang.element(1, CBOR.Decoder.decode(unquote(bin)))
     end
   end
 
@@ -496,15 +496,15 @@ defmodule DetsPlux do
     GenServer.cast(pid, {:run, fun})
   end
 
+  @spec put(transaction(), tuple() | [tuple()]) :: true
+  def put(tx, tuple) do
+    :ets.insert(tx, tuple)
+  end
+
   @spec put(transaction(), key(), value()) :: true
   def put(tx, key, value) do
     :ets.insert(tx, {key, value})
     # :ets.insert(tx, {key, {key, value}})
-  end
-
-  @spec put(transaction(), key(), value(), value()) :: true
-  def put(tx, key, v1, v2) do
-    :ets.insert(tx, {key, v1, v2})
   end
 
   @spec update_element(transaction(), key(), pos_integer(), value()) :: true
@@ -1090,8 +1090,9 @@ defmodule DetsPlux do
           # {{key_hash(key), key}, object}
           {{key_hash(key), key}, {key, object}}
 
-        {key, o1, o2} ->
-          {{key_hash(key), key}, {key, {o1, o2}}}
+        tuple ->
+          key = :erlang.element(1, tuple)
+          {{key_hash(key), key}, {key, :erlang.delete_element(1, tuple)}}
       end)
       |> :lists.sort()
     end

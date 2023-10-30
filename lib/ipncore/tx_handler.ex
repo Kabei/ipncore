@@ -1,7 +1,7 @@
 defmodule Ippan.TxHandler do
   alias Ippan.Funcs
 
-  defmacro check_return! do
+  defmacro check_return do
     quote location: :keep do
       case var!(return) do
         x when is_map(x) ->
@@ -9,7 +9,12 @@ defmodule Ippan.TxHandler do
           dets = DetsPlux.get(:balance)
           cache = DetsPlux.tx(dets, :cache_balance)
 
-          BalanceStore.multi_requires!(dets, cache, x)
+          try do
+            BalanceStore.multi_requires!(dets, cache, x)
+          rescue
+            _e ->
+              false
+          end
 
         _ ->
           nil

@@ -5,7 +5,7 @@ defmodule Ippan.Funx.Wallet do
     pubkey = Fast64.decode64(pubkey)
     id = Address.hash(sig_type, pubkey)
     tx = DetsPlux.tx(:wallet)
-    DetsPlux.put(tx, id, pubkey, validator_id)
+    DetsPlux.put(tx, {id, pubkey, validator_id})
   end
 
   def subscribe(%{id: account_id}, validator_id) do

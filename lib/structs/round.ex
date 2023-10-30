@@ -96,8 +96,8 @@ defmodule Ippan.Round do
       tx_count: tx_count,
       size: size,
       status: status,
-      blocks: CBOR.Decoder.decode(blocks) |> elem(0),
-      extra: CBOR.Decoder.decode(extra) |> elem(0)
+      blocks: :erlang.element(1, CBOR.Decoder.decode(blocks)),
+      extra: :erlang.element(1, CBOR.Decoder.decode(extra))
     }
   end
 

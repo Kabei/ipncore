@@ -58,7 +58,7 @@ defmodule Ippan.Node do
       id: id,
       hostname: hostname,
       port: port,
-      role: CBOR.decode(role) |> elem(1),
+      role: :erlang.element(1, CBOR.Decoder.decode(role)),
       pubkey: pubkey,
       net_pubkey: net_pubkey,
       avatar: avatar

@@ -223,7 +223,7 @@ defmodule Ippan.Block do
   end
 
   def decode_file!(content) do
-    elem(CBOR.Decoder.decode(content), 0)
+    :erlang.element(1, CBOR.Decoder.decode(content))
   end
 
   def hash_file(path) do

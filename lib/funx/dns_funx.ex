@@ -54,7 +54,7 @@ defmodule Ippan.Funx.Dns do
         :error
 
       _ ->
-        dns_hash = Base.decode16(dns_hash16, case: :mixed)
+        dns_hash = Base.decode16!(dns_hash16, case: :mixed)
         {_subdomain, domain} = Domain.split(fullname)
 
         ref =

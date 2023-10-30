@@ -5,8 +5,7 @@ defmodule RoundCommit do
     if tx_count > 0 do
       [
         Task.async(fn ->
-          Sqlite.commit(db_ref)
-          Sqlite.begin(db_ref)
+          Sqlite.sync(db_ref)
         end),
         Task.async(fn ->
           wallet_dets = DetsPlux.get(:wallet)
@@ -43,8 +42,7 @@ defmodule RoundCommit do
       supply_tx = DetsPlux.tx(stats_dets, :supply)
       DetsPlux.sync(balance_dets, balance_tx)
       DetsPlux.sync(stats_dets, supply_tx)
-      Sqlite.commit(db_ref)
-      Sqlite.begin(db_ref)
+      Sqlite.sync(db_ref)
       DetsPlux.clear_tx(cache_balance_tx)
     end
   end
@@ -55,6 +53,7 @@ defmodule RoundCommit do
     wallet_tx = DetsPlux.tx(:wallet)
 
     Sqlite.rollback(db_ref)
+    Sqlite.begin(db_ref)
     DetsPlux.rollback(wallet_tx)
     DetsPlux.rollback(balance_tx)
     DetsPlux.rollback(supply_tx)

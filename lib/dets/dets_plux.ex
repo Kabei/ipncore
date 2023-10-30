@@ -205,9 +205,6 @@ defmodule DetsPlux do
     end
   end
 
-  # defp key_fun([key, _]), do: key
-  # defp key_fun({key, _}), do: key
-
   @spec tuple(binary, binary) :: binary
   def tuple(k1, k2) do
     IO.iodata_to_binary([k1, "|", k2])
@@ -356,11 +353,11 @@ defmodule DetsPlux do
       [{_key, :delete}] ->
         nil
 
-      [{_key, value}] ->
-        value
+      [{_key, x}] ->
+        x
 
-      [{_key, v1, v2}] ->
-        {v1, v2}
+      [tuple] ->
+        :erlang.delete_element(1, tuple)
 
       [] ->
         call(pid, {:lookup, key, key_hash(key)}) || default
@@ -377,20 +374,20 @@ defmodule DetsPlux do
       [{_key, :delete}] ->
         nil
 
-      [{_key, value}] ->
-        value
+      [{_key, x}] ->
+        x
 
-      [{_key, v1, v2}] ->
-        {v1, v2}
+      [tuple] ->
+        :erlang.delete_element(1, tuple)
 
       [] ->
         case call(pid, {:lookup, key, key_hash(key)}) do
           nil ->
             nil
 
-          z = {x, y} ->
-            :ets.insert(tx, {key, x, y})
-            z
+          # z = {x, y} ->
+          #   :ets.insert(tx, {key, x, y})
+          #   z
 
           ret ->
             # :ets.insert(tx, {key, {key, ret}})
@@ -406,11 +403,11 @@ defmodule DetsPlux do
       [{_key, :delete}] ->
         nil
 
-      [{_key, value}] ->
-        value
+      [{_key, x}] ->
+        x
 
-      [{_key, v1, v2}] ->
-        {v1, v2}
+      [tuple] ->
+        :erlang.delete_element(1, tuple)
 
       [] ->
         case call(pid, {:lookup, key, key_hash(key)}) do
@@ -422,9 +419,9 @@ defmodule DetsPlux do
 
             default
 
-          z = {x, y} ->
-            :ets.insert(tx, {key, x, y})
-            z
+          ret when is_tuple(ret) ->
+            :ets.insert(tx, :erlang.insert_element(1, ret, key))
+            ret
 
           ret ->
             # :ets.insert(tx, {key, {key, ret}})
@@ -897,8 +894,8 @@ defmodule DetsPlux do
     case :ets.lookup(ets_fallback, key) do
       [] -> file_lookup(state, key, hash)
       [{_key, :delete}] -> {:halt, nil}
-      [{_key, object}] -> {:halt, object}
-      [{_key, o1, o2}] -> {:halt, {o1, o2}}
+      [{_key, x}] -> {:halt, x}
+      [tuple] -> {:halt, :erlang.delete_element(1, tuple)}
     end
   end
 
@@ -1673,7 +1670,7 @@ defimpl Enumerable, for: DetsPlux do
           fun.(
             entry ||
               case decode(entry_blob) do
-                {key, {x, y}} -> {key, x, y}
+                {key, tuple} when is_tuple(tuple) -> :erlang.insert_element(1, tuple, key)
                 x -> x
               end,
             acc

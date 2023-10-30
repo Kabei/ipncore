@@ -350,7 +350,7 @@ defmodule Builder do
 
   def coin_multisend(client = %Client{address: address, nonce: nonce}, token, outputs, note \\ "") do
     body =
-      if String.length(note) != 0 do
+      if String.length(note) == 0 do
         [306, nonce, address, token, outputs]
       else
         [306, nonce, address, token, outputs, note]

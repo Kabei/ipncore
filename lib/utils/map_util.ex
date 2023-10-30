@@ -42,7 +42,7 @@ defmodule MapUtil do
 
   ## Validation functions
   def validate_not_empty(nil), do: throw("Error value is empty")
-  def validate_not_empty(x) when x == %{}, do: throw("Error value is empty")
+  def validate_not_empty(x) when map_size(x) == 0, do: throw("Error value is empty")
   def validate_not_empty(map) when is_map(map), do: map
   def validate_not_empty(_), do: throw("Error value is empty")
 

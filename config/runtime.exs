@@ -13,7 +13,7 @@ http_port = System.get_env("HTTP_PORT", "8080") |> String.to_integer()
 config :ipncore, :network,
   handler_module: Ippan.NetworkServer,
   transport_module: ThousandIsland.Transports.TCP,
-  num_acceptors: max(cpus, 10),
+  num_acceptors: 100,
   port: port,
   transport_options: [
     backlog: 1024,
@@ -30,7 +30,7 @@ config :ipncore, :network,
 config :ipncore, :cluster,
   handler_module: Ippan.ClusterServer,
   transport_module: ThousandIsland.Transports.TCP,
-  num_acceptors: max(cpus, 10),
+  num_acceptors: 100,
   port: cluster_port,
   transport_options: [
     backlog: 1024,
@@ -52,7 +52,7 @@ config :ipncore, :http,
     compress: false
   ],
   thousand_island_options: [
-    num_acceptors: 10,
+    num_acceptors: 20,
     read_timeout: 60_000,
     num_connections: 4096,
     max_connections_retry_count: 5,

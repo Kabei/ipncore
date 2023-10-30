@@ -417,7 +417,7 @@ defmodule DetsPlux do
           nil ->
             case is_tuple(default) do
               false -> :ets.insert(tx, {key, default})
-              true -> :ets.insert(tx, Tuple.insert_at(default, 0, key))
+              true -> :ets.insert(tx, :erlang.insert_element(1, default, key))
             end
 
             default

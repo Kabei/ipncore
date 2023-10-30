@@ -207,6 +207,6 @@ defmodule CBOR.Decoder do
 
   defp decode_tuple(size, acc, bin) do
     {value, bin_rest} = decode(bin)
-    decode_tuple(size - 1, Tuple.append(acc, value), bin_rest)
+    decode_tuple(size - 1, :erlang.append_element(acc, value), bin_rest)
   end
 end

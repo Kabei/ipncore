@@ -160,7 +160,7 @@ defimpl CBOR.Encoder, for: Tuple do
     case size <= 255 do
       true ->
         tuple
-        |> Tuple.to_list()
+        |> :erlang.tuple_to_list()
         |> Enum.reduce(<<acc::binary, 0xC4, 0x04, size>>, fn v, acc ->
           CBOR.Encoder.encode_into(v, acc)
         end)

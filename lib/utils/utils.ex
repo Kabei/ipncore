@@ -46,25 +46,6 @@ defmodule Ippan.Utils do
     {keys, values}
   end
 
-  def estimate_size(term, depth \\ 0) do
-    case term do
-      bin when is_binary(bin) ->
-        byte_size(bin)
-
-      num when is_number(num) ->
-        8
-
-      enum when is_map(enum) or is_list(enum) ->
-        Enum.reduce(enum, 0, fn term, size -> size + estimate_size(term, depth + 1) end)
-
-      tuple when is_tuple(tuple) ->
-        estimate_size(Tuple.to_list(tuple), depth)
-
-      atom when is_atom(atom) ->
-        8
-    end
-  end
-
   @spec calc_fees(a :: integer(), b :: integer(), size :: pos_integer()) :: integer()
   def calc_fees(0, 0, _size), do: 1
   def calc_fees(a, b, size), do: a * size + b

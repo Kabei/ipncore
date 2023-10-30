@@ -48,7 +48,8 @@ defmodule BalanceStore do
   end
 
   defmacro refund(from, old_sender, token, amount) do
-    quote bind_quoted: [from: from, to: old_sender, token: token, amount: amount], location: :keep do
+    quote bind_quoted: [from: from, to: old_sender, token: token, amount: amount],
+          location: :keep do
       balance_key = DetsPlux.tuple(from, token)
       to_balance_key = DetsPlux.tuple(to, token)
       DetsPlux.get_cache(var!(dets), var!(tx), balance_key, {0, 0})
@@ -59,18 +60,18 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro fees(fees, remove) do
-    quote bind_quoted: [fees: fees, remove: remove, token: @token], location: :keep do
+  defmacro fees(fees, burn) do
+    quote bind_quoted: [fees: fees, burn: burn, token: @token], location: :keep do
       if fees > 0 do
-        balance_key = DetsPlux.tuple(var!(from), var!(token_id))
-        validator_key = DetsPlux.tuple(var!(vOwner), var!(token_id))
+        balance_key = DetsPlux.tuple(var!(from), token)
+        validator_key = DetsPlux.tuple(var!(vOwner), token)
         DetsPlux.get_cache(var!(dets), var!(tx), balance_key, {0, 0})
         DetsPlux.get_cache(var!(dets), var!(tx), validator_key, {0, 0})
 
-        DetsPlux.update_counter(var!(tx), balance_key, {2, -fees - remove})
+        DetsPlux.update_counter(var!(tx), balance_key, {2, -fees - burn})
         DetsPlux.update_counter(var!(tx), validator_key, {2, fees})
       else
-        BalanceStore.burn(var!(from), token, remove)
+        BalanceStore.burn(var!(from), token, burn)
       end
     end
   end

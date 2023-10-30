@@ -1,6 +1,5 @@
 defmodule Ippan.Funcs do
-  alias Ippan.Func
-  alias Ippan.Funx
+  alias Ippan.{Func, Funx}
 
   @spec lookup(fun_id :: non_neg_integer()) :: Func.t() | :undefined
   def lookup(0) do

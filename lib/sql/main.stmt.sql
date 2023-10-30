@@ -173,8 +173,11 @@ REPLACE INTO assets.refund VALUES(?1,?2,?3,?4,?5,?6);
 --name: exists_refund
 SELECT 1 FROM assets.refund WHERE hash = ?1 AND `to` = ?2;
 
---name: delete_get_refund
-DELETE FROM assets.refund WHERE hash = ?1 AND `to` = ?2 RETURNING sender, token, amount;
+--name: get_refund
+SELECT sender, token, amount FROM assets.refund WHERE hash = ?1 AND `to` = ?2;
+
+--name: delete_refund
+DELETE FROM assets.refund WHERE hash = ?1 AND `to` = ?2;
 
 --name: expiry_refund
 DELETE FROM assets.refund WHERE expiry_in < ?1;

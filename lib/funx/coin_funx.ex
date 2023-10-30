@@ -140,8 +140,9 @@ defmodule Ippan.Funx.Coin do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
 
-    case Sqlite.step("delete_get_refund", [hash, from]) do
+    case Sqlite.step("get_refund", [hash, from]) do
       {:row, [to, token_id, refund_amount]} ->
+        Sqlite.step("delete_refund", [hash, from])
         BalanceStore.refund(from, to, token_id, refund_amount)
 
       _ ->

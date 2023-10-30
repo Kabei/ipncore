@@ -134,19 +134,19 @@ defmodule Ippan.Funx.Coin do
     BalanceStore.burn(account_id, token_id, amount)
   end
 
-  def refund(
-        %{id: from, round: round_id},
-        hash16
-      ) do
+  def refund(%{id: from}, hash16) do
     hash = Base.decode16!(hash16, case: :mixed)
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
 
-    {:row, [to, token_id, refund_amount]} =
-      Sqlite.step("get_delete_refund", [hash, from, round_id])
+    case Sqlite.step("delete_get_refund", [hash, from]) do
+      {:row, [to, token_id, refund_amount]} ->
+        BalanceStore.refund(from, to, token_id, refund_amount)
 
-    BalanceStore.refund(refund_amount)
+      _ ->
+        :error
+    end
   end
 
   def lock(_source, to, token_id, amount) do

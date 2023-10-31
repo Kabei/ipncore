@@ -56,7 +56,7 @@ defmodule EnvStore do
   end
 
   defp transform("OWNER", x) when byte_size(x) < 255 or is_nil(x), do: x
-  defp transform("OWNER", x), do: nil
+  defp transform("OWNER", _x), do: nil
 
   defp transform("TOKEN.PRICE", x), do: if(is_integer(x) and x > 0, do: x, else: 50_000)
 

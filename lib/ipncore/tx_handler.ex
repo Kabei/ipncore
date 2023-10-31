@@ -5,7 +5,6 @@ defmodule Ippan.TxHandler do
     quote location: :keep do
       case var!(return) do
         x when is_map(x) ->
-          # Check balance
           dets = DetsPlux.get(:balance)
           cache = DetsPlux.tx(dets, :cache_balance)
 

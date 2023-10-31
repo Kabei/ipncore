@@ -1,7 +1,7 @@
 defmodule TokenSupply do
   @db :stats
   @tx :supply
-  @cache_tx :cache_supply
+  # @cache_tx :cache_supply
   @word "supply"
 
   defstruct db: nil, tx: nil, key: nil
@@ -17,18 +17,6 @@ defmodule TokenSupply do
     tx = DetsPlux.tx(db, @tx)
     key = key(id)
     DetsPlux.get_cache(db, tx, key, 0)
-
-    %__MODULE__{
-      db: db,
-      tx: tx,
-      key: key
-    }
-  end
-
-  def cache(id) do
-    db = DetsPlux.get(@db)
-    tx = DetsPlux.tx(db, @cache_tx)
-    key = key(id)
 
     %__MODULE__{
       db: db,

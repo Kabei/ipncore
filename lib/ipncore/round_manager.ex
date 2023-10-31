@@ -567,7 +567,6 @@ defmodule RoundManager do
   defmacrop run_reward do
     quote location: :keep do
       reward = Round.calc_reward(var!(tx_count), var!(txs_rejected), var!(size))
-      total = TokenSupply.get(var!(supply)) + reward
 
       case reward > 0 and var!(max_supply) >= total do
         true ->
@@ -581,7 +580,7 @@ defmodule RoundManager do
           )
 
           # Update Token Supply
-          TokenSupply.put(var!(supply), total)
+          TokenSupply.add(var!(supply), reward)
           reward
 
         false ->
@@ -759,14 +758,14 @@ defmodule RoundManager do
                     [_hash, _type, account_id, _nonce, _args, _size] ->
                       BalanceStore.income(balances, balance_tx, account_id, @token, reward)
                       # Update Token Supply
-                      TokenSupply.put(supply, new_amount)
+                      TokenSupply.add(supply, reward)
 
                       account_id
 
                     [_hash, _type, _arg_key, account_id, _nonce, _args, _size] ->
                       BalanceStore.income(balances, balance_tx, account_id, @token, reward)
                       # Update Token Supply
-                      TokenSupply.put(supply, new_amount)
+                      TokenSupply.add(supply, reward)
                       account_id
                   end
 

@@ -80,7 +80,8 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
     %{name: "OWNER", value: address},
     %{name: "ROUND.BLOCKS", value: 50_000},
     %{name: "TOKEN.PRICE", value: 50_000},
-    %{name: "VALIDATOR.PRICE", value: 100_000}
+    %{name: "VALIDATOR.PRICE", value: 100_000},
+    %{name: "BURN", value: 0.3}
   ],
   "tokens" => [
     %{

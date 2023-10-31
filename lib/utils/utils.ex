@@ -50,6 +50,9 @@ defmodule Ippan.Utils do
   def calc_fees(0, 0, _size), do: 1
   def calc_fees(a, b, size), do: a * size + b
 
+  @spec calc_burn(integer()) :: integer()
+  def calc_burn(fees), do: ceil(fees * :persistent_term.get({:env, "BURN"}, 0.3))
+
   def get_name_from_node(node_name) do
     node_name |> to_string() |> String.split("@") |> hd
   end

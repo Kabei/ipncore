@@ -31,7 +31,7 @@ DELETE FROM assets.token WHERE id = ?1 AND owner = ?2;
 
 
 --name: insert_domain
-INSERT INTO assets.domain VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);
+INSERT INTO assets.domain VALUES(?1,?2,?3,?4,?5,?6,?7,?8);
 
 --name: get_domain
 SELECT * FROM assets.domain WHERE name = ? LIMIT 1;

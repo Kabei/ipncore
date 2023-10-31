@@ -47,6 +47,10 @@ defmodule EnvStore do
     :persistent_term.get({:env, "FEES"}, 1)
   end
 
+  def burn do
+    :persistent_term.get({:env, "BURN"}, 0.3)
+  end
+
   def round_blocks do
     :persistent_term.get({:env, "ROUND.BLOCKS"}, 10)
   end
@@ -58,6 +62,8 @@ defmodule EnvStore do
   defp transform("FEES", x), do: if(is_integer(x) and x > 0, do: x, else: 1)
 
   defp transform("ROUND.BLOCKS", x), do: if(x in 1..100, do: x, else: 10)
+
+  defp transform("BURN", x), do: if(is_float(x) and x >= 0 and x <= 1, do: x, else: 0.3)
 
   defp transform(_, x), do: x
 end

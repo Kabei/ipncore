@@ -7,7 +7,6 @@ defmodule Ippan.Domain do
           email: String.t(),
           avatar: String.t(),
           records: non_neg_integer(),
-          enabled: boolean(),
           created_at: non_neg_integer(),
           renewed_at: non_neg_integer(),
           updated_at: non_neg_integer()
@@ -67,7 +66,6 @@ defmodule Ippan.Domain do
             email: nil,
             avatar: nil,
             records: 0,
-            enabled: true,
             created_at: nil,
             renewed_at: nil,
             updated_at: nil
@@ -85,7 +83,6 @@ defmodule Ippan.Domain do
       x.email,
       x.avatar,
       x.records,
-      x.enabled,
       x.created_at,
       x.renewed_at,
       x.updated_at
@@ -103,7 +100,6 @@ defmodule Ippan.Domain do
         email,
         avatar,
         records,
-        enabled,
         created_at,
         renewed_at,
         updated_at
@@ -114,7 +110,6 @@ defmodule Ippan.Domain do
       email: email,
       avatar: avatar,
       records: records,
-      enabled: enabled,
       created_at: created_at,
       renewed_at: renewed_at,
       updated_at: updated_at

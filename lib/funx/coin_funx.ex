@@ -22,7 +22,7 @@ defmodule Ippan.Funx.Coin do
     tx = DetsPlux.tx(dets, :balance)
     supply = TokenSupply.new(@token)
     tfees = Utils.calc_fees(fa, fb, size)
-    burn = ceil(tfees * 0.3)
+    burn = Utils.calc_burn(tfees)
 
     BalanceStore.send(amount)
 
@@ -74,7 +74,7 @@ defmodule Ippan.Funx.Coin do
     tx = DetsPlux.tx(dets, :balance)
     supply = TokenSupply.new(token_id)
     tfees = Utils.calc_fees(fa, fb, size)
-    burn = ceil(tfees * 0.3)
+    burn = Utils.calc_burn(tfees)
 
     total =
       for [account, value] <- outputs do
@@ -114,7 +114,7 @@ defmodule Ippan.Funx.Coin do
     end)
 
     tfees = Utils.calc_fees(fa, fb, size)
-    burn = ceil(tfees * 0.3)
+    burn = Utils.calc_burn(tfees)
 
     if is_validator do
       BalanceStore.burn(from, @token, burn)

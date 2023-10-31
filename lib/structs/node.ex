@@ -100,9 +100,9 @@ defmodule Ippan.Node do
     String.split(roles, " ", trim: true)
   end
 
-  defmacro insert(node) do
+  defmacro insert(args) do
     quote do
-      Sqlite.step("insert_node", unquote(node))
+      Sqlite.step("insert_node", unquote(args))
     end
   end
 

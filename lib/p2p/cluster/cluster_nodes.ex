@@ -21,39 +21,7 @@ defmodule Ippan.ClusterNodes do
     sup: Ippan.ClusterSup
 
   def on_init(_) do
-    nodes = System.get_env("NODES")
-
-    if is_nil(nodes) do
-      IO.puts(IO.ANSI.red() <> "ERROR: variable NODES is missing" <> IO.ANSI.reset())
-      System.halt(1)
-    end
-
-    pk = :persistent_term.get(:pubkey)
-    net_pk = :persistent_term.get(:net_pubkey)
-    db_ref = :persistent_term.get(:net_conn)
-    default_port = Application.get_env(@app, :cluster)[:port]
     :persistent_term.put(:msg_counter, :counters.new(1, []))
-
-    # registry cluster nodes
-    String.split(nodes, ",", trim: true)
-    |> Enum.reduce([], fn x, acc ->
-      acc ++ [String.split(x, "@", parts: 2)]
-    end)
-    |> Enum.each(fn [name_id, hostname] ->
-      data =
-        %Node{
-          id: name_id,
-          hostname: hostname,
-          port: default_port,
-          pubkey: pk,
-          net_pubkey: net_pk
-        }
-        |> Node.to_list()
-
-      Node.insert(data)
-    end)
-
-    Sqlite.sync(db_ref)
   end
 
   @impl Network

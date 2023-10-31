@@ -1,5 +1,7 @@
 defmodule NetStore do
+  alias Ippan.Node
   alias Exqlite.Sqlite3NIF
+  require Ippan.Node
   require Sqlite
 
   @version 0
@@ -16,6 +18,7 @@ defmodule NetStore do
   # databases
   @attaches %{}
 
+  @app Mix.Project.config()[:app]
   @name "network"
   @filename "network.db"
   @key_conn :net_conn
@@ -40,7 +43,50 @@ defmodule NetStore do
     # begin tx
     Sqlite.begin(db_ref)
 
+    load_nodes(db_ref)
+
     :ignore
+  end
+
+  defp load_nodes(db_ref) do
+    if Node.total() == 0 do
+      nodes = System.get_env("NODES")
+
+      if is_nil(nodes) do
+        IO.puts(IO.ANSI.red() <> "ERROR: variable NODES is missing" <> IO.ANSI.reset())
+        System.halt(1)
+      end
+
+      pk = :persistent_term.get(:pubkey)
+      net_pk = :persistent_term.get(:net_pubkey)
+      default_port = Application.get_env(@app, :cluster)[:port]
+      timestamp = :erlang.system_time(:millisecond)
+
+      # registry cluster nodes
+      nodes
+      |> String.trim()
+      |> String.split(~r/,|\|| /, trim: true)
+      |> Enum.reduce([], fn x, acc ->
+        acc ++ [String.split(x, "@", parts: 2)]
+      end)
+      |> Enum.each(fn [name_id, hostname] ->
+        data =
+          %Node{
+            id: name_id,
+            hostname: hostname,
+            port: default_port,
+            pubkey: pk,
+            net_pubkey: net_pk,
+            created_at: timestamp,
+            updated_at: timestamp
+          }
+          |> Node.to_list()
+
+        Node.insert(data)
+      end)
+
+      Sqlite.sync(db_ref)
+    end
   end
 
   def terminate do

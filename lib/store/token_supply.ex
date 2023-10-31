@@ -48,4 +48,9 @@ defmodule TokenSupply do
   def subtract(%{tx: tx, key: key}, amount) do
     DetsPlux.update_counter(tx, key, -amount)
   end
+
+  @spec delete(map) :: true
+  def delete(%{tx: tx, key: key}) do
+    DetsPlux.delete(tx, key)
+  end
 end

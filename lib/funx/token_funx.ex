@@ -89,6 +89,7 @@ defmodule Ippan.Funx.Token do
 
     if TokenSupply.get(supply) == 0 do
       Token.delete(id, account_id)
+      TokenSupply.delete(supply)
     end
   end
 end

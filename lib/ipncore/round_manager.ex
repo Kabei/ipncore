@@ -567,6 +567,7 @@ defmodule RoundManager do
   defmacrop run_reward do
     quote location: :keep do
       reward = Round.calc_reward(var!(tx_count), var!(txs_rejected), var!(size))
+      total = TokenSupply.get(var!(supply)) + reward
 
       case reward > 0 and var!(max_supply) >= total do
         true ->

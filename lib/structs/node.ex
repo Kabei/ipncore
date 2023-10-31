@@ -8,7 +8,9 @@ defmodule Ippan.Node do
           role: [binary] | nil,
           pubkey: binary,
           net_pubkey: binary,
-          avatar: binary | nil
+          avatar: binary | nil,
+          created_at: integer(),
+          updated_at: integer()
         }
 
   defstruct [
@@ -18,8 +20,20 @@ defmodule Ippan.Node do
     :role,
     :pubkey,
     :net_pubkey,
-    :avatar
+    :avatar,
+    :created_at,
+    :updated_at
   ]
+
+  # @fields __MODULE__.__struct__() |> Map.keys() |> Enum.map(&to_string(&1)) |> IO.inspect()
+  # @spec fields :: [binary()]
+  # def fields, do: @fields
+
+  @impl true
+  def editable, do: ~w(hostname port role avatar)
+
+  @impl true
+  def optionals, do: ~w(avatar)
 
   @impl true
   def to_list(x) do
@@ -27,10 +41,12 @@ defmodule Ippan.Node do
       x.id,
       x.hostname,
       x.port,
-      CBOR.encode(x.role),
+      role_encode(x.role),
       x.pubkey,
       x.net_pubkey,
-      x.avatar
+      x.avatar,
+      x.created_at,
+      x.updated_at
     ]
   end
 
@@ -52,21 +68,37 @@ defmodule Ippan.Node do
         role,
         pubkey,
         net_pubkey,
-        avatar
+        avatar,
+        created_at,
+        updated_at
       ]) do
     %{
       id: id,
       hostname: hostname,
       port: port,
-      role: :erlang.element(1, CBOR.Decoder.decode(role)),
+      role: role_decode(role),
       pubkey: pubkey,
       net_pubkey: net_pubkey,
-      avatar: avatar
+      avatar: avatar,
+      created_at: created_at,
+      updated_at: updated_at
     }
   end
 
   @impl true
   def to_map({_id, x}), do: x
+
+  def role_encode(nil), do: nil
+
+  def role_encode(roles) do
+    Enum.join(roles, " ")
+  end
+
+  def role_decode(nil), do: nil
+
+  def role_decode(roles) do
+    String.split(roles, " ", trim: true)
+  end
 
   defmacro insert(node) do
     quote do
@@ -87,6 +119,24 @@ defmodule Ippan.Node do
   defmacro fetch(id) do
     quote location: :keep do
       Sqlite.fetch("get_node", [unquote(id)])
+    end
+  end
+
+  defmacro total do
+    quote location: :keep do
+      Sqlite.one("total_nodes", [])
+    end
+  end
+
+  defmacro update(map_fields, id) do
+    quote location: :keep do
+      Sqlite.update("nodes", unquote(map_fields), id: unquote(id))
+    end
+  end
+
+  defmacro delete(id) do
+    quote location: :keep do
+      Sqlite.step("delete_node", [unquote(id)])
     end
   end
 

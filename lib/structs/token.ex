@@ -131,6 +131,7 @@ defmodule Ippan.Token do
   defmacro delete(id, owner) do
     quote bind_quoted: [id: id, owner: owner], location: :keep do
       Sqlite.step("delete_token", [id, owner])
+      :ets.delete(:token, id)
     end
   end
 

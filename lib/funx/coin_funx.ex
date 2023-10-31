@@ -72,7 +72,7 @@ defmodule Ippan.Funx.Coin do
     is_validator = vOwner == from
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-    supply = TokenSupply.new(@token)
+    supply = TokenSupply.new(token_id)
     tfees = Utils.calc_fees(fa, fb, size)
     burn = ceil(tfees * 0.3)
 
@@ -84,6 +84,8 @@ defmodule Ippan.Funx.Coin do
       |> Enum.sum()
 
     TokenSupply.add(supply, total)
+
+    supply = TokenSupply.new(@token)
 
     if is_validator do
       BalanceStore.burn(from, @token, burn)

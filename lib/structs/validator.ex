@@ -163,6 +163,7 @@ defmodule Ippan.Validator do
   defmacro delete(id) do
     quote bind_quoted: [id: id], location: :keep do
       Sqlite.step("delete_validator", [id])
+      :ets.delete(:validator, id)
     end
   end
 

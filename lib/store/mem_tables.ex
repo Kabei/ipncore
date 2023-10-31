@@ -23,8 +23,7 @@ defmodule MemTables do
     dtx: "dtx",
     # cache
     token: "token",
-    validator: "validator",
-    env: "env"
+    validator: "validator"
   }
 
   @tables_opt %{

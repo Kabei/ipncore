@@ -71,7 +71,7 @@ defmodule Ippan.Wallet do
   def gte_nonce!(dets, tx, from, nonce) do
     DetsPlux.get_cache(dets, tx, from, 0)
 
-    if nonce <= DetsPlux.update_counter(tx, from, 1) do
+    if nonce < DetsPlux.update_counter(tx, from, 1) do
       raise IppanError, "Invalid nonce"
     end
   end

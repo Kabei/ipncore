@@ -29,22 +29,19 @@ defmodule RoundCommit do
       |> Task.await_many(:infinity)
 
       if is_some_block_mine do
-        clear_cache()
-      else
-        cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
-        DetsPlux.clear_tx(cache_balance_tx)
+        MemTables.clear_cache()
       end
     else
       balance_dets = DetsPlux.get(:balance)
       balance_tx = DetsPlux.tx(balance_dets, :balance)
-      cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
       stats_dets = DetsPlux.get(:stats)
       supply_tx = DetsPlux.tx(stats_dets, :supply)
       DetsPlux.sync(balance_dets, balance_tx)
       DetsPlux.sync(stats_dets, supply_tx)
       Sqlite.sync(db_ref)
-      DetsPlux.clear_tx(cache_balance_tx)
     end
+
+    clear_cache()
   end
 
   def rollback(db_ref) do
@@ -63,10 +60,9 @@ defmodule RoundCommit do
   defp clear_cache do
     cache_wallet_tx = DetsPlux.tx(:wallet, :cache_wallet)
     cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
-    # cache_nonce_tx = DetsPlux.tx(:nonce, :cache_nonce)
+    cache_nonce_tx = DetsPlux.tx(:nonce, :cache_nonce)
     DetsPlux.clear_tx(cache_wallet_tx)
     DetsPlux.clear_tx(cache_balance_tx)
-    # DetsPlux.clear_tx(cache_nonce_tx)
-    MemTables.clear_cache()
+    DetsPlux.clear_tx(cache_nonce_tx)
   end
 end

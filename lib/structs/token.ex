@@ -130,13 +130,14 @@ defmodule Ippan.Token do
 
   defmacro delete(id, owner) do
     quote bind_quoted: [id: id, owner: owner], location: :keep do
-      Sqlite.step("delete_token", [id, owner])
       :ets.delete(:token, id)
+      Sqlite.step("delete_token", [id, owner])
     end
   end
 
   defmacro update(map, id) do
     quote location: :keep do
+      :ets.delete(:token, id)
       Sqlite.update("assets.token", unquote(map), id: unquote(id))
     end
   end

@@ -64,7 +64,7 @@ defmodule Ippan.Wallet do
 
     if DetsPlux.update_counter(tx, from, 1) != nonce do
       DetsPlux.update_counter(tx, from, -1)
-      raise IppanError, "Invalid nonce"
+      raise IppanError, "Invalid nonce x3"
     end
   end
 
@@ -74,7 +74,7 @@ defmodule Ippan.Wallet do
     count = DetsPlux.get_cache(dets, tx, from, 0) + 1
 
     if count > nonce do
-      raise IppanError, "Invalid nonce"
+      raise IppanError, "Invalid nonce x4"
     end
   end
 end

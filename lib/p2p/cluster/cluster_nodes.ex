@@ -48,7 +48,7 @@ defmodule Ippan.ClusterNodes do
         case Wallet.update_nonce(dets, cache, from, nonce) do
           :error ->
             :ets.delete(:hash, hash_key)
-            ["error", "Invalid nonce"]
+            ["error", "Invalid nonce x1"]
 
           _ ->
             IO.puts("The check return")
@@ -103,7 +103,7 @@ defmodule Ippan.ClusterNodes do
               :error ->
                 :ets.delete(:hash, hash_key)
                 :ets.delete(:dhash, msg_key)
-                ["error", "Invalid nonce"]
+                ["error", "Invalid nonce x2"]
 
               _ ->
                 case TxHandler.check_return() do

@@ -83,6 +83,8 @@ defmodule Ippan.ClusterNodes do
         _state
       ) do
     hash_key = {from, nonce}
+    dets = DetsPlux.get(:nonce)
+    cache = DetsPlux.tx(dets, :cache_nonce)
 
     case :ets.insert_new(:hash, {hash_key, nil}) do
       true ->
@@ -94,9 +96,6 @@ defmodule Ippan.ClusterNodes do
         case :ets.insert_new(:dhash, {msg_key, hash, height}) do
           true ->
             [args, msg_sig, size] = rest
-
-            dets = DetsPlux.get(:nonce)
-            cache = DetsPlux.tx(dets, :cache_nonce)
 
             IO.puts("The nonce")
 
@@ -129,6 +128,7 @@ defmodule Ippan.ClusterNodes do
 
           false ->
             :ets.delete(:hash, hash_key)
+            Wallet.revert_nonce(cache, from)
             ["error", "Deferred transaction already exists"]
         end
 

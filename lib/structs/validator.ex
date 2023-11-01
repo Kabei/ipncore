@@ -161,17 +161,17 @@ defmodule Ippan.Validator do
     end
   end
 
+  defmacro update(map, id) do
+    quote bind_quoted: [map: map, id: id], location: :keep do
+      :ets.delete(:validator, id)
+      Sqlite.update("blockchain.validator", map, id: id)
+    end
+  end
+
   defmacro delete(id) do
     quote bind_quoted: [id: id], location: :keep do
       :ets.delete(:validator, id)
       Sqlite.step("delete_validator", [id])
-    end
-  end
-
-  defmacro update(map, id) do
-    quote location: :keep do
-      :ets.delete(:validator, id)
-      Sqlite.update("blockchain.validator", unquote(map), id: unquote(id))
     end
   end
 end

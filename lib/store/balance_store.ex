@@ -7,7 +7,8 @@ defmodule BalanceStore do
       DetsPlux.get_cache(dets, tx, key, {0, 0})
 
       if DetsPlux.update_counter(tx, key, {2, -value}) < 0 do
-        raise IppanError, "Insufficient balance"
+        DetsPlux.update_counter(tx, key, {2, value})
+        raise IppanError, "Insufficient balance x3"
       end
     end
   end
@@ -18,7 +19,8 @@ defmodule BalanceStore do
         DetsPlux.get_cache(dets, tx, key, {0, 0})
 
         if DetsPlux.update_counter(tx, key, {2, -value}) < 0 do
-          raise IppanError, "Insufficient balance"
+          DetsPlux.update_counter(tx, key, {2, value})
+          raise IppanError, "Insufficient balance x4"
         end
       end)
     end

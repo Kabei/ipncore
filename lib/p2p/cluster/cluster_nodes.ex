@@ -56,7 +56,8 @@ defmodule Ippan.ClusterNodes do
             case TxHandler.check_return() do
               false ->
                 :ets.delete(:hash, hash_key)
-                raise IppanError, "Insufficient balance"
+                Wallet.revert_nonce(cache, from)
+                raise IppanError, "Insufficient balance x1"
 
               _ ->
                 IO.puts("The insert")
@@ -110,7 +111,8 @@ defmodule Ippan.ClusterNodes do
                   false ->
                     :ets.delete(:hash, hash_key)
                     :ets.delete(:dhash, msg_key)
-                    raise IppanError, "Insufficient balance"
+                    Wallet.revert_nonce(cache, from)
+                    raise IppanError, "Insufficient balance x2"
 
                   _ ->
                     IO.puts("The insert")

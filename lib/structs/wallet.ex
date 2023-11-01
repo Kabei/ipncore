@@ -77,4 +77,8 @@ defmodule Ippan.Wallet do
       raise IppanError, "Invalid nonce x4"
     end
   end
+
+  def revert_nonce(tx, from) do
+    DetsPlux.update_counter(tx, from, -1)
+  end
 end

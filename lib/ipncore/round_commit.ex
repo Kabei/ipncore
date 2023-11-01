@@ -41,7 +41,7 @@ defmodule RoundCommit do
       Sqlite.sync(db_ref)
     end
 
-    clear_cache()
+    # clear_cache()
   end
 
   def rollback(db_ref) do
@@ -54,17 +54,17 @@ defmodule RoundCommit do
     DetsPlux.rollback(wallet_tx)
     DetsPlux.rollback(balance_tx)
     DetsPlux.rollback(supply_tx)
-    clear_cache()
+    # clear_cache()
   end
 
-  defp clear_cache do
-    cache_wallet_tx = DetsPlux.tx(:wallet, :cache_wallet)
-    cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
+  # defp clear_cache do
+    # cache_wallet_tx = DetsPlux.tx(:wallet, :cache_wallet)
+    # cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
     # cache_nonce_tx = DetsPlux.tx(:nonce, :cache_nonce)
-    cache_supply = DetsPlux.tx(:stats, :cache_supply)
-    DetsPlux.clear_tx(cache_wallet_tx)
-    DetsPlux.clear_tx(cache_balance_tx)
+    # cache_supply = DetsPlux.tx(:stats, :cache_supply)
+    # DetsPlux.clear_tx(cache_wallet_tx)
+    # DetsPlux.clear_tx(cache_balance_tx)
     # DetsPlux.clear_tx(cache_nonce_tx)
-    DetsPlux.clear_tx(cache_supply)
-  end
+    # DetsPlux.clear_tx(cache_supply)
+  # end
 end

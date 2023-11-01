@@ -63,9 +63,14 @@ defmodule TokenSupply do
     DetsPlux.update_counter(tx, key, -amount)
   end
 
-  @spec exceeded?(map, number(), number()) :: boolean()
-  def exceeded?(%{tx: tx, key: key}, amount, max_supply) do
-    DetsPlux.update_counter(tx, key, amount) > max_supply
+  @spec exceeded!(map, number(), number()) :: :ok | no_return()
+  def exceeded!(%{tx: tx, key: key}, amount, max_supply) do
+    if DetsPlux.update_counter(tx, key, amount) > max_supply do
+      DetsPlux.update_counter(tx, key, -amount)
+      raise IppanError, "max supply exceeded"
+    else
+      :ok
+    end
   end
 
   @spec delete(map) :: true

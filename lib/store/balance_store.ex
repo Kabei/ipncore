@@ -15,14 +15,26 @@ defmodule BalanceStore do
 
   defmacro multi_requires!(dets, tx, key_value_list) do
     quote bind_quoted: [dets: dets, tx: tx, list: key_value_list], location: :keep do
-      Enum.each(list, fn {key, value} ->
+      Enum.reduce_while(list, [], fn kv = {key, value}, acc ->
         DetsPlux.get_cache(dets, tx, key, {0, 0})
 
         if DetsPlux.update_counter(tx, key, {2, -value}) < 0 do
           DetsPlux.update_counter(tx, key, {2, value})
-          raise IppanError, "Insufficient balance x4"
+          {:halt, {:error, acc}}
+        else
+          {:cont, [kv | acc]}
         end
       end)
+      |> case do
+        {:error, balances} ->
+          # revert balances
+          Enum.each(balances, fn {key, value} ->
+            DetsPlux.update_counter(tx, key, {2, value})
+          end)
+
+        _ ->
+          :ok
+      end
     end
   end
 

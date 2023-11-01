@@ -95,7 +95,7 @@ defmodule Ippan.ClusterNodes do
             [args, msg_sig, size] = rest
 
             dets = DetsPlux.get(:nonce)
-            cache = DetsPlux.tx(:nonce, :cache_nonce)
+            cache = DetsPlux.tx(dets, :cache_nonce)
 
             IO.puts("The nonce")
 

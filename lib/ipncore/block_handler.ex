@@ -149,9 +149,9 @@ defmodule Ippan.BlockHandler do
             do_iterate(
               next,
               ets_msg,
+              refs,
               [msg_sig | acc_msg],
-              [decode | acc_decode],
-              cref
+              [decode | acc_decode]
             )
 
           false ->

@@ -105,21 +105,42 @@ defmodule Ippan.BlockHandler do
   end
 
   defp do_iterate(first, ets, cref) do
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(dets, :tmp)
-    do_iterate(first, ets, {dets, tx, cref}, [], [])
+    bdets = DetsPlux.get(:balance)
+    wdets = DetsPlux.get(:wallet)
+    sdets = DetsPlux.get(:stats)
+    btx = :ets.new(:balance, [:set])
+    wtx = :ets.new(:wallet, [:set])
+    stx = :ets.new(:supply, [:set])
+
+    refs = %{
+      cref: cref,
+      wallet: {wdets, wtx},
+      balance: {bdets, btx},
+      supply: {sdets, stx}
+    }
+
+    do_iterate(first, ets, refs, [], [])
   end
 
   defp do_iterate(
          :"$end_of_table",
          _ets_msg,
-         _refs,
+         refs,
          acc_msg,
          acc_decode
-       ),
-       do: {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
+       ) do
+    delete_refs(refs)
 
-  defp do_iterate(ix, ets_msg, refs = {dets, tx, cref}, acc_msg, acc_decode) do
+    {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
+  end
+
+  defp do_iterate(
+         ix,
+         ets_msg,
+         %{balance: balances, cref: cref, supply: supplies, wallet: wallets} = refs,
+         acc_msg,
+         acc_decode
+       ) do
     {decode, from, msg_sig, return, size} =
       case :ets.lookup(ets_msg, ix) do
         [{_ix, 0, decode = [_hash, _type, from, nonce, _args, size], msg_sig, return}] ->
@@ -135,7 +156,7 @@ defmodule Ippan.BlockHandler do
     :ets.delete(ets_msg, ix)
     next = :ets.next(ets_msg, ix)
 
-    case check_wallet(from) and check_return(dets, tx, return) do
+    case check_wallet(wallets, from) and check_return(balances, supplies, return) do
       false ->
         do_iterate(next, ets_msg, refs, acc_msg, acc_decode)
 
@@ -155,24 +176,25 @@ defmodule Ippan.BlockHandler do
             )
 
           false ->
+            delete_refs(refs)
             {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
         end
     end
   end
 
-  defp check_return(dets, tx, return) do
+  defp check_return({bdets, btx}, {sdets, stx}, return) do
     case return do
       %{output: balances} ->
         try do
-          BalanceStore.multi_requires!(dets, tx, balances)
+          BalanceStore.multi_requires!(bdets, btx, balances)
         rescue
           _e -> false
         end
 
       %{output: balances, supply: supplies} ->
         try do
-          TokenSupply.multi_requires!(supplies)
-          BalanceStore.multi_requires!(dets, tx, balances)
+          TokenSupply.multi_requires!(sdets, stx, supplies)
+          BalanceStore.multi_requires!(bdets, btx, balances)
         rescue
           _e -> false
         end
@@ -182,11 +204,16 @@ defmodule Ippan.BlockHandler do
     end
   end
 
-  defp check_wallet(from) do
-    dets = DetsPlux.get(:wallet)
-    tx = DetsPlux.tx(dets, :cache_wallet)
+  defp check_wallet({dets, tx}, from) do
     {_pubkey, vid} = DetsPlux.get_cache(dets, tx, from)
 
     vid == :persistent_term.get(:vid)
+  end
+
+  defp delete_refs(refs) do
+    Enum.each(refs, fn
+      {_, {_, tx}} -> :ets.delete(tx)
+      _ -> true
+    end)
   end
 end

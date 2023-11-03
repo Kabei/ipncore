@@ -64,7 +64,7 @@ defmodule TokenSupply do
     DetsPlux.update_counter(tx, key, -amount)
   end
 
-  @spec requires!(map, number(), number()) :: :ok | no_return()
+  @spec requires!(map, number(), number()) :: map | no_return()
   def requires!(ts = %{tx: tx, key: key}, amount, max_supply) do
     if DetsPlux.update_counter(tx, key, amount) > max_supply do
       DetsPlux.update_counter(tx, key, -amount)
@@ -74,11 +74,10 @@ defmodule TokenSupply do
     end
   end
 
-  def multi_requires!(outputs) do
-    db = DetsPlux.get(@db)
-    tx = DetsPlux.tx(db, @cache_tx)
-
+  def multi_requires!(db, tx, outputs) do
     Enum.reduce_while(outputs, [], fn {key, amount, max_supply}, acc ->
+      DetsPlux.get_cache(db, tx, key)
+
       if DetsPlux.update_counter(tx, key, amount) > max_supply do
         DetsPlux.update_counter(tx, key, -amount)
         {:halt, {:error, acc}}

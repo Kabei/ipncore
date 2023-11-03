@@ -126,7 +126,7 @@ defmodule Ippan.BlockHandler do
   defp do_iterate(
          :"$end_of_table",
          _ets,
-         refs,
+         _refs,
          acc_msg,
          acc_decode
        ) do

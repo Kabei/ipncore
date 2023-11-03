@@ -120,22 +120,22 @@ defmodule Ippan.BlockHandler do
        do: {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
 
   defp do_iterate(ix, ets_msg, refs = {dets, tx, cref}, acc_msg, acc_decode) do
-    {decode, msg_sig, return, size} =
+    {decode, from, msg_sig, return, size} =
       case :ets.lookup(ets_msg, ix) do
         [{_ix, 0, decode = [_hash, _type, from, nonce, _args, size], msg_sig, return}] ->
           :ets.delete(:hash, {from, nonce})
-          {decode, msg_sig, return, size}
+          {decode, from, msg_sig, return, size}
 
         [{_ix, 1, decode = [_hash, type, key, from, nonce, _args, size], msg_sig, return}] ->
           :ets.delete(:hash, {from, nonce})
           :ets.delete(:dhash, {type, key})
-          {decode, msg_sig, return, size}
+          {decode, from, msg_sig, return, size}
       end
 
     :ets.delete(ets_msg, ix)
     next = :ets.next(ets_msg, ix)
 
-    case check_return(dets, tx, return) do
+    case check_wallet(from) and check_return(dets, tx, return) do
       false ->
         do_iterate(next, ets_msg, refs, acc_msg, acc_decode)
 
@@ -162,16 +162,31 @@ defmodule Ippan.BlockHandler do
 
   defp check_return(dets, tx, return) do
     case return do
-      x when is_map(x) ->
+      %{output: balances} ->
         try do
-          BalanceStore.multi_requires!(dets, tx, x)
+          BalanceStore.multi_requires!(dets, tx, balances)
         rescue
-          _e ->
-            false
+          _e -> false
+        end
+
+      %{output: balances, supply: supplies} ->
+        try do
+          BalanceStore.multi_requires!(dets, tx, balances)
+          TokenSupply.multi_requires!(supplies)
+        rescue
+          _e -> false
         end
 
       _ ->
         nil
     end
+  end
+
+  defp check_wallet(from) do
+    dets = DetsPlux.get(:wallet)
+    tx = DetsPlux.get(:cache_wallet)
+    {_pubkey, vid} = DetsPlux.get_cache(dets, tx, from)
+
+    vid == :persistent_term.get(:vid)
   end
 end

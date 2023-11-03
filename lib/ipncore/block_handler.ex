@@ -108,9 +108,9 @@ defmodule Ippan.BlockHandler do
     bdets = DetsPlux.get(:balance)
     wdets = DetsPlux.get(:wallet)
     sdets = DetsPlux.get(:stats)
-    btx = :ets.new(:balance, [:set])
-    wtx = :ets.new(:wallet, [:set])
-    stx = :ets.new(:supply, [:set])
+    btx = :ets.new(:balance, [:set, :public])
+    wtx = :ets.new(:wallet, [:set, :public])
+    stx = :ets.new(:supply, [:set, :public])
 
     refs = %{
       balance: {bdets, btx},
@@ -137,7 +137,7 @@ defmodule Ippan.BlockHandler do
   defp do_iterate(
          ix,
          ets_msg,
-         %{balance: balances, cref: cref, supply: supplies, wallet: wallets} = refs,
+         refs = %{balance: balances, cref: cref, supply: supplies, wallet: wallets},
          acc_msg,
          acc_decode
        ) do
@@ -153,8 +153,8 @@ defmodule Ippan.BlockHandler do
           {decode, from, msg_sig, return, size}
       end
 
-    :ets.delete(ets_msg, ix)
     next = :ets.next(ets_msg, ix)
+    :ets.delete(ets_msg, ix)
 
     case check_wallet(wallets, from) and check_return(balances, supplies, return) do
       false ->

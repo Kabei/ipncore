@@ -76,7 +76,7 @@ defmodule TokenSupply do
 
   def multi_requires!(db, tx, outputs) do
     Enum.reduce_while(outputs, [], fn {key, amount, max_supply}, acc ->
-      DetsPlux.get_cache(db, tx, key)
+      DetsPlux.get_cache(db, tx, key, 0)
 
       if DetsPlux.update_counter(tx, key, amount) > max_supply do
         DetsPlux.update_counter(tx, key, -amount)

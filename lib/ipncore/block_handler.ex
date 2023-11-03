@@ -184,7 +184,7 @@ defmodule Ippan.BlockHandler do
 
   defp check_wallet(from) do
     dets = DetsPlux.get(:wallet)
-    tx = DetsPlux.get(:cache_wallet)
+    tx = DetsPlux.tx(dets, :cache_wallet)
     {_pubkey, vid} = DetsPlux.get_cache(dets, tx, from)
 
     vid == :persistent_term.get(:vid)

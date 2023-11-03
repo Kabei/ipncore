@@ -21,7 +21,7 @@ defmodule Ippan.ClusterNodes do
     sup: Ippan.ClusterSup
 
   def on_init(_) do
-    :persistent_term.put(:msg_counter, :counters.new(1, []))
+    :ok
   end
 
   @impl Network

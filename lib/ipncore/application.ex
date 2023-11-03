@@ -22,6 +22,7 @@ defmodule Ipncore.Application do
         NetStore,
         MainStore,
         {PubSub, [name: :pubsub]},
+        BlockTimer,
         ClusterNodes,
         NetworkNodes,
         RoundManager,
@@ -34,6 +35,7 @@ defmodule Ipncore.Application do
   @impl true
   def stop(_state) do
     IO.puts("Stopping application")
+    BlockTimer.save()
   end
 
   defp start_node do

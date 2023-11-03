@@ -64,9 +64,6 @@ defmodule RoundManager do
       :ets.insert(ets_players, Validator.list_to_tuple(v))
     end
 
-    # Start block-timer: keep candidate updated
-    BlockTimer.start_link(%{block_id: current_block_id, creator: vid, db_ref: db_ref})
-
     # start round commit
     # RoundCommit.start_link(nil)
 

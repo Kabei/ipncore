@@ -185,7 +185,7 @@ defmodule Ippan.BlockHandler do
 
   defp check_return({bdets, btx}, {sdets, stx}, return) do
     case return do
-      %{output: balances, supply: supplies} ->
+      %{"output" => balances, "supply" => supplies} ->
         try do
           TokenSupply.multi_requires!(sdets, stx, supplies)
           BalanceStore.multi_requires!(bdets, btx, balances)
@@ -194,7 +194,7 @@ defmodule Ippan.BlockHandler do
           _e -> false
         end
 
-      %{output: balances} ->
+      %{"output" => balances} ->
         try do
           BalanceStore.multi_requires!(bdets, btx, balances)
           true

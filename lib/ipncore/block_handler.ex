@@ -130,7 +130,7 @@ defmodule Ippan.BlockHandler do
          acc_msg,
          acc_decode
        ) do
-    delete_refs(refs)
+    # delete_refs(refs)
 
     {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
   end
@@ -177,7 +177,7 @@ defmodule Ippan.BlockHandler do
             )
 
           false ->
-            delete_refs(refs)
+            # delete_refs(refs)
             {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
         end
     end
@@ -215,10 +215,10 @@ defmodule Ippan.BlockHandler do
     end
   end
 
-  defp delete_refs(refs) do
-    Enum.each(refs, fn
-      {_, {_, tx}} -> :ets.delete(tx)
-      _ -> true
-    end)
-  end
+  # defp delete_refs(refs) do
+  #   Enum.each(refs, fn
+  #     {_, {_, tx}} -> :ets.delete(tx)
+  #     _ -> true
+  #   end)
+  # end
 end

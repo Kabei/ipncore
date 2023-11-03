@@ -385,12 +385,7 @@ defmodule DetsPlux do
           nil ->
             nil
 
-          # z = {x, y} ->
-          #   :ets.insert(tx, {key, x, y})
-          #   z
-
           ret ->
-            # :ets.insert(tx, {key, {key, ret}})
             :ets.insert(tx, {key, ret})
             ret
         end

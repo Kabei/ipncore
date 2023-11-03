@@ -95,6 +95,9 @@ defmodule BlockTimer do
 
     diff = current_block_id - block_id
 
+    task =
+      Task.async(fn -> check(%{state | block_id: current_block_id}, 1) end)
+
     cond do
       diff > 5 ->
         :timer.sleep(@min_time)
@@ -106,7 +109,7 @@ defmodule BlockTimer do
         :timer.sleep(@max_time - diff * @min_time)
     end
 
-    new_state = check(%{state | block_id: current_block_id}, 1)
+    new_state = Task.await(task, :infinity)
 
     {:reply, new_state.candidate, new_state}
   end

@@ -24,6 +24,7 @@ defmodule Ippan.BlockHandler do
       Path.join(:persistent_term.get(:decode_dir), "#{creator_id}.#{height}.#{@decode_extension}")
 
     ets_msg = :ets.whereis(:msg)
+    ets_size = :ets.info(ets_msg, :size)
 
     cond do
       File.exists?(decode_path) and File.exists?(block_path) ->
@@ -52,8 +53,8 @@ defmodule Ippan.BlockHandler do
           vsn: version
         }
 
-      (0 == priority and :ets.info(ets_msg, :size) >= 1_000_000) or
-          (1 == priority and :ets.info(ets_msg, :size) > 0) ->
+      (0 == priority and ets_size >= 1_000_000) or
+          (1 == priority and ets_size > 0) ->
         IO.inspect("MSG Size > 0")
 
         ets_msg = :ets.whereis(:msg)
@@ -108,9 +109,9 @@ defmodule Ippan.BlockHandler do
     bdets = DetsPlux.get(:balance)
     wdets = DetsPlux.get(:wallet)
     sdets = DetsPlux.get(:stats)
-    btx = :ets.new(:balance, [:set, :public])
-    wtx = :ets.new(:wallet, [:set, :public])
-    stx = :ets.new(:supply, [:set, :public])
+    btx = :ets.new(:balance, [:set])
+    wtx = :ets.new(:wallet, [:set])
+    stx = :ets.new(:supply, [:set])
 
     refs = %{
       balance: {bdets, btx},
@@ -124,7 +125,7 @@ defmodule Ippan.BlockHandler do
 
   defp do_iterate(
          :"$end_of_table",
-         _ets_msg,
+         _ets,
          refs,
          acc_msg,
          acc_decode

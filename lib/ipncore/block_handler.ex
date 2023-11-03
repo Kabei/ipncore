@@ -171,14 +171,14 @@ defmodule Ippan.BlockHandler do
 
       %{output: balances, supply: supplies} ->
         try do
-          BalanceStore.multi_requires!(dets, tx, balances)
           TokenSupply.multi_requires!(supplies)
+          BalanceStore.multi_requires!(dets, tx, balances)
         rescue
           _e -> false
         end
 
       _ ->
-        nil
+        true
     end
   end
 

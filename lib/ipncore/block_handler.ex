@@ -113,10 +113,10 @@ defmodule Ippan.BlockHandler do
     stx = :ets.new(:supply, [:set])
 
     refs = %{
-      cref: cref,
-      wallet: {wdets, wtx},
       balance: {bdets, btx},
-      supply: {sdets, stx}
+      cref: cref,
+      supply: {sdets, stx},
+      wallet: {wdets, wtx}
     }
 
     do_iterate(first, ets, refs, [], [])
@@ -205,9 +205,13 @@ defmodule Ippan.BlockHandler do
   end
 
   defp check_wallet({dets, tx}, from) do
-    {_pubkey, vid} = DetsPlux.get_cache(dets, tx, from)
+    case DetsPlux.get_cache(dets, tx, from) do
+      {_pubkey, vid} ->
+        vid == :persistent_term.get(:vid)
 
-    vid == :persistent_term.get(:vid)
+      _ ->
+        true
+    end
   end
 
   defp delete_refs(refs) do

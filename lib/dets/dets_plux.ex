@@ -1625,8 +1625,8 @@ defmodule DetsPlux do
   end
 
   @impl true
-  def terminate(_reason, %State{fp: fp, sync: sync, sync_fallback: fallback}) do
-    if sync do
+  def terminate(_reason, %State{fp: fp, sync_fallback: fallback}) do
+    if fallback do
       # delete transaction
       :ets.delete(fallback)
     end

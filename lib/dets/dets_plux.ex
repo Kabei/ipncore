@@ -646,14 +646,23 @@ defmodule DetsPlux do
 
   def handle_call({:tx, name}, _from, state) do
     tid =
-      :ets.new(name, [
-        @ets_type,
-        :public,
-        read_concurrency: true,
-        write_concurrency: true
-      ])
+      case :persistent_term.get({@txs_suffix, name}, nil) do
+        nil ->
+          tid =
+            :ets.new(name, [
+              @ets_type,
+              :public,
+              read_concurrency: true,
+              write_concurrency: true
+            ])
 
-    :persistent_term.put({@txs_suffix, name}, tid)
+          :persistent_term.put({@txs_suffix, name}, tid)
+          tid
+
+        tid ->
+          tid
+      end
+
     {:reply, tid, state}
   end
 

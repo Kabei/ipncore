@@ -1,16 +1,17 @@
 defmodule Ippan.BlockHandler do
-  alias Ippan.Block
+  alias Ippan.{ClusterNodes, Block}
 
   import Ippan.Block,
     only: [decode_file!: 1, encode_file!: 1, hash_file: 1]
 
+  require BalanceStore
   require Sqlite
 
   @app Mix.Project.config()[:app]
   @version Application.compile_env(@app, :version)
   @block_extension Application.compile_env(@app, :block_extension)
   @decode_extension Application.compile_env(@app, :decode_extension)
-  @max_block_data_size Application.compile_env(@app, :max_block_data_size)
+  @max_size Application.compile_env(@app, :max_block_data_size)
 
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
@@ -55,22 +56,22 @@ defmodule Ippan.BlockHandler do
           (1 == priority and :ets.info(ets_msg, :size) > 0) ->
         IO.inspect("MSG Size > 0")
 
-        ets_dmsg = :ets.whereis(:dmsg)
+        ets_msg = :ets.whereis(:msg)
 
-        :ets.tab2list(ets_msg) |> IO.inspect()
-        :ets.tab2list(ets_dmsg) |> IO.inspect()
+        cref = :counters.new(3, [])
+        first = :ets.first(ets_msg)
 
         {acc_msg, acc_decode} =
-          do_iterate(:ets.first(ets_msg), ets_msg, ets_dmsg, [], [], 0)
+          do_iterate(first, ets_msg, cref)
+
+        ends = :counters.get(cref, 2)
+        count = :counters.get(cref, 3)
 
         content = encode_file!(%{"data" => acc_msg, "vsn" => @version})
-
         File.write(block_path, content)
 
-        File.write(
-          decode_path,
-          encode_file!(%{"data" => acc_decode, "vsn" => @version})
-        )
+        content = encode_file!(%{"data" => acc_decode, "vsn" => @version})
+        File.write(decode_path, content)
 
         {:ok, file_info} = File.stat(block_path)
 
@@ -79,8 +80,13 @@ defmodule Ippan.BlockHandler do
         hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
         {:ok, signature} = Block.sign(hash)
 
+        ClusterNodes.broadcast(%{
+          "event" => "mempool",
+          "data" => %{"count" => count, "height" => height, "starts" => first, "ends" => ends}
+        })
+
         %{
-          count: length(acc_msg),
+          count: count,
           creator: creator_id,
           hash: hash,
           hashfile: hashfile,
@@ -98,39 +104,74 @@ defmodule Ippan.BlockHandler do
     end
   end
 
+  defp do_iterate(first, ets, cref) do
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(dets, :tmp)
+    do_iterate(first, ets, {dets, tx, cref}, [], [])
+  end
+
   defp do_iterate(
          :"$end_of_table",
          _ets_msg,
-         _ets_dmsg,
+         _refs,
          acc_msg,
-         acc_dmsg,
-         _
+         acc_decode
        ),
-       do: {Enum.reverse(acc_msg), Enum.reverse(acc_dmsg)}
+       do: {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
 
-  defp do_iterate(key, ets_msg, ets_dmsg, acc_msg, acc_dmsg, acc_size) do
-    [{_, msg}] = :ets.lookup(ets_msg, key)
-    [{_, dmsg}] = :ets.lookup(ets_dmsg, key)
+  defp do_iterate(ix, ets_msg, refs = {dets, tx, cref}, acc_msg, acc_decode) do
+    {decode, msg_sig, return, size} =
+      case :ets.lookup(ets_msg, ix) do
+        [{_ix, 0, decode = [_hash, _type, from, nonce, _args, size], msg_sig, return}] ->
+          :ets.delete(:hash, {from, nonce})
+          {decode, msg_sig, return, size}
 
-    :ets.delete(ets_msg, key)
-    :ets.delete(ets_dmsg, key)
-    acc_size = acc_size + :lists.last(dmsg)
-    acc_msg = [msg | acc_msg]
-    acc_dmsg = [dmsg | acc_dmsg]
+        [{_ix, 1, decode = [_hash, type, key, from, nonce, _args, size], msg_sig, return}] ->
+          :ets.delete(:hash, {from, nonce})
+          :ets.delete(:dhash, {type, key})
+          {decode, msg_sig, return, size}
+      end
 
-    case @max_block_data_size > acc_size do
-      true ->
-        do_iterate(
-          :ets.next(ets_msg, key),
-          ets_msg,
-          ets_dmsg,
-          acc_msg,
-          acc_dmsg,
-          acc_size
-        )
+    :ets.delete(ets_msg, ix)
+    next = :ets.next(ets_msg, ix)
 
+    case check_return(dets, tx, return) do
       false ->
-        {Enum.reverse(acc_msg), Enum.reverse(acc_dmsg)}
+        do_iterate(next, ets_msg, refs, acc_msg, acc_decode)
+
+      _ ->
+        :counters.add(cref, 1, size)
+        :counters.put(cref, 2, ix)
+        :counters.add(cref, 3, 1)
+
+        case @max_size > :counters.get(cref, 1) do
+          true ->
+            do_iterate(
+              next,
+              ets_msg,
+              [msg_sig | acc_msg],
+              [decode | acc_decode],
+              cref
+            )
+
+          false ->
+            {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
+        end
+    end
+  end
+
+  defp check_return(dets, tx, return) do
+    case return do
+      x when is_map(x) ->
+        try do
+          BalanceStore.multi_requires!(dets, tx, x)
+        rescue
+          _e ->
+            false
+        end
+
+      _ ->
+        nil
     end
   end
 end

@@ -1,7 +1,7 @@
 defmodule Ippan.ClusterNodes do
   require Ippan.Round
   alias Ippan.Round
-  alias Ippan.{Node, Network, TxHandler, Wallet}
+  alias Ippan.{Node, Network, Wallet}
   require Ippan.{Node, TxHandler, Round}
   require BalanceStore
   require Sqlite
@@ -36,9 +36,9 @@ defmodule Ippan.ClusterNodes do
         [false, [hash, type, from, nonce, args, msg_sig, size], return],
         _state
       ) do
-    hash_key = {from, nonce}
+    nonce_key = {from, nonce}
 
-    case :ets.insert_new(:hash, {hash_key, nil}) do
+    case :ets.insert_new(:hash, {nonce_key, nil}) do
       true ->
         dets = DetsPlux.get(:nonce)
         cache = DetsPlux.tx(dets, :cache_nonce)
@@ -47,29 +47,19 @@ defmodule Ippan.ClusterNodes do
 
         case Wallet.update_nonce(dets, cache, from, nonce) do
           :error ->
-            :ets.delete(:hash, hash_key)
+            :ets.delete(:hash, nonce_key)
             ["error", "Invalid nonce x1"]
 
           _ ->
             IO.puts("The check return")
-
-            case TxHandler.check_return() do
-              false ->
-                :ets.delete(:hash, hash_key)
-                Wallet.revert_nonce(cache, from)
-                raise IppanError, "Insufficient balance x1"
-
-              _ ->
-                IO.puts("The insert")
-                cref = :persistent_term.get(:msg_counter)
-                :counters.add(cref, 1, 1)
-                ix = :counters.get(cref, 1)
-
-                :ets.insert(:dmsg, {ix, [hash, type, from, nonce, args, size]})
-                :ets.insert(:msg, {ix, msg_sig})
-                IO.puts("The result")
-                %{"height" => :persistent_term.get(:height, 0)}
-            end
+            IO.puts("The insert")
+            cref = :persistent_term.get(:msg_counter)
+            :counters.add(cref, 1, 1)
+            ix = :counters.get(cref, 1)
+            decode = [hash, type, from, nonce, args, size]
+            :ets.insert(:msg, {ix, 0, decode, msg_sig, return})
+            IO.puts("The result")
+            %{"index" => ix}
         end
 
       false ->
@@ -82,18 +72,17 @@ defmodule Ippan.ClusterNodes do
         [true, [hash, type, key, from, nonce | rest], return],
         _state
       ) do
-    hash_key = {from, nonce}
+    nonce_key = {from, nonce}
     dets = DetsPlux.get(:nonce)
     cache = DetsPlux.tx(dets, :cache_nonce)
 
-    case :ets.insert_new(:hash, {hash_key, nil}) do
+    case :ets.insert_new(:hash, {nonce_key, nil}) do
       true ->
-        height = :persistent_term.get(:height, 0)
         msg_key = {type, key}
 
         IO.puts("The same hash")
 
-        case :ets.insert_new(:dhash, {msg_key, hash, height}) do
+        case :ets.insert_new(:dhash, {msg_key, nil}) do
           true ->
             [args, msg_sig, size] = rest
 
@@ -101,33 +90,24 @@ defmodule Ippan.ClusterNodes do
 
             case Wallet.update_nonce(dets, cache, from, nonce) do
               :error ->
-                :ets.delete(:hash, hash_key)
+                :ets.delete(:hash, nonce_key)
                 :ets.delete(:dhash, msg_key)
                 ["error", "Invalid nonce x2"]
 
               _ ->
-                case TxHandler.check_return() do
-                  false ->
-                    :ets.delete(:hash, hash_key)
-                    :ets.delete(:dhash, msg_key)
-                    Wallet.revert_nonce(cache, from)
-                    raise IppanError, "Insufficient balance x2"
+                IO.puts("The insert")
+                cref = :persistent_term.get(:msg_counter)
+                :counters.add(cref, 1, 1)
+                ix = :counters.get(cref, 1)
+                decode = [hash, type, key, from, nonce, args, size]
+                :ets.insert(:msg, {ix, 1, decode, msg_sig, return})
 
-                  _ ->
-                    IO.puts("The insert")
-                    cref = :persistent_term.get(:msg_counter)
-                    :counters.add(cref, 1, 1)
-                    ix = :counters.get(cref, 1)
-
-                    :ets.insert(:dmsg, {ix, [hash, type, key, from, nonce, args, size]})
-                    :ets.insert(:msg, {ix, msg_sig})
-                    IO.puts("The result")
-                    %{"height" => height}
-                end
+                IO.puts("The result")
+                %{"index" => ix}
             end
 
           false ->
-            :ets.delete(:hash, hash_key)
+            :ets.delete(:hash, nonce_key)
             Wallet.revert_nonce(cache, from)
             ["error", "Deferred transaction already exists"]
         end

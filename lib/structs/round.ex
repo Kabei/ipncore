@@ -230,7 +230,7 @@ defmodule Ippan.Round do
       Sqlite.fetch("last_round", [])
       |> case do
         nil -> unquote(default)
-        [x, y] -> {x, y}
+        x -> :erlang.list_to_tuple(x)
       end
     end
   end

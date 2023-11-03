@@ -158,10 +158,7 @@ defmodule Ippan.BlockHandler do
     :ets.delete(ets_msg, ix)
 
     case check_wallet(wallets, from) and check_return(balances, supplies, return) do
-      false ->
-        do_iterate(next, ets_msg, refs, acc_msg, acc_decode)
-
-      _ ->
+      true ->
         :counters.add(cref, 1, size)
         :counters.put(cref, 2, ix)
         :counters.add(cref, 3, 1)
@@ -180,22 +177,27 @@ defmodule Ippan.BlockHandler do
             # delete_refs(refs)
             {Enum.reverse(acc_msg), Enum.reverse(acc_decode)}
         end
+
+      _false ->
+        do_iterate(next, ets_msg, refs, acc_msg, acc_decode)
     end
   end
 
   defp check_return({bdets, btx}, {sdets, stx}, return) do
     case return do
-      %{output: balances} ->
-        try do
-          BalanceStore.multi_requires!(bdets, btx, balances)
-        rescue
-          _e -> false
-        end
-
       %{output: balances, supply: supplies} ->
         try do
           TokenSupply.multi_requires!(sdets, stx, supplies)
           BalanceStore.multi_requires!(bdets, btx, balances)
+          true
+        rescue
+          _e -> false
+        end
+
+      %{output: balances} ->
+        try do
+          BalanceStore.multi_requires!(bdets, btx, balances)
+          true
         rescue
           _e -> false
         end

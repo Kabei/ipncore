@@ -77,7 +77,7 @@ defmodule TokenSupply do
   end
 
   def multi_requires!(db, tx, outputs) do
-    Enum.reduce_while(outputs, [], fn
+    Enum.reduce(outputs, [], fn
       {_key, _amount, 0}, acc ->
         acc
 
@@ -86,22 +86,16 @@ defmodule TokenSupply do
 
         if DetsPlux.update_counter(tx, key, amount) > max_supply do
           DetsPlux.update_counter(tx, key, -amount)
-          {:halt, {:error, acc}}
+
+          Enum.each(acc, fn {key, value} ->
+            DetsPlux.update_counter(tx, key, {2, value})
+          end)
+
+          raise IppanError, "Max supply exceeded"
         else
-          {:cont, [{key, amount} | acc]}
+          [{key, amount} | acc]
         end
     end)
-    |> case do
-      {:error, supplies} ->
-        Enum.each(supplies, fn {key, amount} ->
-          DetsPlux.update_counter(tx, key, -amount)
-        end)
-
-        raise IppanError, "Wrong supply"
-
-      _ ->
-        true
-    end
   end
 
   @spec delete(map) :: true

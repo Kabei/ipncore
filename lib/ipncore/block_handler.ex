@@ -184,34 +184,27 @@ defmodule Ippan.BlockHandler do
   end
 
   defp check_return({bdets, btx}, {sdets, stx}, return) do
-    IO.inspect(return)
-
-    ret =
-      case return do
-        %{"output" => balances, "supply" => supplies} ->
-          try do
-            TokenSupply.multi_requires!(sdets, stx, supplies)
-            BalanceStore.multi_requires!(bdets, btx, balances)
-            true
-          rescue
-            _e -> false
-          end
-
-        %{"output" => balances} ->
-          try do
-            BalanceStore.multi_requires!(bdets, btx, balances)
-            true
-          rescue
-            _e -> false
-          end
-
-        _ ->
+    case return do
+      %{"output" => balances, "supply" => supplies} ->
+        try do
+          TokenSupply.multi_requires!(sdets, stx, supplies)
+          BalanceStore.multi_requires!(bdets, btx, balances)
           true
-      end
+        rescue
+          _e -> false
+        end
 
-    IO.inspect(ret)
+      %{"output" => balances} ->
+        try do
+          BalanceStore.multi_requires!(bdets, btx, balances)
+          true
+        rescue
+          _e -> false
+        end
 
-    ret
+      _ ->
+        true
+    end
   end
 
   defp check_wallet({dets, tx}, from) do

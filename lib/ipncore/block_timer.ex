@@ -128,7 +128,7 @@ defmodule BlockTimer do
        ) do
     case BlockHandler.generate_files(creator_id, height, prev) do
       nil ->
-        :timer.sleep(sleep)
+        if sleep > 0, do: :timer.sleep(sleep)
         state
 
       block ->

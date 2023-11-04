@@ -56,12 +56,15 @@ defmodule Ippan.BlockHandler do
         IO.inspect("MSG Size > 0")
 
         ets_msg = :ets.whereis(:msg)
-
         cref = :counters.new(3, [])
+
+        :ets.safe_fixtable(ets_msg, true)
         first = :ets.first(ets_msg)
 
         {acc_msg, acc_decode} =
           do_iterate(first, ets_msg, cref)
+
+        :ets.safe_fixtable(ets_msg, false)
 
         ends = :counters.get(cref, 2)
         count = :counters.get(cref, 3)

@@ -569,7 +569,7 @@ defmodule DetsPlux do
   """
   @spec sync(db(), transaction()) :: :ok
   def sync(pid, tx) do
-    tx_erase(tx)
+    # tx_erase(tx)
     call(pid, {:sync, tx})
   end
 
@@ -870,7 +870,7 @@ defmodule DetsPlux do
         state = %State{sync_fallback: fallback, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) == 0 do
-      :ets.delete(ets)
+      # :ets.delete(ets)
       {:reply, :ok, state}
     else
       new_fallback =
@@ -997,6 +997,7 @@ defmodule DetsPlux do
       # register_name()
       stats = {:erlang.timestamp(), []}
       new_dataset = :ets.tab2list(ets)
+      tx_erase(ets)
       stats = add_stats(stats, :ets_flush)
 
       # Ensuring hash function sort order

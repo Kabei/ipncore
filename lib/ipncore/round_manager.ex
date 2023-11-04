@@ -261,7 +261,7 @@ defmodule RoundManager do
   @impl true
   # Process round
   def handle_cast(
-        {:complete, round = %{id: the_round_id}},
+        {:complete, round = %{id: the_round_id, hash: hash}},
         %{
           candidates: ets_candidates,
           db_ref: db_ref,
@@ -272,7 +272,7 @@ defmodule RoundManager do
         } = state
       ) do
     next = the_round_id == round_id
-    is_some_block_mine = Enum.any?(round.blocks, fn x -> x.creator == vid end)
+    is_some_block_mine = Enum.any?(round.blocks, &(&1.creator == vid))
     Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(round.hash)}")
 
     # Clear round-message-votes and block-candidates
@@ -280,18 +280,16 @@ defmodule RoundManager do
     :ets.select_delete(ets_votes, [{{{round_id, :_, :_}, :_}, [], [true]}])
     :ets.delete_all_objects(ets_candidates)
 
-    # Set last local height and prev hash and reset timer
-    if next and is_some_block_mine do
-      BlockTimer.complete(db_ref)
-    end
-
-    # IO.inspect("select_delete votes: #{c}")
-
     # replicate data to cluster nodes
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
     # save all round
     RoundCommit.sync(db_ref, round.tx_count, is_some_block_mine)
+
+    # Set last local height and prev hash and reset timer
+    if next do
+      BlockTimer.complete(hash, is_some_block_mine)
+    end
 
     if next do
       {:noreply,
@@ -507,7 +505,7 @@ defmodule RoundManager do
         blocks =
           case status do
             :synced ->
-              BlockTimer.get_blocks(block_id) ++
+              BlockTimer.get_block(block_id) ++
                 :ets.tab2list(ets_candidates)
 
             # Time to wait messages (msg_block) to arrived

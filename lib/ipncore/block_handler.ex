@@ -16,7 +16,7 @@ defmodule Ippan.BlockHandler do
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
           map | nil
-  def generate_files(creator_id, height, prev, priority \\ 0) do
+  def generate_files(creator_id, height, prev) do
     block_path =
       Path.join(:persistent_term.get(:block_dir), "#{creator_id}.#{height}.#{@block_extension}")
 
@@ -24,7 +24,6 @@ defmodule Ippan.BlockHandler do
       Path.join(:persistent_term.get(:decode_dir), "#{creator_id}.#{height}.#{@decode_extension}")
 
     ets_msg = :ets.whereis(:msg)
-    ets_size = :ets.info(ets_msg, :size)
 
     cond do
       File.exists?(decode_path) and File.exists?(block_path) ->
@@ -53,8 +52,7 @@ defmodule Ippan.BlockHandler do
           vsn: version
         }
 
-      (0 == priority and ets_size >= 1_000_000) or
-          (1 == priority and ets_size > 0) ->
+      :ets.info(ets_msg, :size) != 0 ->
         IO.inspect("MSG Size > 0")
 
         ets_msg = :ets.whereis(:msg)

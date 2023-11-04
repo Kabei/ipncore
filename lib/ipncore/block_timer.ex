@@ -89,7 +89,7 @@ defmodule BlockTimer do
       end
 
     try do
-      IO.inspect("task #{sleep}")
+      IO.inspect("Wait to #{sleep} ms")
 
       task =
         Task.async(fn -> do_check(%{state | block_id: current_block_id}, sleep) end)
@@ -128,8 +128,6 @@ defmodule BlockTimer do
          %{candidate: nil, creator: creator_id, height: height, prev: prev} = state,
          sleep \\ 0
        ) do
-    IO.inspect(state)
-
     case BlockHandler.generate_files(creator_id, height, prev) do
       nil ->
         if sleep > 0, do: :timer.sleep(sleep)

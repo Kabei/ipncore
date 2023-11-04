@@ -68,10 +68,21 @@ defmodule Ippan.Wallet do
     end
   end
 
+  @spec gte_nonce(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) :: true | :error
+  def gte_nonce(dets, tx, from, nonce) do
+    count = DetsPlux.get_cache(dets, tx, from, 0)
+
+    if nonce > count do
+      DetsPlux.put(tx, from, nonce)
+    else
+      :error
+    end
+  end
+
   @spec gte_nonce!(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) ::
           nil | no_return()
   def gte_nonce!(dets, tx, from, nonce) do
-    count = DetsPlux.get_cache(dets, tx, from, 0) + 1
+    count = DetsPlux.get_cache(dets, tx, from, 0)
 
     if count > nonce do
       raise IppanError, "Invalid nonce x4"

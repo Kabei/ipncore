@@ -144,12 +144,12 @@ defmodule MinerWorker do
 
     Enum.each(transactions, fn
       [hash, type, from, nonce, args, size] ->
-        case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
+        case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             :counters.add(cref, 2, 1)
             :error
 
-          _number ->
+          _true ->
             case TxHandler.regular() do
               :error ->
                 :counters.add(cref, 2, 1)
@@ -163,11 +163,11 @@ defmodule MinerWorker do
         :counters.add(cref, 1, 1)
 
       [hash, type, arg_key, from, nonce, args, size] ->
-        case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
+        case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             :counters.add(cref, 1, 1)
 
-          _number ->
+          _true ->
             ix = :counters.get(cref, 1)
 
             case TxHandler.insert_deferred(dtx, dtmp) do

@@ -13,7 +13,7 @@ defmodule RoundManager do
   @miner_pool :miner_pool
   @pubsub :pubsub
   @token Application.compile_env(@app, :token)
-  @timeout 15_000
+  @timeout Application.compile_env(@app, :timeout)
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
 
   def start_link(args) do

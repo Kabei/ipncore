@@ -858,6 +858,7 @@ defmodule DetsPlux do
        %State{
          state
          | sync: pid,
+           sync_fallback: ets,
            sync_waiters: waiters ++ [from]
        }}
     end

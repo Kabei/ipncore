@@ -32,8 +32,7 @@ defmodule BlockTimer do
        creator: vid,
        height: last_height + 1,
        prev: prev,
-       candidate: nil,
-       tRef: nil
+       candidate: nil
      }, {:continue, :check}}
   end
 
@@ -74,11 +73,7 @@ defmodule BlockTimer do
     {:reply, state.candidate, state}
   end
 
-  def handle_call({:get, _current_block_id}, _from, %{candidate: nil} = state) do
-    {:reply, nil, state}
-  end
-
-  def handle_call({:get, current_block_id}, _from, %{block_id: block_id} = state) do
+  def handle_call({:get, current_block_id}, _from, %{block_id: block_id, candidate: nil} = state) do
     diff = current_block_id - block_id
 
     sleep =
@@ -95,6 +90,7 @@ defmodule BlockTimer do
 
     try do
       IO.inspect("task #{sleep}")
+
       task =
         Task.async(fn -> do_check(%{state | block_id: current_block_id}, sleep) end)
 
@@ -104,6 +100,10 @@ defmodule BlockTimer do
       :exit, _ ->
         {:reply, nil, state}
     end
+  end
+
+  def handle_call({:get, _current_block_id}, _from, %{candidate: candidate} = state) do
+    {:reply, candidate, state}
   end
 
   @impl true
@@ -128,7 +128,8 @@ defmodule BlockTimer do
          %{candidate: nil, creator: creator_id, height: height, prev: prev} = state,
          sleep \\ 0
        ) do
-        IO.inspect(state)
+    IO.inspect(state)
+
     case BlockHandler.generate_files(creator_id, height, prev) do
       nil ->
         if sleep > 0, do: :timer.sleep(sleep)

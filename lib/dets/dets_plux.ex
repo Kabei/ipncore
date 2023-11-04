@@ -60,7 +60,7 @@ defmodule DetsPlux do
   @type transaction :: :ets.tid() | atom()
   @type key :: binary() | nil
   @type value :: binary() | number() | list() | map() | tuple() | nil
-  @type t :: %__MODULE__{ets: transaction(), filename: binary(), sync_fallback: transaction()}
+  @type t :: %__MODULE__{ets: transaction(), filename: binary(), sync_fallback: [transaction()]}
 
   # Inline common instructions
   @compile {:inline,
@@ -154,7 +154,7 @@ defmodule DetsPlux do
             file_size: 0,
             sync: nil,
             sync_waiters: [],
-            sync_fallback: nil
+            sync_fallback: []
           }
       end
 
@@ -569,7 +569,7 @@ defmodule DetsPlux do
   """
   @spec sync(db(), transaction()) :: :ok
   def sync(pid, tx) do
-    # tx_erase(tx)
+    tx_erase(tx)
     call(pid, {:sync, tx})
   end
 
@@ -681,9 +681,15 @@ defmodule DetsPlux do
       Process.exit(sync, :kill)
     end
 
-    # delete transaction
-    if fallback do
-      :ets.delete(fallback)
+    # delete transactions
+    case length(fallback) do
+      0 ->
+        :ok
+
+      _ ->
+        Enum.each(fallback, fn table ->
+          :ets.delete(table)
+        end)
     end
 
     for w when not is_nil(w) <- waiters do
@@ -701,7 +707,7 @@ defmodule DetsPlux do
        state
        | sync: nil,
          sync_waiters: [],
-         sync_fallback: nil,
+         sync_fallback: [],
          fp: nil,
          bloom: "",
          bloom_size: 0,
@@ -799,7 +805,7 @@ defmodule DetsPlux do
   def handle_call(
         {:start_sync, ets},
         _from,
-        state = %State{sync: nil, sync_waiters: waiters}
+        state = %State{sync: nil, sync_fallback: fallback, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) > 0 do
       pid = spawn_sync_worker(ets, state)
@@ -808,10 +814,10 @@ defmodule DetsPlux do
        %State{
          state
          | sync: pid,
+           sync_fallback: [ets | fallback],
            sync_waiters: waiters ++ [nil]
        }}
     else
-      :ets.delete(ets)
       {:reply, :ok, state}
     end
   end
@@ -822,23 +828,9 @@ defmodule DetsPlux do
         state = %State{sync_fallback: fallback, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) > 0 do
-      new_fallback =
-        case fallback do
-          nil ->
-            ets
-
-          table ->
-            merge_tx(table, ets)
-        end
-
       {:reply, :ok,
-       %State{
-         state
-         | sync_fallback: new_fallback,
-           sync_waiters: waiters ++ [nil]
-       }}
+       %State{state | sync_fallback: [ets | fallback], sync_waiters: waiters ++ [nil]}}
     else
-      :ets.delete(ets)
       {:reply, :ok, state}
     end
   end
@@ -846,21 +838,15 @@ defmodule DetsPlux do
   def handle_call(
         {:sync, ets},
         from,
-        state = %State{sync: nil, sync_waiters: waiters}
+        state = %State{sync: nil, sync_fallback: fallback, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) == 0 do
-      :ets.delete(ets)
       {:reply, :ok, state}
     else
       pid = spawn_sync_worker(ets, state)
 
       {:noreply,
-       %State{
-         state
-         | sync: pid,
-           sync_fallback: ets,
-           sync_waiters: waiters ++ [from]
-       }}
+       %State{state | sync: pid, sync_fallback: [ets | fallback], sync_waiters: waiters ++ [from]}}
     end
   end
 
@@ -870,24 +856,9 @@ defmodule DetsPlux do
         state = %State{sync_fallback: fallback, sync_waiters: waiters}
       ) do
     if :ets.info(ets, :size) == 0 do
-      # :ets.delete(ets)
       {:reply, :ok, state}
     else
-      new_fallback =
-        case fallback do
-          nil ->
-            ets
-
-          table ->
-            merge_tx(table, ets)
-        end
-
-      {:noreply,
-       %State{
-         state
-         | sync_fallback: new_fallback,
-           sync_waiters: waiters ++ [from]
-       }}
+      {:noreply, %State{state | sync_fallback: [ets | fallback], sync_waiters: waiters ++ [from]}}
     end
   end
 
@@ -896,11 +867,18 @@ defmodule DetsPlux do
   end
 
   defp do_lookup(key, hash, state = %State{sync_fallback: ets_fallback}) do
-    case :ets.lookup(ets_fallback, key) do
-      [] -> file_lookup(state, key, hash)
-      [{_key, :delete}] -> {:halt, nil}
-      [{_key, x}] -> {:halt, x}
-      [tuple] -> {:halt, :erlang.delete_element(1, tuple)}
+    Enum.reduce_while(ets_fallback, nil, fn ets, acc ->
+      case :ets.lookup(ets, key) do
+        [] -> {:cont, acc}
+        [{_key, :delete}] -> {:halt, :delete}
+        [{_key, x}] -> {:halt, x}
+        [tuple] -> {:halt, :erlang.delete_element(1, tuple)}
+      end
+    end)
+    |> case do
+      :delete -> nil
+      nil -> file_lookup(state, key, hash)
+      x -> x
     end
   end
 
@@ -940,18 +918,25 @@ defmodule DetsPlux do
       }
 
     new_state =
-      case fallback do
-        nil ->
-          new_state
+      case :lists.droplast(fallback) do
+        [] ->
+          %State{new_state | sync_fallback: []}
 
-        new_ets ->
-          pid = spawn_sync_worker(new_ets, new_state)
+        [x] ->
+          pid = spawn_sync_worker(x, new_state)
+          %State{new_state | sync: pid, sync_fallback: [x]}
 
-          %State{
-            new_state
-            | sync: pid,
-              sync_fallback: nil
-          }
+        list ->
+          last = :lists.last(list)
+
+          Enum.each(:lists.droplast(list), fn table ->
+            :ets.insert(last, :ets.tab2list(table))
+            :ets.delete(table)
+          end)
+
+          pid = spawn_sync_worker(last, new_state)
+
+          %State{new_state | sync: pid, sync_fallback: [last]}
       end
 
     {:noreply, new_state}
@@ -996,9 +981,8 @@ defmodule DetsPlux do
       Process.flag(:priority, :low)
       # register_name()
       stats = {:erlang.timestamp(), []}
-      new_dataset = :ets.tab2list(ets)
-      tx_erase(ets)
       stats = add_stats(stats, :ets_flush)
+      new_dataset = :ets.tab2list(ets)
 
       # Ensuring hash function sort order
       new_dataset = parallel_hash(new_dataset)
@@ -1114,17 +1098,7 @@ defmodule DetsPlux do
   def merge_tx(ets1, nil), do: ets1
 
   def merge_tx(ets1, ets2) do
-    do_merge_tables(:ets.first(ets2), ets1, ets2)
-  end
-
-  defp do_merge_tables(:"$end_of_table", ets1, ets2) do
-    :ets.delete(ets2)
-    ets1
-  end
-
-  defp do_merge_tables(key, ets1, ets2) do
-    :ets.insert(ets1, :ets.lookup(ets2, key))
-    do_merge_tables(:ets.next(ets2, key), ets1, ets2)
+    :ets.foldl(&:ets.insert(ets1, &1), nil, ets2)
   end
 
   defp task_async(fun) do
@@ -1628,9 +1602,14 @@ defmodule DetsPlux do
 
   @impl true
   def terminate(_reason, %State{fp: fp, sync_fallback: fallback}) do
-    if fallback do
-      # delete transaction
-      :ets.delete(fallback)
+    case length(fallback) do
+      0 ->
+        :ok
+
+      _ ->
+        Enum.each(fallback, fn table ->
+          :ets.delete(table)
+        end)
     end
 
     if fp != nil and Process.alive?(fp) do
@@ -1650,11 +1629,7 @@ defimpl Enumerable, for: DetsPlux do
   def slice(_pid), do: {:error, __MODULE__}
 
   def reduce(%DetsPlux{ets: ets, filename: filename, sync_fallback: fallback}, acc, fun) do
-    new_data =
-      case merge_tx(ets, fallback) do
-        nil -> []
-        tid -> :ets.tab2list(tid)
-      end
+    new_data = merge_tx(ets, fallback) || []
 
     opts = [page_size: 1_000_000, max_pages: 1000]
 

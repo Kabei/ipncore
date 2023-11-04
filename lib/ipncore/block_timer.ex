@@ -7,9 +7,6 @@ defmodule BlockTimer do
 
   # @app Mix.Project.config()[:app]
   @module __MODULE__
-  # @timeout Application.compile_env(@app, :block_interval)
-  # @timeout 15_000
-  # @message :mine
   @min_time 750
   @max_time 5_000
 
@@ -96,21 +93,25 @@ defmodule BlockTimer do
           @max_time - diff * @min_time
       end
 
-    task =
-      Task.async(fn -> do_check(%{state | block_id: current_block_id}, sleep) end)
+    try do
+      task =
+        Task.async(fn -> do_check(%{state | block_id: current_block_id}, sleep) end)
 
-    new_state = Task.await(task, 20_000)
-
-    {:reply, new_state.candidate, new_state}
+      new_state = Task.await(task, 15_000)
+      {:reply, new_state.candidate, new_state}
+    catch
+      :exit, _ ->
+        {:reply, nil, state}
+    end
   end
 
   @impl true
   def handle_continue(:check, state = %{candidate: nil}) do
-    {:noreply, state}
+    {:noreply, do_check(state)}
   end
 
   def handle_continue(:check, state) do
-    {:noreply, do_check(state)}
+    {:noreply, state}
   end
 
   @impl true

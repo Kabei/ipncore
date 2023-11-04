@@ -81,7 +81,7 @@ defmodule BlockTimer do
         diff > 5 ->
           @min_time
 
-        diff <= 1 ->
+        diff == 0 ->
           @max_time
 
         true ->

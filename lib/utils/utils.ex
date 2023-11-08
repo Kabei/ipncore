@@ -2,6 +2,9 @@ defmodule Ippan.Utils do
   @compile :inline_list_funcs
   @compile {:inline, [encode16: 1, encode64: 1]}
 
+  @app Mix.Project.config()[:app]
+  @burn Application.compile_env(@app, :burn, 0.3)
+
   def empty?(nil), do: true
   def empty?(<<>>), do: true
   def empty?([]), do: true
@@ -51,7 +54,7 @@ defmodule Ippan.Utils do
   def calc_fees(a, b, size), do: a * size + b
 
   @spec calc_burn(integer()) :: integer()
-  def calc_burn(fees), do: ceil(fees * :persistent_term.get({:env, "BURN"}, 0.3))
+  def calc_burn(fees), do: ceil(fees * @burn)
 
   def get_name_from_node(node_name) do
     node_name |> to_string() |> String.split("@") |> hd

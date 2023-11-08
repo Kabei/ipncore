@@ -43,30 +43,30 @@ defmodule EnvStore do
     :persistent_term.get({:env, "VALIDATOR.PRICE"}, 100_000)
   end
 
-  def fees do
-    :persistent_term.get({:env, "FEES"}, 1)
-  end
+  # def fees do
+  #   :persistent_term.get({:env, "FEES"}, 1)
+  # end
 
-  def burn do
-    :persistent_term.get({:env, "BURN"}, 0.3)
-  end
+  # def burn do
+  #   :persistent_term.get({:env, "BURN"}, 0.3)
+  # end
 
   def round_blocks do
     :persistent_term.get({:env, "ROUND.BLOCKS"}, 10)
   end
 
-  defp transform("OWNER", x) when byte_size(x) < 255 or is_nil(x), do: x
+  defp transform("OWNER", x) when byte_size(x) <= 255, do: x
   defp transform("OWNER", _x), do: nil
 
   defp transform("TOKEN.PRICE", x), do: if(is_integer(x) and x > 0, do: x, else: 50_000)
 
   defp transform("VALIDATOR.PRICE", x), do: if(is_integer(x) and x > 0, do: x, else: 100_000)
 
-  defp transform("FEES", x), do: if(is_integer(x) and x > 0, do: x, else: 1)
+  # defp transform("FEES", x), do: if(is_integer(x) and x > 0, do: x, else: 1)
 
   defp transform("ROUND.BLOCKS", x), do: if(x in 1..100, do: x, else: 10)
 
-  defp transform("BURN", x), do: if(is_float(x) and x >= 0 and x <= 1, do: x, else: 0.3)
+  # defp transform("BURN", x), do: if(is_float(x) and x >= 0 and x <= 1, do: x, else: 0.3)
 
   defp transform(_, x), do: x
 end

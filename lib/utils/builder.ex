@@ -528,7 +528,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def dns_delete(client = %Client{address: address, nonce: nonce}, address, fullname, hash16) do
+  def dns_delete(client = %Client{address: address, nonce: nonce}, fullname, hash16) do
     body =
       [502, nonce, address, fullname, hash16]
       |> encode_fun!()

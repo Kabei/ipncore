@@ -64,7 +64,7 @@ defmodule Ippan.Funx.Validator do
 
             Validator.insert(Validator.to_list(validator))
 
-            if next_id == :persistent_term.get(:validator) do
+            if next_id == :persistent_term.get(:vid) do
               :persistent_term.put(:validator, validator)
             end
 

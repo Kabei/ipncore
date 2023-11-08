@@ -168,7 +168,7 @@ defmodule RoundManager do
       when vid != node_id and
              vid != creator_id do
     Logger.debug(inspect(msg_round))
-    limit = EnvStore.round_blocks()
+    limit = EnvStore.block_limit()
 
     with true <- creator_id == rcid,
          true <- limit >= length(blocks),

@@ -14,6 +14,7 @@ defmodule Ippan.Round do
           tx_count: non_neg_integer(),
           size: non_neg_integer(),
           status: 0 | 1 | 2 | 3,
+          timestamp: non_neg_integer(),
           blocks: [map()] | nil,
           extra: [any()] | nil
         }
@@ -35,6 +36,7 @@ defmodule Ippan.Round do
     :tx_count,
     :size,
     :status,
+    :timestamp,
     :blocks,
     :extra
   ]
@@ -53,6 +55,7 @@ defmodule Ippan.Round do
       x.tx_count,
       x.size,
       x.status,
+      x.timestamp,
       CBOR.encode(x.blocks),
       CBOR.encode(x.extra)
     ]
@@ -81,6 +84,7 @@ defmodule Ippan.Round do
         tx_count,
         size,
         status,
+        timestamp,
         blocks,
         extra
       ]) do
@@ -96,6 +100,7 @@ defmodule Ippan.Round do
       tx_count: tx_count,
       size: size,
       status: status,
+      timestamp: timestamp,
       blocks: :erlang.element(1, CBOR.Decoder.decode(blocks)),
       extra: :erlang.element(1, CBOR.Decoder.decode(extra))
     }
@@ -138,11 +143,12 @@ defmodule Ippan.Round do
     %{x | hash: Utils.encode16(hash), prev: Utils.encode16(prev)}
   end
 
-  def compute_hash(id, prev, creator, hashes) do
+  def compute_hash(id, prev, creator, hashes, timestamp) do
     ([
        to_string(id),
        normalize(prev),
-       to_string(creator)
+       to_string(creator),
+       to_string(timestamp)
      ] ++
        hashes)
     |> IO.iodata_to_binary()
@@ -180,9 +186,10 @@ defmodule Ippan.Round do
           binary() | nil,
           binary() | nil,
           non_neg_integer(),
+          non_neg_integer(),
           non_neg_integer()
         ) :: map
-  def cancel(id, hash, prev, signature, creator_id, status) do
+  def cancel(id, hash, prev, signature, creator_id, status, timestamp) do
     %{
       id: id,
       hash: hash || prev,
@@ -195,6 +202,7 @@ defmodule Ippan.Round do
       tx_count: 0,
       size: 0,
       status: status,
+      timestamp: timestamp,
       blocks: [],
       extra: nil
     }

@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS round(
   tx_count BIGINT,
   size BIGINT,
   status INTEGER,
+  timestamp BIGINT NOT NULL,
   blocks BLOB,
   extra BLOB
 ) WITHOUT ROWID;

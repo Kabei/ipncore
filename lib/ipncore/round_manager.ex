@@ -150,6 +150,7 @@ defmodule RoundManager do
             creator: creator_id,
             hash: hash,
             signature: signature,
+            timestamp: timestamp,
             prev: prev
           },
           node_id
@@ -178,7 +179,7 @@ defmodule RoundManager do
              block_pre_verificacion(block, db_ref, ets_players) == :error
            end),
          hashes <- Enum.map(blocks, & &1.hash),
-         true <- hash == Round.compute_hash(id, prev, creator_id, hashes),
+         true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
          true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
@@ -477,7 +478,7 @@ defmodule RoundManager do
         else
           GenServer.cast(
             pid,
-            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1)}
+            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, msg_round.timestamp)}
           )
         end
       end)
@@ -514,8 +515,9 @@ defmodule RoundManager do
           end
 
         creator = :persistent_term.get(:validator)
+        timestamp = :erlang.system_time(:millisecond)
         {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
-        hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes)
+        hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
         {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
 
         # pre-build
@@ -525,7 +527,8 @@ defmodule RoundManager do
           creator: creator.id,
           hash: hash,
           signature: signature,
-          prev: prev_hash
+          prev: prev_hash,
+          timestamp: timestamp
         }
 
         # send message
@@ -539,7 +542,8 @@ defmodule RoundManager do
             blocks: blocks,
             signature: signature,
             size: size,
-            tx_count: tx_count
+            tx_count: tx_count,
+            timestamp: timestamp
           },
           block_id,
           creator,
@@ -592,7 +596,8 @@ defmodule RoundManager do
           id: round_id,
           blocks: blocks,
           prev: prev_hash,
-          signature: signature
+          signature: signature,
+          timestamp: timestamp
         } = map,
         block_id,
         creator,
@@ -612,7 +617,7 @@ defmodule RoundManager do
           {map.hash, map.tx_count, map.size}
         else
           {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
-          hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes)
+          hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
           {hash, tx_count, size}
         end
 
@@ -685,6 +690,7 @@ defmodule RoundManager do
           tx_count: tx_count,
           size: size,
           status: 0,
+          timestamp: timestamp,
           blocks: blocks_approved,
           extra: nil,
           # extra data
@@ -702,7 +708,7 @@ defmodule RoundManager do
       else
         GenServer.cast(
           pid,
-          {:incomplete, Round.cancel(round_id, hash, prev_hash, signature, creator_id, 3)}
+          {:incomplete, Round.cancel(round_id, hash, prev_hash, signature, creator_id, 3, timestamp)}
         )
 
         :error

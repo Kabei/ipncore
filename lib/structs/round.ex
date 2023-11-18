@@ -173,7 +173,7 @@ defmodule Ippan.Round do
       end)
 
     msg_round
-    |> MapUtil.to_atoms(~w(id creator hash prev signature))
+    |> MapUtil.to_atoms(~w(id creator hash prev signature timestamp))
     |> Map.put(:blocks, blocks)
   end
 

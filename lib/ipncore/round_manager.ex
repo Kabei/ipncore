@@ -388,20 +388,19 @@ defmodule RoundManager do
     # RoundCommit.stop()
   end
 
-  @spec block_pre_verificacion(block :: map(), reference, :ets.tid()) :: :ok | :error
-  def block_pre_verificacion(
-        %{
-          "creator" => creator_id,
-          "height" => height,
-          "hash" => hash,
-          "signature" => signature,
-          "prev" => prev,
-          "hashfile" => hashfile,
-          "timestamp" => timestamp
-        },
-        db_ref,
-        ets_players
-      ) do
+  defp block_pre_verificacion(
+         %{
+           "creator" => creator_id,
+           "height" => height,
+           "hash" => hash,
+           "signature" => signature,
+           "prev" => prev,
+           "hashfile" => hashfile,
+           "timestamp" => timestamp
+         },
+         db_ref,
+         ets_players
+       ) do
     with [{_, player}] <- :ets.lookup(ets_players, creator_id),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
          true <- hash == Block.compute_hash(creator_id, height, prev, hashfile, timestamp),
@@ -478,7 +477,8 @@ defmodule RoundManager do
         else
           GenServer.cast(
             pid,
-            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, msg_round.timestamp)}
+            {:incomplete,
+             Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, msg_round.timestamp)}
           )
         end
       end)
@@ -708,7 +708,8 @@ defmodule RoundManager do
       else
         GenServer.cast(
           pid,
-          {:incomplete, Round.cancel(round_id, hash, prev_hash, signature, creator_id, 3, timestamp)}
+          {:incomplete,
+           Round.cancel(round_id, hash, prev_hash, signature, creator_id, 3, timestamp)}
         )
 
         :error

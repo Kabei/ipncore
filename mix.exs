@@ -83,6 +83,7 @@ defmodule Ipncore.MixProject do
       {:phoenix_pubsub, "~> 2.1"},
       {:httpoison, "~> 2.0"},
       {:cafezinho, "~> 0.4.0"},
+      {:ex_secp256k1, "~> 0.7.2"},
       {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},
       {:exqlite, git: "https://kabei@github.com/kabei/exqlite.git", branch: "main"},
       {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},

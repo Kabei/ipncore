@@ -24,6 +24,9 @@ defmodule Builder do
             Builder.gen_ed25519(seed)
 
           1 ->
+            Builder.gen_secp256k1(seed)
+
+          2 ->
             Builder.gen_falcon(seed)
         end
 
@@ -89,11 +92,18 @@ defmodule Builder do
     {pk, sk, Address.hash(0, pk)}
   end
 
+  # {pk, sk, address} = Builder.gen_secp256k1(seed)
+  def gen_secp256k1(seed) do
+    {:ok, pk} = ExSecp256k1.Impl.create_public_key(seed)
+
+    {pk, seed, Address.hash(1, pk)}
+  end
+
   # {pkv, skv, addressv} = Builder.gen_falcon(seed)
   def gen_falcon(seed) do
     {:ok, pk, sk} = Falcon.gen_keys_from_seed(seed)
 
-    {pk, sk, Address.hash(1, pk)}
+    {pk, sk, Address.hash(2, pk)}
   end
 
   # Builder.wallet_new(client, 0) |> Builder.print
@@ -559,6 +569,10 @@ defmodule Builder do
           |> elem(1)
 
         1 ->
+          {:ok, {signature, _recovery_id_int}} = ExSecp256k1.Impl.sign_compact(msg, secret)
+          signature
+
+        2 ->
           Falcon.sign(secret, msg)
           |> elem(1)
       end

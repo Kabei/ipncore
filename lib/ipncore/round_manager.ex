@@ -465,7 +465,8 @@ defmodule RoundManager do
               id: round_id,
               blocks: msg_round.blocks,
               prev: prev_hash,
-              signature: msg_round.signature
+              signature: msg_round.signature,
+              timestamp: msg_round
             },
             block_id,
             creator,
@@ -478,7 +479,7 @@ defmodule RoundManager do
           GenServer.cast(
             pid,
             {:incomplete,
-             Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, msg_round.timestamp)}
+             Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
           )
         end
       end)
@@ -693,8 +694,8 @@ defmodule RoundManager do
           timestamp: timestamp,
           blocks: blocks_approved,
           extra: nil,
-          # extra data
           reward: reward,
+          # extra data
           jackpot: jackpot_result
         }
 

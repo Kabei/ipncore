@@ -135,6 +135,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
     %{
       id: "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc",
       pubkey: pk,
+      sig_type: 0,
       validator: 0
     }
   ]

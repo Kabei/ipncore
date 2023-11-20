@@ -83,9 +83,16 @@ defmodule Ippan.Funx.Coin do
       end
       |> Enum.sum()
 
-      TokenSupply.add(supply, total)
+    TokenSupply.add(supply, total)
 
-      if is_validator do
+    supply =
+      if token_id == @token do
+        supply
+      else
+        TokenSupply.new(@token)
+      end
+
+    if is_validator do
       BalanceStore.burn(from, @token, burn)
     else
       fees = tfees - burn

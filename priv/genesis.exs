@@ -85,7 +85,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
   ],
   "tokens" => [
     %{
-      avatar: nil,
+      avatar: "https://ippan.com/images/IPN.png",
       created_at: 0,
       decimal: 9,
       id: "IPN",

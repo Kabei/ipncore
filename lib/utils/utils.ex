@@ -131,6 +131,24 @@ defmodule Ippan.Utils do
     )
   end
 
+  def date_start_to_time(date, unit_time \\ :millisecond) do
+    d = DateTime.from_iso8601(date)
+
+    case d do
+      {:error, _} -> 0
+      {:ok, dt, _} -> DateTime.to_unix(dt, unit_time)
+    end
+  end
+
+  def date_end_to_time(date, unit_time \\ :millisecond) do
+    d = DateTime.from_iso8601(date)
+
+    case d do
+      {:error, _} -> 0
+      {:ok, dt, _} -> DateTime.to_unix(dt, unit_time)
+    end
+  end
+
   def encode16(nil), do: nil
   def encode16(x), do: Base.encode16(x)
 

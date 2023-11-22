@@ -267,6 +267,12 @@ defmodule Ippan.Block do
     end
   end
 
+  defmacro total do
+    quote location: :keep do
+      Sqlite.one("last_block_id", [], -1) + 1
+    end
+  end
+
   defmacro total_created(create_id) do
     quote location: :keep do
       Sqlite.one("total_blocks_created", [unquote(create_id)], 0)

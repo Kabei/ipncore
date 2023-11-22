@@ -30,7 +30,7 @@ defmodule Ippan.Funx.Coin do
       BalanceStore.burn(from, @token, burn)
     else
       fees = tfees - burn
-      BalanceStore.fees(fees, burn)
+      BalanceStore.fees(tfees, fees, burn)
     end
   end
 
@@ -96,7 +96,7 @@ defmodule Ippan.Funx.Coin do
       BalanceStore.burn(from, @token, burn)
     else
       fees = tfees - burn
-      BalanceStore.fees(fees, burn)
+      BalanceStore.fees(tfees, fees, burn)
     end
   end
 
@@ -125,7 +125,7 @@ defmodule Ippan.Funx.Coin do
       BalanceStore.burn(from, @token, burn)
     else
       fees = tfees - burn
-      BalanceStore.fees(fees, burn)
+      BalanceStore.fees(tfees, fees, burn)
     end
   end
 

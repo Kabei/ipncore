@@ -125,29 +125,29 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro pay_fee(from, to, value) do
-    quote bind_quoted: [from: from, to: to, token: @token, value: value],
+  defmacro pay_fee(from, to, total_fees) do
+    quote bind_quoted: [from: from, to: to, token: @token, total_fees: total_fees],
           location: :keep do
       if to != from do
         key = DetsPlux.tuple(from, token)
         {balance, _lock} = DetsPlux.get_cache(var!(dets), var!(tx), key, {0, 0})
 
-        result = balance - value
+        result = balance - total_fees
 
         if result >= 0 do
           to_key = DetsPlux.tuple(to, token)
           DetsPlux.get_cache(var!(dets), var!(tx), to_key, {0, 0})
 
-          burn = Ippan.Utils.calc_burn(value)
-          fees = value - burn
+          burn = Ippan.Utils.calc_burn(total_fees)
+          fees = total_fees - burn
 
-          DetsPlux.update_counter(var!(tx), key, {2, -value})
+          DetsPlux.update_counter(var!(tx), key, {2, -total_fees})
           DetsPlux.update_counter(var!(tx), to_key, {2, fees})
         else
           :error
         end
       else
-        BalanceStore.pay_burn(from, Ippan.Utils.calc_burn(value))
+        BalanceStore.pay_burn(from, Ippan.Utils.calc_burn(total_fees))
       end
     end
   end
@@ -161,7 +161,7 @@ defmodule BalanceStore do
       result = balance - value
 
       if result >= 0 do
-        DetsPlux.update_counter(var!(tx), key, {2, -result})
+        DetsPlux.update_counter(var!(tx), key, {2, -value})
 
         supply = TokenSupply.new(token)
         TokenSupply.subtract(supply, value)

@@ -1,5 +1,4 @@
 defmodule Ippan.Validator do
-  require BigNumber
   alias Ippan.Utils
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
@@ -52,8 +51,8 @@ defmodule Ippan.Validator do
       x.pubkey,
       x.net_pubkey,
       x.avatar,
-      BigNumber.to_bin(x.fa),
-      BigNumber.to_bin(x.fb),
+      x.fa,
+      x.fb,
       x.stake,
       x.failures,
       x.created_at,
@@ -97,8 +96,8 @@ defmodule Ippan.Validator do
       avatar: avatar,
       pubkey: pubkey,
       net_pubkey: net_pubkey,
-      fb: BigNumber.to_int(fb),
-      fa: BigNumber.to_int(fa),
+      fb: fb,
+      fa: fa,
       stake: stake,
       failures: failures,
       created_at: created_at,

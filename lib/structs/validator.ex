@@ -164,6 +164,10 @@ defmodule Ippan.Validator do
     quote bind_quoted: [map: map, id: id], location: :keep do
       :ets.delete(:validator, id)
       Sqlite.update("blockchain.validator", map, id: id)
+
+      if id == :persistent_term.get(:vid) do
+        :persistent_term.put(:validator, Ippan.Validator.get(id))
+      end
     end
   end
 
@@ -171,6 +175,10 @@ defmodule Ippan.Validator do
     quote bind_quoted: [id: id], location: :keep do
       :ets.delete(:validator, id)
       Sqlite.step("delete_validator", [id])
+
+      if id == :persistent_term.get(:vid) do
+        :persistent_term.put(:validator, nil)
+      end
     end
   end
 end

@@ -182,9 +182,6 @@ defmodule Ippan.BlockHandler do
   end
 
   defp check_return({bdets, btx}, {sdets, stx}, return) do
-    IO.inspect("return")
-    IO.inspect(return)
-
     case return do
       %{"output" => balances, "supply" => supplies} ->
         try do

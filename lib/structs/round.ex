@@ -158,7 +158,7 @@ defmodule Ippan.Round do
   def calc_reward(0, _txs_rejected, _size), do: 5
 
   def calc_reward(txs_count, txs_rejected, size) do
-    ((txs_count - txs_rejected) * (txs_count / size) * 10) |> trunc()
+    ((txs_count - txs_rejected) * (txs_count / size) * 100) |> trunc()
   end
 
   def from_remote(%{"blocks" => blocks} = msg_round) do

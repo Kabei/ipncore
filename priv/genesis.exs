@@ -81,6 +81,18 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       props: ["coinbase", "lock", "burn"],
       symbol: "Þ",
       updated_at: 0
+    },
+    %{
+      avatar: "https://ippan.com/images/IPN.png",
+      created_at: 0,
+      decimal: 9,
+      id: "XPN",
+      max_supply: 0,
+      name: "XPN",
+      owner: address,
+      props: ["coinbase", "lock", "burn", "payconnect"],
+      symbol: "xÞ",
+      updated_at: 0
     }
   ],
   "validators" => [

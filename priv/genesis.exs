@@ -88,7 +88,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       decimal: 9,
       id: "XPN",
       max_supply: 0,
-      name: "XPN",
+      name: "Xtream Payment Network",
       owner: address,
       props: ["coinbase", "lock", "burn", "payconnect"],
       symbol: "xÞ",

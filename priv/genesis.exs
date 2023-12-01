@@ -76,7 +76,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       decimal: 9,
       id: "IPN",
       max_supply: 42_000_000_000_000_000,
-      name: "IPPAN",
+      name: "Instant Payment Network",
       owner: address,
       props: ["coinbase", "lock", "burn"],
       symbol: "Þ",

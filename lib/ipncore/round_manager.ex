@@ -325,7 +325,7 @@ defmodule RoundManager do
     :done = Round.insert(Round.to_list(round_nulled))
 
     # Delete validator
-    :done = Validator.delete(rcid)
+    Validator.delete(rcid)
     Sqlite.sync(db_ref)
 
     # Delete player

@@ -80,7 +80,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       max_supply: 42_000_000_000_000_000,
       name: "Instant Payment Network",
       owner: address,
-      props: ["coinbase", "lock", "burn"],
+      props: ["burn", "coinbase", "drop", "lock"],
       symbol: "Þ",
       updated_at: 0
     },
@@ -92,7 +92,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       max_supply: 0,
       name: "Xtream Payment Network",
       owner: address,
-      props: ["coinbase", "lock", "burn", "reload"],
+      props: ["burn", "coinbase", "drop", "lock", "reload"],
       symbol: "xÞ",
       updated_at: 0,
       env: %{

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS token(
   symbol VARCHAR(5) NOT NULL,  
   max_supply BLOB,
   props BLOB,
+  env BLOB,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 ) WITHOUT ROWID;

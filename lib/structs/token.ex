@@ -14,17 +14,18 @@ defmodule Ippan.Token do
           symbol: String.t(),
           max_supply: non_neg_integer(),
           props: list() | nil,
+          env: map(),
           created_at: non_neg_integer(),
           updated_at: non_neg_integer()
         }
 
   @impl true
-  def optionals, do: ~w(avatar props)
+  def optionals, do: ~w(avatar props env)
 
   @impl true
   def editable, do: ~w(avatar name owner)
 
-  def props, do: ~w(burn coinbase lock)
+  def props, do: ~w(burn coinbase :edit lock reload)
 
   defstruct id: nil,
             name: nil,
@@ -34,6 +35,7 @@ defmodule Ippan.Token do
             symbol: nil,
             max_supply: 0,
             props: [],
+            env: %{},
             created_at: nil,
             updated_at: nil
 
@@ -48,6 +50,7 @@ defmodule Ippan.Token do
       x.symbol,
       BigNumber.to_bin(x.max_supply),
       @json.encode!(x.props),
+      CBOR.encode(x.env),
       x.created_at,
       x.updated_at
     ]
@@ -77,6 +80,7 @@ defmodule Ippan.Token do
         symbol,
         max_supply,
         props,
+        env,
         created_at,
         updated_at
       ]) do
@@ -89,6 +93,7 @@ defmodule Ippan.Token do
       symbol: symbol,
       max_supply: BigNumber.to_int(max_supply),
       props: @json.decode!(props),
+      env: :erlang.element(1, CBOR.Decoder.decode(env)),
       created_at: created_at,
       updated_at: updated_at
     }

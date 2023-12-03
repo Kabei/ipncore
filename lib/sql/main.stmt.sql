@@ -12,7 +12,7 @@ DELETE FROM main.env WHERE name=?1;
 
 
 --name: insert_token
-INSERT INTO assets.token VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10);
+INSERT INTO assets.token VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11);
 
 --name: get_token
 SELECT * FROM assets.token WHERE id = ? LIMIT 1;
@@ -140,7 +140,7 @@ SELECT id, hash FROM blockchain.round ORDER BY id DESC LIMIT 1;
 
 
 --name: insert_validator
-INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14);
+INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15);
 
 --name: get_players
 SELECT * FROM blockchain.validator WHERE failures < 6;

@@ -14,6 +14,7 @@ defmodule Ippan.Validator do
           fb: integer(),
           stake: non_neg_integer(),
           failures: integer(),
+          env: map(),
           created_at: non_neg_integer(),
           updated_at: non_neg_integer()
         }
@@ -32,13 +33,14 @@ defmodule Ippan.Validator do
     :stake,
     :created_at,
     :updated_at,
-    failures: 0
+    failures: 0,
+    env: %{}
   ]
 
   @impl true
   def editable, do: ~w(hostname port name avatar pubkey net_pubkey fa fb owner)
   @impl true
-  def optionals, do: ~w(avatar)
+  def optionals, do: ~w(avatar env)
 
   @impl true
   def to_list(x) do
@@ -55,6 +57,7 @@ defmodule Ippan.Validator do
       x.fb,
       x.stake,
       x.failures,
+      CBOR.encode(x.env),
       x.created_at,
       x.updated_at
     ]
@@ -84,6 +87,7 @@ defmodule Ippan.Validator do
         fb,
         stake,
         failures,
+        env,
         created_at,
         updated_at
       ]) do
@@ -100,6 +104,7 @@ defmodule Ippan.Validator do
       fa: fa,
       stake: stake,
       failures: failures,
+      env: :erlang.element(1, CBOR.Decoder.decode(env)),
       created_at: created_at,
       updated_at: updated_at
     }
@@ -115,6 +120,11 @@ defmodule Ippan.Validator do
   end
 
   def calc_price(next_id), do: (next_id + 1) * EnvStore.validator_price()
+
+  def self(v) do
+    :persistent_term.put(:validator, v)
+    :persistent_term.put(:vhash, :erlang.phash2(v) |> :erlang.integer_to_binary())
+  end
 
   require Sqlite
 
@@ -166,7 +176,7 @@ defmodule Ippan.Validator do
       Sqlite.update("blockchain.validator", map, id: id)
 
       if id == :persistent_term.get(:vid) do
-        :persistent_term.put(:validator, Ippan.Validator.get(id))
+        Ippan.Validator.self(Ippan.Validator.get(id))
       end
     end
   end
@@ -177,7 +187,7 @@ defmodule Ippan.Validator do
       Sqlite.step("delete_validator", [id])
 
       if id == :persistent_term.get(:vid) do
-        :persistent_term.put(:validator, nil)
+        Ippan.Validator.self(nil)
       end
     end
   end

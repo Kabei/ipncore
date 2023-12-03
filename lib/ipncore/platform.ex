@@ -22,7 +22,7 @@ defmodule Platform do
     end
 
     v = Validator.get(vid)
-    :persistent_term.put(:validator, v)
+    Validator.self(v)
 
     :ok
   end

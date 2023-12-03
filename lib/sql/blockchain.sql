@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS validator(
   fb INTEGER NOT NULL,
   stake BIGINT,
   failures INTEGER,
+  env BLOB,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 ) WITHOUT ROWID;

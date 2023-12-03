@@ -1,5 +1,5 @@
 defmodule Ippan.Funx.Validator do
-  alias Ippan.{Validator, Utils}
+  alias Ippan.{Utils, Validator}
   alias Phoenix.PubSub
   require Validator
   require Sqlite
@@ -11,7 +11,7 @@ defmodule Ippan.Funx.Validator do
   @topic "validator"
 
   def new(
-        %{id: account_id, round: round_id},
+        source = %{id: account_id, round: round_id},
         owner_id,
         hostname,
         port,
@@ -75,7 +75,7 @@ defmodule Ippan.Funx.Validator do
   end
 
   def update(
-        %{id: account_id, round: round_id, size: size, validator: %{fa: fa, fb: fb}},
+        %{id: account_id, size: size, validator: %{fa: fa, fb: fb}, round: round_id},
         id,
         opts
       ) do
@@ -95,6 +95,11 @@ defmodule Ippan.Funx.Validator do
 
         db_ref = :persistent_term.get(:main_conn)
         Validator.update(map, id)
+
+        if id == :persistent_term.get(:vid) do
+          v = Ippan.Validator.get(id)
+          Ippan.Validator.self(v)
+        end
 
         # transform to text
         fun = fn x -> Utils.encode64(x) end

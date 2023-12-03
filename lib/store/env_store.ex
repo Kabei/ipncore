@@ -54,11 +54,7 @@ defmodule EnvStore do
 
   defp transform("validator.price", x), do: if(is_integer(x) and x > 0, do: x, else: 100_000)
 
-  # defp transform("FEES", x), do: if(is_integer(x) and x > 0, do: x, else: 1)
-
-  defp transform("block_limit", x), do: if(x in 1..100, do: x, else: 10)
-
-  # defp transform("BURN", x), do: if(is_float(x) and x >= 0 and x <= 1, do: x, else: 0.3)
+  defp transform("block.limit", x), do: if(x in 1..100, do: x, else: 10)
 
   defp transform(_, x), do: x
 end

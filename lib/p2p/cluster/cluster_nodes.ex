@@ -26,7 +26,7 @@ defmodule Ippan.ClusterNodes do
 
   @impl Network
   def fetch(id) do
-    db_ref = :persistent_term.get(:net_conn)
+    db_ref = :persistent_term.get(:local_conn)
     Node.get(id)
   end
 
@@ -165,7 +165,7 @@ defmodule Ippan.ClusterNodes do
 
   @impl Network
   def handle_message(event = "node.join", data, %{"id" => node_id}) do
-    db_ref = :persistent_term.get(:net_conn)
+    db_ref = :persistent_term.get(:local_conn)
 
     if Node.insert(Node.to_list(data)) == :done do
       broadcast_except(%{"event" => event, "data" => data}, [node_id])
@@ -175,7 +175,7 @@ defmodule Ippan.ClusterNodes do
   def handle_message(event = "node.update", data = %{"data" => fields, "id" => id}, %{
         "id" => node_id
       }) do
-    db_ref = :persistent_term.get(:net_conn)
+    db_ref = :persistent_term.get(:local_conn)
 
     if Node.update(fields, id) == :done do
       broadcast_except(%{"event" => event, "data" => data}, [node_id])
@@ -183,7 +183,7 @@ defmodule Ippan.ClusterNodes do
   end
 
   def handle_message(event = "node.leave", id, %{"id" => node_id}) do
-    db_ref = :persistent_term.get(:net_conn)
+    db_ref = :persistent_term.get(:local_conn)
 
     if Node.delete(id) == :done do
       broadcast_except(%{"event" => event, "data" => id}, [node_id])

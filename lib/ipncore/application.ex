@@ -19,7 +19,7 @@ defmodule Ipncore.Application do
       [
         MemTables,
         DetsSup,
-        NetStore,
+        LocalStore,
         MainStore,
         {PubSub, [name: :pubsub]},
         BlockTimer,

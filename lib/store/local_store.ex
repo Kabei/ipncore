@@ -1,4 +1,4 @@
-defmodule NetStore do
+defmodule LocalStore do
   alias Ippan.Node
   alias Exqlite.Sqlite3NIF
   require Ippan.Node
@@ -7,10 +7,10 @@ defmodule NetStore do
   @version 0
 
   @creations %{
-    "network" => SQL.readFile!("lib/sql/network.sql")
+    "local" => SQL.readFile!("lib/sql/local.sql")
   }
 
-  @statements SQL.readStmtFile!("lib/sql/network.stmt.sql")
+  @statements SQL.readStmtFile!("lib/sql/local.stmt.sql")
 
   # SQL.readStmtFile!("lib/sql/assets_alter.stmt.sql")
   @alter []
@@ -19,9 +19,9 @@ defmodule NetStore do
   @attaches %{}
 
   @app Mix.Project.config()[:app]
-  @name "network"
-  @filename "network.db"
-  @key_conn :net_conn
+  @name "local"
+  @filename "local.db"
+  @key_conn :local_conn
 
   def child_spec(args) do
     %{

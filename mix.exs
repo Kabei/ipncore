@@ -79,7 +79,7 @@ defmodule Ipncore.MixProject do
       {:benchee, "~> 1.0", only: [:dev, :test]},
       {:poolboy, "~> 1.5.2"},
       {:jason, "~> 1.4"},
-      {:bandit, ">= 0.7.7"},
+      {:bandit, "~> 1.1"},
       {:phoenix_pubsub, "~> 2.1"},
       {:httpoison, "~> 2.0"},
       {:cafezinho, "~> 0.4.0"},

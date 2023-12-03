@@ -72,15 +72,6 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro burn(account, token, amount) do
-    quote bind_quoted: [account: account, token: token, amount: amount], location: :keep do
-      key = DetsPlux.tuple(account, token)
-      DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
-      DetsPlux.update_counter(var!(tx), key, {2, -amount})
-      TokenSupply.subtract(var!(supply), amount)
-    end
-  end
-
   defmacro reserve(amount) do
     quote bind_quoted: [token: @token, amount: amount], location: :keep do
       if amount > 0 do
@@ -90,9 +81,23 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro fees_burn(supply, amount) do
-    quote bind_quoted: [supply: supply, token: @token, amount: amount], location: :keep do
-      TokenSupply.subtract(supply, amount)
+  defmacro fee_reserve(from, amount) do
+    quote bind_quoted: [from: from, token: @token, amount: amount], location: :keep do
+      if amount > 0 do
+        balance_key = DetsPlux.tuple(var!(from), token)
+        DetsPlux.update_counter(var!(tx), balance_key, {2, -amount})
+        supply = TokenSupply.new("jackpot")
+        TokenSupply.add(supply, amount)
+      end
+    end
+  end
+
+  defmacro burn(account, token, amount) do
+    quote bind_quoted: [account: account, token: token, amount: amount], location: :keep do
+      key = DetsPlux.tuple(account, token)
+      DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
+      DetsPlux.update_counter(var!(tx), key, {2, -amount})
+      TokenSupply.subtract(var!(supply), amount)
     end
   end
 

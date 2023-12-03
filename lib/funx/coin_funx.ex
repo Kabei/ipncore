@@ -26,7 +26,7 @@ defmodule Ippan.Funx.Coin do
     BalanceStore.send(amount)
 
     if is_validator do
-      BalanceStore.reserve(reserve)
+      BalanceStore.fee_reserve(vOwner, reserve)
     else
       fees = tfees - reserve
       BalanceStore.fees(tfees, fees, reserve)
@@ -85,7 +85,7 @@ defmodule Ippan.Funx.Coin do
     TokenSupply.add(supply, total)
 
     if is_validator do
-      BalanceStore.reserve(reserve)
+      BalanceStore.fee_reserve(vOwner, reserve)
     else
       fees = tfees - reserve
       BalanceStore.fees(tfees, fees, reserve)
@@ -113,7 +113,7 @@ defmodule Ippan.Funx.Coin do
     reserve = Utils.calc_reserve(tfees)
 
     if is_validator do
-      BalanceStore.reserve(reserve)
+      BalanceStore.fee_reserve(vOwner, reserve)
     else
       fees = tfees - reserve
       BalanceStore.fees(tfees, fees, reserve)

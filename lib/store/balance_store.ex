@@ -104,11 +104,19 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro reload(account, token, value) do
-    quote bind_quoted: [account: account, token: token, value: value], location: :keep do
-      key = DetsPlux.tuple(account, token)
-      DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
+  defmacro reload(account, key, value) do
+    quote bind_quoted: [account: account, key: key, value: value],
+          location: :keep do
       DetsPlux.update_counter(var!(tx), key, {2, value})
+    end
+  end
+
+  defmacro expiry(account, key, token, value) do
+    quote bind_quoted: [account: account, key: key, value: value, token: token],
+          location: :keep do
+      DetsPlux.update_element(var!(tx), key, 2, -value)
+      supply = TokenSupply.new(token)
+      TokenSupply.subtract(supply, value)
     end
   end
 

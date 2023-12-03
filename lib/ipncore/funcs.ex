@@ -200,7 +200,8 @@ defmodule Ippan.Funcs do
       name: "coin.reload",
       mod: Func.Coin,
       modx: Funx.Coin,
-      fun: :reload
+      fun: :reload,
+      deferred: true
     }
   end
 

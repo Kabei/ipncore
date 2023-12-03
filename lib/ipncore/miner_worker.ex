@@ -147,13 +147,14 @@ defmodule MinerWorker do
         case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             :counters.add(cref, 2, 1)
-            :error
 
           _true ->
             case TxHandler.regular() do
+              {:error, _} ->
+                :counters.add(cref, 2, 1)
+
               :error ->
                 :counters.add(cref, 2, 1)
-                :error
 
               _ ->
                 nil

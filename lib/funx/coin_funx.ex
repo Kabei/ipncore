@@ -140,13 +140,52 @@ defmodule Ippan.Funx.Coin do
     BalanceStore.burn(account_id, token_id, amount)
   end
 
-  def reload(%{id: account_id}, token_id) do
+  def reload(%{id: account_id, round: round_id}, token_id) do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-    %{env: %{"reload.amount" => value}} = Token.get(token_id)
+    %{env: env} = Token.get(token_id)
 
-    BalanceStore.reload(account_id, token_id, value)
+    key = DetsPlux.tuple(account_id, token_id)
+    {balance, map} = DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
+    last_reload = Map.get(map, "lastReload", round_id)
+
+    case env do
+      %{"reload.amount" => value, "reload.times" => times, "expiry" => expiry} ->
+        req_time = last_reload + times
+
+        cond do
+          round_id - last_reload > expiry ->
+            new_map = Map.put(map, "lastReload", round_id)
+            DetsPlux.update_element(tx, key, 3, new_map)
+            BalanceStore.expiry(account_id, key, token_id, balance)
+
+          round_id > req_time ->
+            mult = calc_reload_mult(round_id, last_reload, req_time, times)
+
+            new_map = Map.put(map, "lastReload", round_id)
+            DetsPlux.update_element(tx, key, 3, new_map)
+            BalanceStore.reload(account_id, key, value * mult)
+
+          true ->
+            :error
+        end
+
+      %{"reload.amount" => value, "reload.times" => times} ->
+        req_time = last_reload + times
+
+        if round_id > req_time do
+          mult = calc_reload_mult(round_id, last_reload, req_time, times)
+
+          DetsPlux.update_element(tx, key, 3, map)
+          BalanceStore.reload(account_id, key, value * mult)
+        else
+          :error
+        end
+
+      _ ->
+        :error
+    end
   end
 
   def refund(%{id: from}, hash16) do
@@ -177,5 +216,9 @@ defmodule Ippan.Funx.Coin do
     tx = DetsPlux.tx(dets, :balance)
 
     BalanceStore.unlock(to, token_id, amount)
+  end
+
+  defp calc_reload_mult(round_id, last_reload, req_time, times) do
+    if last_reload > 0, do: div(round_id - req_time, times), else: 1
   end
 end

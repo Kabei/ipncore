@@ -45,7 +45,10 @@ defmodule MapUtil do
 
   ## Validation functions
   def validate_not_empty(nil), do: raise(ArgumentError, "Error value is empty")
-  def validate_not_empty(x) when map_size(x) == 0, do: raise(ArgumentError, "Error value is empty")
+
+  def validate_not_empty(x) when map_size(x) == 0,
+    do: raise(ArgumentError, "Error value is empty")
+
   def validate_not_empty(map) when is_map(map), do: map
   def validate_not_empty(_), do: raise(ArgumentError, "Error value is empty")
 
@@ -53,7 +56,7 @@ defmodule MapUtil do
     email = Map.get(map, key)
 
     if not is_nil(email) and not Match.email?(email),
-      do: raise(ArgumentError, "Invalid #{key}")
+      do: raise(ArgumentError, "Invalid #{key} is not email")
 
     map
   end
@@ -62,7 +65,16 @@ defmodule MapUtil do
     url = Map.get(map, key)
 
     if not is_nil(url) and not Match.url?(url),
-      do: raise(ArgumentError, "Invalid url #{key}")
+      do: raise(ArgumentError, "Invalid #{key} is not a URL")
+
+    map
+  end
+
+  def validate_map(map, key) do
+    value = Map.get(map, key)
+
+    if not is_nil(value) and not is_map(value),
+      do: raise(ArgumentError, "Invalid #{key} is not a map")
 
     map
   end
@@ -71,7 +83,7 @@ defmodule MapUtil do
     val = Map.get(map, key)
 
     if not is_nil(val) and not Match.hostname?(val),
-      do: raise(ArgumentError, "Invalid hostname #{key}")
+      do: raise(ArgumentError, "Invalid #{key} is not a hostname")
 
     map
   end
@@ -80,7 +92,7 @@ defmodule MapUtil do
     val = Map.get(map, key)
 
     if not is_nil(val) and not Match.account?(val),
-      do: raise(ArgumentError, "Invalid hostname #{key}")
+      do: raise(ArgumentError, "Invalid #{key} is not account format")
 
     map
   end
@@ -89,27 +101,35 @@ defmodule MapUtil do
     val = Map.get(map, key)
 
     if not is_nil(val) and not Match.wallet_address?(val),
-      do: raise(ArgumentError, "Invalid address #{key}")
+      do: raise(ArgumentError, "Invalid #{key} is not payment address")
 
     map
   end
 
   def validate_format(map, key, regex) do
     val = Map.get(map, key)
-    if not is_nil(val) and not Regex.match?(regex, val), do: raise(ArgumentError, "Invalid #{key}")
+
+    if not is_nil(val) and not Regex.match?(regex, val),
+      do: raise(ArgumentError, "Invalid key: #{key}")
 
     map
   end
 
   def validate_boolean(map, key) do
     val = Map.get(map, key)
-    if not is_nil(val) and not is_boolean(val), do: raise(ArgumentError, "Invalid #{key}")
+
+    if not is_nil(val) and not is_boolean(val),
+      do: raise(ArgumentError, "Invalid #{key} is not boolean")
+
     map
   end
 
   def validate_integer(map, key) do
     val = Map.get(map, key)
-    if not is_nil(val) and not is_integer(val), do: raise(ArgumentError, "Invalid #{key}")
+
+    if not is_nil(val) and not is_integer(val),
+      do: raise(ArgumentError, "Invalid #{key} is not integer")
+
     map
   end
 
@@ -126,7 +146,7 @@ defmodule MapUtil do
        end)
     |> case do
       true ->
-        raise ArgumentError, "Invalid #{key}"
+        raise ArgumentError, "Invalid key: #{key}"
 
       false ->
         map
@@ -135,7 +155,7 @@ defmodule MapUtil do
 
   def validate_range(map, key, range) do
     val = Map.get(map, key)
-    if not is_nil(val) and val not in range, do: raise(ArgumentError, "Invalid range #{key}")
+    if not is_nil(val) and val not in range, do: raise(ArgumentError, "Invalid range: #{key}")
     map
   end
 
@@ -143,7 +163,7 @@ defmodule MapUtil do
     val = Map.get(map, key)
 
     if not is_nil(val) and not Enum.any?(val, fn x -> x in list end),
-      do: raise(ArgumentError, "Invalid range #{key}")
+      do: raise(ArgumentError, "Invalid range: #{key}")
 
     map
   end
@@ -159,7 +179,7 @@ defmodule MapUtil do
     val = Map.get(map, key)
 
     if not is_nil(val) and byte_size(val) not in range,
-      do: raise(ArgumentError, "Invalid max length #{key}")
+      do: raise(ArgumentError, "Invalid #{key} length exceeded")
 
     map
   end
@@ -167,7 +187,7 @@ defmodule MapUtil do
   def validate_bytes(map, key, size) do
     case Map.get(map, key) do
       val when byte_size(val) == size ->
-        raise ArgumentError, "Invalid max length #{key}"
+        raise ArgumentError, "Invalid #{key} length exceeded"
 
       _ ->
         map
@@ -178,7 +198,7 @@ defmodule MapUtil do
     val = Map.get(map, key)
 
     if not is_nil(val) and String.length(val) not in range,
-      do: raise(ArgumentError, "Invalid max length #{key}")
+      do: raise(ArgumentError, "#{key} has invalid length")
 
     map
   end
@@ -187,7 +207,7 @@ defmodule MapUtil do
     val = Map.get(map, key)
 
     if not is_nil(val) and String.length(val) > size,
-      do: raise(ArgumentError, "Invalid max length #{key}")
+      do: raise(ArgumentError, "#{key} has invalid length")
 
     map
   end

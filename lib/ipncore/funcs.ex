@@ -169,7 +169,8 @@ defmodule Ippan.Funcs do
       name: "coin.burn",
       mod: Func.Coin,
       modx: Funx.Coin,
-      fun: :burn
+      fun: :burn,
+      deferred: true
     }
   end
 
@@ -180,6 +181,26 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :multisend
+    }
+  end
+
+  def lookup(307) do
+    %Func{
+      id: 307,
+      name: "coin.drop",
+      mod: Func.Coin,
+      modx: Funx.Coin,
+      fun: :drop
+    }
+  end
+
+  def lookup(308) do
+    %Func{
+      id: 308,
+      name: "coin.reload",
+      mod: Func.Coin,
+      modx: Funx.Coin,
+      fun: :reload
     }
   end
 

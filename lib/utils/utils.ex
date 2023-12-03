@@ -3,7 +3,7 @@ defmodule Ippan.Utils do
   @compile {:inline, [encode16: 1, encode64: 1]}
 
   @app Mix.Project.config()[:app]
-  @burn Application.compile_env(@app, :burn, 0.3)
+  @reserve Application.compile_env(@app, :reserve, 0.3)
 
   def empty?(nil), do: true
   def empty?(<<>>), do: true
@@ -20,6 +20,13 @@ defmodule Ippan.Utils do
   def cast_boolean(1), do: true
   def cast_boolean(true), do: true
   def cast_boolean(_), do: false
+
+  def check_integer(x, default) do
+    case Regex.match?(~r/^[0-9]*$/, x) do
+      true -> x
+      _ -> default
+    end
+  end
 
   def sqlite_in(values) do
     Enum.reduce(values, "(", fn
@@ -53,8 +60,8 @@ defmodule Ippan.Utils do
   def calc_fees(0, 0, _size), do: 1
   def calc_fees(a, b, size), do: a * size + b
 
-  @spec calc_burn(integer()) :: integer()
-  def calc_burn(fees), do: ceil(fees * @burn)
+  @spec calc_reserve(integer()) :: integer()
+  def calc_reserve(fees), do: trunc(fees * @reserve)
 
   def get_name_from_node(node_name) do
     node_name |> to_string() |> String.split("@") |> hd
@@ -129,6 +136,13 @@ defmodule Ippan.Utils do
       Plug.Conn.InvalidQueryError,
       true
     )
+  end
+
+  @spec time_threshold(non_neg_integer(), non_neg_integer()) :: boolean()
+  def time_threshold(time, interval) do
+    now = :erlang.system_time(:millisecond)
+
+    time in Range.new(now - interval, now + interval)
   end
 
   def date_start_to_time(date, unit_time \\ :millisecond) do

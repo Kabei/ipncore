@@ -96,7 +96,9 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       symbol: "xÞ",
       updated_at: 0,
       env: %{
-        "reload.amount" => 500
+        "reload.amount" => 500,
+        "reload.times" => 100,
+        "expiry" => 18250000,
       }
     }
   ],

@@ -148,7 +148,11 @@ defmodule BalanceStore do
       lock = Map.get(map, "lock", 0)
 
       if lock >= value do
-        map = Map.put(map, "lock", lock - value)
+        result = lock - value
+
+        map =
+          if result > 0, do: Map.put(map, "lock", result), else: Map.delete(map, "lock")
+
         DetsPlux.update_counter(var!(tx), key, [{2, value}])
         DetsPlux.update_element(var!(tx), key, 3, map)
       else

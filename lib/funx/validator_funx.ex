@@ -11,7 +11,7 @@ defmodule Ippan.Funx.Validator do
   @topic "validator"
 
   def new(
-        source = %{id: account_id, round: round_id},
+        %{id: account_id, round: round_id},
         owner_id,
         hostname,
         port,

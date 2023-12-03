@@ -478,8 +478,7 @@ defmodule RoundManager do
         else
           GenServer.cast(
             pid,
-            {:incomplete,
-             Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
+            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
           )
         end
       end)
@@ -666,17 +665,13 @@ defmodule RoundManager do
 
         # Run jackpot and events
         jackpot_result =
-          {_jackpot_winner, jackpot_amount} =
           run_jackpot(
             db_ref,
             balance_pid,
             balance_tx,
             round_id,
             prev_hash,
-            block_id + block_count,
-            reward,
-            supply,
-            max_supply
+            block_id + block_count
           )
 
         # save round
@@ -686,7 +681,7 @@ defmodule RoundManager do
           hash: hash,
           prev: prev_hash,
           signature: signature,
-          coinbase: reward + jackpot_amount,
+          coinbase: reward,
           count: block_count,
           tx_count: tx_count,
           size: size,
@@ -718,79 +713,75 @@ defmodule RoundManager do
     end
   end
 
-  defp run_jackpot(_, _, _, _, _, _, 0, _, _), do: {nil, 0}
-  defp run_jackpot(_, _, _, _, nil, _, _, _, _), do: {nil, 0}
-
   defp run_jackpot(
          db_ref,
          balances,
          balance_tx,
          round_id,
          round_hash,
-         total_blocks,
-         reward,
-         supply,
-         max_supply
-       ) do
-    if rem(round_id, 100) == 0 do
-      IO.inspect("jackpot")
+         total_blocks
+       )
+       when rem(round_id, 100) == 0 do
+    IO.inspect("jackpot")
+    supply = TokenSupply.new("jackpot")
+    amount = TokenSupply.get(supply)
+
+    if amount > 0 do
       n = BigNumber.to_int(round_hash)
       dv = min(total_blocks + 1, 20_000)
       b = rem(n, dv) + if(total_blocks >= 20_000, do: total_blocks, else: 0)
 
-      new_amount = TokenSupply.get(supply) + reward
+      TokenSupply.put(supply, 0)
 
-      if max_supply >= new_amount do
-        case Block.get(b) do
-          nil ->
-            {nil, 0}
+      case Block.get(b) do
+        nil ->
+          {nil, 0}
 
-          block_list ->
-            block = Block.list_to_map(block_list)
-            tx_count = block.count
-            IO.inspect(tx_count)
+        block_list ->
+          block = Block.list_to_map(block_list)
+          tx_count = block.count
+          IO.inspect(tx_count)
 
-            cond do
-              tx_count > 0 ->
-                tx_n = rem(n, tx_count)
-                path = Block.decode_path(block.creator, block.height)
-                {:ok, content} = File.read(path)
-                %{"data" => data} = decode_file!(content)
+          cond do
+            tx_count > 0 ->
+              tx_n = rem(n, tx_count)
+              path = Block.decode_path(block.creator, block.height)
+              {:ok, content} = File.read(path)
+              %{"data" => data} = decode_file!(content)
 
-                winner_id =
-                  case Enum.at(data, tx_n) do
-                    [_hash, _type, account_id, _nonce, _args, _size] ->
-                      BalanceStore.income(balances, balance_tx, account_id, @token, reward)
-                      # Update Token Supply
-                      TokenSupply.add(supply, reward)
+              winner_id =
+                case Enum.at(data, tx_n) do
+                  [_hash, _type, account_id, _nonce, _args, _size] ->
+                    BalanceStore.income(balances, balance_tx, account_id, @token, amount)
+                    # Update Token Supply
+                    TokenSupply.add(supply, amount)
 
-                      account_id
+                    account_id
 
-                    [_hash, _type, _arg_key, account_id, _nonce, _args, _size] ->
-                      BalanceStore.income(balances, balance_tx, account_id, @token, reward)
-                      # Update Token Supply
-                      TokenSupply.add(supply, reward)
-                      account_id
-                  end
+                  [_hash, _type, _arg_key, account_id, _nonce, _args, _size] ->
+                    BalanceStore.income(balances, balance_tx, account_id, @token, amount)
+                    # Update Token Supply
+                    TokenSupply.add(supply, amount)
+                    account_id
+                end
 
-                jackpot = [round_id, winner_id, reward]
+              jackpot = [round_id, winner_id, amount]
 
-                :done =
-                  Sqlite.step("insert_jackpot", jackpot)
+              :done =
+                Sqlite.step("insert_jackpot", jackpot)
 
-                {winner_id, reward}
+              {winner_id, amount}
 
-              true ->
-                {nil, 0}
-            end
-        end
-      else
-        {nil, 0}
+            true ->
+              {nil, 0}
+          end
       end
     else
       {nil, 0}
     end
   end
+
+  defp run_jackpot(_, _, _, _, _, _), do: {nil, 0}
 
   defp run_maintenance(0, _), do: nil
 

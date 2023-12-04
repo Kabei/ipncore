@@ -440,7 +440,7 @@ defmodule Builder do
   # Builder.coin_reload(client, "XPN") |> Builder.print()
   def coin_reload(client = %Client{address: address, nonce: nonce}, token) do
     body =
-      [308, nonce, address, token]
+      [307, nonce, address, token]
       |> encode_fun!()
 
     hash = hash_fun(body)

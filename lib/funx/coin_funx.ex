@@ -175,7 +175,7 @@ defmodule Ippan.Funx.Coin do
             new_map =
               map
               |> Map.put("initRound", init_reload)
-              |> Map.put("lastRound", last_reload)
+              |> Map.put("lastRound", round_id)
 
             DetsPlux.update_element(tx, key, 3, new_map)
             BalanceStore.reload(key, token_id, value * mult)
@@ -185,7 +185,7 @@ defmodule Ippan.Funx.Coin do
         new_map =
           map
           |> Map.put("initRound", init_reload)
-          |> Map.put("lastRound", last_reload)
+          |> Map.put("lastRound", round_id)
 
         DetsPlux.update_element(tx, key, 3, new_map)
         BalanceStore.reload(key, token_id, value * mult)

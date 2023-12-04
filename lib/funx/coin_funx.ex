@@ -222,6 +222,8 @@ defmodule Ippan.Funx.Coin do
   defp calc_reload_mult(_round_id, req_time, times) when req_time == times, do: 1
 
   defp calc_reload_mult(round_id, req_time, times) do
-    div(round_id - req_time, times)
+    result = div(round_id - req_time, times)
+
+    if result > 0, do: result, else: 1
   end
 end

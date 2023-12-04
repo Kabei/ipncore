@@ -165,7 +165,7 @@ defmodule Ippan.Funx.Coin do
 
             new_map = Map.put(map, "lastReload", round_id)
             DetsPlux.update_element(tx, key, 3, new_map)
-            BalanceStore.reload(account_id, key, value * mult)
+            BalanceStore.reload(key, token_id, value * mult)
 
           true ->
             :error
@@ -179,7 +179,7 @@ defmodule Ippan.Funx.Coin do
 
           new_map = Map.put(map, "lastReload", round_id)
           DetsPlux.update_element(tx, key, 3, new_map)
-          BalanceStore.reload(account_id, key, value * mult)
+          BalanceStore.reload(key, token_id, value * mult)
         else
           :error
         end

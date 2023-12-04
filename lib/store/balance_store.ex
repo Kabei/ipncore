@@ -109,10 +109,11 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro reload(account, key, value) do
-    quote bind_quoted: [account: account, key: key, value: value],
-          location: :keep do
+  defmacro reload(key, token, value) do
+    quote bind_quoted: [key: key, token: token, value: value], location: :keep do
       DetsPlux.update_counter(var!(tx), key, {2, value})
+      supply = TokenSupply.new(token)
+      TokenSupply.add(supply, value)
     end
   end
 

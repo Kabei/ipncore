@@ -723,7 +723,7 @@ defmodule RoundManager do
        )
        when rem(round_id, 100) == 0 do
     IO.inspect("jackpot")
-    supply = TokenSupply.new("jackpot")
+    supply = TokenSupply.jackpot()
     amount = TokenSupply.get(supply)
 
     if amount > 0 do

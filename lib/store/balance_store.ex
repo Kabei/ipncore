@@ -75,7 +75,7 @@ defmodule BalanceStore do
   defmacro reserve(amount) do
     quote bind_quoted: [token: @token, amount: amount], location: :keep do
       if amount > 0 do
-        supply = TokenSupply.new("jackpot")
+        supply = TokenSupply.jackpot()
         TokenSupply.add(supply, amount)
       end
     end
@@ -86,7 +86,7 @@ defmodule BalanceStore do
       if amount > 0 do
         balance_key = DetsPlux.tuple(var!(from), token)
         DetsPlux.update_counter(var!(tx), balance_key, {2, -amount})
-        supply = TokenSupply.new("jackpot")
+        supply = TokenSupply.jackpot()
         TokenSupply.add(supply, amount)
       end
     end

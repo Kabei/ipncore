@@ -174,7 +174,7 @@ defmodule Ippan.Funx.Coin do
       %{"reload.amount" => value, "reload.times" => times} ->
         req_time = last_reload + times
 
-        if round_id >= req_time do
+        if round_id >= req_time or last_reload == 0 do
           mult = calc_reload_mult(round_id, req_time, times)
 
           new_map = Map.put(map, "lastReload", round_id)

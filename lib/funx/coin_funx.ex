@@ -150,7 +150,7 @@ defmodule Ippan.Funx.Coin do
     key = DetsPlux.tuple(account_id, token_id)
     b = {balance, map} = DetsPlux.get_cache(dets, tx, key, {0, %{}})
     init_reload = Map.get(map, "initReload", round_id)
-    last_reload = Map.get(map, "lastRound", round_id)
+    last_reload = Map.get(map, "lastReload", round_id)
     mult = calc_reload_mult(round_id, init_reload, last_reload, times)
 
     IO.inspect(env)
@@ -174,8 +174,8 @@ defmodule Ippan.Funx.Coin do
           true ->
             new_map =
               map
-              |> Map.put("initRound", init_reload)
-              |> Map.put("lastRound", round_id)
+              |> Map.put("initReload", init_reload)
+              |> Map.put("lastReload", round_id)
 
             DetsPlux.update_element(tx, key, 3, new_map)
             BalanceStore.reload(key, token_id, value * mult)
@@ -184,8 +184,8 @@ defmodule Ippan.Funx.Coin do
       _ ->
         new_map =
           map
-          |> Map.put("initRound", init_reload)
-          |> Map.put("lastRound", round_id)
+          |> Map.put("initReload", init_reload)
+          |> Map.put("lastReload", round_id)
 
         DetsPlux.update_element(tx, key, 3, new_map)
         BalanceStore.reload(key, token_id, value * mult)

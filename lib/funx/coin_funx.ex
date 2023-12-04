@@ -148,25 +148,15 @@ defmodule Ippan.Funx.Coin do
     %{"reload.amount" => value, "reload.times" => times} = env
 
     key = DetsPlux.tuple(account_id, token_id)
-    b = {balance, map} = DetsPlux.get_cache(dets, tx, key, {0, %{}})
+    {balance, map} = DetsPlux.get_cache(dets, tx, key, {0, %{}})
     init_reload = Map.get(map, "initReload", round_id)
     last_reload = Map.get(map, "lastReload", round_id)
     mult = calc_reload_mult(round_id, init_reload, last_reload, times)
 
-    IO.inspect(env)
-    IO.inspect(key)
-    IO.inspect(b)
-    IO.inspect(last_reload)
-    IO.inspect(round_id)
-
     case env do
       %{"expiry" => expiry} ->
-        # req_time = last_reload + times
-        # IO.inspect("with expiry #{req_time}")
-
         cond do
           round_id - last_reload > expiry ->
-            IO.inspect("EXPIRY")
             new_map = Map.put(map, "lastReload", round_id)
             DetsPlux.update_element(tx, key, 3, new_map)
             BalanceStore.expiry(account_id, key, token_id, -balance)

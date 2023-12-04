@@ -247,8 +247,8 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.token_new(client, "IPN", client2.address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "drop", "lock"]})
-  # Builder.token_new(client, "USD", client2.address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "drop", "lock"]}) |> Builder.print
+  # Builder.token_new(client, "IPN", client2.address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]})
+  # Builder.token_new(client, "USD", client2.address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]}) |> Builder.print
   def token_new(
         client = %Client{address: address, nonce: nonce},
         token_id,
@@ -411,10 +411,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_burn(client, "IPN", client2.address, 1000) |> Builder.print()
-  def coin_burn(client = %Client{address: address, nonce: nonce}, to, token, amount) do
+  # Builder.coin_burn(client, "IPN", 1000) |> Builder.print()
+  def coin_burn(client = %Client{address: address, nonce: nonce}, token, amount) do
     body =
-      [305, nonce, address, to, token, amount]
+      [305, nonce, address, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -424,10 +424,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_drop(client, "IPN", 1000) |> Builder.print()
-  def coin_drop(client = %Client{address: address, nonce: nonce}, token, amount) do
+  # Builder.coin_burn(client, "IPN", client2.address, 1000) |> Builder.print()
+  def coin_burn(client = %Client{address: address, nonce: nonce}, to, token, amount) do
     body =
-      [307, nonce, address, token, amount]
+      [305, nonce, address, to, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)

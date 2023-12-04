@@ -116,7 +116,6 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       owner: address,
       port: 5815,
       pubkey: pk,
-      stake: 0,
       updated_at: 0
     },
     %Validator{
@@ -132,7 +131,6 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       owner: address,
       port: 5815,
       pubkey: pk,
-      stake: 0,
       updated_at: 0
     }
   ],

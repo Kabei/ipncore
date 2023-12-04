@@ -56,7 +56,6 @@ defmodule Ippan.Funx.Validator do
                 owner: owner_id,
                 fa: fa,
                 fb: fb,
-                stake: 0,
                 created_at: round_id,
                 updated_at: round_id
               }

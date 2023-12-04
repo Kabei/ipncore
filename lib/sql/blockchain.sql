@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS validator(
   avatar TEXT,
   fa INTEGER NOT NULL,
   fb INTEGER NOT NULL,
-  stake BIGINT,
   failures INTEGER,
   env BLOB,
   created_at BIGINT NOT NULL,

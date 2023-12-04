@@ -160,7 +160,7 @@ defmodule Ippan.Funx.Coin do
             DetsPlux.update_element(tx, key, 3, new_map)
             BalanceStore.expiry(account_id, key, token_id, -balance)
 
-          round_id >= req_time ->
+          round_id >= req_time or last_reload == 0 ->
             mult = calc_reload_mult(round_id, req_time, times)
 
             new_map = Map.put(map, "lastReload", round_id)

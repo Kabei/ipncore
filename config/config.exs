@@ -29,6 +29,7 @@ config :ipncore, :timeout_refund, 75_000
 config :ipncore, :message_timeout, :timer.seconds(5)
 config :ipncore, :max_validators, 20_000
 config :ipncore, :max_tokens, 1_000
+config :ipncore, :maintenance, 25_000
 config :ipncore, :reserve, 0.3
 # Only core
 config :ipncore, :max_peers_conn, 20

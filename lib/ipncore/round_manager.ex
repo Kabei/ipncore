@@ -15,6 +15,7 @@ defmodule RoundManager do
   @token Application.compile_env(@app, :token)
   @timeout Application.compile_env(@app, :round_timeout)
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
+  @maintenance Application.compile_env(@app, :maintenance)
 
   def start_link(args) do
     case System.get_env("test") do
@@ -786,7 +787,7 @@ defmodule RoundManager do
   defp run_maintenance(0, _), do: nil
 
   defp run_maintenance(round_id, db_ref) do
-    if rem(round_id, 25_000) == 0 do
+    if rem(round_id, @maintenance) == 0 do
       Sqlite.step("expiry_refund", [round_id])
       Sqlite.step("expiry_domain", [round_id])
     end

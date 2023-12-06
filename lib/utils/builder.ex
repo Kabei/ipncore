@@ -7,18 +7,18 @@ defmodule Builder do
   defmodule Client do
     @type t :: %Client{
             seed: binary,
-            address: binary,
+            id: binary,
             pk: binary,
             secret: binary,
             sig_type: 0 | 1 | 2,
             nonce: pos_integer()
           }
 
-    defstruct [:seed, :address, :pk, :secret, :sig_type, nonce: 1]
+    defstruct [:seed, :id, :pk, :secret, :sig_type, nonce: 1]
 
     @spec new(binary, 0 | 1 | 2) :: t()
     def new(seed, sig_type \\ 0) do
-      {pk, sk, address} =
+      {pk, sk, account_id} =
         case sig_type do
           0 ->
             Builder.gen_ed25519(seed)
@@ -30,7 +30,7 @@ defmodule Builder do
             Builder.gen_falcon(seed)
         end
 
-      %Client{secret: sk, pk: pk, seed: seed, address: address, sig_type: sig_type}
+      %Client{secret: sk, pk: pk, seed: seed, id: account_id, sig_type: sig_type}
     end
 
     @spec cont(t) :: t
@@ -85,21 +85,21 @@ defmodule Builder do
     end
   end
 
-  # {pk, sk, address} = Builder.gen_ed25519(seed)
+  # {pk, sk, account_id} = Builder.gen_ed25519(seed)
   def gen_ed25519(seed) do
     {:ok, {pk, sk}} = Cafezinho.Impl.keypair_from_seed(seed)
 
     {pk, sk, Address.hash(0, pk)}
   end
 
-  # {pk, sk, address} = Builder.gen_secp256k1(seed)
+  # {pk, sk, account_id} = Builder.gen_secp256k1(seed)
   def gen_secp256k1(seed) do
     {:ok, pk} = ExSecp256k1.Impl.create_public_key(seed)
 
     {pk, seed, Address.hash(1, pk)}
   end
 
-  # {pkv, skv, addressv} = Builder.gen_falcon(seed)
+  # {pk, sk, account_id} = Builder.gen_falcon(seed)
   def gen_falcon(seed) do
     {:ok, pk, sk} = Falcon.gen_keys_from_seed(seed)
 
@@ -109,7 +109,7 @@ defmodule Builder do
   # Builder.wallet_new(client, 0) |> Builder.print
   def wallet_new(
         client = %Client{
-          address: address,
+          id: account_id,
           nonce: nonce,
           pk: pk,
           sig_type: sig_type
@@ -120,7 +120,7 @@ defmodule Builder do
       [
         0,
         nonce,
-        address,
+        account_id,
         Base.encode64(pk),
         validator_id,
         sig_type
@@ -137,13 +137,13 @@ defmodule Builder do
   # Builder.wallet_sub(client) |> Builder.print
   def wallet_sub(
         client = %Client{
-          address: address,
+          id: account_id,
           nonce: nonce
         },
         validator_id
       ) do
     body =
-      [1, nonce, address, validator_id]
+      [1, nonce, account_id, validator_id]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -155,12 +155,12 @@ defmodule Builder do
 
   # Builder.env_set(client, "test", "value-test") |> Builder.print
   def env_set(
-        client = %Client{address: address, nonce: nonce},
+        client = %Client{id: account_id, nonce: nonce},
         name,
         value
       ) do
     body =
-      [50, nonce, address, name, value]
+      [50, nonce, account_id, name, value]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -171,9 +171,9 @@ defmodule Builder do
   end
 
   # Builder.env_delete(client, "test") |> Builder.print
-  def env_delete(client = %Client{address: address, nonce: nonce}, name) do
+  def env_delete(client = %Client{id: account_id, nonce: nonce}, name) do
     body =
-      [51, nonce, address, name]
+      [51, nonce, account_id, name]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -183,9 +183,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_new(client, "ippan.net", 5815, address, "net core", pkv, 1, 5, %{"avatar" => "https://avatar.com"}) |> Builder.print()
+  # Builder.validator_new(client, "ippan.net", 5815, account_id, "net core", pkv, 1, 5, %{"avatar" => "https://avatar.com"}) |> Builder.print()
   def validator_new(
-        client = %Client{address: address, nonce: nonce},
+        client = %Client{id: account_id, nonce: nonce},
         hostname,
         port,
         owner,
@@ -201,7 +201,7 @@ defmodule Builder do
       [
         100,
         nonce,
-        address,
+        account_id,
         hostname,
         port,
         owner,
@@ -222,9 +222,9 @@ defmodule Builder do
   end
 
   # Builder.validator_update(client, 1, %{"fa" => 7}) |> Builder.print()
-  def validator_update(client = %Client{address: address, nonce: nonce}, id, params) do
+  def validator_update(client = %Client{id: account_id, nonce: nonce}, id, params) do
     body =
-      [101, nonce, address, id, params]
+      [101, nonce, account_id, id, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -235,9 +235,9 @@ defmodule Builder do
   end
 
   # Builder.validator_delete(client, 1) |> Builder.print()
-  def validator_delete(client = %Client{address: address, nonce: nonce}, id) do
+  def validator_delete(client = %Client{id: account_id, nonce: nonce}, id) do
     body =
-      [102, nonce, address, id]
+      [102, nonce, account_id, id]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -247,10 +247,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.token_new(client, "IPN", client2.address, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]})
-  # Builder.token_new(client, "USD", client2.address, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]}) |> Builder.print
+  # Builder.token_new(client, "IPN", client2.id, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]})
+  # Builder.token_new(client, "USD", client2.id, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]}) |> Builder.print
   def token_new(
-        client = %Client{address: address, nonce: nonce},
+        client = %Client{id: account_id, nonce: nonce},
         token_id,
         owner,
         name,
@@ -266,7 +266,7 @@ defmodule Builder do
       [
         200,
         nonce,
-        address,
+        account_id,
         token_id,
         owner,
         name,
@@ -285,9 +285,9 @@ defmodule Builder do
   end
 
   # Builder.token_update(client, "USD", %{"name" => "Dollar"}) |> Builder.print()
-  def token_update(client = %Client{address: address, nonce: nonce}, id, params) do
+  def token_update(client = %Client{id: account_id, nonce: nonce}, id, params) do
     body =
-      [201, nonce, address, id, params]
+      [201, nonce, account_id, id, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -298,9 +298,9 @@ defmodule Builder do
   end
 
   # Builder.token_delete(client, "USD") |> Builder.print()
-  def token_delete(client = %Client{address: address, nonce: nonce}, id) do
+  def token_delete(client = %Client{id: account_id, nonce: nonce}, id) do
     body =
-      [202, nonce, address, id]
+      [202, nonce, account_id, id]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -311,9 +311,9 @@ defmodule Builder do
   end
 
   # Builder.coin_new(client, "IPN", [[address2, 50000000]]) |> Builder.print()
-  def coin_new(client = %Client{address: address, nonce: nonce}, token, outputs) do
+  def coin_new(client = %Client{id: account_id, nonce: nonce}, token, outputs) do
     body =
-      [300, nonce, address, token, outputs]
+      [300, nonce, account_id, token, outputs]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -323,10 +323,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_send(client, client2.address, "IPN", 50000, "Test note", true) |> Builder.print()
-  # Builder.coin_send(client, client2.address, "IPN", 4000) |> Builder.print()
+  # Builder.coin_send(client, client2.id, "IPN", 50000, "Test note", true) |> Builder.print()
+  # Builder.coin_send(client, client2.id, "IPN", 4000) |> Builder.print()
   def coin_send(
-        client = %Client{address: address, nonce: nonce},
+        client = %Client{id: account_id, nonce: nonce},
         to,
         token,
         amount,
@@ -338,16 +338,16 @@ defmodule Builder do
     body =
       cond do
         count == 0 and refund == false ->
-          [301, nonce, address, to, token, amount]
+          [301, nonce, account_id, to, token, amount]
 
         count == 0 and refund ->
-          [301, nonce, address, to, token, amount, "", refund]
+          [301, nonce, account_id, to, token, amount, "", refund]
 
         refund == false ->
-          [301, nonce, address, to, token, amount, note]
+          [301, nonce, account_id, to, token, amount, note]
 
         true ->
-          [301, nonce, address, to, token, amount, note, true]
+          [301, nonce, account_id, to, token, amount, note, true]
       end
       |> encode_fun!()
 
@@ -358,12 +358,12 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def coin_multisend(client = %Client{address: address, nonce: nonce}, token, outputs, note \\ "") do
+  def coin_multisend(client = %Client{id: account_id, nonce: nonce}, token, outputs, note \\ "") do
     body =
       if String.length(note) == 0 do
-        [306, nonce, address, token, outputs]
+        [306, nonce, account_id, token, outputs]
       else
-        [306, nonce, address, token, outputs, note]
+        [306, nonce, account_id, token, outputs, note]
       end
       |> encode_fun!()
 
@@ -375,9 +375,9 @@ defmodule Builder do
   end
 
   # Builder.coin_refund(client, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.print()
-  def coin_refund(client = %Client{address: address, nonce: nonce}, hash) do
+  def coin_refund(client = %Client{id: account_id, nonce: nonce}, hash) do
     body =
-      [302, nonce, address, hash]
+      [302, nonce, account_id, hash]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -387,9 +387,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def coin_lock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
+  def coin_lock(client = %Client{id: account_id, nonce: nonce}, to, token_id, amount) do
     body =
-      [303, nonce, address, to, token_id, amount]
+      [303, nonce, account_id, to, token_id, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -399,9 +399,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def coin_unlock(client = %Client{address: address, nonce: nonce}, to, token_id, amount) do
+  def coin_unlock(client = %Client{id: account_id, nonce: nonce}, to, token_id, amount) do
     body =
-      [304, nonce, address, to, token_id, amount]
+      [304, nonce, account_id, to, token_id, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -412,9 +412,9 @@ defmodule Builder do
   end
 
   # Builder.coin_burn(client, "IPN", 1000) |> Builder.print()
-  def coin_burn(client = %Client{address: address, nonce: nonce}, token, amount) do
+  def coin_burn(client = %Client{id: account_id, nonce: nonce}, token, amount) do
     body =
-      [305, nonce, address, token, amount]
+      [305, nonce, account_id, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -424,10 +424,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_burn(client, "IPN", client2.address, 1000) |> Builder.print()
-  def coin_burn(client = %Client{address: address, nonce: nonce}, to, token, amount) do
+  # Builder.coin_burn(client, "IPN", client2.id, 1000) |> Builder.print()
+  def coin_burn(client = %Client{id: account_id, nonce: nonce}, to, token, amount) do
     body =
-      [305, nonce, address, to, token, amount]
+      [305, nonce, account_id, to, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -438,9 +438,9 @@ defmodule Builder do
   end
 
   # Builder.coin_reload(client, "XPN") |> Builder.print()
-  def coin_reload(client = %Client{address: address, nonce: nonce}, token) do
+  def coin_reload(client = %Client{id: account_id, nonce: nonce}, token) do
     body =
-      [307, nonce, address, token]
+      [307, nonce, account_id, token]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -450,9 +450,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.domain_new(client, "example.ipn", address, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Builder.print()
+  # Builder.domain_new(client, "example.ipn", account_id, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Builder.print()
   def domain_new(
-        client = %Client{address: address, nonce: nonce},
+        client = %Client{id: account_id, nonce: nonce},
         domain_name,
         owner,
         days,
@@ -462,7 +462,7 @@ defmodule Builder do
         } = params
       ) do
     body =
-      [400, nonce, address, domain_name, owner, days, params]
+      [400, nonce, account_id, domain_name, owner, days, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -474,12 +474,12 @@ defmodule Builder do
 
   # Builder.domain_update(client, "example.ipn", %{"email" => "pop@email.com"}) |> Builder.print()
   def domain_update(
-        client = %Client{address: address, nonce: nonce},
+        client = %Client{id: account_id, nonce: nonce},
         domain_name,
         params
       ) do
     body =
-      [401, nonce, address, domain_name, params]
+      [401, nonce, account_id, domain_name, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -490,9 +490,9 @@ defmodule Builder do
   end
 
   # Builder.domain_delete(client, "example.ipn") |> Builder.print()
-  def domain_delete(client = %Client{address: address, nonce: nonce}, domain_name) do
+  def domain_delete(client = %Client{id: account_id, nonce: nonce}, domain_name) do
     body =
-      [402, nonce, address, domain_name]
+      [402, nonce, account_id, domain_name]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -503,9 +503,9 @@ defmodule Builder do
   end
 
   # Builder.domain_renew(client, "example.ipn", 1000) |> Builder.print()
-  def domain_renew(client = %Client{address: address, nonce: nonce}, domain_name, days) do
+  def domain_renew(client = %Client{id: account_id, nonce: nonce}, domain_name, days) do
     body =
-      [403, nonce, address, domain_name, days]
+      [403, nonce, account_id, domain_name, days]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -515,9 +515,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def dns_new(client = %Client{address: address, nonce: nonce}, fullname, type, data, ttl) do
+  def dns_new(client = %Client{id: account_id, nonce: nonce}, fullname, type, data, ttl) do
     body =
-      [500, nonce, address, fullname, type, data, ttl]
+      [500, nonce, account_id, fullname, type, data, ttl]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -527,9 +527,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def dns_update(client = %Client{address: address, nonce: nonce}, fullname, dns_hash16, params) do
+  def dns_update(client = %Client{id: account_id, nonce: nonce}, fullname, dns_hash16, params) do
     body =
-      [501, nonce, address, fullname, dns_hash16, params]
+      [501, nonce, account_id, fullname, dns_hash16, params]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -539,9 +539,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def dns_delete(client = %Client{address: address, nonce: nonce}, fullname) do
+  def dns_delete(client = %Client{id: account_id, nonce: nonce}, fullname) do
     body =
-      [502, nonce, address, fullname]
+      [502, nonce, account_id, fullname]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -551,10 +551,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def dns_delete(client = %Client{address: address, nonce: nonce}, fullname, type)
+  def dns_delete(client = %Client{id: account_id, nonce: nonce}, fullname, type)
       when is_integer(type) do
     body =
-      [502, nonce, address, fullname, type]
+      [502, nonce, account_id, fullname, type]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -564,9 +564,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def dns_delete(client = %Client{address: address, nonce: nonce}, fullname, hash16) do
+  def dns_delete(client = %Client{id: account_id, nonce: nonce}, fullname, hash16) do
     body =
-      [502, nonce, address, fullname, hash16]
+      [502, nonce, account_id, fullname, hash16]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -576,9 +576,9 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def custom(client = %Client{address: address}, type, args) do
+  def custom(client = %Client{id: account_id}, type, args) do
     {:ok, body} =
-      [type, address, args] |> Jason.encode()
+      [type, account_id, args] |> Jason.encode()
 
     hash = hash_fun(body)
 

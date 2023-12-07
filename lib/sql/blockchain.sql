@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS block(
   height BIGINT NOT NULL,
   hash BLOB NOT NULL,
   prev BLOB,
-  hashfile BLOB,
+  filehash BLOB,
   signature BLOB NOT NULL,
   round BIGINT NOT NULL,
   timestamp BIGINT NOT NULL,

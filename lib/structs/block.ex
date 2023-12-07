@@ -7,7 +7,7 @@ defmodule Ippan.Block do
           height: non_neg_integer(),
           round: non_neg_integer() | nil,
           hash: binary(),
-          hashfile: binary() | nil,
+          filehash: binary() | nil,
           prev: binary() | nil,
           signature: binary(),
           timestamp: non_neg_integer(),
@@ -29,7 +29,7 @@ defmodule Ippan.Block do
     :height,
     :round,
     :hash,
-    :hashfile,
+    :filehash,
     :prev,
     :signature,
     :timestamp,
@@ -42,7 +42,7 @@ defmodule Ippan.Block do
 
   @spec fields :: [binary()]
   def fields do
-    ~w(id creator height round hash hashfile prev signature timestamp count rejected size status vsn)
+    ~w(id creator height round hash filehash prev signature timestamp count rejected size status vsn)
   end
 
   @impl true
@@ -53,7 +53,7 @@ defmodule Ippan.Block do
       x.height,
       x.hash,
       x.prev,
-      x.hashfile,
+      x.filehash,
       x.signature,
       x.round,
       x.timestamp,
@@ -82,7 +82,7 @@ defmodule Ippan.Block do
         height,
         hash,
         prev,
-        hashfile,
+        filehash,
         signature,
         round,
         timestamp,
@@ -98,7 +98,7 @@ defmodule Ippan.Block do
       creator: creator,
       prev: prev,
       hash: hash,
-      hashfile: hashfile,
+      filehash: filehash,
       signature: signature,
       timestamp: timestamp,
       round: round,
@@ -114,23 +114,23 @@ defmodule Ippan.Block do
   def to_map({_id, x}), do: x
 
   def to_text(
-        x = %{"hash" => hash, "prev" => prev, "hashfile" => hashfile, "signature" => signature}
+        x = %{"hash" => hash, "prev" => prev, "filehash" => filehash, "signature" => signature}
       ) do
     %{
       x
       | "hash" => Utils.encode16(hash),
         "prev" => Utils.encode16(prev),
-        "hashfile" => Utils.encode16(hashfile),
+        "filehash" => Utils.encode16(filehash),
         "signature" => Utils.encode64(signature)
     }
   end
 
-  def to_text(x = %{hash: hash, prev: prev, hashfile: hashfile, signature: signature}) do
+  def to_text(x = %{hash: hash, prev: prev, filehash: filehash, signature: signature}) do
     %{
       x
       | hash: Utils.encode16(hash),
         prev: Utils.encode16(prev),
-        hashfile: Utils.encode16(hashfile),
+        filehash: Utils.encode16(filehash),
         signature: Utils.encode64(signature)
     }
   end
@@ -141,11 +141,11 @@ defmodule Ippan.Block do
           creator: creator,
           height: height,
           prev: prev,
-          hashfile: hashfile,
+          filehash: filehash,
           timestamp: timestamp
         }
       ) do
-    Map.put(block, :hash, compute_hash(creator, height, prev, hashfile, timestamp))
+    Map.put(block, :hash, compute_hash(creator, height, prev, filehash, timestamp))
   end
 
   @spec put_signature(term()) :: term()
@@ -155,12 +155,12 @@ defmodule Ippan.Block do
   end
 
   @spec compute_hash(integer(), integer(), binary(), binary(), integer()) :: binary
-  def compute_hash(creator, height, prev, hashfile, timestamp) do
+  def compute_hash(creator, height, prev, filehash, timestamp) do
     [
       to_string(creator),
       to_string(height),
       normalize(prev),
-      normalize(hashfile),
+      normalize(filehash),
       to_string(timestamp)
     ]
     |> IO.iodata_to_binary()

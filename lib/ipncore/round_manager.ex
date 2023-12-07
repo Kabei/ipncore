@@ -396,7 +396,7 @@ defmodule RoundManager do
            "hash" => hash,
            "signature" => signature,
            "prev" => prev,
-           "hashfile" => hashfile,
+           "filehash" => filehash,
            "timestamp" => timestamp
          },
          db_ref,
@@ -404,7 +404,7 @@ defmodule RoundManager do
        ) do
     with [{_, player}] <- :ets.lookup(ets_players, creator_id),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- hash == Block.compute_hash(creator_id, height, prev, hashfile, timestamp),
+         true <- hash == Block.compute_hash(creator_id, height, prev, filehash, timestamp),
          true <- height == 1 + Sqlite.one("last_block_height_created", [creator_id]) do
       :ok
     else

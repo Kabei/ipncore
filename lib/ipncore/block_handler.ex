@@ -34,16 +34,16 @@ defmodule Ippan.BlockHandler do
 
         %{"data" => messages, "vsn" => version} = decode_file!(content)
 
-        hashfile = hash_file(block_path)
+        filehash = hash_file(block_path)
         timestamp = :os.system_time(:millisecond)
-        hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
+        hash = Block.compute_hash(creator_id, height, prev, filehash, timestamp)
         {:ok, signature} = Block.sign(hash)
 
         %{
           count: length(messages),
           creator: creator_id,
           hash: hash,
-          hashfile: hashfile,
+          filehash: filehash,
           height: height,
           prev: prev,
           signature: signature,
@@ -74,9 +74,9 @@ defmodule Ippan.BlockHandler do
 
         {:ok, file_info} = File.stat(block_path)
 
-        hashfile = hash_file(block_path)
+        filehash = hash_file(block_path)
         timestamp = :os.system_time(:millisecond)
-        hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
+        hash = Block.compute_hash(creator_id, height, prev, filehash, timestamp)
         {:ok, signature} = Block.sign(hash)
 
         ClusterNodes.broadcast(%{
@@ -88,7 +88,7 @@ defmodule Ippan.BlockHandler do
           count: count,
           creator: creator_id,
           hash: hash,
-          hashfile: hashfile,
+          filehash: filehash,
           height: height,
           prev: prev,
           signature: signature,

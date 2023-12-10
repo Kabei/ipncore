@@ -50,10 +50,10 @@ defmodule Ippan.Funcs do
   def lookup(100) do
     %Func{
       id: 100,
-      name: "validator.new",
+      name: "validator.join",
       mod: Func.Validator,
       modx: Funx.Validator,
-      fun: :new,
+      fun: :join,
       deferred: true
     }
   end
@@ -72,10 +72,32 @@ defmodule Ippan.Funcs do
   def lookup(102) do
     %Func{
       id: 102,
-      name: "validator.delete",
+      name: "validator.leave",
       mod: Func.Validator,
       modx: Funx.Validator,
-      fun: :delete,
+      fun: :leave,
+      deferred: true
+    }
+  end
+
+  def lookup(103) do
+    %Func{
+      id: 103,
+      name: "validator.env_set",
+      mod: Func.Validator,
+      modx: Funx.Validator,
+      fun: :env_set,
+      deferred: true
+    }
+  end
+
+  def lookup(104) do
+    %Func{
+      id: 104,
+      name: "validator.env_delete",
+      mod: Func.Validator,
+      modx: Funx.Validator,
+      fun: :env_delete,
       deferred: true
     }
   end
@@ -108,6 +130,50 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :delete
+    }
+  end
+
+  def lookup(203) do
+    %Func{
+      id: 203,
+      name: "token.prop_add",
+      mod: Func.Token,
+      modx: Funx.Token,
+      fun: :prop_add,
+      deferred: true
+    }
+  end
+
+  def lookup(204) do
+    %Func{
+      id: 204,
+      name: "token.prop_drop",
+      mod: Func.Token,
+      modx: Funx.Token,
+      fun: :prop_drop,
+      deferred: true
+    }
+  end
+
+  def lookup(205) do
+    %Func{
+      id: 205,
+      name: "token.env_set",
+      mod: Func.Token,
+      modx: Funx.Token,
+      fun: :env_set,
+      deferred: true
+    }
+  end
+
+  def lookup(206) do
+    %Func{
+      id: 206,
+      name: "token.env_delete",
+      mod: Func.Token,
+      modx: Funx.Token,
+      fun: :env_delete,
+      deferred: true
     }
   end
 
@@ -190,7 +256,8 @@ defmodule Ippan.Funcs do
       name: "coin.reload",
       mod: Func.Coin,
       modx: Funx.Coin,
-      fun: :reload
+      fun: :reload,
+      deferred: true
     }
   end
 

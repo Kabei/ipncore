@@ -123,7 +123,7 @@ defmodule MinerWorker do
       error ->
         # delete player
         Validator.delete(creator_id)
-        ClusterNodes.broadcast(%{"event" => "validator.delete", "data" => creator_id})
+        ClusterNodes.broadcast(%{"event" => "validator.leave", "data" => creator_id})
         b = Block.cancel(block, 1)
         :done = Block.insert(Block.to_list(b))
 

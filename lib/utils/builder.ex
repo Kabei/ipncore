@@ -183,8 +183,8 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_new(client, "ippan.net", 5815, account_id, "net core", pkv, 1, 5, %{"avatar" => "https://avatar.com"}) |> Builder.print()
-  def validator_new(
+  # Builder.validator_join(client, "ippan.net", 5815, account_id, "net core", pkv, 1, 5, %{"avatar" => "https://avatar.com"}) |> Builder.print()
+  def validator_join(
         client = %Client{id: account_id, nonce: nonce},
         hostname,
         port,
@@ -234,10 +234,34 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_delete(client, 1) |> Builder.print()
-  def validator_delete(client = %Client{id: account_id, nonce: nonce}, id) do
+  # Builder.validator_leave(client, 1) |> Builder.print()
+  def validator_leave(client = %Client{id: account_id, nonce: nonce}, id) do
     body =
       [102, nonce, account_id, id]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  def validator_env_set(client = %Client{id: account_id, nonce: nonce}, id, name, value) do
+    body =
+      [103, nonce, account_id, id, name, value]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  def validator_env_delete(client = %Client{id: account_id, nonce: nonce}, id, name) do
+    body =
+      [104, nonce, account_id, id, name]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -301,6 +325,54 @@ defmodule Builder do
   def token_delete(client = %Client{id: account_id, nonce: nonce}, id) do
     body =
       [202, nonce, account_id, id]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  def token_prop_add(client = %Client{id: account_id, nonce: nonce}, id, props) do
+    body =
+      [203, nonce, account_id, id, props]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  def token_prop_drop(client = %Client{id: account_id, nonce: nonce}, id, props) do
+    body =
+      [204, nonce, account_id, id, props]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  def token_env_set(client = %Client{id: account_id, nonce: nonce}, id, name, value) do
+    body =
+      [205, nonce, account_id, id, name, value]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  def token_env_delete(client = %Client{id: account_id, nonce: nonce}, id, name) do
+    body =
+      [206, nonce, account_id, id, name]
       |> encode_fun!()
 
     hash = hash_fun(body)

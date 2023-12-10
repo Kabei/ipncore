@@ -10,7 +10,7 @@ defmodule Ippan.Funx.Validator do
   @max_validators Application.compile_env(@app, :max_validators)
   @topic "validator"
 
-  def new(
+  def join(
         %{id: account_id, round: round_id},
         owner_id,
         hostname,
@@ -113,11 +113,72 @@ defmodule Ippan.Funx.Validator do
     end
   end
 
-  def delete(_source, id) do
+  def leave(_source, id) do
     db_ref = :persistent_term.get(:main_conn)
     Validator.delete(id)
 
-    event = %{"event" => "validator.delete", "data" => id}
+    event = %{"event" => "validator.leave", "data" => id}
     PubSub.broadcast(@pubsub, @topic, event)
+  end
+
+  def env_set(
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
+        id,
+        name,
+        value
+      ) do
+    db_ref = :persistent_term.get(:main_conn)
+    validator = Validator.get(id)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
+
+    cond do
+      is_nil(validator) ->
+        :error
+
+      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
+        :error
+
+      true ->
+        %{validator | env: Map.put(validator.env, name, value), updated_at: round_id}
+        |> Validator.to_list()
+        |> Validator.insert()
+    end
+  end
+
+  def env_delete(
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
+        id,
+        name
+      ) do
+    db_ref = :persistent_term.get(:main_conn)
+    validator = Validator.get(id)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
+
+    cond do
+      is_nil(validator) ->
+        :error
+
+      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
+        :error
+
+      true ->
+        %{validator | env: Map.delete(validator.env, name), updated_at: round_id}
+        |> Validator.to_list()
+        |> Validator.insert()
+    end
   end
 end

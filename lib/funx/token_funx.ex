@@ -92,4 +92,127 @@ defmodule Ippan.Funx.Token do
       TokenSupply.delete(supply)
     end
   end
+
+  def prop_add(
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
+        id,
+        prop
+      ) do
+    db_ref = :persistent_term.get(:main_conn)
+    token = Token.get(id)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
+    props = if(is_list(prop), do: prop, else: [prop])
+
+    cond do
+      is_nil(token) ->
+        :error
+
+      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
+        :error
+
+      true ->
+        %{token | props: :lists.append(token.props, props), updated_at: round_id}
+        |> Token.to_list()
+        |> Token.insert()
+    end
+  end
+
+  def prop_drop(
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
+        id,
+        prop
+      ) do
+    db_ref = :persistent_term.get(:main_conn)
+    token = Token.get(id)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
+    props = if(is_list(prop), do: prop, else: [prop])
+
+    cond do
+      is_nil(token) ->
+        :error
+
+      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
+        :error
+
+      true ->
+        %{token | props: token.props -- props, updated_at: round_id}
+        |> Token.to_list()
+        |> Token.insert()
+    end
+  end
+
+  def env_set(
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
+        id,
+        name,
+        value
+      ) do
+    db_ref = :persistent_term.get(:main_conn)
+    token = Token.get(id)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
+
+    cond do
+      is_nil(token) ->
+        :error
+
+      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
+        :error
+
+      true ->
+        %{token | env: Map.put(token.env, name, value), updated_at: round_id}
+        |> Token.to_list()
+        |> Token.insert()
+    end
+  end
+
+  def env_delete(
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
+        id,
+        name
+      ) do
+    db_ref = :persistent_term.get(:main_conn)
+    token = Token.get(id)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
+
+    cond do
+      is_nil(token) ->
+        :error
+
+      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
+        :error
+
+      true ->
+        %{token | env: Map.delete(token.env, name), updated_at: round_id}
+        |> Token.to_list()
+        |> Token.insert()
+    end
+  end
 end

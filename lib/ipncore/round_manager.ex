@@ -245,7 +245,7 @@ defmodule RoundManager do
   end
 
   def handle_info(
-        %{"event" => "validator.delete", "data" => validator_id},
+        %{"event" => "validator.leave", "data" => validator_id},
         %{players: ets_players} = state
       ) do
     # delete player
@@ -339,7 +339,7 @@ defmodule RoundManager do
 
     # send event
     PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
-      "event" => "validator.delete",
+      "event" => "validator.leave",
       "data" => rcid
     })
 

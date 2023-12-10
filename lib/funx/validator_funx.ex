@@ -121,7 +121,7 @@ defmodule Ippan.Funx.Validator do
     PubSub.broadcast(@pubsub, @topic, event)
   end
 
-  def env_set(
+  def env_put(
         %{
           id: account_id,
           round: round_id,
@@ -138,17 +138,20 @@ defmodule Ippan.Funx.Validator do
     tx = DetsPlux.tx(:balance)
     fees = Utils.calc_fees(fa, fb, size)
 
-    cond do
-      is_nil(validator) ->
-        :error
-
-      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
-        :error
-
+    case is_nil(validator) do
       true ->
-        %{validator | env: Map.put(validator.env, name, value), updated_at: round_id}
-        |> Validator.to_list()
-        |> Validator.insert()
+        :error
+
+      _false ->
+        case BalanceStore.pay_fee(account_id, vOwner, fees) do
+          :error ->
+            :error
+
+          _ ->
+            result = Map.put(validator.env, name, value)
+            map = %{props: CBOR.encode(result), updated_at: round_id}
+            Validator.update(map, id)
+        end
     end
   end
 
@@ -168,17 +171,20 @@ defmodule Ippan.Funx.Validator do
     tx = DetsPlux.tx(:balance)
     fees = Utils.calc_fees(fa, fb, size)
 
-    cond do
-      is_nil(validator) ->
-        :error
-
-      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
-        :error
-
+    case is_nil(validator) do
       true ->
-        %{validator | env: Map.delete(validator.env, name), updated_at: round_id}
-        |> Validator.to_list()
-        |> Validator.insert()
+        :error
+
+      _false ->
+        case BalanceStore.pay_fee(account_id, vOwner, fees) do
+          :error ->
+            :error
+
+          _ ->
+            result = Map.delete(validator.env, name)
+            map = %{props: CBOR.encode(result), updated_at: round_id}
+            Validator.update(map, id)
+        end
     end
   end
 end

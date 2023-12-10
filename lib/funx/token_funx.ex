@@ -6,6 +6,7 @@ defmodule Ippan.Funx.Token do
 
   @app Mix.Project.config()[:app]
   @max_tokens Application.compile_env(@app, :max_tokens)
+  @json Application.compile_env(@app, :json)
 
   def new(
         %{id: account_id, round: round_id},
@@ -79,7 +80,7 @@ defmodule Ippan.Funx.Token do
           MapUtil.to_atoms(map_filter)
           |> Map.put(:updated_at, round_id)
 
-        Token.update(map, id: id)
+        Token.update(map, id)
     end
   end
 
@@ -110,17 +111,20 @@ defmodule Ippan.Funx.Token do
     fees = Utils.calc_fees(fa, fb, size)
     props = if(is_list(prop), do: prop, else: [prop])
 
-    cond do
-      is_nil(token) ->
-        :error
-
-      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
-        :error
-
+    case is_nil(token) do
       true ->
-        %{token | props: :lists.append(token.props, props), updated_at: round_id}
-        |> Token.to_list()
-        |> Token.insert()
+        :error
+
+      _false ->
+        case BalanceStore.pay_fee(account_id, vOwner, fees) do
+          :error ->
+            :error
+
+          _ ->
+            result = :lists.append(token.props, props)
+            map = %{props: @json.encode!(result), updated_at: round_id}
+            Token.update(map, id)
+        end
     end
   end
 
@@ -141,21 +145,24 @@ defmodule Ippan.Funx.Token do
     fees = Utils.calc_fees(fa, fb, size)
     props = if(is_list(prop), do: prop, else: [prop])
 
-    cond do
-      is_nil(token) ->
-        :error
-
-      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
-        :error
-
+    case is_nil(token) do
       true ->
-        %{token | props: token.props -- props, updated_at: round_id}
-        |> Token.to_list()
-        |> Token.insert()
+        :error
+
+      _false ->
+        case BalanceStore.pay_fee(account_id, vOwner, fees) do
+          :error ->
+            :error
+
+          _ ->
+            result = token.props -- props
+            map = %{props: @json.encode!(result), updated_at: round_id}
+            Token.update(map, id)
+        end
     end
   end
 
-  def env_set(
+  def env_put(
         %{
           id: account_id,
           round: round_id,
@@ -172,22 +179,25 @@ defmodule Ippan.Funx.Token do
     tx = DetsPlux.tx(:balance)
     fees = Utils.calc_fees(fa, fb, size)
 
-    cond do
-      is_nil(token) ->
-        :error
-
-      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
-        :error
-
+    case is_nil(token) do
       true ->
-        %{token | env: Map.put(token.env, name, value), updated_at: round_id}
-        |> Token.to_list()
-        |> Token.insert()
+        :error
+
+      _false ->
+        case BalanceStore.pay_fee(account_id, vOwner, fees) do
+          :error ->
+            :error
+
+          _ ->
+            result = Map.put(token.env, name, value)
+            map = %{props: CBOR.encode(result), updated_at: round_id}
+            Token.update(map, id)
+        end
     end
   end
 
   def env_delete(
-        %{
+         %{
           id: account_id,
           round: round_id,
           size: size,
@@ -202,17 +212,20 @@ defmodule Ippan.Funx.Token do
     tx = DetsPlux.tx(:balance)
     fees = Utils.calc_fees(fa, fb, size)
 
-    cond do
-      is_nil(token) ->
-        :error
-
-      BalanceStore.pay_fee(account_id, vOwner, fees) == :error ->
-        :error
-
+    case is_nil(token) do
       true ->
-        %{token | env: Map.delete(token.env, name), updated_at: round_id}
-        |> Token.to_list()
-        |> Token.insert()
+        :error
+
+      _ ->
+        case BalanceStore.pay_fee(account_id, vOwner, fees) do
+          :error ->
+            :error
+
+          _ ->
+            result = Map.delete(token.env, name)
+            map = %{props: CBOR.encode(result), updated_at: round_id}
+            Token.update(map, id)
+        end
     end
   end
 end

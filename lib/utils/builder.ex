@@ -247,7 +247,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def validator_env_set(client = %Client{id: account_id, nonce: nonce}, id, name, value) do
+  def validator_env_put(client = %Client{id: account_id, nonce: nonce}, id, name, value) do
     body =
       [103, nonce, account_id, id, name, value]
       |> encode_fun!()
@@ -358,7 +358,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  def token_env_set(client = %Client{id: account_id, nonce: nonce}, id, name, value) do
+  def token_env_put(client = %Client{id: account_id, nonce: nonce}, id, name, value) do
     body =
       [205, nonce, account_id, id, name, value]
       |> encode_fun!()

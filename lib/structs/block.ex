@@ -173,9 +173,10 @@ defmodule Ippan.Block do
     Cafezinho.Impl.sign(hash, privkey)
   end
 
-  def cancel(block, status) when status > 0 do
+  def cancel(block, round_id, status) when status > 0 do
     block
     |> Map.put(:status, status)
+    |> Map.put(:round, round_id)
     |> Map.put(:rejected, -1)
   end
 

@@ -149,7 +149,7 @@ defmodule Ippan.Funx.Validator do
 
           _ ->
             result = Map.put(validator.env, name, value)
-            map = %{props: CBOR.encode(result), updated_at: round_id}
+            map = %{env: CBOR.encode(result), updated_at: round_id}
             Validator.update(map, id)
         end
     end
@@ -182,7 +182,7 @@ defmodule Ippan.Funx.Validator do
 
           _ ->
             result = Map.delete(validator.env, name)
-            map = %{props: CBOR.encode(result), updated_at: round_id}
+            map = %{env: CBOR.encode(result), updated_at: round_id}
             Validator.update(map, id)
         end
     end

@@ -190,7 +190,7 @@ defmodule Ippan.Funx.Token do
 
           _ ->
             result = Map.put(token.env, name, value)
-            map = %{props: CBOR.encode(result), updated_at: round_id}
+            map = %{env: CBOR.encode(result), updated_at: round_id}
             Token.update(map, id)
         end
     end
@@ -223,7 +223,7 @@ defmodule Ippan.Funx.Token do
 
           _ ->
             result = Map.delete(token.env, name)
-            map = %{props: CBOR.encode(result), updated_at: round_id}
+            map = %{env: CBOR.encode(result), updated_at: round_id}
             Token.update(map, id)
         end
     end

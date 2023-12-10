@@ -83,10 +83,10 @@ defmodule Ippan.Funcs do
   def lookup(103) do
     %Func{
       id: 103,
-      name: "validator.env_set",
+      name: "validator.env_put",
       mod: Func.Validator,
       modx: Funx.Validator,
-      fun: :env_set,
+      fun: :env_put,
       deferred: true
     }
   end
@@ -158,10 +158,10 @@ defmodule Ippan.Funcs do
   def lookup(205) do
     %Func{
       id: 205,
-      name: "token.env_set",
+      name: "token.env_put",
       mod: Func.Token,
       modx: Funx.Token,
-      fun: :env_set,
+      fun: :env_put,
       deferred: true
     }
   end

@@ -63,7 +63,7 @@ defmodule Ippan.ClusterNodes do
         end
 
       false ->
-        ["error", "Already exists"]
+        ["error", "Already exists (Core)"]
     end
   end
 
@@ -109,11 +109,11 @@ defmodule Ippan.ClusterNodes do
           false ->
             :ets.delete(:hash, nonce_key)
             Wallet.revert_nonce(cache, from)
-            ["error", "Deferred transaction already exists"]
+            ["error", "Deferred transaction already exists (Core)"]
         end
 
       false ->
-        ["error", "Already exists"]
+        ["error", "Already exists (Core)"]
     end
   end
 

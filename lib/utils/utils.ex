@@ -3,7 +3,7 @@ defmodule Ippan.Utils do
   @compile {:inline, [encode16: 1, encode64: 1]}
 
   @app Mix.Project.config()[:app]
-  @reserve Application.compile_env(@app, :reserve, 0.3)
+  @reserve Application.compile_env(@app, :reserve) || raise(CompileError, "Reserve is empty")
 
   def empty?(nil), do: true
   def empty?(<<>>), do: true

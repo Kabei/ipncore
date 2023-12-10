@@ -113,7 +113,7 @@ defmodule Ippan.ClusterNodes do
         end
 
       false ->
-        ["error", "Already exists (Core)"]
+        ["error", "Already exists (Core) #{inspect(nonce_key)}"]
     end
   end
 

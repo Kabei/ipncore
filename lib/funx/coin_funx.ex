@@ -157,7 +157,7 @@ defmodule Ippan.Funx.Coin do
       %{"expiry" => expiry} ->
         cond do
           round_id - last_reload > expiry ->
-            new_map = Map.delete(map, "lastReload")
+            new_map = map |> Map.delete("initReload") |> Map.delete("lastReload")
             DetsPlux.update_element(tx, target, 3, new_map)
             BalanceStore.expired(target, token_id, balance)
 

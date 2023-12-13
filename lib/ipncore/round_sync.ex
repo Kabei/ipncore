@@ -61,17 +61,18 @@ defmodule RoundSync do
       |> Enum.group_by(fn x -> Map.get(x, "hash") end)
       |> Enum.sort_by(fn {_k, x} -> length(x) end, :desc)
       |> Enum.map(fn {_hash, x} -> x end)
-      |> Enum.map(fn x -> Map.get(x, "node_id") end)
+      |> List.first()
 
     nodes
-    |> List.first()
     |> case do
       nil ->
         IO.puts("pase 1")
         stop(state, true)
 
-      current_state ->
+      _ ->
         IO.puts("pase 2")
+
+        current_state = List.first(nodes)
         GenServer.cast(round_manager_pid, {:put, current_state})
         GenServer.cast(round_manager_pid, {:state, :syncing, true})
         {:noreply, state, {:continue, {:fetch, current_state, nodes}}}

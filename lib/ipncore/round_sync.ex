@@ -33,7 +33,7 @@ defmodule RoundSync do
   def handle_continue(:sync, %{pid: round_manager_pid} = state) do
     list = NetworkNodes.list()
 
-    data =
+    nodes =
       Enum.take_random(list, 10)
       |> Enum.map(fn {_node_id, node} ->
         Task.async(fn ->
@@ -60,10 +60,10 @@ defmodule RoundSync do
       |> Enum.map(fn {_, x} -> x end)
       |> Enum.group_by(fn x -> Map.get(x, "hash") end)
       |> Enum.sort_by(fn {_k, x} -> length(x) end, :desc)
+      |> Enum.map(fn {_hash, x} -> x end)
+      |> Enum.map(fn x -> Map.get(x, "node_id") end)
 
-    nodes = Enum.map(data, fn {_hash, x} -> Map.get(x, "node_id") end)
-
-    data
+    nodes
     |> List.first()
     |> case do
       nil ->

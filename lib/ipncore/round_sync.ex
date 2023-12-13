@@ -53,12 +53,15 @@ defmodule RoundSync do
         end)
       end)
       |> Task.await_many(:infinity)
-      |> Enum.filter(fn x -> match?({:ok, _}, x) end)
+      |> Enum.filter(fn
+        {:ok, _} -> true
+        _ -> false
+      end)
       |> Enum.map(fn {_, x} -> x end)
       |> Enum.group_by(fn x -> Map.get(x, "hash") end)
       |> Enum.sort_by(fn {_k, x} -> length(x) end, :desc)
 
-    nodes = Enum.map(data, fn x -> Map.get(x, "node_id") end)
+    nodes = Enum.map(data, fn {_hash, x} -> Map.get(x, "node_id") end)
 
     data
     |> List.first()

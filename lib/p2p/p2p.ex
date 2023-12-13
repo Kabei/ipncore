@@ -26,6 +26,7 @@ defmodule Ippan.P2P do
     data = %{"id" => from_id, "sig" => signature}
     authtext = encode(data, sharedkey)
     @adapter.controlling_process(socket, self())
+    IO.inspect("ciphertext #{inspect(ciphertext)}")
     @adapter.send(socket, "HI" <> @version <> ciphertext <> authtext)
 
     case @adapter.recv(socket, 0, @handshake_timeout) do

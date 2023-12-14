@@ -111,7 +111,7 @@ SELECT height, hash FROM blockchain.block WHERE creator=? ORDER BY height DESC L
 SELECT id FROM blockchain.block ORDER BY id DESC LIMIT 1;
 
 --name: last_block_height_created
-SELECT height FROM blockchain.block WHERE creator=? ORDER BY height DESC LIMIT 1;
+SELECT COALESCE((SELECT height FROM blockchain.block WHERE creator=? ORDER BY height DESC LIMIT 1), -1);
 
 --name: get_round_blocks
 SELECT id FROM blockchain.block WHERE round = ? ORDER BY id ASC;

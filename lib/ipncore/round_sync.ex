@@ -74,7 +74,7 @@ defmodule RoundSync do
 
         current_state = List.first(nodes)
         GenServer.cast(round_manager_pid, {:put, current_state})
-        GenServer.cast(round_manager_pid, {:state, :syncing, true})
+        GenServer.cast(round_manager_pid, {:status, :syncing, true})
         {:noreply, state, {:continue, {:fetch, current_state, nodes}}}
     end
   end

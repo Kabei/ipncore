@@ -123,13 +123,7 @@ defmodule RoundSync do
                  miner_pool_pid,
                  round_manager_pid
                ) do
-            {:ok, new_round} ->
-              %{
-                round_id: new_round.id + 1,
-                block_id: block_id + round.count,
-                round_hash: new_round.hash
-              }
-
+            {:ok, _new_round} ->
               {:noreply, state, {:continue, {:fetch, round_id + 1, nodes}}}
 
             _ ->

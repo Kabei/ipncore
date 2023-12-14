@@ -613,6 +613,8 @@ defmodule RoundManager do
       creator_id = creator.id
       block_count = length(blocks)
 
+      IO.inspect(map)
+
       {hash, tx_count, size} =
         if Map.get(map, :hash) do
           {map.hash, map.tx_count, map.size}

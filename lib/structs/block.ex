@@ -40,9 +40,11 @@ defmodule Ippan.Block do
     vsn: 0
   ]
 
+  @fields ~w(id creator height round hash filehash prev signature timestamp count rejected size status vsn)
+
   @spec fields :: [binary()]
   def fields do
-    ~w(id creator height round hash filehash prev signature timestamp count rejected size status vsn)
+    @fields
   end
 
   @impl true
@@ -178,6 +180,11 @@ defmodule Ippan.Block do
     |> Map.put(:status, status)
     |> Map.put(:round, round_id)
     |> Map.put(:rejected, -1)
+  end
+
+  @spec from_remote(map()) :: map()
+  def from_remote(msg_block) do
+    MapUtil.to_atoms(msg_block, @fields)
   end
 
   def hashes_and_count_txs_and_size(blocks) do

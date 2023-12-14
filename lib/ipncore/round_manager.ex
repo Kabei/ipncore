@@ -394,13 +394,13 @@ defmodule RoundManager do
 
   defp block_pre_verificacion(
          %{
-           "creator" => creator_id,
-           "height" => height,
-           "hash" => hash,
-           "signature" => signature,
-           "prev" => prev,
-           "filehash" => filehash,
-           "timestamp" => timestamp
+           creator: creator_id,
+           height: height,
+           hash: hash,
+           signature: signature,
+           prev: prev,
+           filehash: filehash,
+           timestamp: timestamp
          },
          db_ref,
          ets_players

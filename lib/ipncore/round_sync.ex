@@ -108,7 +108,7 @@ defmodule RoundSync do
 
     if last_round_id > 0 do
       case NetworkNodes.call(node_id, "get_round", round_id) do
-        nil ->
+        {:error, _} ->
           stop(state, false)
 
         msg_round ->

@@ -99,12 +99,12 @@ defmodule RoundManager do
       case Process.whereis(RoundSync) do
         nil ->
           # start round sync process
-          %{id: round_id, round_hash: round_hash, miner_pool: miner_pool_pid} =
+          %{round_id: round_id, round_hash: round_hash, miner_pool: miner_pool_pid} =
             state = get_state_after_check(init_state)
 
           RoundSync.start_link(%{
             block_id: state.block_id,
-            db_ref: state.bd_ref,
+            db_ref: state.db_ref,
             balance: state.balance,
             id: round_id,
             hash: round_hash,

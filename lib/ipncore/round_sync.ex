@@ -107,6 +107,8 @@ defmodule RoundSync do
         end)
         |> Enum.reverse()
 
+      build(rounds, state)
+
       {:noreply, state, {:continue, {:build, rounds}}}
     else
       stop(state, false)
@@ -121,6 +123,8 @@ defmodule RoundSync do
       build(rounds, old_state)
       GenServer.cast(pid, :end)
     end)
+
+    {:noreply, old_state}
   end
 
   # Add round in a queue

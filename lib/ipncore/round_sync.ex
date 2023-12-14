@@ -24,7 +24,7 @@ defmodule RoundSync do
        round_hash: round_hash,
        miner_pool: miner_pool_pid,
        pid: pid,
-       queue: MapSet.new()
+       queue: :ets.new(:queue, [:ordered_set])
      }, {:continue, :sync}}
   end
 
@@ -125,13 +125,15 @@ defmodule RoundSync do
 
   # Add round in a queue
   @impl true
-  def handle_cast({:add, new_round}, state = %{queue: queue}) do
-    {:noreply, %{state | queue: MapSet.put(queue, new_round)}}
+  def handle_cast({:add, %{id: id} = new_round}, state = %{queue: ets_queue}) do
+    :ets.insert(ets_queue, {id, new_round})
+    {:noreply, state}
   end
 
   # Build queue rounds
-  def handle_cast(:end, %{queue: queue} = state) do
-    build(MapSet.to_list(queue), state)
+  def handle_cast(:end, %{queue: ets_queue} = state) do
+    data = :ets.tab2list(ets_queue)
+    build(data, state)
 
     stop(state, false)
   end
@@ -166,7 +168,8 @@ defmodule RoundSync do
     end)
   end
 
-  defp stop(state = %{pid: round_manager_pid}, next) do
+  defp stop(state = %{queue: ets_queue, pid: round_manager_pid}, next) do
+    :ets.delete(ets_queue)
     GenServer.cast(round_manager_pid, {:status, :synced, next})
     {:stop, :normal, state}
   end

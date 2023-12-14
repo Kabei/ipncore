@@ -470,7 +470,7 @@ defmodule RoundManager do
               blocks: msg_round.blocks,
               prev: prev_hash,
               signature: msg_round.signature,
-              timestamp: msg_round
+              timestamp: msg_round.timestamp
             },
             block_id,
             creator,

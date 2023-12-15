@@ -148,7 +148,7 @@ defmodule Ippan.Funx.Coin do
     %{"reload.amount" => value, "reload.times" => times} = env
 
     target = DetsPlux.tuple(account_id, token_id)
-    {balance, map} = DetsPlux.get_cache(dets, tx, target, {0, %{}})
+    {_balance, map} = DetsPlux.get_cache(dets, tx, target, {0, %{}})
     init_reload = Map.get(map, "initReload", round_id)
     last_reload = Map.get(map, "lastReload", round_id)
     mult = calc_reload_mult(round_id, init_reload, last_reload, times)
@@ -158,6 +158,9 @@ defmodule Ippan.Funx.Coin do
         fun = fn ->
           cond do
             round_id - last_reload > expiry ->
+              dets = DetsPlux.get(:balance)
+              tx = DetsPlux.tx(dets, :balance)
+              {balance, map} = DetsPlux.get_cache(dets, tx, target, {0, %{}})
               new_map = map |> Map.delete("initReload") |> Map.delete("lastReload")
               DetsPlux.update_element(tx, target, 3, new_map)
               BalanceStore.expired(target, token_id, balance)

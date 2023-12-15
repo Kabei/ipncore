@@ -140,7 +140,7 @@ defmodule Ippan.Funx.Coin do
     BalanceStore.burn(to, token_id, amount)
   end
 
-  def reload(%{id: account_id, round: round_id}, token_id) do
+  def reload(%{block: block_id, id: account_id, nonce: nonce, round: round_id}, token_id) do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
@@ -155,21 +155,25 @@ defmodule Ippan.Funx.Coin do
 
     case env do
       %{"expiry" => expiry} ->
-        cond do
-          round_id - last_reload > expiry ->
-            new_map = map |> Map.delete("initReload") |> Map.delete("lastReload")
-            DetsPlux.update_element(tx, target, 3, new_map)
-            BalanceStore.expired(target, token_id, balance)
+        fun = fn ->
+          cond do
+            round_id - last_reload > expiry ->
+              new_map = map |> Map.delete("initReload") |> Map.delete("lastReload")
+              DetsPlux.update_element(tx, target, 3, new_map)
+              BalanceStore.expired(target, token_id, balance)
 
-          true ->
-            new_map =
-              map
-              |> Map.put("initReload", init_reload)
-              |> Map.put("lastReload", round_id)
+            true ->
+              new_map =
+                map
+                |> Map.put("initReload", init_reload)
+                |> Map.put("lastReload", round_id)
 
-            DetsPlux.update_element(tx, target, 3, new_map)
-            BalanceStore.reload(target, token_id, value * mult)
+              DetsPlux.update_element(tx, target, 3, new_map)
+              BalanceStore.reload(target, token_id, value * mult)
+          end
         end
+
+        :ets.insert(:dtx, {{block_id, account_id, nonce}, fun})
 
       _ ->
         new_map =

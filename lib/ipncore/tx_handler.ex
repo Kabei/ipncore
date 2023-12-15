@@ -48,28 +48,34 @@ defmodule Ippan.TxHandler do
   defmacro run_deferred_txs do
     quote location: :keep do
       :ets.tab2list(:dtx)
-      |> Enum.each(fn {{block_id, _ix},
-                       [
-                         hash,
-                         type,
-                         account_id,
-                         validator,
-                         args,
-                         size
-                       ]} ->
-        %{modx: module, fun: fun} = Funcs.lookup(type)
+      |> Enum.each(fn
+        {{block_id, _ix},
+         [
+           hash,
+           type,
+           account_id,
+           validator_id,
+           nonce,
+           args,
+           size
+         ]} ->
+          %{modx: module, fun: fun} = Funcs.lookup(type)
 
-        source = %{
-          block: block_id,
-          hash: hash,
-          id: account_id,
-          round: var!(round_id),
-          size: size,
-          type: type,
-          validator: validator
-        }
+          source = %{
+            block: block_id,
+            hash: hash,
+            id: account_id,
+            nonce: nonce,
+            round: var!(round_id),
+            size: size,
+            type: type,
+            validator: validator_id
+          }
 
-        apply(module, fun, [source | args])
+          apply(module, fun, [source | args])
+
+        {_block_account_nonce, fun} ->
+          fun.()
       end)
 
       :ets.delete_all_objects(:dtx)

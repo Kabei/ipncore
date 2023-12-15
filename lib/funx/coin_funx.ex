@@ -140,7 +140,7 @@ defmodule Ippan.Funx.Coin do
     BalanceStore.burn(to, token_id, amount)
   end
 
-  def reload(%{block: block_id, id: account_id, nonce: nonce, round: round_id}, token_id) do
+  def reload(%{block: block_id, hash: hash, id: account_id, round: round_id}, token_id) do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
@@ -173,7 +173,7 @@ defmodule Ippan.Funx.Coin do
           end
         end
 
-        :ets.insert(:dtx, {{block_id, account_id, nonce}, fun})
+        :ets.insert(:dtx, {{block_id, hash}, fun})
 
       _ ->
         new_map =

@@ -22,6 +22,7 @@ defmodule Ippan.Block do
   @block_extension Application.compile_env(@app, :block_extension)
   @decode_extension Application.compile_env(@app, :decode_extension)
   @hash_module Blake3.Native
+  @fields ~w(id creator height round hash filehash prev signature timestamp count rejected size status vsn)
 
   defstruct [
     :id,
@@ -39,8 +40,6 @@ defmodule Ippan.Block do
     size: 0,
     vsn: 0
   ]
-
-  @fields ~w(id creator height round hash filehash prev signature timestamp count rejected size status vsn)
 
   @spec fields :: [binary()]
   def fields do

@@ -385,6 +385,10 @@ defmodule DetsPlux do
           nil ->
             nil
 
+          ret when is_tuple(ret) ->
+            :ets.insert(tx, :erlang.insert_element(1, ret, key))
+            ret
+
           ret ->
             :ets.insert(tx, {key, ret})
             ret

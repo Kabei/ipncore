@@ -535,7 +535,7 @@ defmodule RoundManager do
           timestamp: timestamp
         }
 
-        # send message
+        # send message pre-build
         NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
 
         build_round(

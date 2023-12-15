@@ -1,5 +1,4 @@
 defmodule Ippan.Round do
-  alias Ippan.Round
   alias Ippan.{Block, Utils}
 
   @behaviour Ippan.Struct
@@ -247,7 +246,7 @@ defmodule Ippan.Round do
       Sqlite.fetch_all("get_rounds", [starts, limit, offset])
       |> case do
         nil -> []
-        data -> Enum.map(data, fn x -> Round.list_to_map(x) end)
+        data -> Enum.map(data, fn x -> Ippan.Round.list_to_map(x) end)
       end
     end
   end

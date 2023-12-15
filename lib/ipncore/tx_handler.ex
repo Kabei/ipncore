@@ -74,7 +74,7 @@ defmodule Ippan.TxHandler do
 
           apply(module, fun, [source | args])
 
-        {_block_and_tx_hash, fun} ->
+        {_block_and_tx_hash, fun} when is_function(fun) ->
           fun.()
       end)
 

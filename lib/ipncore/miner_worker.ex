@@ -138,8 +138,8 @@ defmodule MinerWorker do
     nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
     dtx = :ets.whereis(:dtx)
     dtmp = :ets.new(:tmp, [:set])
-    # 1. Count txs
-    # 2. Count errors
+    # 1. tx counter
+    # 2. errors counter
     cref = :counters.new(2, [])
 
     Enum.each(transactions, fn
@@ -166,21 +166,21 @@ defmodule MinerWorker do
       [hash, type, arg_key, from, nonce, args, size] ->
         case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
-            :counters.add(cref, 1, 1)
+            :counters.add(cref, 2, 1)
 
           _true ->
             ix = :counters.get(cref, 1)
 
             case TxHandler.insert_deferred(dtx, dtmp) do
               true ->
-                :counters.add(cref, 1, 1)
+                nil
 
               false ->
-                nil
+                :counters.add(cref, 2, 1)
             end
         end
 
-        :counters.add(cref, 2, 1)
+        :counters.add(cref, 1, 1)
     end)
 
     :ets.delete(dtmp)

@@ -176,6 +176,8 @@ defmodule Ippan.Funx.Coin do
           end
         end
 
+        IO.inspect("ADD fun")
+        IO.inspect(fun)
         :ets.insert(:dtx, {{block_id, hash}, fun})
 
       _ ->

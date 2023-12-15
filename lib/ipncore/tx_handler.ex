@@ -26,7 +26,16 @@ defmodule Ippan.TxHandler do
     quote bind_quoted: [table: table, tmp: tmp_table], location: :keep do
       key = {var!(type), var!(arg_key)}
       order = {var!(block_id), var!(ix)}
-      body = [var!(hash), var!(type), var!(from), var!(validator), var!(args), var!(size)]
+
+      body = [
+        var!(hash),
+        var!(type),
+        var!(from),
+        var!(validator),
+        var!(nonce),
+        var!(args),
+        var!(size)
+      ]
 
       case :ets.lookup(tmp, key) do
         [] ->
@@ -59,7 +68,7 @@ defmodule Ippan.TxHandler do
            hash,
            type,
            account_id,
-           validator_id,
+           validator,
            nonce,
            args,
            size
@@ -74,7 +83,7 @@ defmodule Ippan.TxHandler do
             round: var!(round_id),
             size: size,
             type: type,
-            validator: validator_id
+            validator: validator
           }
 
           apply(module, fun, [source | args])

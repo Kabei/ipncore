@@ -56,12 +56,7 @@ defmodule Ippan.TxHandler do
   # only deferred transactions
   defmacro run_deferred_txs do
     quote location: :keep do
-      data =
-        :ets.tab2list(:dtx)
-
-      IO.inspect(data)
-
-      data
+      :ets.tab2list(:dtx)
       |> Enum.each(fn
         {{block_id, _ix},
          [
@@ -88,7 +83,7 @@ defmodule Ippan.TxHandler do
 
           apply(module, fun, [source | args])
 
-        {_block_and_tx_hash, fun} when is_function(fun) ->
+        {_block_and_tx_hash, fun} ->
           fun.()
       end)
 

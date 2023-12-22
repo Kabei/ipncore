@@ -4,6 +4,7 @@ defmodule Ippan.Funx.Validator do
   require Validator
   require Sqlite
   require BalanceStore
+  require Logger
 
   @app Mix.Project.config()[:app]
   @pubsub :pubsub

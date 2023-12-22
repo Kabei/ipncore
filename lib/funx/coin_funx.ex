@@ -154,7 +154,7 @@ defmodule Ippan.Funx.Coin do
     mult = calc_reload_mult(round_id, init_reload, last_reload, times)
 
     case env do
-      %{"expiry" => expiry} ->
+      %{"reload.expiry" => expiry} ->
         fun = fn ->
           cond do
             round_id - last_reload > expiry ->

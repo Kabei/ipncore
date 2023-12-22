@@ -98,7 +98,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       env: %{
         "reload.amount" => 500,
         "reload.times" => 6,
-        "expiry" => 18250000,
+        "reload.expiry" => 18250000,
       }
     }
   ],

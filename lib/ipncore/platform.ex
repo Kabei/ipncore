@@ -22,7 +22,7 @@ defmodule Platform do
     end
 
     v = Validator.get(vid)
-    Validator.self(v)
+    Validator.put_self(v)
 
     :ok
   end

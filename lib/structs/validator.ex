@@ -114,9 +114,9 @@ defmodule Ippan.Validator do
     %{x | pubkey: Utils.encode64(pk), net_pubkey: Utils.encode64(npk)}
   end
 
-  def calc_price(next_id), do: (next_id + 1) * EnvStore.validator_price()
+  def calc_price(total), do: (total + 1) * EnvStore.validator_price()
 
-  def self(v) do
+  def put_self(v) do
     :persistent_term.put(:validator, v)
     :persistent_term.put(:vhash, :erlang.phash2(v) |> :erlang.integer_to_binary())
   end
@@ -178,7 +178,7 @@ defmodule Ippan.Validator do
       Sqlite.step("delete_validator", [id])
 
       if id == :persistent_term.get(:vid) do
-        Ippan.Validator.self(nil)
+        Ippan.Validator.put_self(nil)
       end
     end
   end

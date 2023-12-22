@@ -17,6 +17,7 @@
 * Elixir 1.14
 * cargo 1.70
 * cmake 3.26
+* git 2.41.0
 
 ## Installation
 # 

@@ -296,6 +296,13 @@ defmodule RoundManager do
       BlockTimer.complete(hash, is_some_block_mine)
     end
 
+    fun = :persistent_term.get(:last_fun)
+
+    if fun do
+      :persistent_term.erase(:last_fun)
+      fun.()
+    end
+
     if next do
       {:noreply,
        %{

@@ -17,8 +17,8 @@ defmodule Platform do
         load_genesis_file(db_ref)
         EnvStore.load(db_ref)
 
-      owner ->
-        :persistent_term.put(:owner, owner)
+      _owner ->
+        :ok
     end
 
     v = Validator.get(vid)

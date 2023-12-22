@@ -47,7 +47,10 @@ defmodule Ipncore.Application do
     vid =
       System.get_env("VID") || raise IppanStartUpError, "variable VID (ValidatorID) is missing"
 
+    name = System.get_env("NAME") || raise IppanStartUpError, "variable NAME is missing"
+
     :persistent_term.put(:vid, String.to_integer(vid))
+    :persistent_term.put(:name, name)
   end
 
   defp load_keys do

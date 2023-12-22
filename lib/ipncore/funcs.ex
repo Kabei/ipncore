@@ -331,5 +331,15 @@ defmodule Ippan.Funcs do
     }
   end
 
+  def lookup(900) do
+    %Func{
+      id: 900,
+      name: "sys.upgrade",
+      mod: Func.Sys,
+      modx: Funx.Sys,
+      fun: :upgrade
+    }
+  end
+
   def lookup(_), do: :undefined
 end

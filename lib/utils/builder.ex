@@ -648,6 +648,19 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
+  # Build.sys_upgrade(client, %{"git" => ["reset --hard HEAD", "pull"], "deps" -> "get", "reset" => "all", "compile" => "force"}, ["ipncore", "ipnworker"])
+  def sys_upgrade(client = %Client{id: account_id, nonce: nonce}, opts, target_apps) do
+    body =
+      [900, nonce, account_id, opts, target_apps]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
   def custom(client = %Client{id: account_id}, type, args) do
     {:ok, body} =
       [type, account_id, args] |> Jason.encode()

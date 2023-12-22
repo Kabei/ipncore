@@ -50,8 +50,11 @@ defmodule Ippan.Funx.Sys do
         "all" ->
           fun = fn ->
             case Task.await(task, :infinity) do
-              :error -> nil
-              _ -> System.restart()
+              :error ->
+                IO.puts("Sys.upgrade finish to error")
+
+              _ ->
+                System.restart()
             end
           end
 

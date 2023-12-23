@@ -83,7 +83,7 @@ defmodule Ippan.Funcs do
   def lookup(103) do
     %Func{
       id: 103,
-      name: "validator.env_put",
+      name: "validator.envPut",
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :env_put,
@@ -94,7 +94,7 @@ defmodule Ippan.Funcs do
   def lookup(104) do
     %Func{
       id: 104,
-      name: "validator.env_delete",
+      name: "validator.envDelete",
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :env_delete,
@@ -136,7 +136,7 @@ defmodule Ippan.Funcs do
   def lookup(203) do
     %Func{
       id: 203,
-      name: "token.prop_add",
+      name: "token.propAdd",
       mod: Func.Token,
       modx: Funx.Token,
       fun: :prop_add,
@@ -147,7 +147,7 @@ defmodule Ippan.Funcs do
   def lookup(204) do
     %Func{
       id: 204,
-      name: "token.prop_drop",
+      name: "token.propDrop",
       mod: Func.Token,
       modx: Funx.Token,
       fun: :prop_drop,
@@ -158,7 +158,7 @@ defmodule Ippan.Funcs do
   def lookup(205) do
     %Func{
       id: 205,
-      name: "token.env_put",
+      name: "token.envPut",
       mod: Func.Token,
       modx: Funx.Token,
       fun: :env_put,
@@ -169,7 +169,7 @@ defmodule Ippan.Funcs do
   def lookup(206) do
     %Func{
       id: 206,
-      name: "token.env_delete",
+      name: "token.envDelete",
       mod: Func.Token,
       modx: Funx.Token,
       fun: :env_delete,

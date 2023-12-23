@@ -4,51 +4,55 @@ defmodule Ippan.Funx.Sys do
   def upgrade(_, %{} = %{"git" => git} = opts, target) do
     if @app in target do
       # run commands
+      task =
+        Task.async(fn ->
+          result =
+            if is_list(git) do
+              for cmd <- git do
+                args = String.split(cmd, " ", trim: true)
+                System.cmd("git", args)
+              end
+            else
+              args = String.split(git, " ", trim: true)
+              System.cmd("git", args)
+            end
 
-      result =
-        if is_list(git) do
-          for cmd <- git do
-            args = String.split(cmd, " ", trim: true)
-            System.cmd("git", args)
-          end
-        else
-          args = String.split(git, " ", trim: true)
-          System.cmd("git", args)
-        end
+          case result do
+            {_, 0} ->
+              # get deps
+              case Map.get(opts, "deps") do
+                "get" ->
+                  System.cmd("mix", ["deps.get"])
 
-      case result do
-        {_, 0} ->
-          # get deps
-          case Map.get(opts, "deps") do
-            "get" ->
-              System.cmd("mix", ["deps.get"])
+                "unused" ->
+                  System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
 
-            "unused" ->
-              System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
+                "get_and_unused" ->
+                  System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
+                  System.cmd("mix", ["deps.get"])
 
-            "get_and_unused" ->
-              System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
-              System.cmd("mix", ["deps.get"])
+                nil ->
+                  :ok
+              end
 
-            nil ->
-              :ok
-          end
+              # compile
+              case Map.get(opts, "compile") do
+                "force" ->
+                  System.cmd("mix", ["compile", "--force"])
 
-          # compile
-          case Map.get(opts, "compile") do
-            "force" ->
-              System.cmd("mix", ["compile", "--force"])
+                "normal" ->
+                  System.cmd("mix", ["compile"])
 
-            "normal" ->
-              System.cmd("mix", ["compile"])
+                _ ->
+                  :ok
+              end
 
             _ ->
-              :ok
+              :error
           end
+        end)
 
-        _ ->
-          :error
-      end
+      Task.await(task, :infinity)
 
       # reset
       case Map.get(opts, "reset") do
@@ -63,8 +67,6 @@ defmodule Ippan.Funx.Sys do
         _ ->
           :ok
       end
-    else
-      :ok
     end
   end
 end

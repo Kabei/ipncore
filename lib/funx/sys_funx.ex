@@ -4,8 +4,7 @@ defmodule Ippan.Funx.Sys do
   def upgrade(_, %{} = %{"git" => git} = opts, target) do
     if @app in target do
       # run commands
-      # task =
-      #   Task.start(fn ->
+
       result =
         if is_list(git) do
           for cmd <- git do
@@ -51,20 +50,11 @@ defmodule Ippan.Funx.Sys do
           :error
       end
 
-      # end)
-
       # reset
       case Map.get(opts, "reset") do
         "all" ->
           fun = fn ->
-            # case Task.await(task, :infinity) do
-            #   :error ->
-            #     IO.puts("Sys.upgrade finish to error")
-
-            #   _ ->
-            #     System.restart()
-            # end
-            IO.puts("restart")
+            IO.puts("Restart")
             System.restart()
           end
 

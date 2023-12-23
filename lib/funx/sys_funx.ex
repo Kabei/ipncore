@@ -2,9 +2,7 @@ defmodule Ippan.Funx.Sys do
   @app Mix.Project.config()[:app] |> to_string()
 
   def upgrade(_, %{} = %{"git" => git} = opts, target) do
-    contains_app = Enum.any?(target, fn x -> x == @app end)
-
-    if contains_app do
+    if @app in target do
       # run commands
       # task =
       #   Task.start(fn ->
@@ -26,10 +24,10 @@ defmodule Ippan.Funx.Sys do
             "get" ->
               System.cmd("mix", ["deps.get"])
 
-            "clean" ->
+            "unused" ->
               System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
 
-            "get&clean" ->
+            "get_and_unused" ->
               System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
               System.cmd("mix", ["deps.get"])
 
@@ -66,6 +64,7 @@ defmodule Ippan.Funx.Sys do
             #   _ ->
             #     System.restart()
             # end
+            IO.puts("restart")
             System.restart()
           end
 

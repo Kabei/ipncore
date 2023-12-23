@@ -21,7 +21,8 @@ defmodule Ippan.Funcs do
       mod: Func.Wallet,
       modx: Funx.Wallet,
       fun: :subscribe,
-      deferred: true
+      deferred: true,
+      check: 1
     }
   end
 

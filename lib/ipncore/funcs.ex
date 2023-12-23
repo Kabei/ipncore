@@ -337,7 +337,8 @@ defmodule Ippan.Funcs do
       name: "sys.upgrade",
       mod: Func.Sys,
       modx: Funx.Sys,
-      fun: :upgrade
+      fun: :upgrade,
+      deferred: true
     }
   end
 

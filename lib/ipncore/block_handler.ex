@@ -142,11 +142,11 @@ defmodule Ippan.BlockHandler do
        ) do
     {decode, from, msg_sig, return, size} =
       case :ets.lookup(ets_msg, ix) do
-        [{_ix, 0, decode = [_hash, _type, from, nonce, _args, size], msg_sig, return}] ->
+        [{_ix, 0, decode = [_hash, _type, from, nonce, _args, _sig, size], msg_sig, return}] ->
           :ets.delete(:hash, {from, nonce})
           {decode, from, msg_sig, return, size}
 
-        [{_ix, 1, decode = [_hash, type, key, from, nonce, _args, size], msg_sig, return}] ->
+        [{_ix, 1, decode = [_hash, type, key, from, nonce, _args, _sig, size], msg_sig, return}] ->
           :ets.delete(:hash, {from, nonce})
           :ets.delete(:dhash, {type, key})
           {decode, from, msg_sig, return, size}

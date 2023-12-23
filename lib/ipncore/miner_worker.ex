@@ -143,7 +143,7 @@ defmodule MinerWorker do
     cref = :counters.new(2, [])
 
     Enum.each(transactions, fn
-      [hash, type, from, nonce, args, size] ->
+      [hash, type, from, nonce, args, _sig, size] ->
         case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             :counters.add(cref, 2, 1)
@@ -163,7 +163,7 @@ defmodule MinerWorker do
 
         :counters.add(cref, 1, 1)
 
-      [hash, type, arg_key, from, nonce, args, size] ->
+      [hash, type, arg_key, from, nonce, args, _sig, size] ->
         case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             :counters.add(cref, 2, 1)

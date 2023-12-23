@@ -56,7 +56,8 @@ defmodule Ippan.ClusterNodes do
             cref = :persistent_term.get(:msg_counter)
             :counters.add(cref, 1, 1)
             ix = :counters.get(cref, 1)
-            decode = [hash, type, from, nonce, args, size]
+            [_msg, sig] = msg_sig
+            decode = [hash, type, from, nonce, args, sig, size]
             :ets.insert(:msg, {ix, 0, decode, msg_sig, return})
             # IO.puts("The result")
             %{"index" => ix}
@@ -99,7 +100,8 @@ defmodule Ippan.ClusterNodes do
                 cref = :persistent_term.get(:msg_counter)
                 :counters.add(cref, 1, 1)
                 ix = :counters.get(cref, 1)
-                decode = [hash, type, key, from, nonce, args, size]
+                [_msg, sig] = msg_sig
+                decode = [hash, type, key, from, nonce, args, sig, size]
                 :ets.insert(:msg, {ix, 1, decode, msg_sig, return})
 
                 # IO.puts("The result")

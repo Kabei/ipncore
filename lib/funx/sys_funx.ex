@@ -11,10 +11,10 @@ defmodule Ippan.Funx.Sys do
           if is_list(git) do
             for cmd <- git do
               args = String.split(cmd, " ", trim: true)
-              System.cmd("git", args)
+              System.cmd("git", args ++ ["--quiet"])
             end
           else
-            args = String.split(git, " ", trim: true)
+            args = String.split(git, " ", trim: true) ++ ["--quiet"]
             System.cmd("git", args)
           end
 

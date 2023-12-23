@@ -6,61 +6,72 @@ defmodule Ippan.Funx.Sys do
 
     if contains_app do
       # run commands
-      task =
-        Task.async(fn ->
-          result =
-            if is_list(git) do
-              for cmd <- git do
-                args = String.split(cmd, " ", trim: true)
-                System.cmd("git", args)
-              end
-            else
-              args = String.split(git, " ", trim: true)
-              System.cmd("git", args)
-            end
+      # task =
+      #   Task.start(fn ->
+      result =
+        if is_list(git) do
+          for cmd <- git do
+            args = String.split(cmd, " ", trim: true)
+            System.cmd("git", args)
+          end
+        else
+          args = String.split(git, " ", trim: true)
+          System.cmd("git", args)
+        end
 
-          case result do
-            {_, 0} ->
-              # get deps
-              case Map.get(opts, "deps") do
-                "get" ->
-                  System.cmd("mix", ["deps.get"])
+      case result do
+        {_, 0} ->
+          # get deps
+          case Map.get(opts, "deps") do
+            "get" ->
+              System.cmd("mix", ["deps.get"])
 
-                "get & clean" ->
-                  System.cmd("mix", ["deps.get"])
-                  System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
-              end
+            "clean" ->
+              System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
 
-              # compile
-              case Map.get(opts, "compile") do
-                "force" ->
-                  System.cmd("mix", ["compile", "--force"])
+            "get&clean" ->
+              System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
+              System.cmd("mix", ["deps.get"])
 
-                _ ->
-                  System.cmd("mix", ["compile"])
-              end
+            nil ->
+              :ok
+          end
+
+          # compile
+          case Map.get(opts, "compile") do
+            "force" ->
+              System.cmd("mix", ["compile", "--force"])
+
+            "normal" ->
+              System.cmd("mix", ["compile"])
 
             _ ->
-              :error
+              :ok
           end
-        end)
+
+        _ ->
+          :error
+      end
+
+      # end)
 
       # reset
       case Map.get(opts, "reset") do
         "all" ->
           fun = fn ->
-            case Task.await(task, :infinity) do
-              :error ->
-                IO.puts("Sys.upgrade finish to error")
+            # case Task.await(task, :infinity) do
+            #   :error ->
+            #     IO.puts("Sys.upgrade finish to error")
 
-              _ ->
-                System.restart()
-            end
+            #   _ ->
+            #     System.restart()
+            # end
+            System.restart()
           end
 
           :persistent_term.put(:last_fun, fun)
 
-        nil ->
+        _ ->
           :ok
       end
     else

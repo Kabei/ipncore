@@ -123,8 +123,8 @@ defmodule MinerWorker do
       error ->
         # delete player
         Validator.delete(creator_id)
-        ClusterNodes.broadcast(%{"event" => "validator.delete", "data" => creator_id})
-        b = Block.cancel(block, 1)
+        ClusterNodes.broadcast(%{"event" => "validator.leave", "data" => creator_id})
+        b = Block.cancel(block, current_round_id, 1)
         :done = Block.insert(Block.to_list(b))
 
         Logger.error(Exception.format(:error, error, __STACKTRACE__))
@@ -138,22 +138,23 @@ defmodule MinerWorker do
     nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
     dtx = :ets.whereis(:dtx)
     dtmp = :ets.new(:tmp, [:set])
-    # 1. Count txs
-    # 2. Count errors
+    # 1. tx counter
+    # 2. errors counter
     cref = :counters.new(2, [])
 
     Enum.each(transactions, fn
-      [hash, type, from, nonce, args, size] ->
-        case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
+      [hash, type, from, nonce, args, _sig, size] ->
+        case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
             :counters.add(cref, 2, 1)
-            :error
 
-          _number ->
+          _true ->
             case TxHandler.regular() do
+              {:error, _} ->
+                :counters.add(cref, 2, 1)
+
               :error ->
                 :counters.add(cref, 2, 1)
-                :error
 
               _ ->
                 nil
@@ -162,24 +163,24 @@ defmodule MinerWorker do
 
         :counters.add(cref, 1, 1)
 
-      [hash, type, arg_key, from, nonce, args, size] ->
-        case Wallet.update_nonce(nonce_dets, nonce_tx, from, nonce) do
+      [hash, type, arg_key, from, nonce, args, _sig, size] ->
+        case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
           :error ->
-            :counters.add(cref, 1, 1)
+            :counters.add(cref, 2, 1)
 
-          _number ->
+          _true ->
             ix = :counters.get(cref, 1)
 
             case TxHandler.insert_deferred(dtx, dtmp) do
               true ->
-                :counters.add(cref, 1, 1)
+                nil
 
               false ->
-                nil
+                :counters.add(cref, 2, 1)
             end
         end
 
-        :counters.add(cref, 2, 1)
+        :counters.add(cref, 1, 1)
     end)
 
     :ets.delete(dtmp)

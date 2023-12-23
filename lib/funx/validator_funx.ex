@@ -1,16 +1,17 @@
 defmodule Ippan.Funx.Validator do
-  alias Ippan.{Validator, Utils}
+  alias Ippan.{Utils, Validator}
   alias Phoenix.PubSub
   require Validator
   require Sqlite
   require BalanceStore
+  require Logger
 
   @app Mix.Project.config()[:app]
   @pubsub :pubsub
   @max_validators Application.compile_env(@app, :max_validators)
   @topic "validator"
 
-  def new(
+  def join(
         %{id: account_id, round: round_id},
         owner_id,
         hostname,
@@ -23,13 +24,13 @@ defmodule Ippan.Funx.Validator do
         opts \\ %{}
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    next_id = Validator.next_id()
+    total = Validator.total()
 
     cond do
       Validator.exists_host?(hostname) ->
         :error
 
-      @max_validators <= next_id ->
+      @max_validators <= total ->
         :error
 
       true ->
@@ -38,13 +39,15 @@ defmodule Ippan.Funx.Validator do
         net_pubkey = Fast64.decode64(net_pubkey)
         dets = DetsPlux.get(:balance)
         tx = DetsPlux.tx(:balance)
-        price = Validator.calc_price(next_id)
+        price = Validator.calc_price(total)
 
         case BalanceStore.pay_burn(account_id, price) do
           :error ->
             :error
 
           _ ->
+            next_id = Validator.next_id()
+
             validator =
               %Validator{
                 id: next_id,
@@ -56,7 +59,6 @@ defmodule Ippan.Funx.Validator do
                 owner: owner_id,
                 fa: fa,
                 fb: fb,
-                stake: 0,
                 created_at: round_id,
                 updated_at: round_id
               }
@@ -64,8 +66,8 @@ defmodule Ippan.Funx.Validator do
 
             Validator.insert(Validator.to_list(validator))
 
-            if next_id == :persistent_term.get(:validator) do
-              :persistent_term.put(:validator, validator)
+            if next_id == :persistent_term.get(:vid) do
+              Validator.put_self(validator)
             end
 
             event = %{"event" => "validator.new", "data" => Validator.to_text(validator)}
@@ -75,7 +77,7 @@ defmodule Ippan.Funx.Validator do
   end
 
   def update(
-        %{id: account_id, round: round_id, size: size, validator: %{fa: fa, fb: fb}},
+        %{id: account_id, size: size, validator: %{fa: fa, fb: fb}, round: round_id},
         id,
         opts
       ) do
@@ -96,6 +98,11 @@ defmodule Ippan.Funx.Validator do
         db_ref = :persistent_term.get(:main_conn)
         Validator.update(map, id)
 
+        if id == :persistent_term.get(:vid) do
+          v = Map.merge(:persistent_term.get(:validator), map)
+          Validator.put_self(v)
+        end
+
         # transform to text
         fun = fn x -> Utils.encode64(x) end
 
@@ -109,11 +116,78 @@ defmodule Ippan.Funx.Validator do
     end
   end
 
-  def delete(_source, id) do
+  def leave(_source, id) do
     db_ref = :persistent_term.get(:main_conn)
     Validator.delete(id)
 
-    event = %{"event" => "validator.delete", "data" => id}
+    event = %{"event" => "validator.leave", "data" => id}
     PubSub.broadcast(@pubsub, @topic, event)
+  end
+
+  def env_put(
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
+        id,
+        name,
+        value
+      ) do
+    db_ref = :persistent_term.get(:main_conn)
+    validator = Validator.get(id)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
+
+    case is_nil(validator) do
+      true ->
+        :error
+
+      _false ->
+        case BalanceStore.pay_fee(account_id, vOwner, fees) do
+          :error ->
+            :error
+
+          _ ->
+            result = Map.put(validator.env, name, value)
+            map = %{env: CBOR.encode(result), updated_at: round_id}
+            Validator.update(map, id)
+        end
+    end
+  end
+
+  def env_delete(
+        %{
+          id: account_id,
+          round: round_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner}
+        },
+        id,
+        name
+      ) do
+    db_ref = :persistent_term.get(:main_conn)
+    validator = Validator.get(id)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
+
+    case is_nil(validator) do
+      true ->
+        :error
+
+      _false ->
+        case BalanceStore.pay_fee(account_id, vOwner, fees) do
+          :error ->
+            :error
+
+          _ ->
+            result = Map.delete(validator.env, name)
+            map = %{env: CBOR.encode(result), updated_at: round_id}
+            Validator.update(map, id)
+        end
+    end
   end
 end

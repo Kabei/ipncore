@@ -13,8 +13,9 @@ defmodule RoundManager do
   @miner_pool :miner_pool
   @pubsub :pubsub
   @token Application.compile_env(@app, :token)
-  @timeout 15_000
+  @timeout Application.compile_env(@app, :round_timeout)
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
+  @maintenance Application.compile_env(@app, :maintenance)
 
   def start_link(args) do
     case System.get_env("test") do
@@ -64,9 +65,6 @@ defmodule RoundManager do
       :ets.insert(ets_players, Validator.list_to_tuple(v))
     end
 
-    # Start block-timer: keep candidate updated
-    BlockTimer.start_link(%{block_id: current_block_id, creator: vid, db_ref: db_ref})
-
     # start round commit
     # RoundCommit.start_link(nil)
 
@@ -105,8 +103,11 @@ defmodule RoundManager do
             state = get_state_after_check(init_state)
 
           RoundSync.start_link(%{
-            round_id: round_id,
-            round_hash: round_hash,
+            block_id: state.block_id,
+            db_ref: state.db_ref,
+            balance: state.balance,
+            id: round_id,
+            hash: round_hash,
             miner_pool: miner_pool_pid,
             pid: self()
           })
@@ -153,6 +154,7 @@ defmodule RoundManager do
             creator: creator_id,
             hash: hash,
             signature: signature,
+            timestamp: timestamp,
             prev: prev
           },
           node_id
@@ -171,7 +173,7 @@ defmodule RoundManager do
       when vid != node_id and
              vid != creator_id do
     Logger.debug(inspect(msg_round))
-    limit = EnvStore.round_blocks()
+    limit = EnvStore.block_limit()
 
     with true <- creator_id == rcid,
          true <- limit >= length(blocks),
@@ -181,7 +183,7 @@ defmodule RoundManager do
              block_pre_verificacion(block, db_ref, ets_players) == :error
            end),
          hashes <- Enum.map(blocks, & &1.hash),
-         true <- hash == Round.compute_hash(id, prev, creator_id, hashes),
+         true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
          true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
@@ -246,7 +248,7 @@ defmodule RoundManager do
   end
 
   def handle_info(
-        %{"event" => "validator.delete", "data" => validator_id},
+        %{"event" => "validator.leave", "data" => validator_id},
         %{players: ets_players} = state
       ) do
     # delete player
@@ -264,7 +266,7 @@ defmodule RoundManager do
   @impl true
   # Process round
   def handle_cast(
-        {:complete, round = %{id: the_round_id}},
+        {:complete, round = %{id: the_round_id, hash: hash}},
         %{
           candidates: ets_candidates,
           db_ref: db_ref,
@@ -275,7 +277,7 @@ defmodule RoundManager do
         } = state
       ) do
     next = the_round_id == round_id
-    is_some_block_mine = Enum.any?(round.blocks, fn x -> x.creator == vid end)
+    is_some_block_mine = Enum.any?(round.blocks, &(&1.creator == vid))
     Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(round.hash)}")
 
     # Clear round-message-votes and block-candidates
@@ -283,18 +285,23 @@ defmodule RoundManager do
     :ets.select_delete(ets_votes, [{{{round_id, :_, :_}, :_}, [], [true]}])
     :ets.delete_all_objects(ets_candidates)
 
-    # Set last local height and prev hash and reset timer
-    if next and is_some_block_mine do
-      BlockTimer.complete(db_ref)
-    end
-
-    # IO.inspect("select_delete votes: #{c}")
-
     # replicate data to cluster nodes
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
     # save all round
     RoundCommit.sync(db_ref, round.tx_count, is_some_block_mine)
+
+    # Set last local height and prev hash and reset timer
+    if next do
+      BlockTimer.complete(hash, is_some_block_mine)
+    end
+
+    fun = :persistent_term.get(:last_fun, nil)
+
+    if fun do
+      :persistent_term.erase(:last_fun)
+      fun.()
+    end
 
     if next do
       {:noreply,
@@ -329,7 +336,7 @@ defmodule RoundManager do
     :done = Round.insert(Round.to_list(round_nulled))
 
     # Delete validator
-    :done = Validator.delete(rcid)
+    Validator.delete(rcid)
     Sqlite.sync(db_ref)
 
     # Delete player
@@ -342,7 +349,7 @@ defmodule RoundManager do
 
     # send event
     PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
-      "event" => "validator.delete",
+      "event" => "validator.leave",
       "data" => rcid
     })
 
@@ -392,23 +399,22 @@ defmodule RoundManager do
     # RoundCommit.stop()
   end
 
-  @spec block_pre_verificacion(block :: map(), reference, :ets.tid()) :: :ok | :error
-  def block_pre_verificacion(
-        %{
-          "creator" => creator_id,
-          "height" => height,
-          "hash" => hash,
-          "signature" => signature,
-          "prev" => prev,
-          "hashfile" => hashfile,
-          "timestamp" => timestamp
-        },
-        db_ref,
-        ets_players
-      ) do
+  defp block_pre_verificacion(
+         %{
+           creator: creator_id,
+           height: height,
+           hash: hash,
+           signature: signature,
+           prev: prev,
+           filehash: filehash,
+           timestamp: timestamp
+         },
+         db_ref,
+         ets_players
+       ) do
     with [{_, player}] <- :ets.lookup(ets_players, creator_id),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- hash == Block.compute_hash(creator_id, height, prev, hashfile, timestamp),
+         true <- hash == Block.compute_hash(creator_id, height, prev, filehash, timestamp),
          true <- height == 1 + Sqlite.one("last_block_height_created", [creator_id]) do
       :ok
     else
@@ -470,7 +476,8 @@ defmodule RoundManager do
               id: round_id,
               blocks: msg_round.blocks,
               prev: prev_hash,
-              signature: msg_round.signature
+              signature: msg_round.signature,
+              timestamp: msg_round.timestamp
             },
             block_id,
             creator,
@@ -482,7 +489,7 @@ defmodule RoundManager do
         else
           GenServer.cast(
             pid,
-            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1)}
+            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
           )
         end
       end)
@@ -510,7 +517,7 @@ defmodule RoundManager do
         blocks =
           case status do
             :synced ->
-              BlockTimer.get_blocks(block_id) ++
+              BlockTimer.get_block(block_id) ++
                 :ets.tab2list(ets_candidates)
 
             # Time to wait messages (msg_block) to arrived
@@ -519,8 +526,9 @@ defmodule RoundManager do
           end
 
         creator = :persistent_term.get(:validator)
+        timestamp = :erlang.system_time(:millisecond)
         {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
-        hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes)
+        hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
         {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
 
         # pre-build
@@ -530,10 +538,11 @@ defmodule RoundManager do
           creator: creator.id,
           hash: hash,
           signature: signature,
-          prev: prev_hash
+          prev: prev_hash,
+          timestamp: timestamp
         }
 
-        # send message
+        # send message pre-build
         NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
 
         build_round(
@@ -544,7 +553,8 @@ defmodule RoundManager do
             blocks: blocks,
             signature: signature,
             size: size,
-            tx_count: tx_count
+            tx_count: tx_count,
+            timestamp: timestamp
           },
           block_id,
           creator,
@@ -597,7 +607,8 @@ defmodule RoundManager do
           id: round_id,
           blocks: blocks,
           prev: prev_hash,
-          signature: signature
+          signature: signature,
+          timestamp: timestamp
         } = map,
         block_id,
         creator,
@@ -612,12 +623,14 @@ defmodule RoundManager do
       creator_id = creator.id
       block_count = length(blocks)
 
+      IO.inspect(map)
+
       {hash, tx_count, size} =
         if Map.get(map, :hash) do
           {map.hash, map.tx_count, map.size}
         else
           {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
-          hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes)
+          hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
           {hash, tx_count, size}
         end
 
@@ -665,17 +678,13 @@ defmodule RoundManager do
 
         # Run jackpot and events
         jackpot_result =
-          {_jackpot_winner, jackpot_amount} =
           run_jackpot(
             db_ref,
             balance_pid,
             balance_tx,
             round_id,
             prev_hash,
-            block_id + block_count,
-            reward,
-            supply,
-            max_supply
+            block_id + block_count
           )
 
         # save round
@@ -685,15 +694,16 @@ defmodule RoundManager do
           hash: hash,
           prev: prev_hash,
           signature: signature,
-          coinbase: reward + jackpot_amount,
+          coinbase: reward,
           count: block_count,
           tx_count: tx_count,
           size: size,
           status: 0,
+          timestamp: timestamp,
           blocks: blocks_approved,
           extra: nil,
-          # extra data
           reward: reward,
+          # extra data
           jackpot: jackpot_result
         }
 
@@ -707,7 +717,8 @@ defmodule RoundManager do
       else
         GenServer.cast(
           pid,
-          {:incomplete, Round.cancel(round_id, hash, prev_hash, signature, creator_id, 3)}
+          {:incomplete,
+           Round.cancel(round_id, hash, prev_hash, signature, creator_id, 3, timestamp)}
         )
 
         :error
@@ -715,84 +726,80 @@ defmodule RoundManager do
     end
   end
 
-  defp run_jackpot(_, _, _, _, _, _, 0, _, _), do: {nil, 0}
-  defp run_jackpot(_, _, _, _, nil, _, _, _, _), do: {nil, 0}
-
   defp run_jackpot(
          db_ref,
          balances,
          balance_tx,
          round_id,
          round_hash,
-         total_blocks,
-         reward,
-         supply,
-         max_supply
-       ) do
-    if rem(round_id, 100) == 0 do
-      IO.inspect("jackpot")
+         total_blocks
+       )
+       when rem(round_id, 100) == 0 do
+    IO.inspect("jackpot")
+    supply = TokenSupply.jackpot()
+    amount = TokenSupply.get(supply)
+
+    if amount > 0 do
       n = BigNumber.to_int(round_hash)
       dv = min(total_blocks + 1, 20_000)
       b = rem(n, dv) + if(total_blocks >= 20_000, do: total_blocks, else: 0)
 
-      new_amount = TokenSupply.get(supply) + reward
+      TokenSupply.put(supply, 0)
 
-      if max_supply >= new_amount do
-        case Block.get(b) do
-          nil ->
-            {nil, 0}
+      case Block.get(b) do
+        nil ->
+          {nil, 0}
 
-          block_list ->
-            block = Block.list_to_map(block_list)
-            tx_count = block.count
-            IO.inspect(tx_count)
+        block_list ->
+          block = Block.list_to_map(block_list)
+          tx_count = block.count
+          IO.inspect(tx_count)
 
-            cond do
-              tx_count > 0 ->
-                tx_n = rem(n, tx_count)
-                path = Block.decode_path(block.creator, block.height)
-                {:ok, content} = File.read(path)
-                %{"data" => data} = decode_file!(content)
+          cond do
+            tx_count > 0 ->
+              tx_n = rem(n, tx_count)
+              path = Block.decode_path(block.creator, block.height)
+              {:ok, content} = File.read(path)
+              %{"data" => data} = decode_file!(content)
 
-                winner_id =
-                  case Enum.at(data, tx_n) do
-                    [_hash, _type, account_id, _nonce, _args, _size] ->
-                      BalanceStore.income(balances, balance_tx, account_id, @token, reward)
-                      # Update Token Supply
-                      TokenSupply.add(supply, reward)
+              winner_id =
+                case Enum.at(data, tx_n) do
+                  [_hash, _type, account_id, _nonce, _args, _size] ->
+                    BalanceStore.income(balances, balance_tx, account_id, @token, amount)
+                    # Update Token Supply
+                    TokenSupply.add(supply, amount)
 
-                      account_id
+                    account_id
 
-                    [_hash, _type, _arg_key, account_id, _nonce, _args, _size] ->
-                      BalanceStore.income(balances, balance_tx, account_id, @token, reward)
-                      # Update Token Supply
-                      TokenSupply.add(supply, reward)
-                      account_id
-                  end
+                  [_hash, _type, _arg_key, account_id, _nonce, _args, _size] ->
+                    BalanceStore.income(balances, balance_tx, account_id, @token, amount)
+                    # Update Token Supply
+                    TokenSupply.add(supply, amount)
+                    account_id
+                end
 
-                jackpot = [round_id, winner_id, reward]
+              jackpot = [round_id, winner_id, amount]
 
-                :done =
-                  Sqlite.step("insert_jackpot", jackpot)
+              :done =
+                Sqlite.step("insert_jackpot", jackpot)
 
-                {winner_id, reward}
+              {winner_id, amount}
 
-              true ->
-                {nil, 0}
-            end
-        end
-      else
-        {nil, 0}
+            true ->
+              {nil, 0}
+          end
       end
     else
       {nil, 0}
     end
   end
 
+  defp run_jackpot(_, _, _, _, _, _), do: {nil, 0}
+
   defp run_maintenance(0, _), do: nil
 
   defp run_maintenance(round_id, db_ref) do
-    if rem(round_id, 25_000) == 0 do
+    if rem(round_id, @maintenance) == 0 do
       Sqlite.step("expiry_refund", [round_id])
       Sqlite.step("expiry_domain", [round_id])
     end

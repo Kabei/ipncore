@@ -118,16 +118,19 @@ defmodule Ippan.Network do
 
         PubSub.subscribe(@pubsub, @topic)
 
-        {:ok, %{sup: sup, server: server, ets: table}, {:continue, :init}}
+        state = %{sup: sup, server: server, ets: table}
+        on_init(state)
+        {:ok, state, {:continue, :init}}
       end
 
       @impl true
       def handle_continue(:init, state) do
-        on_init(state)
+        on_continue(state)
         {:noreply, state, :hibernate}
       end
 
       def on_init(_), do: :ok
+      def on_continue(_), do: :ok
 
       # @impl true
       # def handle_info({node_id, msg}, state) do
@@ -411,6 +414,7 @@ defmodule Ippan.Network do
       end
 
       defoverridable on_init: 1,
+                     on_continue: 1,
                      on_connect: 2,
                      on_disconnect: 1,
                      on_message: 2

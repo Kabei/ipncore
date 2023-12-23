@@ -10,6 +10,7 @@ defmodule Ipncore.Application do
   @impl true
   def start(_type, _args) do
     IO.puts("Starting application")
+    check_install()
     start_node()
     make_folders()
     load_keys()
@@ -19,9 +20,10 @@ defmodule Ipncore.Application do
       [
         MemTables,
         DetsSup,
-        NetStore,
+        LocalStore,
         MainStore,
         {PubSub, [name: :pubsub]},
+        BlockTimer,
         ClusterNodes,
         NetworkNodes,
         RoundManager,
@@ -34,6 +36,11 @@ defmodule Ipncore.Application do
   @impl true
   def stop(_state) do
     IO.puts("Stopping application")
+    BlockTimer.save()
+  end
+
+  defp check_install do
+    {_, 0} = System.cmd("git", ["version"])
   end
 
   defp start_node do
@@ -42,8 +49,8 @@ defmodule Ipncore.Application do
 
     name = System.get_env("NAME") || raise IppanStartUpError, "variable NAME is missing"
 
-    :persistent_term.put(:name, name)
     :persistent_term.put(:vid, String.to_integer(vid))
+    :persistent_term.put(:name, name)
   end
 
   defp load_keys do

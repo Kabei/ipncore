@@ -21,12 +21,12 @@ defmodule Ippan.ClusterNodes do
     sup: Ippan.ClusterSup
 
   def on_init(_) do
-    :persistent_term.put(:msg_counter, :counters.new(1, []))
+    :ok
   end
 
   @impl Network
   def fetch(id) do
-    db_ref = :persistent_term.get(:net_conn)
+    db_ref = :persistent_term.get(:local_conn)
     Node.get(id)
   end
 
@@ -56,14 +56,15 @@ defmodule Ippan.ClusterNodes do
             cref = :persistent_term.get(:msg_counter)
             :counters.add(cref, 1, 1)
             ix = :counters.get(cref, 1)
-            decode = [hash, type, from, nonce, args, size]
+            [_msg, sig] = msg_sig
+            decode = [hash, type, from, nonce, args, sig, size]
             :ets.insert(:msg, {ix, 0, decode, msg_sig, return})
             # IO.puts("The result")
             %{"index" => ix}
         end
 
       false ->
-        ["error", "Already exists"]
+        ["error", "Already exists (Core)"]
     end
   end
 
@@ -99,7 +100,8 @@ defmodule Ippan.ClusterNodes do
                 cref = :persistent_term.get(:msg_counter)
                 :counters.add(cref, 1, 1)
                 ix = :counters.get(cref, 1)
-                decode = [hash, type, key, from, nonce, args, size]
+                [_msg, sig] = msg_sig
+                decode = [hash, type, key, from, nonce, args, sig, size]
                 :ets.insert(:msg, {ix, 1, decode, msg_sig, return})
 
                 # IO.puts("The result")
@@ -109,11 +111,11 @@ defmodule Ippan.ClusterNodes do
           false ->
             :ets.delete(:hash, nonce_key)
             Wallet.revert_nonce(cache, from)
-            ["error", "Deferred transaction already exists"]
+            ["error", "Deferred transaction already exists (Core)"]
         end
 
       false ->
-        ["error", "Already exists"]
+        ["error", "Already exists (Core) #{inspect(nonce_key)}"]
     end
   end
 
@@ -165,7 +167,7 @@ defmodule Ippan.ClusterNodes do
 
   @impl Network
   def handle_message(event = "node.join", data, %{"id" => node_id}) do
-    db_ref = :persistent_term.get(:net_conn)
+    db_ref = :persistent_term.get(:local_conn)
 
     if Node.insert(Node.to_list(data)) == :done do
       broadcast_except(%{"event" => event, "data" => data}, [node_id])
@@ -175,7 +177,7 @@ defmodule Ippan.ClusterNodes do
   def handle_message(event = "node.update", data = %{"data" => fields, "id" => id}, %{
         "id" => node_id
       }) do
-    db_ref = :persistent_term.get(:net_conn)
+    db_ref = :persistent_term.get(:local_conn)
 
     if Node.update(fields, id) == :done do
       broadcast_except(%{"event" => event, "data" => data}, [node_id])
@@ -183,7 +185,7 @@ defmodule Ippan.ClusterNodes do
   end
 
   def handle_message(event = "node.leave", id, %{"id" => node_id}) do
-    db_ref = :persistent_term.get(:net_conn)
+    db_ref = :persistent_term.get(:local_conn)
 
     if Node.delete(id) == :done do
       broadcast_except(%{"event" => event, "data" => id}, [node_id])

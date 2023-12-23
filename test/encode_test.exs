@@ -12,7 +12,7 @@ defmodule RequestTest do
     %{
       height: 0,
       hash: "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=",
-      hashfile: "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=",
+      filehash: "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=",
       signature:
         "teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=teOoJc+BB69mW+WCW/VNfktPY0LEG//yiOyFYfdDMMk=",
       ev_count: 0

@@ -1,5 +1,4 @@
 defmodule Ippan.Validator do
-  require BigNumber
   alias Ippan.Utils
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
@@ -13,8 +12,8 @@ defmodule Ippan.Validator do
           avatar: String.t() | nil,
           fa: integer(),
           fb: integer(),
-          stake: non_neg_integer(),
           failures: integer(),
+          env: map(),
           created_at: non_neg_integer(),
           updated_at: non_neg_integer()
         }
@@ -30,16 +29,16 @@ defmodule Ippan.Validator do
     :avatar,
     :fa,
     :fb,
-    :stake,
     :created_at,
     :updated_at,
-    failures: 0
+    failures: 0,
+    env: %{}
   ]
 
   @impl true
   def editable, do: ~w(hostname port name avatar pubkey net_pubkey fa fb owner)
   @impl true
-  def optionals, do: ~w(avatar)
+  def optionals, do: ~w(avatar env)
 
   @impl true
   def to_list(x) do
@@ -52,10 +51,10 @@ defmodule Ippan.Validator do
       x.pubkey,
       x.net_pubkey,
       x.avatar,
-      BigNumber.to_bin(x.fa),
-      BigNumber.to_bin(x.fb),
-      x.stake,
+      x.fa,
+      x.fb,
       x.failures,
+      CBOR.encode(x.env),
       x.created_at,
       x.updated_at
     ]
@@ -83,8 +82,8 @@ defmodule Ippan.Validator do
         avatar,
         fa,
         fb,
-        stake,
         failures,
+        env,
         created_at,
         updated_at
       ]) do
@@ -97,10 +96,10 @@ defmodule Ippan.Validator do
       avatar: avatar,
       pubkey: pubkey,
       net_pubkey: net_pubkey,
-      fb: BigNumber.to_int(fb),
-      fa: BigNumber.to_int(fa),
-      stake: stake,
+      fb: fb,
+      fa: fa,
       failures: failures,
+      env: :erlang.element(1, CBOR.Decoder.decode(env)),
       created_at: created_at,
       updated_at: updated_at
     }
@@ -115,7 +114,12 @@ defmodule Ippan.Validator do
     %{x | pubkey: Utils.encode64(pk), net_pubkey: Utils.encode64(npk)}
   end
 
-  def calc_price(next_id), do: (next_id + 1) * EnvStore.validator_price()
+  def calc_price(total), do: (total + 1) * EnvStore.validator_price()
+
+  def put_self(v) do
+    :persistent_term.put(:validator, v)
+    :persistent_term.put(:vhash, :erlang.phash2(v) |> :erlang.integer_to_binary())
+  end
 
   require Sqlite
 
@@ -172,6 +176,11 @@ defmodule Ippan.Validator do
     quote bind_quoted: [id: id], location: :keep do
       :ets.delete(:validator, id)
       Sqlite.step("delete_validator", [id])
+
+      if id == :persistent_term.get(:vid) do
+        Logger.warning("I have left the network")
+        System.halt()
+      end
     end
   end
 end

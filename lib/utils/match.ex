@@ -5,7 +5,7 @@ defmodule Match do
   @hostname ~r/^([a-zA-Z0-9][a-zA-Z0-9\-]{0,61}\.)*[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]\.[a-zA-Z0-9]{2,}$/
   @ipv4 ~r/^((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])$/
   @host_ipv4 ~r/^(([a-zA-Z0-9][a-zA-Z0-9\-]{0,61}\.)*[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]\.[a-zA-Z0-9]{2,})|(((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/
-  @wallet_address ~r/(0x|1x)[1-9A-HJ-NP-Za-km-z]+$/
+  @wallet_address ~r/^(\d+)x[1-9A-HJ-NP-Za-km-z]+$/
   @domain ~r/^[A-Za-z0-9][A-Za-z0-9-]{1,61}[A-Za-z0-9]\.[A-Za-z]{1,}$/
   @subdomain ~r/^([a-z0-9]{1}[a-z0-9-]?){0,62}[a-z0-9]{1}.$/
   @ippan_domain ~r/^[a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1}\.ipn$/
@@ -14,8 +14,7 @@ defmodule Match do
   @base58 ~r/^[1-9A-HJ-NP-Za-km-z]+$/
   @base62 ~r/^[0-9A-Za-z]+$/
   @domain_link ~r/^@([a-z0-9]{0,1}[a-z0-9-]{0,61}[a-z0-9]{1,1})/
-  # @username ~r/((?!^[\.\-\_])([a-z0-9\.\-\_])(?![\.\_\-][\.\_\-])(?![\.\-\_]$)){1,30}/
-  @username ~r/^[a-z0-9]+([._-]?[a-z0-9]+)*$/
+  @username ~r/^@[a-z0-9]{1}([a-z0-9_.-]{0,23})[a-z0-9]{1}$/
   @token ~r/^[A-Z0-9]{1,10}$/
   @text ~r/^[\x20-\x26|\x28-\x7E]+$/
 
@@ -39,7 +38,6 @@ defmodule Match do
   def host_or_ipv4?(x), do: Regex.match?(@host_ipv4, x)
 
   def account?(x) do
-    Regex.match?(@wallet_address, x)
-    # byte_size(x) <= 20 and Regex.match?(@username, x)
+    Regex.match?(@wallet_address, x) or Regex.match?(@username, x)
   end
 end

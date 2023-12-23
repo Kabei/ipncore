@@ -7,10 +7,10 @@ CREATE TABLE IF NOT EXISTS validator(
   pubkey BLOB NOT NULL,
   net_pubkey BLOB NOT NULL,
   avatar TEXT,
-  fa BLOB NOT NULL,
-  fb BLOB NOT NULL,
-  stake BIGINT,
+  fa INTEGER NOT NULL,
+  fb INTEGER NOT NULL,
   failures INTEGER,
+  env BLOB,
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 ) WITHOUT ROWID;
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS block(
   height BIGINT NOT NULL,
   hash BLOB NOT NULL,
   prev BLOB,
-  hashfile BLOB,
+  filehash BLOB,
   signature BLOB NOT NULL,
   round BIGINT NOT NULL,
   timestamp BIGINT NOT NULL,
@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS round(
   tx_count BIGINT,
   size BIGINT,
   status INTEGER,
+  timestamp BIGINT NOT NULL,
   blocks BLOB,
   extra BLOB
 ) WITHOUT ROWID;

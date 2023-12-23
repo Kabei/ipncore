@@ -4,14 +4,14 @@ defmodule Ippan.Wallet do
           id: String.t(),
           pubkey: binary,
           validator: non_neg_integer(),
-          created_at: non_neg_integer()
+          sig_type: non_neg_integer()
         }
 
-  defstruct [:id, :pubkey, :validator, :created_at]
+  defstruct [:id, :pubkey, :validator, :sig_type]
 
   @impl true
   def to_list(x) do
-    [x.id, x.pubkey, x.validator, x.created_at]
+    [x.id, x.pubkey, x.validator, x.sig_type]
   end
 
   @impl true
@@ -25,22 +25,22 @@ defmodule Ippan.Wallet do
   end
 
   @impl true
-  def to_map({id, pubkey, validator, created_at}) do
+  def to_map({id, pubkey, validator, sig_type}) do
     %{
       id: id,
       pubkey: pubkey,
       validator: validator,
-      created_at: created_at
+      sig_type: sig_type
     }
   end
 
   @impl true
-  def list_to_map([id, pubkey, validator, created_at]) do
+  def list_to_map([id, pubkey, validator, sig_type]) do
     %{
       id: id,
       pubkey: pubkey,
       validator: validator,
-      created_at: created_at
+      sig_type: sig_type
     }
   end
 
@@ -64,14 +64,25 @@ defmodule Ippan.Wallet do
 
     if DetsPlux.update_counter(tx, from, 1) != nonce do
       DetsPlux.update_counter(tx, from, -1)
-      raise IppanError, "Invalid nonce x3"
+      raise IppanError, "Invalid nonce w2"
+    end
+  end
+
+  @spec gte_nonce(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) :: true | :error
+  def gte_nonce(dets, tx, from, nonce) do
+    count = DetsPlux.get_cache(dets, tx, from, 0)
+
+    if nonce > count do
+      DetsPlux.put(tx, from, nonce)
+    else
+      :error
     end
   end
 
   @spec gte_nonce!(DetsPlux.db(), DetsPlux.transaction(), binary, integer()) ::
           nil | no_return()
   def gte_nonce!(dets, tx, from, nonce) do
-    count = DetsPlux.get_cache(dets, tx, from, 0) + 1
+    count = DetsPlux.get_cache(dets, tx, from, 0)
 
     if count > nonce do
       raise IppanError, "Invalid nonce x4"

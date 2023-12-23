@@ -26,7 +26,16 @@ defmodule Ippan.TxHandler do
     quote bind_quoted: [table: table, tmp: tmp_table], location: :keep do
       key = {var!(type), var!(arg_key)}
       order = {var!(block_id), var!(ix)}
-      body = [var!(hash), var!(type), var!(from), var!(validator), var!(args), var!(size)]
+
+      body = [
+        var!(hash),
+        var!(type),
+        var!(from),
+        var!(validator),
+        var!(nonce),
+        var!(args),
+        var!(size)
+      ]
 
       case :ets.lookup(tmp, key) do
         [] ->
@@ -48,28 +57,34 @@ defmodule Ippan.TxHandler do
   defmacro run_deferred_txs do
     quote location: :keep do
       :ets.tab2list(:dtx)
-      |> Enum.each(fn {{block_id, _ix},
-                       [
-                         hash,
-                         type,
-                         account_id,
-                         validator,
-                         args,
-                         size
-                       ]} ->
-        %{modx: module, fun: fun} = Funcs.lookup(type)
+      |> Enum.each(fn
+        {{block_id, _ix},
+         [
+           hash,
+           type,
+           account_id,
+           validator,
+           nonce,
+           args,
+           size
+         ]} ->
+          %{modx: module, fun: fun} = Funcs.lookup(type)
 
-        source = %{
-          block: block_id,
-          hash: hash,
-          id: account_id,
-          round: var!(round_id),
-          size: size,
-          type: type,
-          validator: validator
-        }
+          source = %{
+            block: block_id,
+            hash: hash,
+            id: account_id,
+            nonce: nonce,
+            round: var!(round_id),
+            size: size,
+            type: type,
+            validator: validator
+          }
 
-        apply(module, fun, [source | args])
+          apply(module, fun, [source | args])
+
+        {_block_and_tx_hash, fun} ->
+          fun.()
       end)
 
       :ets.delete_all_objects(:dtx)

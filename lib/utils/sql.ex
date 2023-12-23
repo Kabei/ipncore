@@ -34,6 +34,8 @@ defmodule SQL do
     |> Map.new()
   end
 
+  defp put_args(txt, %{}), do: txt
+
   defp put_args(txt, args) do
     args
     |> Enum.reduce(txt, fn {pattern, replacement}, acc ->

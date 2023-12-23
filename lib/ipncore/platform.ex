@@ -17,12 +17,12 @@ defmodule Platform do
         load_genesis_file(db_ref)
         EnvStore.load(db_ref)
 
-      owner ->
-        :persistent_term.put(:owner, owner)
+      _owner ->
+        :ok
     end
 
     v = Validator.get(vid)
-    :persistent_term.put(:validator, v)
+    Validator.put_self(v)
 
     :ok
   end
@@ -39,7 +39,7 @@ defmodule Platform do
       case key do
         "wallets" ->
           Enum.each(values, fn x ->
-            DetsPlux.put(wallet_tx, {x.id, x.pubkey, x.validator})
+            DetsPlux.put(wallet_tx, {x.id, x.pubkey, x.validator, x.sig_type})
           end)
 
         "tokens" ->

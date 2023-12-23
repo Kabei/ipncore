@@ -50,10 +50,10 @@ defmodule Ippan.Funcs do
   def lookup(100) do
     %Func{
       id: 100,
-      name: "validator.new",
+      name: "validator.join",
       mod: Func.Validator,
       modx: Funx.Validator,
-      fun: :new,
+      fun: :join,
       deferred: true
     }
   end
@@ -72,10 +72,32 @@ defmodule Ippan.Funcs do
   def lookup(102) do
     %Func{
       id: 102,
-      name: "validator.delete",
+      name: "validator.leave",
       mod: Func.Validator,
       modx: Funx.Validator,
-      fun: :delete,
+      fun: :leave,
+      deferred: true
+    }
+  end
+
+  def lookup(103) do
+    %Func{
+      id: 103,
+      name: "validator.envPut",
+      mod: Func.Validator,
+      modx: Funx.Validator,
+      fun: :env_put,
+      deferred: true
+    }
+  end
+
+  def lookup(104) do
+    %Func{
+      id: 104,
+      name: "validator.envDelete",
+      mod: Func.Validator,
+      modx: Funx.Validator,
+      fun: :env_delete,
       deferred: true
     }
   end
@@ -108,6 +130,50 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :delete
+    }
+  end
+
+  def lookup(203) do
+    %Func{
+      id: 203,
+      name: "token.propAdd",
+      mod: Func.Token,
+      modx: Funx.Token,
+      fun: :prop_add,
+      deferred: true
+    }
+  end
+
+  def lookup(204) do
+    %Func{
+      id: 204,
+      name: "token.propDrop",
+      mod: Func.Token,
+      modx: Funx.Token,
+      fun: :prop_drop,
+      deferred: true
+    }
+  end
+
+  def lookup(205) do
+    %Func{
+      id: 205,
+      name: "token.envPut",
+      mod: Func.Token,
+      modx: Funx.Token,
+      fun: :env_put,
+      deferred: true
+    }
+  end
+
+  def lookup(206) do
+    %Func{
+      id: 206,
+      name: "token.envDelete",
+      mod: Func.Token,
+      modx: Funx.Token,
+      fun: :env_delete,
+      deferred: true
     }
   end
 
@@ -169,7 +235,8 @@ defmodule Ippan.Funcs do
       name: "coin.burn",
       mod: Func.Coin,
       modx: Funx.Coin,
-      fun: :burn
+      fun: :burn,
+      deferred: true
     }
   end
 
@@ -180,6 +247,16 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :multisend
+    }
+  end
+
+  def lookup(307) do
+    %Func{
+      id: 307,
+      name: "coin.reload",
+      mod: Func.Coin,
+      modx: Funx.Coin,
+      fun: :reload
     }
   end
 
@@ -251,6 +328,16 @@ defmodule Ippan.Funcs do
       mod: Func.Dns,
       modx: Funx.Dns,
       fun: :delete
+    }
+  end
+
+  def lookup(900) do
+    %Func{
+      id: 900,
+      name: "sys.upgrade",
+      mod: Func.Sys,
+      modx: Funx.Sys,
+      fun: :upgrade
     }
   end
 

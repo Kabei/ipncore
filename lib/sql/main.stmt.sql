@@ -12,7 +12,7 @@ DELETE FROM main.env WHERE name=?1;
 
 
 --name: insert_token
-INSERT INTO assets.token VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10);
+INSERT INTO assets.token VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11);
 
 --name: get_token
 SELECT * FROM assets.token WHERE id = ? LIMIT 1;
@@ -111,7 +111,7 @@ SELECT height, hash FROM blockchain.block WHERE creator=? ORDER BY height DESC L
 SELECT id FROM blockchain.block ORDER BY id DESC LIMIT 1;
 
 --name: last_block_height_created
-SELECT height FROM blockchain.block WHERE creator=? ORDER BY height DESC LIMIT 1;
+SELECT COALESCE((SELECT height FROM blockchain.block WHERE creator=? ORDER BY height DESC LIMIT 1), -1);
 
 --name: get_round_blocks
 SELECT id FROM blockchain.block WHERE round = ? ORDER BY id ASC;
@@ -124,7 +124,7 @@ SELECT count(1) FROM blockchain.block WHERE round = ?;
 
 
 --name: insert_round
-INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
+INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14);
 
 --name: exists_round
 SELECT 1 FROM blockchain.round WHERE id=? LIMIT 1;

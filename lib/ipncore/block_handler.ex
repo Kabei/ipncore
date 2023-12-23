@@ -16,7 +16,7 @@ defmodule Ippan.BlockHandler do
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
           map | nil
-  def generate_files(creator_id, height, prev, priority \\ 0) do
+  def generate_files(creator_id, height, prev) do
     block_path =
       Path.join(:persistent_term.get(:block_dir), "#{creator_id}.#{height}.#{@block_extension}")
 
@@ -24,7 +24,6 @@ defmodule Ippan.BlockHandler do
       Path.join(:persistent_term.get(:decode_dir), "#{creator_id}.#{height}.#{@decode_extension}")
 
     ets_msg = :ets.whereis(:msg)
-    ets_size = :ets.info(ets_msg, :size)
 
     cond do
       File.exists?(decode_path) and File.exists?(block_path) ->
@@ -35,16 +34,16 @@ defmodule Ippan.BlockHandler do
 
         %{"data" => messages, "vsn" => version} = decode_file!(content)
 
-        hashfile = hash_file(block_path)
+        filehash = hash_file(block_path)
         timestamp = :os.system_time(:millisecond)
-        hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
+        hash = Block.compute_hash(creator_id, height, prev, filehash, timestamp)
         {:ok, signature} = Block.sign(hash)
 
         %{
           count: length(messages),
           creator: creator_id,
           hash: hash,
-          hashfile: hashfile,
+          filehash: filehash,
           height: height,
           prev: prev,
           signature: signature,
@@ -53,13 +52,12 @@ defmodule Ippan.BlockHandler do
           vsn: version
         }
 
-      (0 == priority and ets_size >= 1_000_000) or
-          (1 == priority and ets_size > 0) ->
+      :ets.info(ets_msg, :size) != 0 ->
         IO.inspect("MSG Size > 0")
 
         ets_msg = :ets.whereis(:msg)
-
         cref = :counters.new(3, [])
+
         first = :ets.first(ets_msg)
 
         {acc_msg, acc_decode} =
@@ -76,9 +74,9 @@ defmodule Ippan.BlockHandler do
 
         {:ok, file_info} = File.stat(block_path)
 
-        hashfile = hash_file(block_path)
+        filehash = hash_file(block_path)
         timestamp = :os.system_time(:millisecond)
-        hash = Block.compute_hash(creator_id, height, prev, hashfile, timestamp)
+        hash = Block.compute_hash(creator_id, height, prev, filehash, timestamp)
         {:ok, signature} = Block.sign(hash)
 
         ClusterNodes.broadcast(%{
@@ -90,7 +88,7 @@ defmodule Ippan.BlockHandler do
           count: count,
           creator: creator_id,
           hash: hash,
-          hashfile: hashfile,
+          filehash: filehash,
           height: height,
           prev: prev,
           signature: signature,
@@ -144,11 +142,11 @@ defmodule Ippan.BlockHandler do
        ) do
     {decode, from, msg_sig, return, size} =
       case :ets.lookup(ets_msg, ix) do
-        [{_ix, 0, decode = [_hash, _type, from, nonce, _args, size], msg_sig, return}] ->
+        [{_ix, 0, decode = [_hash, _type, from, nonce, _args, _sig, size], msg_sig, return}] ->
           :ets.delete(:hash, {from, nonce})
           {decode, from, msg_sig, return, size}
 
-        [{_ix, 1, decode = [_hash, type, key, from, nonce, _args, size], msg_sig, return}] ->
+        [{_ix, 1, decode = [_hash, type, key, from, nonce, _args, _sig, size], msg_sig, return}] ->
           :ets.delete(:hash, {from, nonce})
           :ets.delete(:dhash, {type, key})
           {decode, from, msg_sig, return, size}
@@ -185,7 +183,7 @@ defmodule Ippan.BlockHandler do
 
   defp check_return({bdets, btx}, {sdets, stx}, return) do
     case return do
-      %{output: balances, supply: supplies} ->
+      %{"output" => balances, "supply" => supplies} ->
         try do
           TokenSupply.multi_requires!(sdets, stx, supplies)
           BalanceStore.multi_requires!(bdets, btx, balances)
@@ -194,7 +192,7 @@ defmodule Ippan.BlockHandler do
           _e -> false
         end
 
-      %{output: balances} ->
+      %{"output" => balances} ->
         try do
           BalanceStore.multi_requires!(bdets, btx, balances)
           true

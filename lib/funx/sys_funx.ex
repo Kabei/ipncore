@@ -1,7 +1,7 @@
 defmodule Ippan.Funx.Sys do
   @app Mix.Project.config()[:app] |> to_string()
 
-  def upgrade(_, %{} = %{"git" => git} = opts, target) do
+  def upgrade(_, %{"git" => git} = opts, target) do
     if @app in target do
       # run commands
       pid = self()

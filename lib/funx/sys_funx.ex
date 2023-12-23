@@ -4,68 +4,78 @@ defmodule Ippan.Funx.Sys do
   def upgrade(_, %{} = %{"git" => git} = opts, target) do
     if @app in target do
       # run commands
-      task =
-        Task.async(fn ->
-          result =
-            if is_list(git) do
-              for cmd <- git do
-                args = String.split(cmd, " ", trim: true)
-                System.cmd("git", args)
-              end
-            else
-              args = String.split(git, " ", trim: true)
+      pid = self()
+
+      spawn(fn ->
+        result =
+          if is_list(git) do
+            for cmd <- git do
+              args = String.split(cmd, " ", trim: true)
               System.cmd("git", args)
             end
+          else
+            args = String.split(git, " ", trim: true)
+            System.cmd("git", args)
+          end
 
-          case result do
-            {_, 0} ->
-              # get deps
-              case Map.get(opts, "deps") do
-                "get" ->
-                  System.cmd("mix", ["deps.get"])
+        case result do
+          {_, 0} ->
+            # get deps
+            case Map.get(opts, "deps") do
+              "get" ->
+                System.cmd("mix", ["deps.get"])
 
-                "unused" ->
-                  System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
+              "unused" ->
+                System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
 
-                "get_and_unused" ->
-                  System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
-                  System.cmd("mix", ["deps.get"])
+              "get_and_unused" ->
+                System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
+                System.cmd("mix", ["deps.get"])
 
-                nil ->
-                  :ok
+              nil ->
+                :ok
+            end
+
+            # compile
+            case Map.get(opts, "compile") do
+              "force" ->
+                System.cmd("mix", ["compile", "--force"])
+
+              "normal" ->
+                System.cmd("mix", ["compile"])
+
+              _ ->
+                :ok
+            end
+
+            send(pid, :ok)
+
+          _ ->
+            send(pid, :error)
+        end
+      end)
+
+      receive do
+        :ok ->
+          # reset
+          case Map.get(opts, "reset") do
+            "all" ->
+              fun = fn ->
+                IO.puts("Restart")
+                System.restart()
               end
 
-              # compile
-              case Map.get(opts, "compile") do
-                "force" ->
-                  System.cmd("mix", ["compile", "--force"])
-
-                "normal" ->
-                  System.cmd("mix", ["compile"])
-
-                _ ->
-                  :ok
-              end
+              :persistent_term.put(:last_fun, fun)
 
             _ ->
-              :error
-          end
-        end)
-
-      Task.await(task, :infinity)
-
-      # reset
-      case Map.get(opts, "reset") do
-        "all" ->
-          fun = fn ->
-            IO.puts("Restart")
-            System.restart()
+              :ok
           end
 
-          :persistent_term.put(:last_fun, fun)
+        :error ->
+          :error
 
         _ ->
-          :ok
+          IO.puts(:stderr, "Unexpected message received")
       end
     end
   end

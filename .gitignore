@@ -43,3 +43,4 @@ env_file
 *.db
 *.cub
 *.log
+*.out

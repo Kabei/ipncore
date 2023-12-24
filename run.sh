@@ -1,8 +1,8 @@
 #!/bin/bash
 
 killall beam.smp
-killall epmd
-epmd -daemon
+# killall epmd
+# epmd -daemon
 
 cpus=$(nproc)
 total_pids=2000000
@@ -14,8 +14,7 @@ fi
 
 if [ "$MODE" = "iex" ]; then
     iex --erl "+A $cpus +P $total_pids" -S mix
-elif [ -n "$LOG" ]; then
-    elixir --erl "+A $cpus +P $total_pids" -S mix run --no-halt > $LOG
 else
-    elixir --erl "+A $cpus +P $total_pids" -S mix run --no-halt
+    rm nohup.out
+    nohup elixir --erl "+A $cpus +P $total_pids" -S mix run --no-halt --no-compile > nohup.out 2>&1 &
 fi

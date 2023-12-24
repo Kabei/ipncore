@@ -138,7 +138,7 @@ defmodule RoundManager do
 
   @impl true
   def handle_info(:timeout, %{round_id: round_id, rcid: rcid} = state) do
-    IO.puts("Round ##{round_id} Timeout | #{rcid}")
+    Logger.warning("Round ##{round_id} Timeout | #{rcid}")
 
     spawn_build_foreign_round(state)
 

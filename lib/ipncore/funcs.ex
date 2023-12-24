@@ -10,7 +10,8 @@ defmodule Ippan.Funcs do
       modx: Funx.Wallet,
       fun: :new,
       deferred: true,
-      check: 1
+      check: 1,
+      key: 1
     }
   end
 
@@ -22,7 +23,8 @@ defmodule Ippan.Funcs do
       modx: Funx.Wallet,
       fun: :subscribe,
       deferred: true,
-      check: 3
+      check: 3,
+      key: 1
     }
   end
 
@@ -88,7 +90,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :env_put,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -99,7 +102,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :env_delete,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -141,7 +145,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :prop_add,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -152,7 +157,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :prop_drop,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -163,7 +169,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :env_put,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -174,7 +181,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :env_delete,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -215,7 +223,8 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :lock,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -226,7 +235,8 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :unlock,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -237,7 +247,8 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :burn,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 
@@ -258,7 +269,8 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :reload,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 

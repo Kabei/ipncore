@@ -6,7 +6,8 @@ defmodule Ippan.Func do
           modx: module(),
           fun: atom() | function(),
           deferred: boolean(),
-          check: integer()
+          check: integer(),
+          check: integer() | nil
         }
 
   @enforce_keys [:id, :mod, :modx, :fun]
@@ -16,6 +17,7 @@ defmodule Ippan.Func do
     :mod,
     :modx,
     :fun,
+    :key,
     deferred: false,
     check: 0
   ]

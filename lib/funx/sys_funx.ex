@@ -57,8 +57,8 @@ defmodule Ippan.Funx.Sys do
 
       receive do
         :ok ->
-          # reset
           case Map.get(opts, "reset") do
+            # reset all
             "all" ->
               fun = fn ->
                 IO.puts("Restart")
@@ -66,6 +66,16 @@ defmodule Ippan.Funx.Sys do
               end
 
               :persistent_term.put(:last_fun, fun)
+
+            # reset specific modules
+            files when is_list(files) ->
+              :code.all_loaded()
+              |> Enum.each(fn {mod, path} ->
+                if Path.basename(path, ~c".beam") in files do
+                  :code.soft_purge(mod)
+                  :code.load_file(mod)
+                end
+              end)
 
             _ ->
               :ok

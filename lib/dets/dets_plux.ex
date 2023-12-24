@@ -975,7 +975,7 @@ defmodule DetsPlux do
            file_entries: file_entries
          }
        ) do
-    IO.puts("spawn_sync_worker: #{inspect(ets)}")
+    # IO.puts("spawn_sync_worker: #{inspect(ets)}")
     # assumptions here
     # 1. ets data set is small enough to fit into memory
     # 2. fp entries are sorted by hash

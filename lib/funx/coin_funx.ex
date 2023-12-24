@@ -140,7 +140,8 @@ defmodule Ippan.Funx.Coin do
     BalanceStore.burn(to, token_id, amount)
   end
 
-  def reload(%{block: block_id, hash: hash, id: account_id, round: round_id}, token_id) do
+  # block: block_id, hash: hash
+  def reload(%{id: account_id, round: round_id}, token_id) do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
@@ -155,30 +156,28 @@ defmodule Ippan.Funx.Coin do
 
     case env do
       %{"reload.expiry" => expiry} ->
-        fun = fn ->
-          cond do
-            round_id - last_reload > expiry ->
-              dets = DetsPlux.get(:balance)
-              tx = DetsPlux.tx(dets, :balance)
-              {balance, map} = DetsPlux.get_cache(dets, tx, target, {0, %{}})
-              new_map = map |> Map.delete("initReload") |> Map.delete("lastReload")
-              DetsPlux.update_element(tx, target, 3, new_map)
-              BalanceStore.expired(target, token_id, balance)
+        # fun = fn ->
+        cond do
+          round_id - last_reload > expiry ->
+            dets = DetsPlux.get(:balance)
+            tx = DetsPlux.tx(dets, :balance)
+            {balance, map} = DetsPlux.get_cache(dets, tx, target, {0, %{}})
+            new_map = map |> Map.delete("initReload") |> Map.delete("lastReload")
+            DetsPlux.update_element(tx, target, 3, new_map)
+            BalanceStore.expired(target, token_id, balance)
 
-            true ->
-              new_map =
-                map
-                |> Map.put("initReload", init_reload)
-                |> Map.put("lastReload", round_id)
+          true ->
+            new_map =
+              map
+              |> Map.put("initReload", init_reload)
+              |> Map.put("lastReload", round_id)
 
-              DetsPlux.update_element(tx, target, 3, new_map)
-              BalanceStore.reload(target, token_id, value * mult)
-          end
+            DetsPlux.update_element(tx, target, 3, new_map)
+            BalanceStore.reload(target, token_id, value * mult)
         end
 
-        IO.inspect("ADD fun")
-        IO.inspect(fun)
-        :ets.insert(:dtx, {{block_id, hash}, fun})
+      # end
+      # :ets.insert(:dtx, {{block_id, hash}, fun})
 
       _ ->
         new_map =

@@ -15,6 +15,5 @@ fi
 if [ "$MODE" = "iex" ]; then
     iex --erl "+A $cpus +P $total_pids" -S mix
 else
-    rm nohup.out
     nohup elixir --erl "+A $cpus +P $total_pids" -S mix run --no-halt --no-compile > nohup.out 2>&1 &
 fi

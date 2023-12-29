@@ -65,9 +65,6 @@ defmodule RoundManager do
       :ets.insert(ets_players, Validator.list_to_tuple(v))
     end
 
-    # start round commit
-    # RoundCommit.start_link(nil)
-
     {:ok,
      %{
        block_id: current_block_id,
@@ -209,7 +206,7 @@ defmodule RoundManager do
         end
       end
 
-      # Replicate message to rest of nodes
+      # Replicate message to rest of nodes except creator and sender
       NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
         node_id,
         creator_id,
@@ -860,7 +857,7 @@ defmodule RoundManager do
       |> Enum.take_random(take)
       |> Enum.map(fn {_id, node} ->
         Task.async(fn ->
-          NetworkNodes.connect(node)
+          NetworkNodes.connect(node, retry: 2, reconnect: true)
         end)
       end)
       |> Task.await_many(:infinity)
@@ -890,7 +887,7 @@ defmodule RoundManager do
         nil ->
           IO.puts("sync_to_round_creator. no votes")
           # connect to round creator
-          case NetworkNodes.connect(node) do
+          case NetworkNodes.connect(node, retry: 3) do
             true ->
               candidate = BlockTimer.get_block()
 

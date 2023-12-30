@@ -5,7 +5,7 @@ docker build -t ipncore:0.5 .
 
 ### Run a container
 ```bash
-docker run -e ROLE=miner \
+docker run -e \
 -p 4848:4848 -p 5815:5815 -p 8080:8080 --volume data:/var/data \
 --restart=on-failure:5 -d --name miner ipncore:0.5
 ```
@@ -18,7 +18,7 @@ docker run -e ROLE=miner \
 * Data folder path: `-e DATA_DIR=<path>` (optional)
 * Print loggerfile: `-e LOG=<filepath>` (optional)
 
-### docker interactive mode
+### Docker interactive mode
 ```bash
 docker exec -it miner /bin/bash
 ```

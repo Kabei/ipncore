@@ -7,7 +7,7 @@ apt update -y
 apt install erlang elixir curl git cmake zip unzip -y
 curl https://sh.rustup.rs -sSf | sh -s -- -y
 
-git clone --branch v0.4 https://kabei@github.com/kabei/ipncore.git
+git clone --branch v0.5 https://kabei@github.com/kabei/ipncore.git
 
 cd ipncore
 
@@ -16,10 +16,6 @@ mix deps.get
 mix local.rebar --force
 mix compile
 
-mkdir -p priv
-cp ../kem.key priv/
-cp ../falcon.key priv/
-cp ../secret.key priv/
+cp ../env_file ./
 
 chmod +x run.sh
-chmod +x update.sh

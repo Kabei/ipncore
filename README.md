@@ -1,80 +1,63 @@
 ## IPNCORE
-#### Version 0.4
-#
-#### IPPAN blockchain transaction verification node.
+IPPAN blockchain transaction verification node.
 
 ## Requirements
-#
-* Processor: 4 CPUs
+* Processor: 8 CPUs
 * Memory: 4 GB RAM
-* Storage: 20 GB
+* Storage: 50 GB SSD NVME
 * Bandwitch: 1 Gbps
 * Public IPv4 / IPv6
 
 ## Dependencies
-#
 * Erlang 25
 * Elixir 1.14
 * cargo 1.70
 * cmake 3.26
 * git 2.41.0
 
-## Installation
-# 
+## Installation 
 ### Generate keys
-Each validator has 2 keys, one for signing blocks and another for signing connections. In addition, a third key (ntru-kem) is used for the handshake together with the falcon-512 key.
-
-It is necessary to create the key files of the validator certificate that has the seeds in base64 format.
-#### (!) The following sizes are binary and must be written in base64 text in the file
-* secret.key (32 bytes fixed)
-* falcon.key (+48 bytes)
-* kem.key (+48 bytes)
-
+Makes 2 random seeds of 32 bytes in base64
+```
+openssl rand -base64 32
+```
+#### Generate env_file
 ```bash
-curl https://github.com/kabei/releases/download/0.4/ipncore-install.sh \
+echo "
+NAME=miner
+VID=<number>
+SECRET_KEY=<base64-seed-32-bytes>
+CLUSTER_KEY=<base64-seed-32-bytes>
+DATA_DIR=/usr/src/data
+NODES=worker1@192.168.0.2" > env_file
+```
+
+#### Download and execute script
+```bash
+curl https://github.com/kabei/releases/download/0.5/ipncore-install.sh \
 && chmod +x ipncore-install.sh \
 && ./ipncore-install.sh
 ```
-##### (!) Only tested on Debian 11
-#### The installer will move the key files to the project's private folder.
-#
+
 ## Run
-#
-There are two roles: the verifier performs preliminary verification and the miner writes transactions to the blockchain.
 
-### Verifier role
 ```bash
-echo "NODE=v1@127.0.0.1
-COOKIE=supersecret
-VID=0
-ROLE=miner
-DATA_DIR=/usr/src/data
-MINER=miner@127.0.0.1" > env_file
-
 ./run.sh
 ```
-### Miner role
-```bash
-echo "NODE=miner@127.0.0.1
-COOKIE=supersecret
-VID=0
-ROLE=miner
-DATA_DIR=/usr/src/data" > env_file
+## Docker
+See docker/README.md
 
-./run.sh
-```
-
-#
-## Default settings
-
-| | |
+## Settings
+|||
 |-|-|
+|Blockchain|IPPAN|
 |Block Time|5 seconds|
 |Native Token|IPN|
 |Block file Max size|10 MB|
-|Request Max size|8192 bytes|
+|Transaction Max size|8192 bytes|
+|Tx note Max size|255 bytes|
+|Refund transaction timeout|72 hours|
 |Max tranfer amount|Thousand billion units|
 |P2P port|5815|
+|Cluster port|4848|
 |HTTP port|8080|
-|Refund transaction timeout|72 hours|
-<!-- |Tx note Max size|255 bytes| -->

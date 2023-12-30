@@ -28,7 +28,6 @@ defmodule Ipncore.MixProject do
     [
       overwrite: true,
       quiet: true,
-      # steps: [:assemble, &Bakeware.assemble/1],
       strip_beams: Mix.env() == :prod
     ]
   end

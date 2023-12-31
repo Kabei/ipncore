@@ -1,4 +1,5 @@
 defmodule Ippan.Network do
+  require Logger
   @callback on_connect(node_id :: term(), map :: map()) :: any()
   @callback on_disconnect(state :: term()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
@@ -166,14 +167,17 @@ defmodule Ippan.Network do
             } =
               map
           ) do
-        unless alive?(node_id) do
-          :ets.insert(@table, {node_id, map})
-        end
+        Logger.debug("On connect #{node_id}")
+        # unless alive?(node_id) do
+        :ets.insert(@table, {node_id, map})
+        # end
       end
 
       @impl Network
       def on_disconnect(%{id: node_id, socket: socket, opts: opts} = state) do
-        with [{_, node}] <- :ets.lookup(@table, node_id) do
+        Logger.debug("On disconnect #{node_id}")
+
+        with [{_, node} | _] <- :ets.lookup(@table, node_id) do
           if socket != node.socket do
             :inet.close(socket)
           end
@@ -187,6 +191,7 @@ defmodule Ippan.Network do
       end
 
       def on_disconnect(%{id: node_id}) do
+        Logger.debug("On disconnect #{node_id}")
         :ets.delete(@table, node_id)
       end
 
@@ -274,7 +279,7 @@ defmodule Ippan.Network do
       @impl Network
       def info(node_id) do
         case :ets.lookup(@table, node_id) do
-          [{_, data}] -> data
+          [{_, data} | _] -> data
           _ -> nil
         end
       end

@@ -29,7 +29,7 @@ VID=<number>
 SECRET_KEY=<base64-seed-32-bytes>
 CLUSTER_KEY=<base64-seed-32-bytes>
 DATA_DIR=/usr/src/data
-NODES=worker1@192.168.0.2" > env_file
+NODES=<name@hostname>" > env_file
 ```
 
 #### Download and execute script

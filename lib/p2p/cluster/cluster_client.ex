@@ -21,8 +21,18 @@ defmodule Ippan.ClusterClient do
   end
 
   @impl true
-  def init(args) do
-    {:ok, args, {:continue, :connect}}
+  def init(args = %{opts: opts}) do
+    if Keyword.get(opts, :async, false) do
+      {:ok, args, {:continue, :init}}
+    else
+      case connect(args) do
+        {:noreply, state, _} ->
+          {:ok, state, :hibernate}
+
+        stop ->
+          stop
+      end
+    end
   end
 
   @impl true
@@ -125,7 +135,7 @@ defmodule Ippan.ClusterClient do
   def handle_info({:tcp_closed, socket}, %{id: id} = state) do
     Logger.debug("tcp_closed | #{id}")
     @adapter.close(socket)
-    @node.on_disconnect(state)
+    @node.on_disconnect(state, 1)
     {:stop, :normal, state}
   end
 

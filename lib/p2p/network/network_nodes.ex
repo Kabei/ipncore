@@ -14,7 +14,7 @@ defmodule Ippan.NetworkNodes do
     pubsub: :pubsub,
     topic: "network",
     opts: Application.compile_env(@app, :p2p_client),
-    conn_opts: [retry: 2, reconnect: false],
+    conn_opts: [retry: 3, reconnect: false],
     sup: Ippan.NetworkSup
 
   @impl Network

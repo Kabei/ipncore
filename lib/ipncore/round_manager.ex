@@ -863,7 +863,7 @@ defmodule RoundManager do
       |> Enum.take_random(take)
       |> Enum.map(fn {_id, node} ->
         Task.async(fn ->
-          NetworkNodes.connect(node, retry: 2, reconnect: true)
+          NetworkNodes.connect(node)
         end)
       end)
       |> Task.await_many(:infinity)
@@ -905,13 +905,13 @@ defmodule RoundManager do
                 {:ok, response} when is_map(response) ->
                   send(RoundManager, {"msg_round", Round.from_remote(response), node_id})
 
-                  # Disconnect if count is mayor than to max_peers_conn
+                  # Disconnect if count is greater than max_peers_conn
                   if NetworkNodes.count() > @max_peers_conn do
                     NetworkNodes.disconnect(node_id)
                   end
 
                 _ ->
-                  :ok
+                  Logger.warning("get_round message is not a map")
               end
 
             false ->

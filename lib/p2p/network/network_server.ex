@@ -30,6 +30,12 @@ defmodule Ippan.NetworkServer do
     {:continue, state}
   end
 
+  def handle_data("CLOSE", _socket, state) do
+    Logger.debug("close message")
+    NetworkNodes.on_disconnect(state, 0)
+    {:close, state}
+  end
+
   # event data | id method data
   def handle_data(packet, _socket, state) do
     NetworkNodes.on_message(packet, state)
@@ -41,21 +47,21 @@ defmodule Ippan.NetworkServer do
   def handle_close(_socket, state) do
     Logger.debug("handle close socket")
 
-    NetworkNodes.on_disconnect(state)
+    NetworkNodes.on_disconnect(state, 1)
     {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_shutdown(_socket, state) do
     Logger.debug("handle shutdown")
-    NetworkNodes.on_disconnect(state)
+    NetworkNodes.on_disconnect(state, 1)
     {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_timeout(_socket, state) do
     Logger.debug("handle timeout")
-    NetworkNodes.on_disconnect(state)
+    NetworkNodes.on_disconnect(state, 0)
     {:close, state}
   end
 end

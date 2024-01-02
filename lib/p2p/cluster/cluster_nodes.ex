@@ -31,6 +31,12 @@ defmodule Ippan.ClusterNodes do
   end
 
   @impl Network
+  def exists?(id) do
+    db_ref = :persistent_term.get(:local_conn)
+    Node.exists?(id)
+  end
+
+  @impl Network
   def handle_request(
         "new_msg",
         [false, [hash, type, from, nonce, args, msg_sig, size], return],

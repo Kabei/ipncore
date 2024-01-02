@@ -24,6 +24,12 @@ defmodule Ippan.NetworkNodes do
   end
 
   @impl Network
+  def exists?(id) do
+    db_ref = :persistent_term.get(:main_conn)
+    Validator.exists?(id)
+  end
+
+  @impl Network
   # def handle_request("get_rounds", data, _state) do
   #   db_ref = :persistent_term.get(:main_conn)
   #   round_id = Map.get(data, "starts", 0)
@@ -47,11 +53,11 @@ defmodule Ippan.NetworkNodes do
 
   @impl Network
   def handle_message("msg_round", data, %{id: from}) when is_map(data) do
-    send(RoundManager, {"msg_round", Round.from_remote(data), from})
+    GenServer.cast(RoundManager, {"msg_round", Round.from_remote(data), from})
   end
 
   def handle_message("msg_block", data, %{id: from}) when is_map(data) do
-    send(RoundManager, {"msg_block", data, from})
+    GenServer.cast(RoundManager, {"msg_block", data, from})
   end
 
   def handle_message(_event, _from, _data), do: :ok

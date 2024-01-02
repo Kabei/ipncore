@@ -8,6 +8,7 @@ defmodule Ippan.Network do
               {:ok, pid()} | true | {:error, term()}
   @callback disconnect(node_id_or_state :: binary() | term()) :: :ok
   @callback fetch(id :: term()) :: map() | nil
+  @callback exists?(id :: term()) :: map() | nil
   @callback info(node_id :: term()) :: map() | nil
   @callback list() :: [term()]
   @callback alive?(node :: term()) :: boolean()
@@ -199,7 +200,7 @@ defmodule Ippan.Network do
 
           :ets.delete(@table, node_id)
 
-          if action == 1 or Keyword.get(opts, :reconnect, false) do
+          if (action == 1 or Keyword.get(opts, :reconnect, false)) and exists?(node_id) do
             connect_async(state, opts)
           end
         end

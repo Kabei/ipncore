@@ -1,4 +1,5 @@
 defmodule Ippan.Node do
+  require Sqlite
   @behaviour Ippan.Struct
 
   @type t :: %__MODULE__{
@@ -119,6 +120,12 @@ defmodule Ippan.Node do
   defmacro fetch(id) do
     quote location: :keep do
       Sqlite.fetch("get_node", [unquote(id)])
+    end
+  end
+
+  defmacro exists?(id) do
+    quote location: :keep do
+      Sqlite.exists?("exists_node", [unquote(id)])
     end
   end
 

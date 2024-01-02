@@ -137,12 +137,62 @@ defmodule RoundManager do
   def handle_info(:timeout, %{round_id: round_id, rcid: rcid} = state) do
     Logger.warning("Round ##{round_id} Timeout | #{rcid}")
 
-    spawn_build_foreign_round(state)
+    # spawn_build_foreign_round(state)
+    sync_to_round_creator(state)
 
     {:noreply, state, :hibernate}
   end
 
   def handle_info(
+        {"msg_block", block = %{"creator" => creator_id, "height" => height}, _node_id},
+        state = %{db_ref: db_ref, candidates: ets_candidates, players: ets_players}
+      ) do
+    with :ok <- block_pre_verificacion(block, db_ref, ets_players) do
+      block =
+        block
+        |> Map.take(Block.fields())
+        |> MapUtil.to_atoms()
+
+      :ets.insert(ets_candidates, {{creator_id, height}, block})
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(
+        %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}},
+        %{db_ref: db_ref, players: ets_players} = state
+      ) do
+    if active do
+      # add player
+      :ets.insert(ets_players, Validator.get(id))
+    else
+      # remove player
+      :ets.delete(ets_players, id)
+    end
+
+    total_players = get_total_players(ets_players)
+
+    {:noreply, %{state | total: total_players}}
+  end
+
+  def handle_info(
+        %{"event" => "validator.leave", "data" => validator_id},
+        %{players: ets_players} = state
+      ) do
+    # delete player
+    :ets.delete(ets_players, validator_id)
+    NetworkNodes.disconnect(validator_id)
+    total_players = get_total_players(ets_players)
+    {:noreply, %{state | total: total_players}}
+  end
+
+  def handle_info(msg, state) do
+    Logger.warning("RoundManager - handle_info: " <> inspect(msg))
+    {:noreply, state}
+  end
+
+  def handle_cast(
         {
           "msg_round",
           msg_round = %{
@@ -212,58 +262,9 @@ defmodule RoundManager do
         creator_id,
         vid
       ])
+
+      {:noreply, state}
     end
-
-    {:noreply, state}
-  end
-
-  def handle_info(
-        {"msg_block", block = %{"creator" => creator_id, "height" => height}, _node_id},
-        state = %{db_ref: db_ref, candidates: ets_candidates, players: ets_players}
-      ) do
-    with :ok <- block_pre_verificacion(block, db_ref, ets_players) do
-      block =
-        block
-        |> Map.take(Block.fields())
-        |> MapUtil.to_atoms()
-
-      :ets.insert(ets_candidates, {{creator_id, height}, block})
-    end
-
-    {:noreply, state}
-  end
-
-  def handle_info(
-        %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}},
-        %{db_ref: db_ref, players: ets_players} = state
-      ) do
-    if active do
-      # add player
-      :ets.insert(ets_players, Validator.get(id))
-    else
-      # remove player
-      :ets.delete(ets_players, id)
-    end
-
-    total_players = get_total_players(ets_players)
-
-    {:noreply, %{state | total: total_players}}
-  end
-
-  def handle_info(
-        %{"event" => "validator.leave", "data" => validator_id},
-        %{players: ets_players} = state
-      ) do
-    # delete player
-    :ets.delete(ets_players, validator_id)
-    NetworkNodes.disconnect(validator_id)
-    total_players = get_total_players(ets_players)
-    {:noreply, %{state | total: total_players}}
-  end
-
-  def handle_info(msg, state) do
-    Logger.warning("RoundManager - handle_info: " <> inspect(msg))
-    {:noreply, state}
   end
 
   @impl true
@@ -385,6 +386,10 @@ defmodule RoundManager do
       {:noreply, %{state | status: status}, :hibernate}
     end
   end
+
+  # def handle_cast({:on_connect, node}, state = %{rcid: rcid}) do
+
+  # end
 
   @impl true
   def terminate(_reason, %{
@@ -827,7 +832,7 @@ defmodule RoundManager do
     new_state = %{state | position: position, rcid: rcid, rc_node: rc_node, turn: turn}
 
     connect_to_peers(ets_players, vid, total_players)
-    sync_to_round_creator(new_state)
+    # sync_to_round_creator(new_state)
 
     new_state
   end
@@ -903,23 +908,30 @@ defmodule RoundManager do
 
               case NetworkNodes.call(node_id, "get_round", round_id) do
                 {:ok, response} when is_map(response) ->
-                  send(RoundManager, {"msg_round", Round.from_remote(response), node_id})
+                  result =
+                    GenServer.cast(
+                      RoundManager,
+                      {"msg_round", node_id, Round.from_remote(response)}
+                    )
 
                   # Disconnect if count is greater than max_peers_conn
                   if NetworkNodes.count() > @max_peers_conn do
                     NetworkNodes.disconnect(node_id)
                   end
 
-                {:ok, nil} ->
-                  :ok
+                  result
 
-                x ->
-                  IO.inspect(x)
+                {:ok, nil} ->
+                  nil
+
+                _ ->
                   Logger.warning("get_round message is not a map")
+                  :error
               end
 
             false ->
               Logger.warning("It was not possible to connect to the round creator")
+              :error
           end
 
         message ->

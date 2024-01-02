@@ -462,7 +462,7 @@ defmodule RoundManager do
            vid: vid,
            tRef: tRef
          },
-         message \\ nil
+         message
        ) do
     :timer.cancel(tRef)
     pid = self()

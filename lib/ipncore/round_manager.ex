@@ -192,81 +192,6 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast(
-        {
-          "msg_round",
-          msg_round = %{
-            id: id,
-            blocks: blocks,
-            creator: creator_id,
-            hash: hash,
-            signature: signature,
-            timestamp: timestamp,
-            prev: prev
-          },
-          node_id
-        },
-        %{
-          db_ref: db_ref,
-          players: ets_players,
-          votes: ets_votes,
-          rcid: rcid,
-          round_id: round_id,
-          status: status,
-          vid: vid
-        } =
-          state
-      )
-      when vid != node_id and
-             vid != creator_id do
-    Logger.debug(inspect(msg_round))
-    limit = EnvStore.block_limit()
-
-    with true <- creator_id == rcid,
-         true <- limit >= length(blocks),
-         [{_, player}] <- :ets.lookup(ets_players, creator_id),
-         false <-
-           Enum.any?(blocks, fn block ->
-             block_pre_verificacion(block, db_ref, ets_players) == :error
-           end),
-         hashes <- Enum.map(blocks, & &1.hash),
-         true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
-         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
-      count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
-
-      IO.puts("#{id} = #{round_id}")
-
-      if id == round_id do
-        n = NetworkNodes.count()
-        IO.puts("n = #{n} | count = #{count}")
-
-        cond do
-          count == div(n, 2) + 1 ->
-            IO.puts("Vote ##{id}")
-
-            if status != :synced do
-              GenServer.cast(RoundSync, {:add, msg_round})
-            else
-              spawn_build_foreign_round(state, msg_round)
-            end
-
-          true ->
-            nil
-        end
-      end
-
-      # Replicate message to rest of nodes except creator and sender
-      NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
-        node_id,
-        creator_id,
-        vid
-      ])
-
-      {:noreply, state}
-    end
-  end
-
   @impl true
   # Process round
   def handle_cast(
@@ -361,6 +286,81 @@ defmodule RoundManager do
       {:noreply, %{state | round_id: round_id + 1, total: total_players}, {:continue, :next}}
     else
       {:noreply, %{state | total: total_players}, :hibernate}
+    end
+  end
+
+  def handle_cast(
+        {
+          "msg_round",
+          msg_round = %{
+            id: id,
+            blocks: blocks,
+            creator: creator_id,
+            hash: hash,
+            signature: signature,
+            timestamp: timestamp,
+            prev: prev
+          },
+          node_id
+        },
+        %{
+          db_ref: db_ref,
+          players: ets_players,
+          votes: ets_votes,
+          rcid: rcid,
+          round_id: round_id,
+          status: status,
+          vid: vid
+        } =
+          state
+      )
+      when vid != node_id and
+             vid != creator_id do
+    Logger.debug(inspect(msg_round))
+    limit = EnvStore.block_limit()
+
+    with true <- creator_id == rcid,
+         true <- limit >= length(blocks),
+         [{_, player}] <- :ets.lookup(ets_players, creator_id),
+         false <-
+           Enum.any?(blocks, fn block ->
+             block_pre_verificacion(block, db_ref, ets_players) == :error
+           end),
+         hashes <- Enum.map(blocks, & &1.hash),
+         true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
+         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
+         true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
+      count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
+
+      IO.puts("#{id} = #{round_id}")
+
+      if id == round_id do
+        n = NetworkNodes.count()
+        IO.puts("n = #{n} | count = #{count}")
+
+        cond do
+          count == div(n, 2) + 1 ->
+            IO.puts("Vote ##{id}")
+
+            if status != :synced do
+              GenServer.cast(RoundSync, {:add, msg_round})
+            else
+              spawn_build_foreign_round(state, msg_round)
+            end
+
+          true ->
+            nil
+        end
+      end
+
+      # Replicate message to rest of nodes except creator and sender
+      NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
+        node_id,
+        creator_id,
+        vid
+      ])
+
+      {:noreply, state}
     end
   end
 
@@ -911,7 +911,7 @@ defmodule RoundManager do
                   result =
                     GenServer.cast(
                       RoundManager,
-                      {"msg_round", node_id, Round.from_remote(response)}
+                      {"msg_round", Round.from_remote(response), node_id}
                     )
 
                   # Disconnect if count is greater than max_peers_conn

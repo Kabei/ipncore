@@ -915,6 +915,7 @@ defmodule RoundManager do
 
                 x ->
                   IO.inspect(x)
+                  IO.inspect(node)
                   Logger.warning("get_round message is not a map")
               end
 

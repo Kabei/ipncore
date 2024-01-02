@@ -189,8 +189,12 @@ defmodule Ippan.Network do
           Logger.debug("On disconnect #{node_id} unexpected disconnection")
 
           :ets.lookup(@table, node_id)
-          |> Enum.each(fn {_node_id, %{socket: isocket}} when socket != isocket ->
-            :inet.close(socket)
+          |> Enum.each(fn
+            {_node_id, %{socket: isocket}} when socket != isocket ->
+              :inet.close(isocket)
+
+            _ ->
+              :ok
           end)
 
           :ets.delete(@table, node_id)

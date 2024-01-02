@@ -17,6 +17,10 @@ defmodule Ippan.NetworkNodes do
     conn_opts: [retry: 3, reconnect: false],
     sup: Ippan.NetworkSup
 
+  def on_connect(node_id, _state) do
+    GenServer.cast(RoundManager, {:on_connect, node_id})
+  end
+
   @impl Network
   def fetch(id) do
     db_ref = :persistent_term.get(:main_conn)

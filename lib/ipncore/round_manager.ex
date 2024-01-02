@@ -387,9 +387,13 @@ defmodule RoundManager do
     end
   end
 
-  # def handle_cast({:on_connect, node}, state = %{rcid: rcid}) do
+  def handle_cast({:on_connect, node_id}, state = %{rcid: rcid}) do
+    if node_id == rcid do
+      sync_to_round_creator(state)
+    end
 
-  # end
+    {:noreply, state}
+  end
 
   @impl true
   def terminate(_reason, %{

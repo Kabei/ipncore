@@ -910,6 +910,9 @@ defmodule RoundManager do
                     NetworkNodes.disconnect(node_id)
                   end
 
+                nil ->
+                  :ok
+
                 _ ->
                   Logger.warning("get_round message is not a map")
               end

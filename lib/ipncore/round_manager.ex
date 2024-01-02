@@ -910,7 +910,7 @@ defmodule RoundManager do
                     NetworkNodes.disconnect(node_id)
                   end
 
-                nil ->
+                {:ok, nil} ->
                   :ok
 
                 _ ->

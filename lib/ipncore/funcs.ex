@@ -107,6 +107,17 @@ defmodule Ippan.Funcs do
     }
   end
 
+  def lookup(105) do
+    %Func{
+      id: 105,
+      name: "validator.active",
+      mod: Func.Validator,
+      modx: Funx.Validator,
+      fun: :active,
+      deferred: true
+    }
+  end
+
   def lookup(200) do
     %Func{
       id: 200,

@@ -116,6 +116,14 @@ defmodule Ippan.Funx.Validator do
     end
   end
 
+  def active(_source, id, active) do
+    db_ref = :persistent_term.get(:main_conn)
+    Validator.put_active(id, active)
+
+    event = %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}}
+    PubSub.broadcast(@pubsub, @topic, event)
+  end
+
   def leave(_source, id) do
     db_ref = :persistent_term.get(:main_conn)
     Validator.delete(id)

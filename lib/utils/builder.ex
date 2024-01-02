@@ -271,6 +271,18 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
+  def validator_active(client = %Client{id: account_id, nonce: nonce}, id, active) do
+    body =
+      [105, nonce, account_id, id, active]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
   # Builder.token_new(client, "IPN", client2.id, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]})
   # Builder.token_new(client, "USD", client2.id, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]}) |> Builder.print
   def token_new(

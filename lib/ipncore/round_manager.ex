@@ -234,11 +234,17 @@ defmodule RoundManager do
   end
 
   def handle_info(
-        %{"event" => "validator.new", "data" => validator},
-        %{players: ets_players} = state
+        %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}},
+        %{db_ref: db_ref, players: ets_players} = state
       ) do
-    # add player
-    :ets.insert(ets_players, Validator.to_tuple(validator))
+    if active do
+      # add player
+      :ets.insert(ets_players, Validator.get(id))
+    else
+      # remove player
+      :ets.delete(ets_players, id)
+    end
+
     total_players = get_total_players(ets_players)
 
     {:noreply, %{state | total: total_players}}

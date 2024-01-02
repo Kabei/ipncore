@@ -883,7 +883,7 @@ defmodule RoundManager do
   defp sync_to_round_creator(
          %{
            rcid: node_id,
-           rc_node: node,
+           rc_node: validator_node,
            vid: vid,
            round_id: round_id
          } = state
@@ -893,15 +893,15 @@ defmodule RoundManager do
         nil ->
           IO.puts("sync_to_round_creator. no votes")
           # connect to round creator
-          case NetworkNodes.connect(node, retry: 3) do
+          case NetworkNodes.connect(validator_node, retry: 3) do
             true ->
               candidate = BlockTimer.get_block()
 
               if candidate do
-                NetworkNodes.cast(node, "msg_block", candidate)
+                NetworkNodes.cast(node_id, "msg_block", candidate)
               end
 
-              case NetworkNodes.call(node, "get_round", round_id) do
+              case NetworkNodes.call(node_id, "get_round", round_id) do
                 {:ok, response} when is_map(response) ->
                   send(RoundManager, {"msg_round", Round.from_remote(response), node_id})
 
@@ -915,7 +915,6 @@ defmodule RoundManager do
 
                 x ->
                   IO.inspect(x)
-                  IO.inspect(node)
                   Logger.warning("get_round message is not a map")
               end
 

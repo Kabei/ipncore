@@ -387,10 +387,10 @@ defmodule RoundManager do
     end
   end
 
-  def handle_cast({:on_connect, node_id}, state = %{rcid: rcid}) do
-    if node_id == rcid do
-      sync_to_round_creator(state)
-    end
+  def handle_cast({:on_connect, _node_id}, state = %{rcid: _rcid}) do
+    # if node_id == rcid do
+    #   sync_to_round_creator(state)
+    # end
 
     {:noreply, state}
   end

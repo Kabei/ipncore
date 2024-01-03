@@ -1,5 +1,4 @@
 defmodule Ippan.Network do
-  require Logger
   @callback on_connect(node_id :: term(), map :: map()) :: any()
   @callback on_disconnect(state :: term(), action :: integer()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
@@ -170,9 +169,16 @@ defmodule Ippan.Network do
             } =
               map
           ) do
-        Logger.debug("On connect #{node_id}")
+        client_conn = Map.has_key?(map, :opts)
+        Logger.debug("On connect #{node_id} opts: #{client_conn}")
 
-        :ets.insert(@table, {node_id, map})
+        if client_conn do
+          :ets.insert(@table, {node_id, map})
+        else
+          if alive?(node_id) do
+            :ets.insert(@table, {node_id, map})
+          end
+        end
       end
 
       @impl Network
@@ -435,25 +441,29 @@ defmodule Ippan.Network do
 
       @impl Network
       def broadcast(message) do
-        for {_, %{sharedkey: sharedkey, socket: socket}} <- list() do
+        list()
+        |> Enum.uniq_by(fn {node_id, _} -> node_id end)
+        |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
           @adapter.send(socket, encode(message, sharedkey))
-        end
-
-        :ok
+        end)
       end
 
       @impl Network
       def broadcast(message, role) do
         data = :ets.select(@table, [{{:_, %{role: :"$1"}}, [{:==, :"$1", role}], [:"$_"]}])
 
-        Enum.each(data, fn {_, %{sharedkey: sharedkey, socket: socket}} ->
+        data
+        |> Enum.uniq_by(fn {node_id, _} -> node_id end)
+        |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
           @adapter.send(socket, encode(message, sharedkey))
         end)
       end
 
       @impl Network
       def broadcast_except(message, ids) do
-        Enum.each(list(), fn {id, %{sharedkey: sharedkey, socket: socket}} ->
+        list()
+        |> Enum.uniq_by(fn {node_id, _} -> node_id end)
+        |> Enum.each(fn {id, %{sharedkey: sharedkey, socket: socket}} ->
           if id not in ids do
             @adapter.send(socket, encode(message, sharedkey))
           end

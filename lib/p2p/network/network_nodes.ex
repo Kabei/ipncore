@@ -14,7 +14,7 @@ defmodule Ippan.NetworkNodes do
     pubsub: :pubsub,
     topic: "network",
     opts: Application.compile_env(@app, :p2p_client),
-    conn_opts: [retry: 3, reconnect: false],
+    conn_opts: [retry: 3, reconnect: true],
     sup: Ippan.NetworkSup
 
   # def on_connect(node_id, map) do

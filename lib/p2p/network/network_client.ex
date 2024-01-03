@@ -147,9 +147,9 @@ defmodule Ippan.NetworkClient do
   end
 
   @impl true
-  def terminate(_reason, %{tRef: tRef} = state) do
+  def terminate(_reason, %{tRef: tRef} = _state) do
     :timer.cancel(tRef)
-    @node.on_disconnect(state, 0)
+    # @node.on_disconnect(state, 0)
   end
 
   def terminate(_reason, _state), do: :ok

@@ -36,7 +36,10 @@ defmodule RoundSync do
       |> Enum.map(fn {_node_id, node} ->
         Task.async(fn ->
           case NetworkNodes.connect(node) do
-            true ->
+            false ->
+              :error
+
+            _socket ->
               case NetworkNodes.call(node, "last_round") do
                 {:ok, %{"id" => rid} = res} when rid > current_round_id ->
                   {:ok, Map.put(res, "node", node.id)}
@@ -44,9 +47,6 @@ defmodule RoundSync do
                 _e ->
                   :none
               end
-
-            false ->
-              :error
           end
         end)
       end)

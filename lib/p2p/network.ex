@@ -3,10 +3,12 @@ defmodule Ippan.Network do
   @callback on_connect(node_id :: term(), map :: map()) :: any()
   @callback on_disconnect(state :: term(), action :: integer()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
-  @callback connect(node :: term(), opts :: keyword()) :: boolean()
+  @callback connect(node :: term(), opts :: keyword()) :: port() | false
   @callback connect_async(node :: term(), opts :: keyword()) ::
               {:ok, pid()} | true | {:error, term()}
-  @callback disconnect(node_id_or_state :: binary() | term()) :: :ok
+  @callback disconnect(node_id_or_state :: term()) :: :ok
+  @callback disconnect(node_id :: binary(), socket :: port()) :: :ok
+  @callback disconnect_all(node_id_or_state :: binary() | term()) :: :ok
   @callback fetch(id :: term()) :: map() | nil
   @callback exists?(id :: term()) :: map() | nil
   @callback info(node_id :: term()) :: map() | nil
@@ -80,7 +82,7 @@ defmodule Ippan.Network do
           case :ets.whereis(@table) do
             :undefined ->
               :ets.new(@table, [
-                :set,
+                :duplicate_bag,
                 :named_table,
                 :public,
                 read_concurrency: false,
@@ -170,39 +172,31 @@ defmodule Ippan.Network do
           ) do
         Logger.debug("On connect #{node_id}")
 
-        found = not alive?(node_id)
-
-        if found do
-          :ets.insert(@table, {node_id, map})
-        end
-
-        found
+        :ets.insert(@table, {node_id, map})
       end
 
       @impl Network
       def on_disconnect(%{id: node_id, socket: socket, opts: opts} = state, action) do
         Logger.debug("On disconnect #{node_id}")
 
-        found = :ets.member(@table, node_id)
+        match = [
+          {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
+           [true]}
+        ]
 
-        # unexpected disconnection
-        if found do
-          Logger.debug("On disconnect #{node_id} unexpected disconnection")
+        case :ets.select(@table, match) do
+          [] ->
+            false
 
-          :ets.lookup(@table, node_id)
-          |> Enum.each(fn
-            {_node_id, %{socket: isocket}} when socket != isocket ->
-              :inet.close(isocket)
+          [found | _] ->
+            # unexpected disconnection
+            Logger.debug("On disconnect #{node_id} unexpected disconnection")
 
-            _ ->
-              :ok
-          end)
+            :ets.select_delete(@table, match)
 
-          :ets.delete(@table, node_id)
-
-          if (action == 1 or Keyword.get(opts, :reconnect, false)) and exists?(node_id) do
-            connect_async(state, opts)
-          end
+            if (action == 1 or Keyword.get(opts, :reconnect, false)) and exists?(node_id) do
+              connect_async(state, opts)
+            end
         end
       end
 
@@ -254,15 +248,17 @@ defmodule Ippan.Network do
             %{id: node_id, hostname: hostname, port: port, net_pubkey: net_pubkey} = node,
             opts \\ @default_connect_opts
           ) do
-        unless alive?(node_id) do
-          @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
+        case info(node_id) do
+          %{socket: socket} ->
+            socket
 
-          receive do
-            :ok -> true
-            _ -> false
-          end
-        else
-          true
+          _ ->
+            @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
+
+            receive do
+              {:ok, socket} -> socket
+              _ -> false
+            end
         end
       end
 
@@ -275,21 +271,41 @@ defmodule Ippan.Network do
         end
       end
 
+      # :ets.fun2ms(fn {id, %{socket: socket}} when id == 1 and socket == 2 -> true end)
       @impl Network
-      def disconnect(%{id: node_id, socket: socket} = state) do
-        :ets.delete(@table, node_id)
+      def disconnect(%{id: node_id, socket: socket}) do
+        match = [
+          {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
+           [true]}
+        ]
+
+        :ets.select_delete(@table, match)
         @adapter.close(socket)
       end
 
-      def disconnect(node_id) do
-        case info(node_id) do
-          %{socket: socket} ->
-            :ets.delete(@table, node_id)
-            @adapter.close(socket)
+      @impl Network
+      def disconnect(node_id, socket) do
+        match = [
+          {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
+           [true]}
+        ]
 
-          _ ->
-            :ok
-        end
+        :ets.select_delete(@table, match)
+        @adapter.close(socket)
+      end
+
+      @impl Network
+      def disconnect_all(%{id: node_id}) do
+        disconnect_all(node_id)
+      end
+
+      def disconnect_all(node_id) do
+        data = :ets.lookup(@table, node_id)
+        :ets.delete(@table, node_id)
+
+        Enum.each(data, fn {_, %{socket: socket}} ->
+          @adapter.close(socket)
+        end)
       end
 
       @impl Network

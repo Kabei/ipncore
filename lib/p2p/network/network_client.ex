@@ -71,7 +71,7 @@ defmodule Ippan.NetworkClient do
           {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
 
           # callback
-          callback(pid, :ok)
+          callback(pid, {:ok, socket})
 
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 

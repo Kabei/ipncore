@@ -903,7 +903,11 @@ defmodule RoundManager do
           IO.puts("sync_to_round_creator. no votes")
           # connect to round creator
           case NetworkNodes.connect(validator_node, retry: 3) do
-            true ->
+            false ->
+              Logger.warning("It was not possible to connect to the round creator")
+              :error
+
+            socket ->
               candidate = BlockTimer.get_block()
 
               if candidate do
@@ -912,18 +916,17 @@ defmodule RoundManager do
 
               case NetworkNodes.call(node_id, "get_round", round_id) do
                 {:ok, response} when is_map(response) ->
-                  result =
-                    GenServer.cast(
-                      RoundManager,
-                      {"msg_round", Round.from_remote(response), node_id}
-                    )
+                  GenServer.cast(
+                    RoundManager,
+                    {"msg_round", Round.from_remote(response), node_id}
+                  )
 
                   # Disconnect if count is greater than max_peers_conn
                   if NetworkNodes.count() > @max_peers_conn do
-                    NetworkNodes.disconnect(node_id)
+                    NetworkNodes.disconnect(node_id, socket)
                   end
 
-                  result
+                  :ok
 
                 {:ok, nil} ->
                   nil
@@ -932,10 +935,6 @@ defmodule RoundManager do
                   Logger.warning("get_round message is not a map")
                   :error
               end
-
-            false ->
-              Logger.warning("It was not possible to connect to the round creator")
-              :error
           end
 
         message ->

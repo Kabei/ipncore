@@ -177,8 +177,6 @@ defmodule Ippan.Network do
 
       @impl Network
       def on_disconnect(%{id: node_id, socket: socket, opts: opts} = state, action) do
-        Logger.debug("On disconnect #{node_id}")
-
         match = [
           {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
            [true]}
@@ -186,6 +184,7 @@ defmodule Ippan.Network do
 
         case :ets.select(@table, match) do
           [] ->
+            Logger.debug("On disconnect #{node_id}")
             false
 
           [found | _] ->

@@ -31,6 +31,7 @@ ipncore-*.tar
 mix.lock
 
 env_file
+./*.sh
 
 *.app
 *.keys

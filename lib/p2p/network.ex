@@ -208,10 +208,10 @@ defmodule Ippan.Network do
             Logger.debug("On disconnect #{node_id} unexpected disconnection")
 
             :ets.delete(@table, node_id)
-            opts = Keyword.has_key?(node, :opts)
+            opts = Map.get(node, :opts)
 
             if (action == 1 or
-                  (opts and Keyword.get(opts, :reconnect, false))) and
+                  (is_list(opts) and opts and Keyword.get(opts, :reconnect, false))) and
                  exists?(node_id) do
               connect_async(node, opts)
             end

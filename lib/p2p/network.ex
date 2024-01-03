@@ -222,12 +222,7 @@ defmodule Ippan.Network do
         end
       end
 
-      # def on_disconnect(%{id: node_id}, action) do
-      #   Logger.debug("On disconnect #{node_id}")
-      #   :ets.delete(@table, node_id)
-      # end
-
-      # def on_disconnect(_, _), do: :ok
+      def on_disconnect(_, _), do: :ok
 
       @impl Network
       def on_message(packet, %{sharedkey: sharedkey} = state) do

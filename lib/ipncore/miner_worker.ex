@@ -53,7 +53,7 @@ defmodule MinerWorker do
       IO.puts(block_height)
 
       if height != 1 + block_height do
-        raise IppanError, "Wrong block height"
+        raise IppanError, "Wrong block height #{height} | #{block_height}"
       end
 
       # Request verify a remote blockfile

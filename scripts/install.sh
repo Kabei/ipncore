@@ -18,4 +18,3 @@ mix compile
 
 cp ../env_file ./
 
-chmod +x run.sh

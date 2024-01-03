@@ -16,8 +16,6 @@ WORKDIR /usr/src/ipncore
 RUN mix local.hex --force && mix deps.get && mix local.rebar --force
 RUN mix compile
 
-RUN chmod +x run.sh \
-    && mkdir -p priv
 COPY env_file ./env_file
 
 EXPOSE 4848 5815 8080

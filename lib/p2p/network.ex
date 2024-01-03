@@ -177,21 +177,37 @@ defmodule Ippan.Network do
 
       @impl Network
       def on_disconnect(%{id: node_id, socket: socket, opts: opts} = state, action) do
-        match = [
-          {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
-           [true]}
-        ]
+        # match = [
+        #   {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
+        #    [true]}
+        # ]
 
-        case :ets.select(@table, match) do
-          [] ->
+        # case :ets.select(@table, match) do
+        #   [] ->
+        #     Logger.debug("On disconnect #{node_id}")
+        #     false
+
+        #   [found | _] ->
+        #     # unexpected disconnection
+        #     Logger.debug("On disconnect #{node_id} unexpected disconnection")
+
+        #     :ets.select_delete(@table, match)
+
+        #     if (action == 1 or Keyword.get(opts, :reconnect, false)) and exists?(node_id) do
+        #       connect_async(state, opts)
+        #     end
+        # end
+
+        case alive?(node_id) do
+          false ->
             Logger.debug("On disconnect #{node_id}")
             false
 
-          [found | _] ->
+          true ->
             # unexpected disconnection
             Logger.debug("On disconnect #{node_id} unexpected disconnection")
 
-            :ets.select_delete(@table, match)
+            :ets.delete(@table, node_id)
 
             if (action == 1 or Keyword.get(opts, :reconnect, false)) and exists?(node_id) do
               connect_async(state, opts)
@@ -199,12 +215,12 @@ defmodule Ippan.Network do
         end
       end
 
-      def on_disconnect(%{id: node_id}, action) do
-        Logger.debug("On disconnect #{node_id}")
-        :ets.delete(@table, node_id)
-      end
+      # def on_disconnect(%{id: node_id}, action) do
+      #   Logger.debug("On disconnect #{node_id}")
+      #   :ets.delete(@table, node_id)
+      # end
 
-      def on_disconnect(_, _), do: :ok
+      # def on_disconnect(_, _), do: :ok
 
       @impl Network
       def on_message(packet, %{sharedkey: sharedkey} = state) do

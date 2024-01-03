@@ -359,9 +359,9 @@ defmodule RoundManager do
         creator_id,
         vid
       ])
-
-      {:noreply, state}
     end
+
+    {:noreply, state}
   end
 
   def handle_cast(

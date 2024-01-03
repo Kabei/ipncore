@@ -178,7 +178,7 @@ defmodule RoundManager do
       ) do
     if active do
       # add player
-      :ets.insert(ets_players, Validator.get(id))
+      :ets.insert(ets_players, {id, Validator.get(id)})
     else
       # remove player
       :ets.delete(ets_players, id)

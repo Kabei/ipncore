@@ -175,9 +175,7 @@ defmodule Ippan.Network do
         if client_conn do
           :ets.insert(@table, {node_id, map})
         else
-          if alive?(node_id) do
-            :ets.insert(@table, {node_id, map})
-          end
+          :ets.insert_new(@table, {node_id, map})
         end
       end
 

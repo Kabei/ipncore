@@ -116,12 +116,30 @@ defmodule Ippan.Funx.Validator do
     end
   end
 
-  def active(_source, id, active) do
+  def active(
+        %{
+          id: account_id,
+          size: size,
+          validator: %{fa: fa, fb: fb, owner: vOwner},
+          round: round_id
+        },
+        id,
+        active
+      ) do
     db_ref = :persistent_term.get(:main_conn)
-    Validator.put_active(id, active)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+    fees = Utils.calc_fees(fa, fb, size)
 
-    event = %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}}
-    PubSub.broadcast(@pubsub, @topic, event)
+    case BalanceStore.pay_fee(account_id, vOwner, fees) do
+      :error ->
+        :error
+
+      _ ->
+        Validator.put_active(id, active, round_id)
+        event = %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}}
+        PubSub.broadcast(@pubsub, @topic, event)
+    end
   end
 
   def leave(_source, id) do

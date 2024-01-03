@@ -134,11 +134,24 @@ defmodule RoundManager do
   end
 
   @impl true
-  def handle_info(:timeout, %{round_id: round_id, rcid: rcid} = state) do
+  def handle_info(:timeout, %{round_id: round_id, round_hash: prev_hash, rcid: rcid} = state) do
     Logger.warning("Round ##{round_id} Timeout | #{rcid}")
 
     # spawn_build_foreign_round(state)
-    sync_to_round_creator(state)
+    case sync_to_round_creator(state) do
+      :error ->
+        pid = self()
+
+        spawn_link(fn ->
+          GenServer.cast(
+            pid,
+            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
+          )
+        end)
+
+      _ ->
+        :ok
+    end
 
     {:noreply, state, :hibernate}
   end
@@ -929,7 +942,7 @@ defmodule RoundManager do
                   :ok
 
                 {:ok, nil} ->
-                  nil
+                  :error
 
                 _ ->
                   Logger.warning("get_round message is not a map")

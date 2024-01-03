@@ -176,7 +176,7 @@ defmodule Ippan.Network do
       end
 
       @impl Network
-      def on_disconnect(%{id: node_id, socket: socket, opts: opts} = state, action) do
+      def on_disconnect(%{id: node_id, socket: socket} = node, action) do
         # match = [
         #   {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
         #    [true]}
@@ -208,9 +208,12 @@ defmodule Ippan.Network do
             Logger.debug("On disconnect #{node_id} unexpected disconnection")
 
             :ets.delete(@table, node_id)
+            opts = Keyword.has_key?(node, :opts)
 
-            if (action == 1 or Keyword.get(opts, :reconnect, false)) and exists?(node_id) do
-              connect_async(state, opts)
+            if (action == 1 or
+                  (opts and Keyword.get(opts, :reconnect, false))) and
+                 exists?(node_id) do
+              connect_async(node, opts)
             end
         end
       end

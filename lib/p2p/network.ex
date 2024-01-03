@@ -82,7 +82,7 @@ defmodule Ippan.Network do
           case :ets.whereis(@table) do
             :undefined ->
               :ets.new(@table, [
-                :duplicate_bag,
+                :set,
                 :named_table,
                 :public,
                 read_concurrency: false,

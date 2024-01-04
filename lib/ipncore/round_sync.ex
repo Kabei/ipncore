@@ -83,13 +83,16 @@ defmodule RoundSync do
     if last_round_id != round_id do
       case NetworkNodes.call(node_id, "get_round", round_id) do
         {:error, _} ->
-          stop(state, false)
+          Logger.warning("Roundsync error call #{round_id}")
+          :timer.sleep(1000)
+          {:noreply, state, {:continue, {:fetch, round_id, node}}}
+
+        {:ok, nil} ->
+          stop(state, true)
 
         {:ok, msg_round} ->
-          IO.inspect(msg_round)
           round = Round.from_remote(msg_round)
           %{block_id: last_block_id} = :sys.get_state(RoundManager)
-          IO.inspect(round)
           creator = Validator.get(round.creator)
 
           case RoundManager.build_round(

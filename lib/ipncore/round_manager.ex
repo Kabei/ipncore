@@ -137,7 +137,6 @@ defmodule RoundManager do
   def handle_info(:timeout, %{round_id: round_id, round_hash: prev_hash, rcid: rcid} = state) do
     Logger.warning("Round ##{round_id} Timeout | #{rcid}")
 
-    # spawn_build_foreign_round(state)
     case sync_to_round_creator(state) do
       :error ->
         pid = self()
@@ -835,7 +834,6 @@ defmodule RoundManager do
     new_state = %{state | position: position, rcid: rcid, rc_node: rc_node, turn: turn}
 
     connect_to_peers(ets_players, vid, total_players)
-    # sync_to_round_creator(new_state)
 
     new_state
   end
@@ -887,7 +885,7 @@ defmodule RoundManager do
     end
   end
 
-  # connect to round creator, send candidate if exists and question round creator about msg_round
+  # Connect to round creator, send candidate if exists and question round creator about msg_round
   defp sync_to_round_creator(
          %{
            rcid: node_id,

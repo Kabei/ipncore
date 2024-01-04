@@ -35,13 +35,13 @@ defmodule Ippan.NetworkNodes do
   end
 
   @impl Network
-  # def handle_request("get_rounds", data, _state) do
-  #   db_ref = :persistent_term.get(:main_conn)
-  #   round_id = Map.get(data, "starts", 0)
-  #   limit = Map.get(data, "limit", 100) |> min(200) |> trunc()
-  #   offset = Map.get(data, "offset", 0)
-  #   Round.fetch_all(round_id, limit, offset)
-  # end
+  def handle_request("get_rounds", data, _state) do
+    db_ref = :persistent_term.get(:main_conn)
+    round_id = Map.get(data, "starts", 0)
+    limit = Map.get(data, "limit", 50) |> min(100) |> trunc()
+    offset = Map.get(data, "offset", 0)
+    Round.fetch_all(round_id, limit, offset)
+  end
 
   def handle_request("get_round", id, _state) when is_integer(id) do
     db_ref = :persistent_term.get(:main_conn)

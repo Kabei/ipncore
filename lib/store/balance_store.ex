@@ -185,7 +185,7 @@ defmodule BalanceStore do
           :error
         end
       else
-        BalanceStore.pay_burn(from, Ippan.Utils.calc_reserve(total_fees))
+        BalanceStore.pay_burn(from, total_fees)
       end
     end
   end

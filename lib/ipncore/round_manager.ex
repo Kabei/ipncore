@@ -103,7 +103,7 @@ defmodule RoundManager do
             block_id: state.block_id,
             db_ref: state.db_ref,
             balance: state.balance,
-            id: round_id,
+            id: round_id - 1,
             hash: round_hash,
             miner_pool: miner_pool_pid,
             pid: self()

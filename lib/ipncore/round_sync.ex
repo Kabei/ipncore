@@ -42,7 +42,7 @@ defmodule RoundSync do
 
     case hostname do
       nil ->
-        Logger.warning("There is not hosts in whitelist")
+        Logger.warning("There are no hosts in the whitelist file")
         stop(state, true)
 
       hostname ->

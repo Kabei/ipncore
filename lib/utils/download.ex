@@ -46,8 +46,6 @@ defmodule Download do
   end
 
   def from(url, path, max_file_size \\ @max_file_size, timeout \\ @timeout) do
-    File.rm(path)
-
     with {:ok, file} <- create_file(path),
          {:ok, response_parsing_pid} <- create_process(file, path, max_file_size, timeout),
          {:ok, _pid} <- start_download(url, response_parsing_pid, path),

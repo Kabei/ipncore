@@ -90,8 +90,9 @@ defmodule MinerWorker do
             end
 
           false ->
+            # download remote decode-file
             url = Block.decode_url(creator.hostname, creator_id, height)
-            :ok = Download.from(url, decode_path)
+            :ok = Download.await(url, decode_path)
         end
       end
 

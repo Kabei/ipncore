@@ -96,6 +96,7 @@ defmodule RoundManager do
 
     # Start RoundSync process if not running
     RoundSync.start_link(%{
+      block_id: state.block_id,
       db_ref: state.db_ref,
       balance: state.balance,
       miner_pool: state.miner_pool,

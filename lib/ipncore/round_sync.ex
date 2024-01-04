@@ -24,6 +24,7 @@ defmodule RoundSync do
   @impl true
   def init(
         state = %{
+          block_id: _block_id,
           db_ref: _db_ref,
           balance: _balances,
           miner_pool: _miner_pool_pid,
@@ -82,6 +83,7 @@ defmodule RoundSync do
         %{
           last: last_round_id,
           balance: balances,
+          block_id: last_block_id,
           db_ref: db_ref,
           miner_pool: miner_pool_pid,
           pid: round_manager_pid
@@ -100,8 +102,8 @@ defmodule RoundSync do
 
         {:ok, msg_round} ->
           round = Round.from_remote(msg_round)
-          last_block_id = GenServer.call(round_manager_pid, :last_block)
           creator = Validator.get(round.creator)
+          state = update_state(state, round)
 
           case RoundManager.build_round(
                  round,
@@ -138,6 +140,7 @@ defmodule RoundSync do
         %{
           queue: ets_queue,
           balance: balances,
+          block_id: last_block_id,
           db_ref: db_ref,
           miner_pool: miner_pool_pid,
           pid: round_manager_pid
@@ -145,8 +148,8 @@ defmodule RoundSync do
       ) do
     case :ets.lookup(ets_queue, key) do
       [{_id, round}] ->
-        last_block_id = GenServer.call(round_manager_pid, :last_block)
         creator = Validator.get(round.creator)
+        state = update_state(state, round)
 
         RoundManager.build_round(
           round,
@@ -229,6 +232,16 @@ defmodule RoundSync do
       error ->
         Logger.error(Exception.format(:error, error, __STACKTRACE__))
         :idle
+    end
+  end
+
+  defp update_state(state, round) do
+    len = length(round.blocks)
+
+    if len == 0 do
+      state
+    else
+      %{state | block_id: state.block_id + len}
     end
   end
 

@@ -59,6 +59,7 @@ defmodule RoundSync do
             }
 
           :stop ->
+            IO.puts("RoundSync Stop")
             stop(state, false)
 
           :idle ->

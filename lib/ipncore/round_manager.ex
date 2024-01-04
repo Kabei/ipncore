@@ -377,21 +377,8 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  # def handle_cast(
-  #       {:put, %{"id" => round_id, "hash" => round_hash, "block_id" => block_id}},
-  #       state
-  #     ) do
-  #   {:noreply,
-  #    %{
-  #      state
-  #      | round_id: round_id,
-  #        round_hash: round_hash,
-  #        block_id: block_id
-  #    }}
-  # end
-
   def handle_cast({:status, status, next}, state) do
-    IO.puts("set status: #{status} - #{next}")
+    IO.puts("Set status: #{status} - #{next}")
 
     if next do
       {:noreply, %{state | status: status}, {:continue, :next}}
@@ -400,13 +387,12 @@ defmodule RoundManager do
     end
   end
 
-  def handle_cast({:on_connect, _node_id}, state = %{rcid: _rcid}) do
-    # if node_id == rcid do
-    #   sync_to_round_creator(state)
-    # end
-
-    {:noreply, state}
-  end
+  # def handle_cast({:on_connect, _node_id}, state = %{rcid: _rcid}) do
+  #   # if node_id == rcid do
+  #   #   sync_to_round_creator(state)
+  #   # end
+  #   {:noreply, state}
+  # end
 
   @impl true
   def terminate(_reason, %{

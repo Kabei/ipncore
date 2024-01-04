@@ -1,7 +1,9 @@
 defmodule RoundSync do
   use GenServer, restart: :trasient
+  require Ippan.Round
   alias Ippan.{Round, Validator, NetworkNodes}
   require Logger
+  require Round
   require Validator
   require Sqlite
 
@@ -16,10 +18,8 @@ defmodule RoundSync do
   @impl true
   def init(
         state = %{
-          id: _round_id,
-          block_id: _block_id,
+          db_ref: _db_ref,
           balance: _balances,
-          hash: _round_hash,
           miner_pool: _miner_pool_pid,
           pid: _pid
         }
@@ -34,10 +34,11 @@ defmodule RoundSync do
   def handle_continue(
         :prepare,
         %{
-          id: current_round_id,
+          db_ref: db_ref,
           pid: round_manager_pid
         } = state
       ) do
+    {current_round_id, _hash} = Round.last()
     hostname = get_random_host()
 
     case hostname do
@@ -93,7 +94,7 @@ defmodule RoundSync do
 
         {:ok, msg_round} ->
           round = Round.from_remote(msg_round)
-          %{block_id: last_block_id} = :sys.get_state(RoundManager)
+          last_block_id = GenServer.call(round_manager_pid, :last_block)
           creator = Validator.get(round.creator)
 
           case RoundManager.build_round(
@@ -116,20 +117,19 @@ defmodule RoundSync do
       {
         :noreply,
         Map.delete(state, :last),
-        {:continue, {:after, :ets.first(state.queue)}}
+        {:continue, {:after, :ets.first(state.queue), node}}
       }
     end
   end
 
-  def handle_continue({:after, :"$end_of_table"}, state) do
+  def handle_continue({:after, :"$end_of_table", _node}, state) do
     stop(state, true)
   end
 
   def handle_continue(
-        {:after, key},
+        {:after, key, node},
         %{
           queue: ets_queue,
-          block_id: block_id,
           balance: balances,
           db_ref: db_ref,
           miner_pool: miner_pool_pid,
@@ -138,10 +138,13 @@ defmodule RoundSync do
       ) do
     case :ets.lookup(ets_queue, key) do
       [{_id, round}] ->
+        last_block_id = GenServer.call(round_manager_pid, :last_block)
+        creator = Validator.get(round.creator)
+
         RoundManager.build_round(
           round,
-          block_id,
-          round.creator,
+          last_block_id,
+          %{creator | hostname: node.hostname},
           db_ref,
           balances,
           miner_pool_pid,
@@ -150,7 +153,7 @@ defmodule RoundSync do
 
         next_key = :ets.next(ets_queue, key)
         :ets.delete(ets_queue, key)
-        {:noreply, state, {:continue, {:after, next_key}}}
+        {:noreply, state, {:continue, {:after, next_key, node}}}
 
       _ ->
         stop(state, true)

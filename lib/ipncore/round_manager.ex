@@ -96,16 +96,12 @@ defmodule RoundManager do
       case Process.whereis(RoundSync) do
         nil ->
           # start round sync process
-          %{round_id: round_id, round_hash: round_hash, miner_pool: miner_pool_pid} =
-            state = get_state_after_check(init_state)
+          state = get_state_after_check(init_state)
 
           RoundSync.start_link(%{
-            block_id: state.block_id,
             db_ref: state.db_ref,
             balance: state.balance,
-            id: round_id - 1,
-            hash: round_hash,
-            miner_pool: miner_pool_pid,
+            miner_pool: state.miner_pool,
             pid: self()
           })
 
@@ -392,6 +388,11 @@ defmodule RoundManager do
   #   # end
   #   {:noreply, state}
   # end
+
+  @impl true
+  def handle_call(:last_block, _from, state) do
+    {:reply, state.block_id, state}
+  end
 
   @impl true
   def terminate(_reason, %{

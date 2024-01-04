@@ -15,6 +15,7 @@ defmodule RoundSync do
     read_concurrency: true,
     write_concurrency: true
   ]
+  @offset 50
 
   #  @type t :: %__MODULE__{status: :synced | :syncing}
   @app Mix.Project.config()[:app]
@@ -65,14 +66,22 @@ defmodule RoundSync do
         case check(hostname, current_round_id) do
           {:ok, last_round_id, node} ->
             IO.puts("RoundSync Active")
-            # GenServer.cast(round_manager_pid, {:put, status})
-            # GenServer.cast(round_manager_pid, {:status, :syncing, true})
 
-            {
-              :noreply,
-              Map.put(state, :last, last_round_id),
-              {:continue, {:fetch, current_round_id + 1, node}}
-            }
+            if current_round_id >= last_round_id do
+              map = %{
+                offset: 0,
+                starts: current_round_id + 1,
+                target: last_round_id
+              }
+
+              {
+                :noreply,
+                Map.merge(state, map),
+                {:continue, {:fetch, current_round_id + 1, node}}
+              }
+            else
+              stop(state, true)
+            end
 
           :stop ->
             IO.puts("RoundSync Stop")
@@ -89,7 +98,9 @@ defmodule RoundSync do
   def handle_continue(
         {:fetch, round_id, %{id: node_id} = node},
         %{
-          last: last_round_id,
+          offset: offset,
+          starts: starts,
+          target: target_id,
           balance: balances,
           block_id: last_block_id,
           db_ref: db_ref,
@@ -98,42 +109,52 @@ defmodule RoundSync do
         } =
           state
       ) do
-    if last_round_id != round_id do
-      case NetworkNodes.call(node_id, "get_round", round_id) do
+    if round_id < target_id do
+      case NetworkNodes.call(node_id, "get_rounds", %{
+             "limit" => @offset,
+             "offset" => offset,
+             "starts" => starts
+           }) do
         {:error, _} ->
-          Logger.warning("Roundsync error call #{round_id}")
+          Logger.warning("Roundsync error call starts: ##{round_id}")
           :timer.sleep(1000)
           {:noreply, state, {:continue, {:fetch, round_id, node}}}
 
         {:ok, nil} ->
           stop(state, true)
 
-        {:ok, msg_round} ->
-          round = Round.from_remote(msg_round)
-          creator = Validator.get(round.creator)
-          state = update_state(state, round)
+        {:ok, rounds} ->
+          # Build rounds and return total new blocks
+          total_blocks =
+            Enum.reduce(rounds, 0, fn msg_round, acc ->
+              %{id: id} = round = Round.from_remote(msg_round)
+              creator = Validator.get(round.creator)
 
-          case RoundManager.build_round(
-                 round,
-                 last_block_id,
-                 %{creator | hostname: node.hostname},
-                 db_ref,
-                 balances,
-                 miner_pool_pid,
-                 round_manager_pid,
-                 false
-               ) do
-            {:ok, _new_round} ->
-              {:noreply, state, {:continue, {:fetch, round_id + 1, node}}}
+              unless Round.exists?(id) do
+                RoundManager.build_round(
+                  round,
+                  last_block_id,
+                  %{creator | hostname: node.hostname},
+                  db_ref,
+                  balances,
+                  miner_pool_pid,
+                  round_manager_pid,
+                  false
+                )
+              end
 
-            _error ->
-              {:noreply, state, {:continue, {:fetch, round_id + 1, node}}}
-          end
+              acc + length(round.blocks)
+            end)
+
+          len = length(rounds)
+          new_state = %{state | block_id: total_blocks, offset: offset + len}
+
+          {:noreply, new_state, {:continue, {:fetch, round_id + len, node}}}
       end
     else
       {
         :noreply,
-        Map.delete(state, :last),
+        Map.drop(state, ~w(offset starts target)a),
         {:continue, {:after, :ets.first(state.queue), node}}
       }
     end
@@ -157,7 +178,6 @@ defmodule RoundSync do
     case :ets.lookup(ets_queue, key) do
       [{_id, round}] ->
         creator = Validator.get(round.creator)
-        state = update_state(state, round)
 
         RoundManager.build_round(
           round,
@@ -172,7 +192,8 @@ defmodule RoundSync do
 
         next_key = :ets.next(ets_queue, key)
         :ets.delete(ets_queue, key)
-        {:noreply, state, {:continue, {:after, next_key, node}}}
+        new_state = %{state | block_id: last_block_id + length(round.blocks)}
+        {:noreply, new_state, {:continue, {:after, next_key, node}}}
 
       _ ->
         stop(state, true)
@@ -238,16 +259,6 @@ defmodule RoundSync do
       error ->
         Logger.error(Exception.format(:error, error, __STACKTRACE__))
         :idle
-    end
-  end
-
-  defp update_state(state, round) do
-    len = length(round.blocks)
-
-    if len == 0 do
-      state
-    else
-      %{state | block_id: state.block_id + len}
     end
   end
 

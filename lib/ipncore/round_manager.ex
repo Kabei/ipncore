@@ -122,19 +122,24 @@ defmodule RoundManager do
   end
 
   @impl true
-  def handle_info(:timeout, %{round_id: round_id, round_hash: prev_hash, rcid: rcid} = state) do
+  def handle_info(
+        :timeout,
+        %{round_id: round_id, round_hash: prev_hash, players: ets_players, rcid: rcid} = state
+      ) do
     Logger.warning("Round ##{round_id} Timeout | #{rcid}")
 
     case sync_to_round_creator(state) do
       :error ->
-        pid = self()
+        if :ets.info(ets_players, :size) > 1 do
+          pid = self()
 
-        spawn_link(fn ->
-          GenServer.cast(
-            pid,
-            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
-          )
-        end)
+          spawn_link(fn ->
+            GenServer.cast(
+              pid,
+              {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
+            )
+          end)
+        end
 
       _ ->
         :ok

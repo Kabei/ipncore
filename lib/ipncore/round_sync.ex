@@ -90,11 +90,12 @@ defmodule RoundSync do
           round = Round.from_remote(msg_round)
           %{block_id: last_block_id} = :sys.get_state(RoundManager)
           IO.inspect(round)
+          creator = Validator.get(round.creator)
 
           case RoundManager.build_round(
                  round,
                  last_block_id,
-                 round.creator,
+                 creator,
                  db_ref,
                  balances,
                  miner_pool_pid,

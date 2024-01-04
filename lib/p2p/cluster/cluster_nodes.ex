@@ -42,7 +42,7 @@ defmodule Ippan.ClusterNodes do
         [false, [hash, type, from, nonce, args, msg_sig, size], return],
         _state
       ) do
-    status = :persistent_term.get(:status, nil)
+    status = :persistent_term.get(:status)
 
     if status == :synced do
       nonce_key = {from, nonce}
@@ -85,7 +85,7 @@ defmodule Ippan.ClusterNodes do
         [true, [hash, type, key, from, nonce | rest], return],
         _state
       ) do
-    status = :persistent_term.get(:status, nil)
+    status = :persistent_term.get(:status)
 
     if status == :synced do
       nonce_key = {from, nonce}

@@ -602,7 +602,7 @@ defmodule DetsPlux do
   end
 
   def handle(pid, tx \\ nil) do
-    GenServer.call(pid, {:handle, tx})
+    GenServer.call(pid, {:handle, tx}, :infinity)
   end
 
   @doc """

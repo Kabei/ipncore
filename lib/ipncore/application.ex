@@ -51,6 +51,7 @@ defmodule Ipncore.Application do
 
     :persistent_term.put(:vid, String.to_integer(vid))
     :persistent_term.put(:name, name)
+    :persistent_term.put(:status, :startup)
   end
 
   defp load_keys do

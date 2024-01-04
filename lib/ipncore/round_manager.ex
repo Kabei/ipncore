@@ -70,7 +70,7 @@ defmodule RoundManager do
        block_id: current_block_id,
        balance: DetsPlux.get(:balance),
        db_ref: db_ref,
-       status: :starting,
+       status: :startup,
        miner_pool: miner_pool_pid,
        players: ets_players,
        votes: ets_votes,
@@ -88,9 +88,10 @@ defmodule RoundManager do
   end
 
   @impl true
-  def handle_continue(:next, %{status: :starting, tRef: tRef} = init_state) do
-    IO.puts("next starting")
+  def handle_continue(:next, %{status: :startup, tRef: tRef} = init_state) do
+    IO.puts("next startup")
     :timer.cancel(tRef)
+    :persistent_term.put(:status, :startup)
 
     state = get_state_after_check(init_state)
 
@@ -103,7 +104,7 @@ defmodule RoundManager do
       pid: self()
     })
 
-    {:noreply, %{state | status: :starting}, :hibernate}
+    {:noreply, state, :hibernate}
   end
 
   def handle_continue(:next, %{tRef: tRef} = state) do
@@ -330,35 +331,28 @@ defmodule RoundManager do
 
       IO.puts("#{id} = #{round_id}")
 
-      if id == round_id do
+      if id == round_id and status == :synced do
         n = NetworkNodes.count()
         IO.puts("n = #{n} | count = #{count}")
 
         cond do
           count == div(n, 2) + 1 ->
             IO.puts("Vote ##{id}")
-
-            if status != :synced do
-              RoundSync.add_queue(msg_round)
-            else
-              spawn_build_foreign_round(state, msg_round)
-            end
+            spawn_build_foreign_round(state, msg_round)
 
           true ->
             nil
         end
-      else
-        if status != :synced do
-          RoundSync.add_queue(msg_round)
-        end
-      end
 
-      # Replicate message to rest of nodes except creator and sender
-      NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
-        node_id,
-        creator_id,
-        vid
-      ])
+        # Replicate message to rest of nodes except creator and sender
+        NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
+          node_id,
+          creator_id,
+          vid
+        ])
+      else
+        RoundSync.add_queue(msg_round)
+      end
     end
 
     {:noreply, state}
@@ -366,7 +360,6 @@ defmodule RoundManager do
 
   def handle_cast({:status, status, next}, state) do
     IO.puts("Set status: #{status} - #{next}")
-
     :persistent_term.put(:status, status)
 
     if next do

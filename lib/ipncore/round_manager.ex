@@ -92,26 +92,17 @@ defmodule RoundManager do
     IO.puts("next starting")
     :timer.cancel(tRef)
 
-    new_state =
-      case Process.whereis(RoundSync) do
-        nil ->
-          # start round sync process
-          state = get_state_after_check(init_state)
+    state = get_state_after_check(init_state)
 
-          RoundSync.start_link(%{
-            db_ref: state.db_ref,
-            balance: state.balance,
-            miner_pool: state.miner_pool,
-            pid: self()
-          })
+    # Start RoundSync process if not running
+    RoundSync.start_link(%{
+      db_ref: state.db_ref,
+      balance: state.balance,
+      miner_pool: state.miner_pool,
+      pid: self()
+    })
 
-          state
-
-        _ ->
-          get_state_after_check(init_state)
-      end
-
-    {:noreply, %{new_state | status: :starting}, :hibernate}
+    {:noreply, %{state | status: :starting}, :hibernate}
   end
 
   def handle_continue(:next, %{tRef: tRef} = state) do

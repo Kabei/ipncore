@@ -12,7 +12,13 @@ defmodule RoundSync do
   @json Application.compile_env(@app, :json)
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    case Process.whereis(__MODULE__) do
+      nil ->
+        GenServer.start_link(__MODULE__, args, name: __MODULE__)
+
+      pid ->
+        {:already_stated, pid}
+    end
   end
 
   @impl true

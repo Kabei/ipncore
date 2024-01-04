@@ -617,7 +617,8 @@ defmodule RoundManager do
         db_ref,
         balance_pid,
         pool_pid,
-        pid
+        pid,
+        verify_block \\ true
       ) do
     if Round.null?(map) do
       GenServer.cast(pid, {:incomplete, map})
@@ -644,7 +645,7 @@ defmodule RoundManager do
             :poolboy.transaction(
               pool_pid,
               fn worker ->
-                MinerWorker.mine(worker, Map.put(block, :id, id), creator, round_id)
+                MinerWorker.mine(worker, Map.put(block, :id, id), creator, round_id, verify_block)
               end,
               :infinity
             )

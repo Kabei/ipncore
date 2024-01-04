@@ -18,8 +18,8 @@ defmodule MinerWorker do
     {:ok, args}
   end
 
-  def mine(server, block, creator, round_id) do
-    GenServer.call(server, {:mine, block, creator, round_id}, :infinity)
+  def mine(server, block, creator, round_id, verify_block) do
+    GenServer.call(server, {:mine, block, creator, round_id, verify_block}, :infinity)
   end
 
   # Create a block file from decode block file (foreign block)
@@ -35,7 +35,8 @@ defmodule MinerWorker do
             vsn: version
           } = block,
           creator,
-          current_round_id
+          current_round_id,
+          verify_block
         },
         _from,
         state
@@ -71,16 +72,26 @@ defmodule MinerWorker do
 
         {node_id, node} = random_node()
 
-        case ClusterNodes.call(node_id, "verify_block", block_check, timeout: 10_000, retry: 2) do
-          {:ok, true} ->
-            url = Block.cluster_decode_url(node.hostname, creator_id, height)
+        case verify_block do
+          true ->
+            case ClusterNodes.call(node_id, "verify_block", block_check,
+                   timeout: 10_000,
+                   retry: 2
+                 ) do
+              {:ok, true} ->
+                url = Block.cluster_decode_url(node.hostname, creator_id, height)
+                :ok = Download.from(url, decode_path)
+
+              {:ok, false} ->
+                raise IppanError, "Error block verify"
+
+              {:error, _} ->
+                raise IppanError, "Error Node verify"
+            end
+
+          false ->
+            url = Block.cluster_decode_url(creator.hostname, creator_id, height)
             :ok = Download.from(url, decode_path)
-
-          {:ok, false} ->
-            raise IppanError, "Error block verify"
-
-          {:error, _} ->
-            raise IppanError, "Error Node verify"
         end
       end
 

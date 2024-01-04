@@ -110,7 +110,8 @@ defmodule RoundSync do
                  db_ref,
                  balances,
                  miner_pool_pid,
-                 round_manager_pid
+                 round_manager_pid,
+                 false
                ) do
             {:ok, _new_round} ->
               {:noreply, state, {:continue, {:fetch, round_id + 1, node}}}
@@ -154,7 +155,8 @@ defmodule RoundSync do
           db_ref,
           balances,
           miner_pool_pid,
-          round_manager_pid
+          round_manager_pid,
+          false
         )
 
         next_key = :ets.next(ets_queue, key)

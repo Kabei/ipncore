@@ -35,13 +35,13 @@ defmodule RoundManager do
     db_ref = :persistent_term.get(:main_conn)
 
     ets_players =
-      ets_start(:players, [:ordered_set, :public, read_concurrency: true, write_concurrency: true])
+      ets_start(:players, [:ordered_set, :public, :named_table])
 
     ets_votes =
-      ets_start(:votes, [:set, :public, read_concurrency: true, write_concurrency: true])
+      ets_start(:votes, [:set, :public])
 
     ets_candidates =
-      ets_start(:candidates, [:set, :public, read_concurrency: true, write_concurrency: true])
+      ets_start(:candidates, [:set, :public])
 
     [round_id, round_hash] = Sqlite.fetch("last_round", [], [-1, nil])
 

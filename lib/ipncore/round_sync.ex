@@ -29,7 +29,7 @@ defmodule RoundSync do
   # Check last state from multiples nodes
   @impl true
   def handle_continue(:prepare, %{id: current_round_id, pid: round_manager_pid} = state) do
-    list = NetworkNodes.list()
+    list = :ets.tab2list(:players)
 
     data =
       Enum.take_random(list, 10)

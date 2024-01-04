@@ -343,7 +343,7 @@ defmodule RoundManager do
             IO.puts("Vote ##{id}")
 
             if status != :synced do
-              GenServer.cast(RoundSync, {:add, msg_round})
+              RoundSync.add_queue(msg_round)
             else
               spawn_build_foreign_round(state, msg_round)
             end
@@ -353,7 +353,7 @@ defmodule RoundManager do
         end
       else
         if status != :synced do
-          GenServer.cast(RoundSync, {:add, msg_round})
+          RoundSync.add_queue(msg_round)
         end
       end
 

@@ -7,6 +7,15 @@ defmodule RoundSync do
   require Validator
   require Sqlite
 
+  @ets_name :queue
+  @ets_opts [
+    :ordered_set,
+    :named_table,
+    :public,
+    read_concurrency: true,
+    write_concurrency: true
+  ]
+
   #  @type t :: %__MODULE__{status: :synced | :syncing}
   @app Mix.Project.config()[:app]
   @json Application.compile_env(@app, :json)
@@ -31,7 +40,7 @@ defmodule RoundSync do
           pid: _pid
         }
       ) do
-    ets_queue = :ets.new(:queue, [:ordered_set])
+    ets_queue = :ets.new(@ets_name, @ets_opts)
 
     {:ok, Map.put(state, :queue, ets_queue), {:continue, :prepare}}
   end
@@ -171,10 +180,8 @@ defmodule RoundSync do
   end
 
   # Add round in a queue
-  @impl true
-  def handle_cast({:add, %{id: id} = new_round}, state = %{queue: ets_queue}) do
-    :ets.insert(ets_queue, {id, new_round})
-    {:noreply, state}
+  def add_queue(msg_round) do
+    :ets.insert(@ets_name, {msg_round.id, msg_round})
   end
 
   @filename "whitelist"

@@ -204,7 +204,6 @@ defmodule RoundManager do
         {:complete, round = %{id: the_round_id, hash: hash}},
         %{
           candidates: ets_candidates,
-          db_ref: db_ref,
           vid: vid,
           block_id: block_id,
           round_id: round_id,
@@ -212,7 +211,6 @@ defmodule RoundManager do
         } = state
       ) do
     next = the_round_id == round_id
-    is_some_block_mine = Enum.any?(round.blocks, &(&1.creator == vid))
     Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(round.hash)}")
 
     # Clear round-message-votes and block-candidates
@@ -223,19 +221,10 @@ defmodule RoundManager do
     # replicate data to cluster nodes
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
-    # save all round
-    RoundCommit.sync(db_ref, round.tx_count, is_some_block_mine)
-
     # Set last local height and prev hash and reset timer
     if next do
+      is_some_block_mine = Round.is_some_block_mine?(round, vid)
       BlockTimer.complete(hash, is_some_block_mine)
-    end
-
-    fun = :persistent_term.get(:last_fun, nil)
-
-    if fun do
-      :persistent_term.erase(:last_fun)
-      fun.()
     end
 
     if next do
@@ -726,6 +715,18 @@ defmodule RoundManager do
         :done = Round.to_list(round) |> Round.insert()
 
         run_maintenance(round_id, db_ref)
+
+        # save all round
+        vid = :persistent_term.get(:vid)
+        is_some_block_mine = Round.is_some_block_mine?(round, vid)
+        RoundCommit.sync(db_ref, round.tx_count, is_some_block_mine)
+
+        fun = :persistent_term.get(:last_fun, nil)
+
+        if fun do
+          :persistent_term.erase(:last_fun)
+          fun.()
+        end
 
         GenServer.cast(pid, {:complete, round})
 

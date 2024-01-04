@@ -119,6 +119,9 @@ defmodule RoundSync do
         {:ok, nil} ->
           stop(state, true)
 
+        {:ok, []} ->
+          stop(state, true)
+
         {:ok, rounds} ->
           # Build rounds and return total new blocks
           total_blocks =

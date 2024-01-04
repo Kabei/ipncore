@@ -41,8 +41,7 @@ defmodule RoundSync do
   def handle_continue(
         :prepare,
         %{
-          db_ref: db_ref,
-          pid: round_manager_pid
+          db_ref: db_ref
         } = state
       ) do
     {current_round_id, _hash} = Round.last()
@@ -58,7 +57,7 @@ defmodule RoundSync do
           {:ok, last_round_id, node} ->
             IO.puts("RoundSync Active")
             # GenServer.cast(round_manager_pid, {:put, status})
-            GenServer.cast(round_manager_pid, {:status, :syncing, true})
+            # GenServer.cast(round_manager_pid, {:status, :syncing, true})
 
             {
               :noreply,

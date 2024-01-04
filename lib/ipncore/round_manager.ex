@@ -139,13 +139,14 @@ defmodule RoundManager do
               {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
             )
           end)
+        else
+          {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+          {:noreply, %{state | tRef: tRef}, :hibernate}
         end
 
       _ ->
-        :ok
+        {:noreply, state, :hibernate}
     end
-
-    {:noreply, state, :hibernate}
   end
 
   def handle_info(

@@ -46,23 +46,6 @@ defmodule Ipncore.MixProject do
     ]
   end
 
-  defp load_env_file(path) do
-    File.stream!(path, [], :line)
-    |> Enum.each(fn text ->
-      text
-      |> String.trim()
-      |> String.replace(~r/\n|\r|#.+/, "")
-      |> String.split("=", parts: 2, trim: true)
-      |> case do
-        [key, value] ->
-          System.put_env(key, value)
-
-        _ ->
-          :ignored
-      end
-    end)
-  end
-
   def package do
     [
       name: @app,
@@ -89,5 +72,24 @@ defmodule Ipncore.MixProject do
       {:ntrukem, git: "https://kabei@github.com/kabei/ntrukem.git", branch: "master"},
       {:fast64, git: "https://kabei@github.com/kabei/fast64_elixir.git", branch: "master"}
     ]
+  end
+
+  defp load_env_file(path) do
+    if File.exists?(path) do
+      File.stream!(path, [], :line)
+      |> Enum.each(fn text ->
+        text
+        |> String.trim()
+        |> String.replace(~r/\n|\r|#.+/, "")
+        |> String.split("=", parts: 2)
+        |> case do
+          [key, value] ->
+            System.put_env(key, value)
+
+          _ ->
+            :ignored
+        end
+      end)
+    end
   end
 end

@@ -138,6 +138,7 @@ defmodule RoundSync do
                   balances,
                   miner_pool_pid,
                   round_manager_pid,
+                  false,
                   false
                 )
               end
@@ -186,6 +187,7 @@ defmodule RoundSync do
           balances,
           miner_pool_pid,
           round_manager_pid,
+          false,
           false
         )
 

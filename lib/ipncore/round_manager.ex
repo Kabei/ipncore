@@ -210,7 +210,7 @@ defmodule RoundManager do
           votes: ets_votes
         } = state
       ) do
-    next = the_round_id == round_id
+    # next = the_round_id == round_id
     Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(round.hash)}")
 
     # Clear round-message-votes and block-candidates
@@ -222,22 +222,23 @@ defmodule RoundManager do
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
     # Set last local height and prev hash and reset timer
-    if next do
-      is_some_block_mine = Round.is_some_block_mine?(round, vid)
-      BlockTimer.complete(hash, is_some_block_mine)
-    end
+    # if next do
+    is_some_block_mine = Round.is_some_block_mine?(round, vid)
+    BlockTimer.complete(hash, is_some_block_mine)
+    # end
 
-    if next do
-      {:noreply,
-       %{
-         state
-         | block_id: block_id + length(round.blocks),
-           round_id: round.id + 1,
-           round_hash: round.hash
-       }, {:continue, :next}}
-    else
-      {:noreply, state, :hibernate}
-    end
+    # if next do
+    {:noreply,
+     %{
+       state
+       | block_id: block_id + length(round.blocks),
+         round_id: the_round_id + 1,
+         round_hash: round.hash
+     }, {:continue, :next}}
+
+    # else
+    #   {:noreply, state, :hibernate}
+    # end
   end
 
   def handle_cast(
@@ -369,7 +370,20 @@ defmodule RoundManager do
     :persistent_term.put(:status, status)
 
     if next do
-      {:noreply, %{state | status: status}, {:continue, :next}}
+      # update state
+      db_ref = :persistent_term.get(:main_conn)
+      [round_id, round_hash] = Sqlite.fetch("last_round", [], [-1, nil])
+      block_id = Sqlite.one("last_block_id", [], -1)
+
+      new_state = %{
+        state
+        | block_id: block_id + 1,
+          round_id: round_id + 1,
+          round_hash: round_hash,
+          status: status
+      }
+
+      {:noreply, new_state, {:continue, :next}}
     else
       {:noreply, %{state | status: status}, :hibernate}
     end
@@ -620,7 +634,8 @@ defmodule RoundManager do
         balance_pid,
         pool_pid,
         pid,
-        verify_block \\ true
+        verify_block \\ true,
+        rm_notify \\ true
       ) do
     if Round.null?(map) do
       GenServer.cast(pid, {:incomplete, map})
@@ -728,7 +743,9 @@ defmodule RoundManager do
           fun.()
         end
 
-        GenServer.cast(pid, {:complete, round})
+        if rm_notify do
+          GenServer.cast(pid, {:complete, round})
+        end
 
         {:ok, round}
       else

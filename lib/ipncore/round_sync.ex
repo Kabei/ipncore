@@ -160,15 +160,18 @@ defmodule RoundSync do
     {:noreply, state}
   end
 
+  @filename "whitelist"
   # Get random hostname from whitelist
   defp get_random_host do
-    File.stream!("whitelist", [], :line)
-    |> Enum.map(fn text ->
-      String.trim(text)
-    end)
-    |> Enum.filter(fn x -> Match.hostname?(x) or Match.ipv4(x) end)
-    |> Enum.take_random(1)
-    |> List.first()
+    if File.exists?(@filename) do
+      File.stream!(@filename, [], :line)
+      |> Enum.map(fn text ->
+        String.trim(text)
+      end)
+      |> Enum.filter(fn x -> Match.hostname?(x) or Match.ipv4(x) end)
+      |> Enum.take_random(1)
+      |> List.first()
+    end
   end
 
   defp check(hostname, my_last_round) do

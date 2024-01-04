@@ -73,7 +73,6 @@ defmodule RoundSync do
         {:fetch, round_id, %{id: node_id} = node},
         %{
           last: last_round_id,
-          block_id: block_id,
           balance: balances,
           db_ref: db_ref,
           miner_pool: miner_pool_pid,
@@ -81,17 +80,20 @@ defmodule RoundSync do
         } =
           state
       ) do
-    if last_round_id > 0 do
+    if last_round_id != round_id do
       case NetworkNodes.call(node_id, "get_round", round_id) do
         {:error, _} ->
           stop(state, false)
 
         {:ok, msg_round} ->
+          IO.inspect(msg_round)
           round = Round.from_remote(msg_round)
+          %{block_id: last_block_id} = :sys.get_state(RoundManager)
+          IO.inspect(round)
 
           case RoundManager.build_round(
                  round,
-                 block_id,
+                 last_block_id,
                  round.creator,
                  db_ref,
                  balances,
@@ -106,7 +108,11 @@ defmodule RoundSync do
           end
       end
     else
-      {:noreply, Map.delete(state, :last), {:continue, {:after, :ets.first(state.queue)}}}
+      {
+        :noreply,
+        Map.delete(state, :last),
+        {:continue, {:after, :ets.first(state.queue)}}
+      }
     end
   end
 

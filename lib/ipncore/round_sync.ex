@@ -1,7 +1,7 @@
 defmodule RoundSync do
   use GenServer, restart: :trasient
-  require Logger
   alias Ippan.{Round, Validator, NetworkNodes}
+  require Logger
   require Validator
   require Sqlite
 
@@ -172,33 +172,45 @@ defmodule RoundSync do
   end
 
   defp check(hostname, my_last_round) do
-    {:ok, r1} = HTTPoison.get("https://#{hostname}/v1/info", [], hackney: [:insecure])
-    {:ok, r2} = HTTPoison.get("https://#{hostname}/v1/round/last", [], hackney: [:insecure])
+    try do
+      {:ok, r1 = %{status_code: 200}} =
+        HTTPoison.get("https://#{hostname}/v1/info", [], hackney: [:insecure])
 
-    {:ok, validator} = @json.decode(r1.body)
+      case HTTPoison.get("https://#{hostname}/v1/round/last", [], hackney: [:insecure]) do
+        {:ok, r2 = %{status_code: 200}} ->
+          {:ok, validator} = @json.decode(r1.body)
 
-    {:ok, %{"id" => round_id}} = @json.decode(r2.body)
+          {:ok, %{"id" => round_id}} = @json.decode(r2.body)
 
-    if String.to_integer(round_id) > my_last_round do
-      # validator
-      node =
-        validator
-        |> Map.take(~w(id hostname port pubkey net_pubkey))
-        |> MapUtil.to_atoms()
-        |> MapUtil.transform(:pubkey, fn x -> Base.decode64!(x) end)
-        |> MapUtil.transform(:net_pubkey, fn x -> Base.decode64!(x) end)
+          if String.to_integer(round_id) > my_last_round do
+            # validator
+            node =
+              validator
+              |> Map.take(~w(id hostname port pubkey net_pubkey))
+              |> MapUtil.to_atoms()
+              |> MapUtil.transform(:pubkey, fn x -> Base.decode64!(x) end)
+              |> MapUtil.transform(:net_pubkey, fn x -> Base.decode64!(x) end)
 
-      case NetworkNodes.connect(node) do
-        false ->
-          Logger.warning("It is not possible connect to #{hostname}")
-          :stop
+            case NetworkNodes.connect(node) do
+              false ->
+                Logger.warning("It is not possible connect to #{hostname}")
+                :stop
 
-        _socket ->
-          {:ok, round_id, node}
+              _socket ->
+                {:ok, round_id, node}
+            end
+          else
+            Logger.info("No Sync")
+            :idle
+          end
+
+        _ ->
+          :idle
       end
-    else
-      Logger.info("No Sync")
-      :idle
+    rescue
+      error ->
+        Logger.error(Exception.format(:error, error, __STACKTRACE__))
+        :idle
     end
   end
 

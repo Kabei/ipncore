@@ -4,7 +4,6 @@ defmodule Ippan.Funx.Sys do
   def upgrade(_, %{"git" => git} = opts, target) do
     if @app in target do
       # run commands
-
       pid =
         spawn(fn ->
           result =

@@ -4,89 +4,87 @@ defmodule Ippan.Funx.Sys do
   def upgrade(_, %{"git" => git} = opts, target) do
     if @app in target do
       # run commands
-      pid = self()
 
-      spawn(fn ->
-        result =
-          if is_list(git) do
-            for cmd <- git do
-              args = String.split(cmd, " ", trim: true)
-              System.cmd("git", args ++ ["--quiet"])
-            end
-          else
-            args = String.split(git, " ", trim: true) ++ ["--quiet"]
-            System.cmd("git", args)
-          end
-
-        case result do
-          {_, 0} ->
-            # get deps
-            case Map.get(opts, "deps") do
-              "get" ->
-                System.cmd("mix", ["deps.get"])
-
-              "unused" ->
-                System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
-
-              "get_and_unused" ->
-                System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
-                System.cmd("mix", ["deps.get"])
-
-              nil ->
-                :ok
+      pid =
+        spawn(fn ->
+          result =
+            if is_list(git) do
+              for cmd <- git do
+                args = String.split(cmd, " ", trim: true)
+                System.cmd("git", args ++ ["--quiet"])
+              end
+            else
+              args = String.split(git, " ", trim: true) ++ ["--quiet"]
+              System.cmd("git", args)
             end
 
-            # compile
-            case Map.get(opts, "compile") do
-              "force" ->
-                System.cmd("mix", ["compile", "--force"])
+          case result do
+            {_, 0} ->
+              # get deps
+              case Map.get(opts, "deps") do
+                "get" ->
+                  System.cmd("mix", ["deps.get"])
 
-              "normal" ->
-                System.cmd("mix", ["compile"])
+                "unused" ->
+                  System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
 
-              _ ->
-                :ok
-            end
+                "get_and_unused" ->
+                  System.cmd("mix", ["deps.clean", "--unlock", "--unused"])
+                  System.cmd("mix", ["deps.get"])
 
-            send(pid, :ok)
-
-          _ ->
-            send(pid, :error)
-        end
-      end)
-
-      receive do
-        :ok ->
-          case Map.get(opts, "reset") do
-            # reset all
-            "all" ->
-              fun = fn ->
-                IO.puts("Restart")
-                System.restart()
+                nil ->
+                  :ok
               end
 
-              :persistent_term.put(:last_fun, fun)
+              # compile
+              case Map.get(opts, "compile") do
+                "force" ->
+                  System.cmd("mix", ["compile", "--force"])
 
-            # reset specific modules
-            files when is_list(files) ->
-              :code.all_loaded()
-              |> Enum.each(fn {mod, path} ->
-                if Path.basename(path, ~c".beam") in files do
-                  :code.soft_purge(mod)
-                  :code.load_file(mod)
-                end
-              end)
+                "normal" ->
+                  System.cmd("mix", ["compile"])
+
+                _ ->
+                  :ok
+              end
 
             _ ->
-              :ok
+              :error
           end
+        end)
 
-        :error ->
-          :error
-
-        _ ->
-          IO.puts(:stderr, "Unexpected message received")
+      fun = fn ->
+        after_upgrade(opts, pid)
       end
+
+      :persistent_term.put(:last_fun, fun)
+    end
+  end
+
+  defp after_upgrade(opts, pid) do
+    Process.monitor(pid)
+
+    receive do
+      {:DOWN, _ref, _process, _pid, _normal} ->
+        case Map.get(opts, "reset") do
+          # reset all
+          "all" ->
+            IO.puts("Restart")
+            System.restart()
+
+          # reset specific modules
+          files when is_list(files) ->
+            :code.all_loaded()
+            |> Enum.each(fn {mod, path} ->
+              if Path.basename(path, ~c".beam") in files do
+                :code.soft_purge(mod)
+                :code.load_file(mod)
+              end
+            end)
+
+          _ ->
+            :ok
+        end
     end
   end
 end

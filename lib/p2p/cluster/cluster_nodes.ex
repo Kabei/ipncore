@@ -42,35 +42,41 @@ defmodule Ippan.ClusterNodes do
         [false, [hash, type, from, nonce, args, msg_sig, size], return],
         _state
       ) do
-    nonce_key = {from, nonce}
+    status = :persistent_term.get(:status, nil)
 
-    case :ets.insert_new(:hash, {nonce_key, nil}) do
-      true ->
-        dets = DetsPlux.get(:nonce)
-        cache = DetsPlux.tx(dets, :cache_nonce)
+    if status == :synced do
+      nonce_key = {from, nonce}
 
-        # IO.puts("The nonce")
+      case :ets.insert_new(:hash, {nonce_key, nil}) do
+        true ->
+          dets = DetsPlux.get(:nonce)
+          cache = DetsPlux.tx(dets, :cache_nonce)
 
-        case Wallet.update_nonce(dets, cache, from, nonce) do
-          :error ->
-            :ets.delete(:hash, nonce_key)
-            ["error", "Invalid nonce x1"]
+          # IO.puts("The nonce")
 
-          _ ->
-            # IO.puts("The check return")
-            # IO.puts("The insert")
-            cref = :persistent_term.get(:msg_counter)
-            :counters.add(cref, 1, 1)
-            ix = :counters.get(cref, 1)
-            [_msg, sig] = msg_sig
-            decode = [hash, type, from, nonce, args, sig, size]
-            :ets.insert(:msg, {ix, 0, decode, msg_sig, return})
-            # IO.puts("The result")
-            %{"index" => ix}
-        end
+          case Wallet.update_nonce(dets, cache, from, nonce) do
+            :error ->
+              :ets.delete(:hash, nonce_key)
+              ["error", "Invalid nonce x1"]
 
-      false ->
-        ["error", "Already exists (Core)"]
+            _ ->
+              # IO.puts("The check return")
+              # IO.puts("The insert")
+              cref = :persistent_term.get(:msg_counter)
+              :counters.add(cref, 1, 1)
+              ix = :counters.get(cref, 1)
+              [_msg, sig] = msg_sig
+              decode = [hash, type, from, nonce, args, sig, size]
+              :ets.insert(:msg, {ix, 0, decode, msg_sig, return})
+              # IO.puts("The result")
+              %{"index" => ix}
+          end
+
+        false ->
+          ["error", "Already exists (Core)"]
+      end
+    else
+      ["error", "Node waiting for synchronization"]
     end
   end
 
@@ -79,49 +85,55 @@ defmodule Ippan.ClusterNodes do
         [true, [hash, type, key, from, nonce | rest], return],
         _state
       ) do
-    nonce_key = {from, nonce}
-    dets = DetsPlux.get(:nonce)
-    cache = DetsPlux.tx(dets, :cache_nonce)
+    status = :persistent_term.get(:status, nil)
 
-    case :ets.insert_new(:hash, {nonce_key, nil}) do
-      true ->
-        msg_key = {type, key}
+    if status == :synced do
+      nonce_key = {from, nonce}
+      dets = DetsPlux.get(:nonce)
+      cache = DetsPlux.tx(dets, :cache_nonce)
 
-        # IO.puts("The same hash")
+      case :ets.insert_new(:hash, {nonce_key, nil}) do
+        true ->
+          msg_key = {type, key}
 
-        case :ets.insert_new(:dhash, {msg_key, nil}) do
-          true ->
-            [args, msg_sig, size] = rest
+          # IO.puts("The same hash")
 
-            # IO.puts("The nonce")
+          case :ets.insert_new(:dhash, {msg_key, nil}) do
+            true ->
+              [args, msg_sig, size] = rest
 
-            case Wallet.update_nonce(dets, cache, from, nonce) do
-              :error ->
-                :ets.delete(:hash, nonce_key)
-                :ets.delete(:dhash, msg_key)
-                ["error", "Invalid nonce x2"]
+              # IO.puts("The nonce")
 
-              _ ->
-                # IO.puts("The insert")
-                cref = :persistent_term.get(:msg_counter)
-                :counters.add(cref, 1, 1)
-                ix = :counters.get(cref, 1)
-                [_msg, sig] = msg_sig
-                decode = [hash, type, key, from, nonce, args, sig, size]
-                :ets.insert(:msg, {ix, 1, decode, msg_sig, return})
+              case Wallet.update_nonce(dets, cache, from, nonce) do
+                :error ->
+                  :ets.delete(:hash, nonce_key)
+                  :ets.delete(:dhash, msg_key)
+                  ["error", "Invalid nonce x2"]
 
-                # IO.puts("The result")
-                %{"index" => ix}
-            end
+                _ ->
+                  # IO.puts("The insert")
+                  cref = :persistent_term.get(:msg_counter)
+                  :counters.add(cref, 1, 1)
+                  ix = :counters.get(cref, 1)
+                  [_msg, sig] = msg_sig
+                  decode = [hash, type, key, from, nonce, args, sig, size]
+                  :ets.insert(:msg, {ix, 1, decode, msg_sig, return})
 
-          false ->
-            :ets.delete(:hash, nonce_key)
-            Wallet.revert_nonce(cache, from)
-            ["error", "Deferred transaction already exists (Core)"]
-        end
+                  # IO.puts("The result")
+                  %{"index" => ix}
+              end
 
-      false ->
-        ["error", "Already exists (Core) #{inspect(nonce_key)}"]
+            false ->
+              :ets.delete(:hash, nonce_key)
+              Wallet.revert_nonce(cache, from)
+              ["error", "Deferred transaction already exists (Core)"]
+          end
+
+        false ->
+          ["error", "Already exists (Core) #{inspect(nonce_key)}"]
+      end
+    else
+      ["error", "Node waiting for synchronization"]
     end
   end
 

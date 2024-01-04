@@ -371,6 +371,8 @@ defmodule RoundManager do
   def handle_cast({:status, status, next}, state) do
     IO.puts("Set status: #{status} - #{next}")
 
+    :persistent_term.put(:status, status)
+
     if next do
       {:noreply, %{state | status: status}, {:continue, :next}}
     else

@@ -89,7 +89,6 @@ defmodule MinerWorker do
 
           false ->
             # download remote decode-file
-            IO.puts("download remote block")
             url = Block.decode_url(creator.hostname, creator_id, height)
             :ok = Download.await(url, decode_path)
         end

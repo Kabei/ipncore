@@ -42,13 +42,15 @@ curl https://github.com/kabei/releases/download/0.5/ipncore-install.sh \
 ## Run
 
 ```bash
+cp scripts/run.sh ./run.sh
+chmod +x run.sh
 ./run.sh
 ```
 ## Docker
 See docker/README.md
 
-## Settings
-|||
+## Config
+|Name|Default|
 |-|-|
 |Blockchain|IPPAN|
 |Block Time|5 seconds|

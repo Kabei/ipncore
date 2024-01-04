@@ -351,6 +351,10 @@ defmodule RoundManager do
           true ->
             nil
         end
+      else
+        if status != :synced do
+          GenServer.cast(RoundSync, {:add, msg_round})
+        end
       end
 
       # Replicate message to rest of nodes except creator and sender

@@ -62,9 +62,7 @@ defmodule MinerWorker do
 
       IO.puts("Here 2")
       # Call verify blockfile and download decode-file
-      if File.exists?(decode_path) do
-        :ok
-      else
+      unless File.exists?(decode_path) do
         # Download from Cluster node
         block_check =
           block
@@ -91,6 +89,7 @@ defmodule MinerWorker do
 
           false ->
             # download remote decode-file
+            IO.puts("download remote block")
             url = Block.decode_url(creator.hostname, creator_id, height)
             :ok = Download.await(url, decode_path)
         end

@@ -167,11 +167,9 @@ defmodule RoundSync do
 
     {:ok, validator} = @json.decode(r1.body)
 
-    {:ok, round} = @json.decode(r2.body)
+    {:ok, %{"id" => round_id}} = @json.decode(r2.body)
 
-    round_id = String.to_integer(round.id)
-
-    if round_id > my_last_round do
+    if String.to_integer(round_id) > my_last_round do
       # validator
       node =
         validator

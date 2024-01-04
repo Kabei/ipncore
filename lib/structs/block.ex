@@ -215,6 +215,10 @@ defmodule Ippan.Block do
     "https://#{hostname}/v1/dl/block/#{creator_id}/#{height}"
   end
 
+  def decode_url(hostname, creator_id, height) do
+    "https://#{hostname}/v1/dl/decode/#{creator_id}/#{height}"
+  end
+
   def cluster_block_url(hostname, creator_id, height) do
     port = Application.get_env(@app, :http)[:port]
     "http://#{hostname}:#{port}/v1/dl/block/#{creator_id}/#{height}"

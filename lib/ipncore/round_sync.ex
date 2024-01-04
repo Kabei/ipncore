@@ -67,21 +67,17 @@ defmodule RoundSync do
           {:ok, last_round_id, node} ->
             IO.puts("RoundSync Active")
 
-            if current_round_id >= last_round_id do
-              map = %{
-                offset: 0,
-                starts: current_round_id + 1,
-                target: last_round_id
-              }
+            map = %{
+              offset: 0,
+              starts: current_round_id + 1,
+              target: last_round_id
+            }
 
-              {
-                :noreply,
-                Map.merge(state, map),
-                {:continue, {:fetch, current_round_id + 1, node}}
-              }
-            else
-              stop(state, true)
-            end
+            {
+              :noreply,
+              Map.merge(state, map),
+              {:continue, {:fetch, current_round_id + 1, node}}
+            }
 
           :stop ->
             IO.puts("RoundSync Stop")

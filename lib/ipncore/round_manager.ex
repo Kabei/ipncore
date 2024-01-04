@@ -604,7 +604,7 @@ defmodule RoundManager do
     end
   end
 
-  @spec build_round(map, pos_integer, map, reference(), pid, pid, pid) ::
+  @spec build_round(map, pos_integer, map, reference(), pid, pid, pid, boolean()) ::
           {:ok, term} | :error
   def build_round(
         %{

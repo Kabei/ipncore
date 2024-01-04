@@ -146,7 +146,7 @@ defmodule RoundSync do
             end)
 
           len = length(rounds)
-          new_state = %{state | block_id: total_blocks, offset: offset + len}
+          new_state = %{state | block_id: last_block_id + total_blocks, offset: offset + len}
 
           {:noreply, new_state, {:continue, {:fetch, round_id + len, node}}}
       end

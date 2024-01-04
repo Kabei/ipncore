@@ -32,6 +32,7 @@ mix.lock
 
 env_file
 ./*.sh
+whitelist
 
 *.app
 *.keys

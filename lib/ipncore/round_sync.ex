@@ -1,10 +1,13 @@
 defmodule RoundSync do
   use GenServer, restart: :trasient
+  require Logger
   alias Ippan.{Round, Validator, NetworkNodes}
   require Validator
   require Sqlite
 
   #  @type t :: %__MODULE__{status: :synced | :syncing}
+  @app Mix.Project.config()[:app]
+  @json Application.compile_env(@app, :json)
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -28,72 +31,36 @@ defmodule RoundSync do
 
   # Check last state from multiples nodes
   @impl true
-  def handle_continue(:prepare, %{id: current_round_id, pid: round_manager_pid} = state) do
-    list = :ets.tab2list(:players)
+  def handle_continue(
+        :prepare,
+        %{
+          id: current_round_id,
+          pid: round_manager_pid
+        } = state
+      ) do
+    hostname = random_host()
 
-    data =
-      Enum.take_random(list, 10)
-      |> Enum.map(fn {_node_id, node} ->
-        Task.async(fn ->
-          case NetworkNodes.connect(node) do
-            false ->
-              :error
-
-            _socket ->
-              case NetworkNodes.call(node, "last_round") do
-                {:ok, %{"id" => rid} = res} when rid > current_round_id ->
-                  {:ok, Map.put(res, "node", node.id)}
-
-                _e ->
-                  :none
-              end
-          end
-        end)
-      end)
-      |> Task.await_many(:infinity)
-      |> Enum.filter(fn
-        {:ok, _} -> true
-        _ -> false
-      end)
-      |> case do
-        [] ->
-          nil
-
-        result ->
-          result
-          |> Enum.map(fn {_, x} -> x end)
-          |> Enum.group_by(fn %{"hash" => hash, "id" => id} -> {id, hash} end)
-          |> Enum.sort_by(fn {_key, x} -> length(x) end, :desc)
-          |> List.first()
-          |> Enum.map(fn {_key, x} -> x end)
-      end
-
-    data
-    |> case do
-      nil ->
-        IO.puts("pase 1 nil")
-        stop(state, true)
-
-      [] ->
-        IO.puts("pase 1")
-        stop(state, true)
-
-      result ->
-        IO.puts("pase 2")
-
-        %{"id" => last_round_id} = status = List.first(result) |> Map.delete("node")
-        nodes = Enum.map(result, fn %{"node" => node_id} -> node_id end)
-        GenServer.cast(round_manager_pid, {:put, status})
+    case check(hostname, current_round_id) do
+      {:ok, last_round_id, node} ->
+        IO.puts("RoundSync Active")
+        # GenServer.cast(round_manager_pid, {:put, status})
         GenServer.cast(round_manager_pid, {:status, :syncing, true})
 
-        {:noreply, Map.put(state, :last, last_round_id),
-         {:continue, {:fetch, current_round_id + 1, nodes}}}
+        {
+          :noreply,
+          Map.put(state, :last, last_round_id),
+          {:continue, {:fetch, current_round_id + 1, node}}
+        }
+
+      :idle ->
+        IO.puts("RoundSync Idle")
+        stop(state, true)
     end
   end
 
   # Get old rounds data from node selected
   def handle_continue(
-        {:fetch, round_id, nodes},
+        {:fetch, round_id, %{id: node_id} = node},
         %{
           last: last_round_id,
           block_id: block_id,
@@ -104,14 +71,12 @@ defmodule RoundSync do
         } =
           state
       ) do
-    [node_id] = Enum.take_random(nodes, 1)
-
     if last_round_id > 0 do
       case NetworkNodes.call(node_id, "get_round", round_id) do
         {:error, _} ->
           stop(state, false)
 
-        msg_round ->
+        {:ok, msg_round} ->
           round = Round.from_remote(msg_round)
 
           case RoundManager.build_round(
@@ -124,7 +89,7 @@ defmodule RoundSync do
                  round_manager_pid
                ) do
             {:ok, _new_round} ->
-              {:noreply, state, {:continue, {:fetch, round_id + 1, nodes}}}
+              {:noreply, state, {:continue, {:fetch, round_id + 1, node}}}
 
             _ ->
               stop(state, false)
@@ -151,7 +116,7 @@ defmodule RoundSync do
         } = state
       ) do
     case :ets.lookup(ets_queue, key) do
-      [round] ->
+      [{_id, round}] ->
         RoundManager.build_round(
           round,
           block_id,
@@ -171,18 +136,6 @@ defmodule RoundSync do
     end
   end
 
-  # Build old rounds
-  # def handle_continue({:build, rounds}, old_state) do
-  #   pid = self()
-
-  #   spawn_link(fn ->
-  #     build(rounds, old_state)
-  #     GenServer.cast(pid, :end)
-  #   end)
-
-  #   {:noreply, old_state}
-  # end
-
   # Add round in a queue
   @impl true
   def handle_cast({:add, %{id: id} = new_round}, state = %{queue: ets_queue}) do
@@ -190,42 +143,47 @@ defmodule RoundSync do
     {:noreply, state}
   end
 
-  # Build queue rounds
-  # def handle_cast(:end, %{queue: ets_queue} = state) do
-  #   :ets.delete(ets_queue)
+  # Get random hostname from whitelist
+  defp random_host do
+    File.stream!("whitelist", [], :line)
+    |> Enum.map(fn text ->
+      String.trim(text)
+    end)
+    |> Enum.filter(fn x -> Match.hostname?(x) end)
+    |> Enum.take_random(1)
+  end
 
-  #   stop(state, false)
-  # end
+  defp check(hostname, my_last_round) do
+    {:ok, r1} = HTTPoison.get("https://#{hostname}/v1/info", [], hackney: [:insecure])
+    {:ok, r2} = HTTPoison.get("https://#{hostname}/v1/round/last", [], hackney: [:insecure])
 
-  # Build a list of rounds
-  # defp build(rounds, %{miner_pool: miner_pool_pid, pid: round_manager_pid} = old_state) do
-  #   db_ref = :persistent_term.get(:main_conn)
-  #   balances = DetsPlux.get(:balance)
+    {:ok, validator} = @json.decode(r1.body)
 
-  #   Enum.reduce(rounds, old_state, fn round, %{block_id: block_id} = acc ->
-  #     creator = Validator.get(round.creator)
+    {:ok, round} = @json.decode(r2.body)
 
-  #     case RoundManager.build_round(
-  #            round,
-  #            block_id,
-  #            creator,
-  #            db_ref,
-  #            balances,
-  #            miner_pool_pid,
-  #            round_manager_pid
-  #          ) do
-  #       {:ok, new_round} ->
-  #         %{
-  #           round_id: new_round.id + 1,
-  #           block_id: block_id + round.count,
-  #           round_hash: new_round.hash
-  #         }
+    round_id = String.to_integer(round.id)
 
-  #       _ ->
-  #         acc
-  #     end
-  #   end)
-  # end
+    if round_id > my_last_round do
+      # validator
+      node =
+        validator
+        |> Map.take(~w(id hostname port pubkey net_pubkey))
+        |> MapUtil.to_atoms()
+        |> MapUtil.transform(:pubkey, fn x -> Base.decode64!(x) end)
+        |> MapUtil.transform(:net_pubkey, fn x -> Base.decode64!(x) end)
+
+      case NetworkNodes.connect(node) do
+        false ->
+          Logger.warning("It is not possible connect to #{hostname}")
+
+        _socket ->
+          {:ok, round_id, node}
+      end
+    else
+      Logger.info("No Sync")
+      :idle
+    end
+  end
 
   defp stop(state = %{queue: ets_queue, pid: round_manager_pid}, next) do
     :ets.delete(ets_queue)

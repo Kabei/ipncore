@@ -35,7 +35,7 @@ defmodule RoundManager do
     db_ref = :persistent_term.get(:main_conn)
 
     ets_players =
-      ets_start(:players, [:ordered_set, :public, :named_table])
+      ets_start(:players, [:ordered_set, :public])
 
     ets_votes =
       ets_start(:votes, [:set, :public])

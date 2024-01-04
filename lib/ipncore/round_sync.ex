@@ -58,6 +58,9 @@ defmodule RoundSync do
               {:continue, {:fetch, current_round_id + 1, node}}
             }
 
+          :stop ->
+            stop(state, false)
+
           :idle ->
             IO.puts("RoundSync Idle")
             stop(state, true)
@@ -98,7 +101,7 @@ defmodule RoundSync do
             {:ok, _new_round} ->
               {:noreply, state, {:continue, {:fetch, round_id + 1, node}}}
 
-            _ ->
+            _error ->
               stop(state, false)
           end
       end
@@ -181,7 +184,7 @@ defmodule RoundSync do
       case NetworkNodes.connect(node) do
         false ->
           Logger.warning("It is not possible connect to #{hostname}")
-          :idle
+          :stop
 
         _socket ->
           {:ok, round_id, node}

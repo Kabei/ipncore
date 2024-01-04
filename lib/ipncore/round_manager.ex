@@ -377,18 +377,18 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast(
-        {:put, %{"id" => round_id, "hash" => round_hash, "block_id" => block_id}},
-        state
-      ) do
-    {:noreply,
-     %{
-       state
-       | round_id: round_id,
-         round_hash: round_hash,
-         block_id: block_id
-     }}
-  end
+  # def handle_cast(
+  #       {:put, %{"id" => round_id, "hash" => round_hash, "block_id" => block_id}},
+  #       state
+  #     ) do
+  #   {:noreply,
+  #    %{
+  #      state
+  #      | round_id: round_id,
+  #        round_hash: round_hash,
+  #        block_id: block_id
+  #    }}
+  # end
 
   def handle_cast({:status, status, next}, state) do
     IO.puts("set status: #{status} - #{next}")

@@ -59,6 +59,8 @@ defmodule Ippan.Funx.Sys do
 
       :persistent_term.put(:last_fun, fun)
     end
+
+    :ok
   end
 
   defp after_upgrade(opts, pid) do

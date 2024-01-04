@@ -237,7 +237,7 @@ defmodule RoundSync do
               Logger.warning("Wrong blockchain \"#{blockchain}\" - My config: #{@blockchain}")
               :stop
 
-            String.to_integer(round_id) > my_last_round ->
+            round_id > my_last_round ->
               # validator
               node =
                 validator

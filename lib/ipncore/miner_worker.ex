@@ -68,7 +68,6 @@ defmodule MinerWorker do
         block_check =
           block
           |> Map.put("hostname", creator.hostname)
-          |> Map.put("pubkey", creator.pubkey)
 
         {node_id, node} = random_node()
 

@@ -15,7 +15,7 @@ defmodule Ippan.BlockHandler do
 
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
-          map | nil
+          map() | nil
   def generate_files(creator_id, height, prev) do
     block_path =
       Path.join(:persistent_term.get(:block_dir), "#{creator_id}.#{height}.#{@block_extension}")

@@ -95,7 +95,7 @@ defmodule RoundSync do
           case RoundManager.build_round(
                  round,
                  last_block_id,
-                 creator,
+                 %{creator | hostname: node.hostname},
                  db_ref,
                  balances,
                  miner_pool_pid,
@@ -105,7 +105,7 @@ defmodule RoundSync do
               {:noreply, state, {:continue, {:fetch, round_id + 1, node}}}
 
             _error ->
-              stop(state, false)
+              {:noreply, state, {:continue, {:fetch, round_id + 1, node}}}
           end
       end
     else

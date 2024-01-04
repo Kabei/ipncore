@@ -192,7 +192,7 @@ defmodule Ippan.Validator do
 
       if id == :persistent_term.get(:vid) do
         Logger.warning("I have left the network")
-        System.halt()
+        # System.halt()
       end
     end
   end

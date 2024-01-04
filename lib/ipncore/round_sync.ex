@@ -38,23 +38,30 @@ defmodule RoundSync do
           pid: round_manager_pid
         } = state
       ) do
-    hostname = random_host()
+    hostname = get_random_host()
 
-    case check(hostname, current_round_id) do
-      {:ok, last_round_id, node} ->
-        IO.puts("RoundSync Active")
-        # GenServer.cast(round_manager_pid, {:put, status})
-        GenServer.cast(round_manager_pid, {:status, :syncing, true})
-
-        {
-          :noreply,
-          Map.put(state, :last, last_round_id),
-          {:continue, {:fetch, current_round_id + 1, node}}
-        }
-
-      :idle ->
-        IO.puts("RoundSync Idle")
+    case hostname do
+      nil ->
+        Logger.warning("There is not hosts in whitelist")
         stop(state, true)
+
+      hostname ->
+        case check(hostname, current_round_id) do
+          {:ok, last_round_id, node} ->
+            IO.puts("RoundSync Active")
+            # GenServer.cast(round_manager_pid, {:put, status})
+            GenServer.cast(round_manager_pid, {:status, :syncing, true})
+
+            {
+              :noreply,
+              Map.put(state, :last, last_round_id),
+              {:continue, {:fetch, current_round_id + 1, node}}
+            }
+
+          :idle ->
+            IO.puts("RoundSync Idle")
+            stop(state, true)
+        end
     end
   end
 
@@ -144,13 +151,14 @@ defmodule RoundSync do
   end
 
   # Get random hostname from whitelist
-  defp random_host do
+  defp get_random_host do
     File.stream!("whitelist", [], :line)
     |> Enum.map(fn text ->
       String.trim(text)
     end)
-    |> Enum.filter(fn x -> Match.hostname?(x) end)
+    |> Enum.filter(fn x -> Match.hostname?(x) or Match.ipv4(x) end)
     |> Enum.take_random(1)
+    |> List.first()
   end
 
   defp check(hostname, my_last_round) do

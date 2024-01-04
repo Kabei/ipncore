@@ -226,7 +226,7 @@ defmodule RoundSync do
       {:ok, r1 = %{status_code: 200}} =
         HTTPoison.get("https://#{hostname}/v1/info", [], hackney: [:insecure])
 
-      case HTTPoison.get("https://#{hostname}/v1/round/last", [], hackney: [:insecure]) do
+      case HTTPoison.get("https://#{hostname}/v1/network/status", [], hackney: [:insecure]) do
         {:ok, r2 = %{status_code: 200}} ->
           {:ok, validator} = @json.decode(r1.body)
 

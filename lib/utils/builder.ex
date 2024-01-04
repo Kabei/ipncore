@@ -660,7 +660,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.sys_upgrade(client, %{"git" => ["reset --hard HEAD", "pull"], "deps" -> "get", "reset" => "all", "compile" => "force"}, ["ipncore", "ipnworker"])
+  # Builder.sys_upgrade(client, %{"git" => "pull", "deps" -> "get", "reset" => "all", "compile" => "force"}, ["ipncore", "ipnworker"])
   def sys_upgrade(client = %Client{id: account_id, nonce: nonce}, opts, target_apps) do
     body =
       [900, nonce, account_id, opts, target_apps]

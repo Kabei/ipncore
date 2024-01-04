@@ -20,6 +20,7 @@ defmodule RoundSync do
   #  @type t :: %__MODULE__{status: :synced | :syncing}
   @app Mix.Project.config()[:app]
   @json Application.compile_env(@app, :json)
+  @blockchain Application.compile_env(@app, :name)
 
   def start_link(args) do
     case Process.whereis(__MODULE__) do
@@ -229,28 +230,34 @@ defmodule RoundSync do
         {:ok, r2 = %{status_code: 200}} ->
           {:ok, validator} = @json.decode(r1.body)
 
-          {:ok, %{"id" => round_id}} = @json.decode(r2.body)
+          {:ok, %{"id" => round_id, "name" => blockchain}} = @json.decode(r2.body)
 
-          if String.to_integer(round_id) > my_last_round do
-            # validator
-            node =
-              validator
-              |> Map.take(~w(id hostname port pubkey net_pubkey))
-              |> MapUtil.to_atoms()
-              |> MapUtil.transform(:pubkey, fn x -> Base.decode64!(x) end)
-              |> MapUtil.transform(:net_pubkey, fn x -> Base.decode64!(x) end)
+          cond do
+            blockchain != @blockchain ->
+              Logger.warning("Wrong blockchain \"#{blockchain}\" - My config: #{@blockchain}")
+              :stop
 
-            case NetworkNodes.connect(node) do
-              false ->
-                Logger.warning("It is not possible connect to #{hostname}")
-                :stop
+            String.to_integer(round_id) > my_last_round ->
+              # validator
+              node =
+                validator
+                |> Map.take(~w(id hostname port pubkey net_pubkey))
+                |> MapUtil.to_atoms()
+                |> MapUtil.transform(:pubkey, fn x -> Base.decode64!(x) end)
+                |> MapUtil.transform(:net_pubkey, fn x -> Base.decode64!(x) end)
 
-              _socket ->
-                {:ok, round_id, node}
-            end
-          else
-            Logger.info("No Sync")
-            :idle
+              case NetworkNodes.connect(node) do
+                false ->
+                  Logger.warning("It is not possible connect to #{hostname}")
+                  :stop
+
+                _socket ->
+                  {:ok, round_id, node}
+              end
+
+            true ->
+              Logger.info("No Sync")
+              :idle
           end
 
         _ ->

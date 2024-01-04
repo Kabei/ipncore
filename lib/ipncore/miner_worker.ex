@@ -68,10 +68,10 @@ defmodule MinerWorker do
           block
           |> Map.put("hostname", creator.hostname)
 
-        {node_id, node} = random_node()
-
         case verify_block do
           true ->
+            {node_id, node} = random_node()
+
             case ClusterNodes.call(node_id, "verify_block", block_check,
                    timeout: 10_000,
                    retry: 2

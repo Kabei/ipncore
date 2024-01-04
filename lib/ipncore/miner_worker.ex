@@ -90,7 +90,7 @@ defmodule MinerWorker do
             end
 
           false ->
-            url = Block.cluster_decode_url(creator.hostname, creator_id, height)
+            url = Block.url(creator.hostname, creator_id, height)
             :ok = Download.from(url, decode_path)
         end
       end

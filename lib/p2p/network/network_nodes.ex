@@ -1,5 +1,5 @@
 defmodule Ippan.NetworkNodes do
-  alias Ippan.{Network, Round, Validator}
+  alias Ippan.{Block, Network, Round, Validator}
   require Round
   require Validator
   require Sqlite
@@ -62,7 +62,7 @@ defmodule Ippan.NetworkNodes do
   end
 
   def handle_message("msg_block", data, %{id: from}) when is_map(data) do
-    GenServer.cast(RoundManager, {"msg_block", data, from})
+    GenServer.cast(RoundManager, {"msg_block", Block.from_remote(data), from})
   end
 
   def handle_message(_event, _from, _data), do: :ok

@@ -433,6 +433,8 @@ defmodule RoundManager do
     end
   end
 
+  defp block_pre_verificacion(_, _, _), do: :error
+
   defp ets_start(name, opts) do
     case :ets.whereis(name) do
       :undefined -> :ets.new(name, opts)

@@ -114,7 +114,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :active,
-      deferred: true
+      deferred: true,
+      key: 1
     }
   end
 

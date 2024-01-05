@@ -335,7 +335,9 @@ defmodule RoundManager do
           vid
         ])
       else
-        RoundSync.add_queue(msg_round)
+        if status != :synced do
+          RoundSync.add_queue(msg_round)
+        end
       end
     end
 

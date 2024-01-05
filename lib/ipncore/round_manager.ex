@@ -117,7 +117,7 @@ defmodule RoundManager do
 
       {:noreply, new_state, :hibernate}
     else
-      send_block(state)
+      # send_block(state)
 
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
@@ -129,7 +129,7 @@ defmodule RoundManager do
         :timeout,
         %{round_id: round_id, round_hash: prev_hash, players: ets_players, rcid: rcid} = state
       ) do
-    Logger.warning("Round ##{round_id} Timeout | #{rcid}")
+    Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
 
     case sync_to_round_creator(state) do
       :error ->
@@ -214,7 +214,6 @@ defmodule RoundManager do
     BlockTimer.complete(hash, is_some_block_mine)
     # end
 
-    # if next do
     {:noreply,
      %{
        state
@@ -222,10 +221,6 @@ defmodule RoundManager do
          round_id: the_round_id + 1,
          round_hash: round.hash
      }, {:continue, :next}}
-
-    # else
-    #   {:noreply, state, :hibernate}
-    # end
   end
 
   def handle_cast(
@@ -304,6 +299,7 @@ defmodule RoundManager do
 
     with true <- creator_id == rcid,
          true <- limit >= length(blocks),
+         true <- Validator.exists?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          false <-
            Enum.any?(blocks, fn block ->
@@ -350,7 +346,8 @@ defmodule RoundManager do
         {"msg_block", block = %{creator: creator_id, height: height}, _node_id},
         state = %{db_ref: db_ref, candidates: ets_candidates, players: ets_players}
       ) do
-    with :ok <- block_pre_verificacion(block, db_ref, ets_players) do
+    with true <- Validator.exists?(creator_id),
+         :ok <- block_pre_verificacion(block, db_ref, ets_players) do
       :ets.insert(ets_candidates, {{creator_id, height}, block})
     end
 
@@ -959,27 +956,27 @@ defmodule RoundManager do
     end
   end
 
-  defp send_block(%{
-         rcid: node_id,
-         rc_node: validator_node
-       }) do
-    candidate = BlockTimer.get_block()
+  # defp send_block(%{
+  #        rcid: node_id,
+  #        rc_node: validator_node
+  #      }) do
+  #   candidate = BlockTimer.get_block()
 
-    if candidate do
-      case NetworkNodes.connect(validator_node, retry: 3) do
-        false ->
-          Logger.warning("It was not possible to connect to the round creator")
-          :error
+  #   if candidate do
+  #     case NetworkNodes.connect(validator_node, retry: 3) do
+  #       false ->
+  #         Logger.warning("It was not possible to connect to the round creator")
+  #         :error
 
-        socket ->
-          NetworkNodes.cast(node_id, "msg_block", candidate)
-          # Disconnect if count is greater than max_peers_conn
-          if NetworkNodes.count() > @max_peers_conn do
-            NetworkNodes.disconnect(node_id, socket)
-          end
-      end
-    end
-  end
+  #       socket ->
+  #         NetworkNodes.cast(node_id, "msg_block", candidate)
+  #         # Disconnect if count is greater than max_peers_conn
+  #         if NetworkNodes.count() > @max_peers_conn do
+  #           NetworkNodes.disconnect(node_id, socket)
+  #         end
+  #     end
+  #   end
+  # end
 
   defp check_votes(%{round_id: round_id, votes: ets_votes}) do
     # check votes

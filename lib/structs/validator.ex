@@ -38,7 +38,7 @@ defmodule Ippan.Validator do
   ]
 
   @impl true
-  def editable, do: ~w(hostname port name avatar pubkey net_pubkey fa fb owner)
+  def editable, do: ~w(hostname port name avatar fa fb owner)
   @impl true
   def optionals, do: ~w(avatar env)
 

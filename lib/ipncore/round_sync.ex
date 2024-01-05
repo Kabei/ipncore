@@ -248,7 +248,7 @@ defmodule RoundSync do
               case NetworkNodes.connect(node) do
                 false ->
                   Logger.warning("It is not possible connect to #{hostname}")
-                  :stop
+                  :idle
 
                 _socket ->
                   {:ok, round_id, node}

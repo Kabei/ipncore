@@ -1,7 +1,7 @@
 defmodule BlockTimer do
   use GenServer
   require Logger
-  alias Ippan.{Block, BlockHandler}
+  alias Ippan.{Block, BlockHandler, Round}
   require Block
   require Sqlite
 
@@ -29,9 +29,9 @@ defmodule BlockTimer do
     {:ok,
      %{
        block_id: block_id,
-       creator: vid,
        height: last_height + 1,
        prev: prev,
+       vid: vid,
        candidate: nil
      }, {:continue, :check}}
   end
@@ -58,9 +58,9 @@ defmodule BlockTimer do
   @doc """
   Update block height, prev hash and candidate in state
   """
-  @spec complete(hash :: binary(), boolean()) :: :ok
-  def complete(hash, is_some_block_mine) do
-    GenServer.cast(@module, {:complete, hash, is_some_block_mine})
+  @spec complete(hash :: binary(), list()) :: :ok
+  def complete(hash, blocks) do
+    GenServer.cast(@module, {:complete, hash, blocks})
   end
 
   @spec stop :: :ok
@@ -114,8 +114,8 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_cast({:complete, hash, is_some_block_mine}, state) do
-    if is_some_block_mine do
+  def handle_cast({:complete, hash, blocks}, %{vid: vid} = state) do
+    if Round.is_some_block_mine?(blocks, vid) do
       {:noreply, %{state | candidate: nil, prev: hash}, {:continue, :check}}
     else
       {:noreply, %{state | prev: hash}, {:continue, :check}}
@@ -123,10 +123,10 @@ defmodule BlockTimer do
   end
 
   defp do_check(
-         %{candidate: nil, creator: creator_id, height: height, prev: prev} = state,
+         %{candidate: nil, vid: vid, height: height, prev: prev} = state,
          sleep \\ 0
        ) do
-    case BlockHandler.generate_files(creator_id, height, prev) do
+    case BlockHandler.generate_files(vid, height, prev) do
       nil ->
         if sleep > 0 do
           IO.inspect("Wait to #{sleep} ms")

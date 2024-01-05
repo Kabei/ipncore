@@ -1,7 +1,7 @@
 defmodule RoundCommit do
   require Sqlite
 
-  def sync(db_ref, tx_count, is_some_block_mine) do
+  def sync(db_ref, tx_count) do
     if tx_count > 0 do
       [
         Task.async(fn ->
@@ -27,10 +27,6 @@ defmodule RoundCommit do
         end)
       ]
       |> Task.await_many(:infinity)
-
-      if is_some_block_mine do
-        MemTables.clear_cache()
-      end
     else
       balance_dets = DetsPlux.get(:balance)
       balance_tx = DetsPlux.tx(balance_dets, :balance)

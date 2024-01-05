@@ -20,7 +20,7 @@ config :ipncore, :message_max_size, 8192
 config :ipncore, :version, 0
 config :ipncore, :max_block_size, 10_485_760
 config :ipncore, :max_block_data_size, 10_000_000
-config :ipncore, :round_timeout, :timer.seconds(20)
+config :ipncore, :round_timeout, :timer.seconds(40)
 config :ipncore, :block_extension, "blo"
 config :ipncore, :decode_extension, "dec"
 config :ipncore, :note_max_size, 255

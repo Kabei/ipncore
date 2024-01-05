@@ -66,10 +66,6 @@ defmodule Ippan.Funx.Validator do
 
             Validator.insert(Validator.to_list(validator))
 
-            if next_id == :persistent_term.get(:vid) do
-              Validator.put_self(validator)
-            end
-
             event = %{"event" => "validator.new", "data" => Validator.to_text(validator)}
             PubSub.broadcast(@pubsub, @topic, event)
         end
@@ -97,11 +93,6 @@ defmodule Ippan.Funx.Validator do
 
         db_ref = :persistent_term.get(:main_conn)
         Validator.update(map, id)
-
-        if id == :persistent_term.get(:vid) do
-          v = Map.merge(:persistent_term.get(:validator), map)
-          Validator.put_self(v)
-        end
 
         # transform to text
         fun = fn x -> Utils.encode64(x) end

@@ -121,11 +121,6 @@ defmodule Ippan.Validator do
 
   def calc_price(total), do: (total + 1) * EnvStore.validator_price()
 
-  def put_self(v) do
-    :persistent_term.put(:validator, v)
-    :persistent_term.put(:vhash, :erlang.phash2(v) |> :erlang.integer_to_binary())
-  end
-
   require Sqlite
 
   defmacro insert(args) do

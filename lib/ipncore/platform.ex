@@ -21,9 +21,6 @@ defmodule Platform do
         :ok
     end
 
-    v = Validator.get(vid)
-    Validator.put_self(v)
-
     :ok
   end
 

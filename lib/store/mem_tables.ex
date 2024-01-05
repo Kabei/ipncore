@@ -93,12 +93,12 @@ defmodule MemTables do
     end
   end
 
-  def clear_cache do
+  # def clear_cache do
     # :ets.delete_all_objects(:hash)
     # :ets.delete_all_objects(:dhash)
-    :ets.delete_all_objects(:validator)
-    :ets.delete_all_objects(:token)
-  end
+    # :ets.delete_all_objects(:validator)
+    # :ets.delete_all_objects(:token)
+  # end
 
   def terminate do
     save_all()

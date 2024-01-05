@@ -188,10 +188,9 @@ defmodule RoundManager do
   @impl true
   # Process round
   def handle_cast(
-        {:complete, round = %{id: the_round_id, hash: hash}},
+        {:complete, round = %{id: the_round_id, hash: hash, blocks: blocks}},
         %{
           candidates: ets_candidates,
-          vid: vid,
           block_id: block_id,
           round_id: round_id,
           votes: ets_votes
@@ -209,10 +208,7 @@ defmodule RoundManager do
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
     # Set last local height and prev hash and reset timer
-    # if next do
-    is_some_block_mine = Round.is_some_block_mine?(round, vid)
-    BlockTimer.complete(hash, is_some_block_mine)
-    # end
+    BlockTimer.complete(hash, blocks)
 
     {:noreply,
      %{
@@ -534,7 +530,7 @@ defmodule RoundManager do
               []
           end
 
-        creator = :persistent_term.get(:validator)
+        creator = Validator.get(vid)
         timestamp = :erlang.system_time(:millisecond)
         {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
         hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
@@ -723,9 +719,7 @@ defmodule RoundManager do
         run_maintenance(round_id, db_ref)
 
         # save all round
-        vid = :persistent_term.get(:vid)
-        is_some_block_mine = Round.is_some_block_mine?(round, vid)
-        RoundCommit.sync(db_ref, round.tx_count, is_some_block_mine)
+        RoundCommit.sync(db_ref, round.tx_count)
 
         fun = :persistent_term.get(:last_fun, nil)
 
@@ -920,11 +914,11 @@ defmodule RoundManager do
               :error
 
             socket ->
-              candidate = BlockTimer.get_block()
+              # candidate = BlockTimer.get_block()
 
-              if candidate do
-                NetworkNodes.cast(node_id, "msg_block", candidate)
-              end
+              # if candidate do
+              #   NetworkNodes.cast(node_id, "msg_block", candidate)
+              # end
 
               case NetworkNodes.call(node_id, "get_round", round_id) do
                 {:ok, response} when is_map(response) ->

@@ -156,7 +156,6 @@ defmodule Ippan.Funx.Coin do
 
     case env do
       %{"reload.expiry" => expiry} ->
-        # fun = fn ->
         cond do
           round_id - last_reload > expiry ->
             dets = DetsPlux.get(:balance)

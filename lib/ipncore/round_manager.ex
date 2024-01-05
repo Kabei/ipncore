@@ -117,6 +117,8 @@ defmodule RoundManager do
 
       {:noreply, new_state, :hibernate}
     else
+      send_block(state)
+
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     end
@@ -953,6 +955,28 @@ defmodule RoundManager do
         message ->
           IO.puts("sync_to_round_creator #{inspect(message)}")
           spawn_build_foreign_round(state, message)
+      end
+    end
+  end
+
+  defp send_block(%{
+         rcid: node_id,
+         rc_node: validator_node
+       }) do
+    candidate = BlockTimer.get_block()
+
+    if candidate do
+      case NetworkNodes.connect(validator_node, retry: 3) do
+        false ->
+          Logger.warning("It was not possible to connect to the round creator")
+          :error
+
+        socket ->
+          NetworkNodes.cast(node_id, "msg_block", candidate)
+          # Disconnect if count is greater than max_peers_conn
+          if NetworkNodes.count() > @max_peers_conn do
+            NetworkNodes.disconnect(node_id, socket)
+          end
       end
     end
   end

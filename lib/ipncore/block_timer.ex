@@ -152,9 +152,7 @@ defmodule BlockTimer do
   defp load do
     dir = :persistent_term.get(:save_dir)
     filepath = Path.join(dir, "mem.data")
-    # Create mempool counter
-    cref = :counters.new(1, [])
-    :persistent_term.put(:msg_counter, cref)
+    cref = :persistent_term.get(:msg_counter)
 
     if File.exists?(filepath) do
       {:ok, content} = File.read(filepath)

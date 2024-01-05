@@ -11,6 +11,8 @@ defmodule Mempool do
   @impl true
   def init(_) do
     :persistent_term.put(@name, self())
+    cref = :counters.new(1, [])
+    :persistent_term.put(:msg_counter, cref)
 
     {:ok,
      %{
@@ -82,8 +84,8 @@ defmodule Mempool do
 
   def handle_call(
         {:deferred, [hash, type, key, from, nonce | rest], return},
-        from,
-        state = %{ets_hash: ets_hash, ets_dhash: ets_dhash, ets_msg: ets_msg}
+        _from,
+        state = %{ets_dhash: ets_dhash, ets_hash: ets_hash, ets_msg: ets_msg}
       ) do
     nonce_key = {from, nonce}
 
@@ -144,6 +146,8 @@ defmodule Mempool do
       DetsPlux.clear_tx(cache_balance_tx)
       DetsPlux.clear_tx(cache_nonce_tx)
       DetsPlux.clear_tx(cache_supply)
+      cref = :persistent_term.get(:msg_counter)
+      :counters.put(cref, 1, 0)
     end
 
     {:noreply, state}

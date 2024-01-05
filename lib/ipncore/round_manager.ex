@@ -530,7 +530,7 @@ defmodule RoundManager do
           case status do
             :synced ->
               BlockTimer.get_block(block_id) ++
-                :ets.tab2list(ets_candidates)
+                Enum.map(:ets.tab2list(ets_candidates), fn {_, b} -> b end)
 
             # Time to wait messages (msg_block) to arrived
             _ ->

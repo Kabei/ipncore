@@ -151,22 +151,6 @@ defmodule RoundManager do
   end
 
   def handle_info(
-        {"msg_block", block = %{"creator" => creator_id, "height" => height}, _node_id},
-        state = %{db_ref: db_ref, candidates: ets_candidates, players: ets_players}
-      ) do
-    with :ok <- block_pre_verificacion(block, db_ref, ets_players) do
-      block =
-        block
-        |> Map.take(Block.fields())
-        |> MapUtil.to_atoms()
-
-      :ets.insert(ets_candidates, {{creator_id, height}, block})
-    end
-
-    {:noreply, state}
-  end
-
-  def handle_info(
         %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}},
         %{db_ref: db_ref, players: ets_players} = state
       ) do
@@ -353,6 +337,22 @@ defmodule RoundManager do
       else
         RoundSync.add_queue(msg_round)
       end
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_cast(
+        {"msg_block", block = %{"creator" => creator_id, "height" => height}, _node_id},
+        state = %{db_ref: db_ref, candidates: ets_candidates, players: ets_players}
+      ) do
+    with :ok <- block_pre_verificacion(block, db_ref, ets_players) do
+      block =
+        block
+        |> Map.take(Block.fields())
+        |> MapUtil.to_atoms()
+
+      :ets.insert(ets_candidates, {{creator_id, height}, block})
     end
 
     {:noreply, state}

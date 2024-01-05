@@ -117,7 +117,7 @@ defmodule RoundManager do
 
       {:noreply, new_state, :hibernate}
     else
-      # send_block(state)
+      sync_to_round_creator(state)
 
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
@@ -375,13 +375,6 @@ defmodule RoundManager do
       {:noreply, %{state | status: status}, :hibernate}
     end
   end
-
-  # def handle_cast({:on_connect, _node_id}, state = %{rcid: _rcid}) do
-  #   # if node_id == rcid do
-  #   #   sync_to_round_creator(state)
-  #   # end
-  #   {:noreply, state}
-  # end
 
   @impl true
   def handle_call(:last_block, _from, state) do

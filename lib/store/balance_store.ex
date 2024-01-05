@@ -85,6 +85,8 @@ defmodule BalanceStore do
     quote bind_quoted: [from: from, token: @token, amount: amount], location: :keep do
       if amount > 0 do
         balance_key = DetsPlux.tuple(var!(from), token)
+        DetsPlux.get_cache(var!(dets), var!(tx), balance_key, {0, %{}})
+
         DetsPlux.update_counter(var!(tx), balance_key, {2, -amount})
         supply = TokenSupply.jackpot()
         TokenSupply.add(supply, amount)

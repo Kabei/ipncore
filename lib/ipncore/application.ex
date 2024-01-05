@@ -23,6 +23,7 @@ defmodule Ipncore.Application do
         LocalStore,
         MainStore,
         {PubSub, [name: :pubsub]},
+        Mempool,
         BlockTimer,
         ClusterNodes,
         NetworkNodes,

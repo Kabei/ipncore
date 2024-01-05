@@ -1,7 +1,7 @@
 defmodule Ippan.ClusterNodes do
   require Ippan.Round
   alias Ippan.Round
-  alias Ippan.{Node, Network, Wallet}
+  alias Ippan.{Node, Network}
   require Ippan.{Node, TxHandler, Round}
   require BalanceStore
   require Sqlite
@@ -39,101 +39,29 @@ defmodule Ippan.ClusterNodes do
   @impl Network
   def handle_request(
         "new_msg",
-        [false, [hash, type, from, nonce, args, msg_sig, size], return],
+        [false, body, return],
         _state
       ) do
     status = :persistent_term.get(:status)
 
     if status == :synced do
-      nonce_key = {from, nonce}
-
-      case :ets.insert_new(:hash, {nonce_key, nil}) do
-        true ->
-          dets = DetsPlux.get(:nonce)
-          cache = DetsPlux.tx(dets, :cache_nonce)
-
-          # IO.puts("The nonce")
-
-          case Wallet.update_nonce(dets, cache, from, nonce) do
-            :error ->
-              :ets.delete(:hash, nonce_key)
-              ["error", "Invalid nonce x1"]
-
-            _ ->
-              # IO.puts("The check return")
-              # IO.puts("The insert")
-              cref = :persistent_term.get(:msg_counter)
-              :counters.add(cref, 1, 1)
-              ix = :counters.get(cref, 1)
-              [_msg, sig] = msg_sig
-              decode = [hash, type, from, nonce, args, sig, size]
-              :ets.insert(:msg, {ix, 0, decode, msg_sig, return})
-              # IO.puts("The result")
-              %{"index" => ix}
-          end
-
-        false ->
-          ["error", "Already exists (Core)"]
-      end
+      Mempool.regular(body, return)
     else
-      ["error", "Node waiting for synchronization"]
+      {:error, "Node waiting for synchronization"}
     end
   end
 
   def handle_request(
         "new_msg",
-        [true, [hash, type, key, from, nonce | rest], return],
+        [true, body, return],
         _state
       ) do
     status = :persistent_term.get(:status)
 
     if status == :synced do
-      nonce_key = {from, nonce}
-      dets = DetsPlux.get(:nonce)
-      cache = DetsPlux.tx(dets, :cache_nonce)
-
-      case :ets.insert_new(:hash, {nonce_key, nil}) do
-        true ->
-          msg_key = {type, key}
-
-          # IO.puts("The same hash")
-
-          case :ets.insert_new(:dhash, {msg_key, nil}) do
-            true ->
-              [args, msg_sig, size] = rest
-
-              # IO.puts("The nonce")
-
-              case Wallet.update_nonce(dets, cache, from, nonce) do
-                :error ->
-                  :ets.delete(:hash, nonce_key)
-                  :ets.delete(:dhash, msg_key)
-                  ["error", "Invalid nonce x2"]
-
-                _ ->
-                  # IO.puts("The insert")
-                  cref = :persistent_term.get(:msg_counter)
-                  :counters.add(cref, 1, 1)
-                  ix = :counters.get(cref, 1)
-                  [_msg, sig] = msg_sig
-                  decode = [hash, type, key, from, nonce, args, sig, size]
-                  :ets.insert(:msg, {ix, 1, decode, msg_sig, return})
-
-                  # IO.puts("The result")
-                  %{"index" => ix}
-              end
-
-            false ->
-              :ets.delete(:hash, nonce_key)
-              Wallet.revert_nonce(cache, from)
-              ["error", "Deferred transaction already exists (Core)"]
-          end
-
-        false ->
-          ["error", "Already exists (Core) #{inspect(nonce_key)}"]
-      end
+      Mempool.deferred(body, return)
     else
-      ["error", "Node waiting for synchronization"]
+      {"error", "Node waiting for synchronization"}
     end
   end
 
@@ -181,7 +109,7 @@ defmodule Ippan.ClusterNodes do
     end
   end
 
-  def handle_request(_method, _data, _state), do: ["error", "Not found"]
+  def handle_request(_method, _data, _state), do: {"error", "Not found"}
 
   @impl Network
   def handle_message(event = "node.join", data, %{"id" => node_id}) do

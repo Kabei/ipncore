@@ -237,7 +237,7 @@ defmodule Ippan.Network do
             rescue
               e ->
                 Logger.error(inspect(e))
-                bin = %{"_id" => id, "data" => ["error", e.message]}
+                bin = %{"_id" => id, "data" => {"error", e.message}}
                 @adapter.send(state.socket, encode(bin, sharedkey))
             end
 
@@ -416,7 +416,7 @@ defmodule Ippan.Network do
         @adapter.send(socket, encode(message, sharedkey))
 
         receive do
-          ["error", error] ->
+          {"error", error} ->
             {:error, error}
 
           result ->

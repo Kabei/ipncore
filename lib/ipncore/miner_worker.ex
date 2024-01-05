@@ -67,6 +67,7 @@ defmodule MinerWorker do
         block_check =
           block
           |> Map.put("hostname", creator.hostname)
+          |> Map.put("round", current_round_id)
 
         case verify_block do
           true ->

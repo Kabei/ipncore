@@ -34,7 +34,7 @@ defmodule Match do
   def username?(x), do: Regex.match?(@username, x)
   def token?(x), do: Regex.match?(@token, x)
   def text?(x), do: Regex.match?(@text, x)
-  def ipv4(x), do: Regex.match?(@ipv4, x)
+  def ipv4?(x), do: Regex.match?(@ipv4, x)
   def host_or_ipv4?(x), do: Regex.match?(@host_ipv4, x)
 
   def account?(x) do

@@ -202,7 +202,7 @@ defmodule Ippan.Round do
   def null?(_), do: false
 
   # status: 1 = timeout
-  # status: 2 = Error round data
+  # status: 2 = Error all block with error
   @spec cancel(
           non_neg_integer(),
           binary() | nil,
@@ -212,7 +212,7 @@ defmodule Ippan.Round do
           non_neg_integer(),
           non_neg_integer()
         ) :: map
-  def cancel(id, hash, prev, signature, creator_id, status, timestamp) do
+  def cancel(id, hash, prev, signature, creator_id, status, timestamp) when status > 0 do
     %{
       id: id,
       hash: hash || prev,

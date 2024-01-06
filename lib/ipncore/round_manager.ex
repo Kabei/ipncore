@@ -136,28 +136,41 @@ defmodule RoundManager do
 
   def handle_info(
         :timeout,
-        %{round_id: round_id, round_hash: prev_hash, players: ets_players, rcid: rcid} = state
+        %{
+          round_id: round_id,
+          round_hash: prev_hash,
+          db_ref: db_ref,
+          players: ets_players,
+          rcid: rcid
+        } = state
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
 
-    case sync_to_round_creator(state, true) do
-      :error ->
-        if :ets.info(ets_players, :size) > 1 do
-          pid = self()
+    case check_votes(state, true) do
+      nil ->
+        IO.puts("no votes")
 
-          GenServer.cast(
-            pid,
-            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
-          )
+        case sync_to_round_creator(state) do
+          :error ->
+            if :ets.info(ets_players, :size) > 1 do
+              pid = self()
 
-          {:noreply, state, :hibernate}
-        else
-          {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-          {:noreply, %{state | tRef: tRef}, :hibernate}
+              round_nulled = Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)
+              incomplete(round_nulled, pid, db_ref, true)
+
+              {:noreply, state, :hibernate}
+            else
+              {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+              {:noreply, %{state | tRef: tRef}, :hibernate}
+            end
+
+          _ ->
+            {:noreply, state, :hibernate}
         end
 
-      _ ->
-        {:noreply, state, :hibernate}
+      message ->
+        IO.puts("sync_to_round_creator #{inspect(message)}")
+        spawn_build_foreign_round(state, message)
     end
   end
 
@@ -482,32 +495,23 @@ defmodule RoundManager do
         # msg_round =
         #   message || check_votes(%{round_id: round_id, votes: ets_votes}, false)
 
-        IO.inspect(msg_round)
+        creator = Validator.get(rcid)
 
-        if msg_round do
-          creator = Validator.get(rcid)
-
-          build_round(
-            %{
-              id: round_id,
-              blocks: msg_round.blocks,
-              prev: prev_hash,
-              signature: msg_round.signature,
-              timestamp: msg_round.timestamp
-            },
-            block_id,
-            creator,
-            db_ref,
-            balance,
-            pool_pid,
-            pid
-          )
-        else
-          GenServer.cast(
-            pid,
-            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
-          )
-        end
+        build_round(
+          %{
+            id: round_id,
+            blocks: msg_round.blocks,
+            prev: prev_hash,
+            signature: msg_round.signature,
+            timestamp: msg_round.timestamp
+          },
+          block_id,
+          creator,
+          db_ref,
+          balance,
+          pool_pid,
+          pid
+        )
       end)
     end
   end
@@ -624,6 +628,7 @@ defmodule RoundManager do
           id: round_id,
           blocks: blocks,
           prev: prev_hash,
+          status: round_status,
           signature: signature,
           timestamp: timestamp
         } = map,
@@ -636,9 +641,7 @@ defmodule RoundManager do
         verify_block \\ true,
         rm_notify \\ true
       ) do
-    if Round.null?(map) do
-      imcomplete(map, pid, db_ref, rm_notify)
-    else
+    if round_status == 0 do
       creator_id = creator.id
       block_count = length(blocks)
 
@@ -672,17 +675,15 @@ defmodule RoundManager do
       IO.puts("MinerWorker: " <> inspect(result))
 
       # Count Blocks and txs rejected
-      {blocks_approved, txs_rejected} =
-        Enum.reduce(result, {[], 0}, fn x, {acc, acc_txr} ->
+      {new_blocks, blocks_approved_count, txs_rejected} =
+        Enum.reduce(result, {[], 0, 0}, fn x, {acc, acc_ba, acc_txr} ->
           case x do
-            {:ok, block} -> {acc ++ [block], acc_txr + block.rejected}
-            :error -> {acc, acc_txr}
+            {:ok, block} -> {acc ++ [block], acc_ba + 1, acc_txr + block.rejected}
+            {:error, block} -> {acc ++ [block], acc_ba, acc_txr + block.rejected}
           end
         end)
 
-      block_approved_count = length(blocks_approved)
-
-      if block_approved_count > 0 or block_count == block_approved_count do
+      if blocks_approved_count > 0 or block_count == blocks_approved_count do
         balance_tx = DetsPlux.tx(:balance)
         # Run deferred txs
         TxHandler.run_deferred_txs()
@@ -719,7 +720,7 @@ defmodule RoundManager do
           size: size,
           status: 0,
           timestamp: timestamp,
-          blocks: blocks_approved,
+          blocks: new_blocks,
           extra: nil,
           reward: reward,
           # extra data
@@ -749,24 +750,26 @@ defmodule RoundManager do
         round_nulled =
           Round.cancel(round_id, hash, prev_hash, signature, creator_id, 2, timestamp)
 
-        imcomplete(round_nulled, pid, db_ref, rm_notify)
+        incomplete(round_nulled, pid, db_ref, rm_notify)
       end
+    else
+      incomplete(map, pid, db_ref, rm_notify)
     end
   end
 
-  defp imcomplete(round_nulled, pid, db_ref, rm_notify) do
+  defp incomplete(round_nulled, pid, db_ref, rm_notify) do
+    # Reverse changes
+    RoundCommit.rollback(db_ref)
+
+    # round nulled
+    :done = Round.insert(Round.to_list(round_nulled))
+
+    # Delete validator
+    Validator.delete(round_nulled.creator)
+    Sqlite.sync(db_ref)
+
     if rm_notify do
       GenServer.cast(pid, {:incomplete, round_nulled})
-    else
-      # Reverse changes
-      RoundCommit.rollback(db_ref)
-
-      # round nulled
-      :done = Round.insert(Round.to_list(round_nulled))
-
-      # Delete validator
-      Validator.delete(round_nulled.creator)
-      Sqlite.sync(db_ref)
     end
 
     :error
@@ -922,61 +925,50 @@ defmodule RoundManager do
   end
 
   # Connect to round creator, send candidate if exists and question round creator about msg_round
-  defp sync_to_round_creator(
-         %{
-           rcid: node_id,
-           rc_node: validator_node,
-           vid: vid,
-           round_id: round_id
-         } = state,
-         forced_count \\ false
-       ) do
+  defp sync_to_round_creator(%{
+         rcid: node_id,
+         rc_node: validator_node,
+         vid: vid,
+         round_id: round_id
+       }) do
     if vid != node_id do
-      case check_votes(state, forced_count) do
-        nil ->
-          IO.puts("sync_to_round_creator. no votes")
-          # connect to round creator
-          case NetworkNodes.connect(validator_node, retry: 3) do
-            false ->
-              Logger.warning("It was not possible to connect to the round creator")
+      # connect to round creator
+      case NetworkNodes.connect(validator_node, retry: 3) do
+        false ->
+          Logger.warning("It was not possible to connect to the round creator")
+          :error
+
+        true ->
+          # candidate = BlockTimer.get_block()
+
+          # if candidate do
+          #   NetworkNodes.cast(node_id, "msg_block", candidate)
+          # end
+
+          case NetworkNodes.call(node_id, "get_round", round_id) do
+            {:ok, response} when is_map(response) ->
+              Logger.debug("From get_round")
+
+              GenServer.cast(
+                RoundManager,
+                {"msg_round", Round.from_remote(response), node_id}
+              )
+
+              # Disconnect if count is greater than max_peers_conn
+              if NetworkNodes.count() > @max_peers_conn do
+                NetworkNodes.disconnect_all(node_id)
+              end
+
+              :ok
+
+            {:ok, nil} ->
               :error
 
-            true ->
-              # candidate = BlockTimer.get_block()
-
-              # if candidate do
-              #   NetworkNodes.cast(node_id, "msg_block", candidate)
-              # end
-
-              case NetworkNodes.call(node_id, "get_round", round_id) do
-                {:ok, response} when is_map(response) ->
-                  Logger.debug("From get_round")
-
-                  GenServer.cast(
-                    RoundManager,
-                    {"msg_round", Round.from_remote(response), node_id}
-                  )
-
-                  # Disconnect if count is greater than max_peers_conn
-                  if NetworkNodes.count() > @max_peers_conn do
-                    NetworkNodes.disconnect_all(node_id)
-                  end
-
-                  :ok
-
-                {:ok, nil} ->
-                  :error
-
-                o ->
-                  Logger.warning("get_round message is not a map")
-                  IO.inspect(o)
-                  :error
-              end
+            o ->
+              Logger.warning("get_round message is not a map")
+              IO.inspect(o)
+              :error
           end
-
-        message ->
-          IO.puts("sync_to_round_creator #{inspect(message)}")
-          spawn_build_foreign_round(state, message)
       end
     end
   end

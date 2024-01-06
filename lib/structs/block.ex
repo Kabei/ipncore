@@ -175,11 +175,11 @@ defmodule Ippan.Block do
   end
 
   # status: 1 = Error data
-  def cancel(block, round_id, status) when status > 0 do
+  def cancel(block, round_id, rejected, status) when status > 0 do
     block
     |> Map.put(:status, status)
     |> Map.put(:round, round_id)
-    |> Map.put(:rejected, -1)
+    |> Map.put(:rejected, rejected)
   end
 
   @spec from_remote(map()) :: map()

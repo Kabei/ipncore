@@ -4,6 +4,8 @@ defmodule Ippan.NetworkServer do
   alias Ippan.NetworkNodes
   require Logger
 
+  @via :server
+
   @impl ThousandIsland.Handler
   def handle_connection(socket, state) do
     # Logger.debug("handle_connection #{inspect(state)}")
@@ -15,7 +17,7 @@ defmodule Ippan.NetworkServer do
            &NetworkNodes.fetch/1
          ) do
       {:ok, id, %{sharedkey: sharedkey} = node, timeout} ->
-        NetworkNodes.on_connect(id, node)
+        NetworkNodes.on_connect(id, node, @via)
 
         {:continue, %{id: id, socket: tcp_socket, sharedkey: sharedkey}, timeout}
 
@@ -41,21 +43,21 @@ defmodule Ippan.NetworkServer do
   def handle_close(_socket, state) do
     Logger.debug("handle close socket")
 
-    NetworkNodes.on_disconnect(state, 0)
+    NetworkNodes.on_disconnect(state, 0, @via)
     {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_shutdown(_socket, state) do
     Logger.debug("handle shutdown")
-    NetworkNodes.on_disconnect(state, 0)
+    NetworkNodes.on_disconnect(state, 0, @via)
     {:close, state}
   end
 
   @impl ThousandIsland.Handler
   def handle_timeout(_socket, state) do
     Logger.debug("handle timeout")
-    NetworkNodes.on_disconnect(state, 0)
+    NetworkNodes.on_disconnect(state, 0, @via)
     {:close, state}
   end
 end

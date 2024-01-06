@@ -25,6 +25,15 @@ defmodule Ippan.ClusterNodes do
   end
 
   @impl Network
+  def on_connect(node_id, map, via) do
+    Logger.debug("On connect #{node_id} via: #{via}")
+
+    if via == :server do
+      :ets.insert(@table, {node_id, map})
+    end
+  end
+
+  @impl Network
   def fetch(id) do
     db_ref = :persistent_term.get(:local_conn)
     Node.get(id)

@@ -11,6 +11,7 @@ defmodule Ippan.NetworkClient do
   @app Mix.Project.config()[:app]
   @opts Application.compile_env(@app, :p2p_client)
   @time_to_reconnect 1_000
+  @via :client
 
   def start_link(_, args) do
     start_link(args)
@@ -67,7 +68,7 @@ defmodule Ippan.NetworkClient do
             |> Map.put(:socket, socket)
             |> Map.put(:sharedkey, sharedkey)
 
-          @node.on_connect(node_id, new_state)
+          @node.on_connect(node_id, new_state, @via)
           {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
 
           # callback
@@ -135,7 +136,7 @@ defmodule Ippan.NetworkClient do
   def handle_info({:tcp_closed, socket}, %{id: id} = state) do
     Logger.debug("tcp_closed | #{id}")
     @adapter.close(socket)
-    @node.on_disconnect(state, 1)
+    @node.on_disconnect(state, 1, @via)
     {:stop, :normal, state}
   end
 
@@ -149,7 +150,7 @@ defmodule Ippan.NetworkClient do
   @impl true
   def terminate(_reason, %{tRef: tRef} = _state) do
     :timer.cancel(tRef)
-    # @node.on_disconnect(state, 0)
+    # @node.on_disconnect(state, 0, @via)
   end
 
   def terminate(_reason, _state), do: :ok

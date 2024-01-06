@@ -33,7 +33,7 @@ defmodule BlockTimer do
        prev: prev,
        vid: vid,
        candidate: nil
-     }, {:continue, :check}}
+     }, :hibernate}
   end
 
   @doc """

@@ -628,7 +628,6 @@ defmodule RoundManager do
           id: round_id,
           blocks: blocks,
           prev: prev_hash,
-          status: round_status,
           signature: signature,
           timestamp: timestamp
         } = map,
@@ -641,7 +640,7 @@ defmodule RoundManager do
         verify_block \\ true,
         rm_notify \\ true
       ) do
-    if round_status == 0 do
+    unless Round.null?(map) do
       creator_id = creator.id
       block_count = length(blocks)
 

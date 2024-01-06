@@ -301,13 +301,11 @@ defmodule RoundManager do
           rRef: rRef
         } =
           state
-      )
-      when vid != node_id and
-             vid != creator_id do
+      ) do
     Logger.debug(inspect(msg_round))
     limit = EnvStore.block_limit()
 
-    with true <- creator_id == rcid,
+    with true <- vid != creator_id,
          true <- limit >= length(blocks),
          true <- Validator.exists?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
@@ -952,6 +950,8 @@ defmodule RoundManager do
 
               case NetworkNodes.call(node_id, "get_round", round_id) do
                 {:ok, response} when is_map(response) ->
+                  Logger.debug("From get_round")
+
                   GenServer.cast(
                     RoundManager,
                     {"msg_round", Round.from_remote(response), node_id}

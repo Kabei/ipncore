@@ -16,6 +16,8 @@ defmodule RoundManager do
   @timeout Application.compile_env(@app, :round_timeout)
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
+  @time_to_request 6000
+  @worker_name :round_worker
 
   def start_link(args) do
     case System.get_env("test") do
@@ -82,16 +84,18 @@ defmodule RoundManager do
        round_id: current_round_id,
        round_hash: round_hash,
        total: total_players,
+       rRef: nil,
        tRef: nil,
        vid: vid
      }, {:continue, :next}}
   end
 
   @impl true
-  def handle_continue(:next, %{status: :startup, tRef: tRef} = init_state) do
-    IO.puts("next startup")
-    :timer.cancel(tRef)
+  def handle_continue(:next, %{status: :startup, rRef: rRef, tRef: tRef} = init_state) do
+    IO.puts("RM startup")
     :persistent_term.put(:status, :startup)
+    :timer.cancel(rRef)
+    :timer.cancel(tRef)
 
     state = get_state_after_check(init_state)
 
@@ -107,8 +111,9 @@ defmodule RoundManager do
     {:noreply, state, :hibernate}
   end
 
-  def handle_continue(:next, %{tRef: tRef} = state) do
-    IO.puts("next")
+  def handle_continue(:next, %{rRef: rRef, tRef: tRef} = state) do
+    IO.puts("RM next")
+    :timer.cancel(rRef)
     :timer.cancel(tRef)
     new_state = get_state_after_check(state)
 
@@ -117,14 +122,18 @@ defmodule RoundManager do
 
       {:noreply, new_state, :hibernate}
     else
-      sync_to_round_creator(state)
-
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-      {:noreply, %{new_state | tRef: tRef}, :hibernate}
+      {:ok, rRef} = :timer.send_after(@time_to_request, :request)
+      {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
     end
   end
 
   @impl true
+  def handle_info(:request, state) do
+    sync_to_round_creator(state)
+    {:noreply, state}
+  end
+
   def handle_info(
         :timeout,
         %{round_id: round_id, round_hash: prev_hash, players: ets_players, rcid: rcid} = state
@@ -136,12 +145,10 @@ defmodule RoundManager do
         if :ets.info(ets_players, :size) > 1 do
           pid = self()
 
-          spawn_link(fn ->
-            GenServer.cast(
-              pid,
-              {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
-            )
-          end)
+          GenServer.cast(
+            pid,
+            {:incomplete, Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)}
+          )
 
           {:noreply, state, :hibernate}
         else
@@ -190,7 +197,10 @@ defmodule RoundManager do
   @impl true
   # Process round
   def handle_cast(
-        {:complete, round = %{id: the_round_id, hash: hash, blocks: blocks}},
+        {
+          :complete,
+          round = %{id: the_round_id, hash: hash, blocks: blocks}
+        },
         %{
           candidates: ets_candidates,
           block_id: block_id,
@@ -227,11 +237,12 @@ defmodule RoundManager do
           db_ref: db_ref,
           players: ets_players,
           rcid: rcid,
+          status: status,
           round_id: round_id
         } =
           state
       ) do
-    next = round_nulled_id == round_id
+    next = status == :synced
     Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_nulled.status}")
 
     # Reverse changes
@@ -249,16 +260,16 @@ defmodule RoundManager do
     NetworkNodes.disconnect_all(rcid)
     total_players = get_total_players(ets_players)
 
-    # replicate data to cluster nodes
-    ClusterNodes.broadcast(%{"event" => "round.new", "data" => round_nulled})
-
-    # send event
-    PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
-      "event" => "validator.leave",
-      "data" => rcid
-    })
-
     if next do
+      # replicate data to cluster nodes
+      ClusterNodes.broadcast(%{"event" => "round.new", "data" => round_nulled})
+
+      # send event
+      PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
+        "event" => "validator.leave",
+        "data" => rcid
+      })
+
       {:noreply, %{state | round_id: round_id + 1, total: total_players}, {:continue, :next}}
     else
       {:noreply, %{state | total: total_players}, :hibernate}
@@ -286,7 +297,8 @@ defmodule RoundManager do
           rcid: rcid,
           round_id: round_id,
           status: status,
-          vid: vid
+          vid: vid,
+          rRef: rRef
         } =
           state
       )
@@ -310,8 +322,10 @@ defmodule RoundManager do
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
 
       IO.puts("#{id} = #{round_id}")
+      next = status == :synced
 
-      if id == round_id and status == :synced do
+      if id == round_id and next do
+        :timer.cancel(rRef)
         n = NetworkNodes.count()
         IO.puts("n = #{n} | count = #{count}")
 
@@ -331,9 +345,7 @@ defmodule RoundManager do
           vid
         ])
       else
-        if status != :synced do
-          RoundSync.add_queue(msg_round)
-        end
+        RoundSync.add_queue(msg_round)
       end
     end
 
@@ -342,9 +354,15 @@ defmodule RoundManager do
 
   def handle_cast(
         {"msg_block", block = %{creator: creator_id, height: height}, _node_id},
-        state = %{db_ref: db_ref, candidates: ets_candidates, players: ets_players}
+        state = %{
+          db_ref: db_ref,
+          candidates: ets_candidates,
+          players: ets_players,
+          status: status
+        }
       ) do
-    with true <- Validator.exists?(creator_id),
+    with true <- status == :synced,
+         true <- Validator.exists?(creator_id),
          :ok <- block_pre_verificacion(block, db_ref, ets_players) do
       :ets.insert(ets_candidates, {{creator_id, height}, block})
     end
@@ -377,11 +395,6 @@ defmodule RoundManager do
   end
 
   @impl true
-  def handle_call(:last_block, _from, state) do
-    {:reply, state.block_id, state}
-  end
-
-  @impl true
   def terminate(_reason, %{
         players: ets_players,
         candidates: ets_candidates,
@@ -394,7 +407,25 @@ defmodule RoundManager do
     PubSub.unsubscribe(@pubsub, "validator")
     PubSub.unsubscribe(@pubsub, "env")
     :poolboy.stop(miner_pool_pid)
-    # RoundCommit.stop()
+  end
+
+  defp ets_start(name, opts) do
+    case :ets.whereis(name) do
+      :undefined -> :ets.new(name, opts)
+      table -> table
+    end
+  end
+
+  defp start_miner_pool do
+    case Process.whereis(@miner_pool) do
+      nil ->
+        {:ok, pid} = :poolboy.start_link(worker_module: MinerWorker, size: 5, max_overflow: 2)
+        Process.register(pid, @miner_pool)
+        pid
+
+      pid ->
+        pid
+    end
   end
 
   defp block_pre_verificacion(
@@ -422,25 +453,6 @@ defmodule RoundManager do
 
   defp block_pre_verificacion(_, _, _), do: :error
 
-  defp ets_start(name, opts) do
-    case :ets.whereis(name) do
-      :undefined -> :ets.new(name, opts)
-      table -> table
-    end
-  end
-
-  defp start_miner_pool do
-    case Process.whereis(@miner_pool) do
-      nil ->
-        {:ok, pid} = :poolboy.start_link(worker_module: MinerWorker, size: 5, max_overflow: 2)
-        Process.register(pid, @miner_pool)
-        pid
-
-      pid ->
-        pid
-    end
-  end
-
   defp spawn_build_foreign_round(
          %{
            block_id: block_id,
@@ -452,17 +464,21 @@ defmodule RoundManager do
            miner_pool: pool_pid,
            votes: ets_votes,
            vid: vid,
+           rRef: rRef,
            tRef: tRef
          },
          message
        ) do
+    :timer.cancel(rRef)
     :timer.cancel(tRef)
-    pid = self()
 
-    if rcid != vid do
+    if rcid != vid and Process.whereis(@worker_name) == nil do
+      pid = self()
       IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
       spawn_link(fn ->
+        Process.register(self(), @worker_name)
+
         msg_round =
           message || check_votes(%{round_id: round_id, votes: ets_votes})
 
@@ -510,8 +526,9 @@ defmodule RoundManager do
        }) do
     pid = self()
 
-    if rcid == vid do
+    if rcid == vid and Process.whereis(@worker_name) == nil do
       spawn_link(fn ->
+        Process.register(self(), @worker_name)
         IO.puts("RM: build_local_round #{round_id}")
 
         blocks =

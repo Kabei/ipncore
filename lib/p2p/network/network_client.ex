@@ -82,7 +82,7 @@ defmodule Ippan.NetworkClient do
     else
       true ->
         IO.puts("[Node] member already exists")
-        %{scoket: socket} = @node.info()
+        %{scoket: socket} = @node.info(node_id)
         callback(state[:pid], {:ok, socket})
         {:stop, :normal, state}
 

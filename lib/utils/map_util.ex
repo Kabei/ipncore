@@ -88,6 +88,15 @@ defmodule MapUtil do
     map
   end
 
+  def validate_hostname_or_ip(map, key) do
+    val = Map.get(map, key)
+
+    if not is_nil(val) and not Match.hostname?(val) and not Match.ipv4?(val),
+      do: raise(ArgumentError, "Invalid #{key} is not a hostname")
+
+    map
+  end
+
   def validate_account(map, key) do
     val = Map.get(map, key)
 

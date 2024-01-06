@@ -214,7 +214,7 @@ defmodule RoundSync do
       |> Enum.map(fn text ->
         String.trim(text)
       end)
-      |> Enum.filter(fn x -> Match.hostname?(x) or Match.ipv4(x) end)
+      |> Enum.filter(fn x -> Match.hostname?(x) or Match.ipv4?(x) end)
       |> Enum.take_random(1)
       |> List.first()
     end

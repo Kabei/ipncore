@@ -9,6 +9,13 @@ defmodule Ipncore.Application do
 
   @impl true
   def start(_type, _args) do
+    case "only" in System.argv() do
+      true -> {:ok, self()}
+      _false -> start_app()
+    end
+  end
+
+  defp start_app do
     IO.puts("Starting application")
     check_install()
     start_node()

@@ -15,28 +15,32 @@ IPPAN blockchain transaction verification node.
 * cmake 3.26
 * git 2.41.0
 
-## Installation 
-### Generate keys
-Makes 2 random seeds of 32 bytes in base64
-```
-openssl rand -base64 32
-```
-#### Generate env_file
-```bash
-echo "
-NAME=miner
-VID=<number>
-SECRET_KEY=<base64-seed-32-bytes>
-CLUSTER_KEY=<base64-seed-32-bytes>
-DATA_DIR=/usr/src/data
-NODES=<name@hostname>" > env_file
-```
+## Installation
 
 #### Download and execute script
 ```bash
 curl https://github.com/kabei/releases/download/0.5/ipncore-install.sh \
 && chmod +x ipncore-install.sh \
 && ./ipncore-install.sh
+```
+### Generate keys
+```
+mix run gen_keys.exs only
+```
+
+If you already have a registered account you can add base64 to that account
+```
+mix run gen_keys.exs <secret-base-64> only
+```
+#### Generate env_file
+```bash
+echo "
+NAME=miner
+VID=<number-of-validator-register>
+SECRET_KEY=<secret-key-base-64>
+CLUSTER_KEY=<cluster-key-base-64>
+DATA_DIR=<custom-directory-path>
+NODES=<name@hostname>" > env_file
 ```
 
 ## Run

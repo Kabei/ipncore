@@ -17,7 +17,7 @@ defmodule RoundManager do
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
   @time_to_request 6000
-  @worker_name :round_worker
+  # @worker_name :round_worker
 
   def start_link(args) do
     case System.get_env("test") do
@@ -524,9 +524,9 @@ defmodule RoundManager do
        }) do
     pid = self()
 
-    if rcid == vid and Process.whereis(@worker_name) == nil do
+    if rcid == vid do
       spawn(fn ->
-        Process.register(self(), @worker_name)
+        # Process.register(self(), @worker_name)
         IO.puts("RM: build_local_round #{round_id}")
 
         blocks =

@@ -472,13 +472,11 @@ defmodule RoundManager do
     :timer.cancel(rRef)
     :timer.cancel(tRef)
 
-    if rcid != vid and Process.whereis(@worker_name) == nil do
+    if rcid != vid do
       pid = self()
       IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
-      spawn_link(fn ->
-        Process.register(self(), @worker_name)
-
+      spawn(fn ->
         msg_round =
           message || check_votes(%{round_id: round_id, votes: ets_votes})
 
@@ -527,7 +525,7 @@ defmodule RoundManager do
     pid = self()
 
     if rcid == vid and Process.whereis(@worker_name) == nil do
-      spawn_link(fn ->
+      spawn(fn ->
         Process.register(self(), @worker_name)
         IO.puts("RM: build_local_round #{round_id}")
 

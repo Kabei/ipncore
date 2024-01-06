@@ -126,7 +126,7 @@ defmodule RoundSync do
           # Build rounds and return total new blocks
           result_block_id =
             Enum.reduce(rounds, last_block_id, fn msg_round, bid ->
-              %{id: id} = round = Round.from_remote(msg_round)
+              %{id: id} = round = Round.sync_remote(msg_round)
               creator = Validator.get(round.creator)
 
               unless Round.exists?(id) do

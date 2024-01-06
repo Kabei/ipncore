@@ -947,8 +947,9 @@ defmodule RoundManager do
                 {:ok, nil} ->
                   :error
 
-                _ ->
+                o ->
                   Logger.warning("get_round message is not a map")
+                  IO.inspect(o)
                   :error
               end
           end

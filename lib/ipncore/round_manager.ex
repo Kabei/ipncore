@@ -758,18 +758,18 @@ defmodule RoundManager do
   end
 
   defp imcomplete(round_nulled, pid, db_ref, rm_notify) do
-    # Reverse changes
-    RoundCommit.rollback(db_ref)
-
-    # round nulled
-    :done = Round.insert(Round.to_list(round_nulled))
-
-    # Delete validator
-    Validator.delete(round_nulled.creator)
-    Sqlite.sync(db_ref)
-
     if rm_notify do
       GenServer.cast(pid, {:incomplete, round_nulled})
+    else
+      # Reverse changes
+      RoundCommit.rollback(db_ref)
+
+      # round nulled
+      :done = Round.insert(Round.to_list(round_nulled))
+
+      # Delete validator
+      Validator.delete(round_nulled.creator)
+      Sqlite.sync(db_ref)
     end
 
     :error

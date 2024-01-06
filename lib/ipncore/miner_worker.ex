@@ -125,7 +125,7 @@ defmodule MinerWorker do
           status: 0
         })
 
-      IO.puts("Here 7")
+      IO.puts("Here 7 #{inspect(result)}")
       :done = Block.insert(Block.to_list(result))
 
       {:reply, {:ok, result}, state}

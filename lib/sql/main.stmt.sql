@@ -84,7 +84,7 @@ DELETE FROM dns.dns WHERE domain = ?;
 SELECT COALESCE((SELECT id FROM blockchain.block ORDER BY id DESC LIMIT 1) + 1, 0);
 
 --name: insert_block
-REPLACE INTO blockchain.block values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14);
+INSERT INTO blockchain.block values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14);
 
 --name: exists_block
 SELECT 1 FROM blockchain.block WHERE id=? LIMIT 1;
@@ -140,7 +140,7 @@ SELECT id, hash FROM blockchain.round ORDER BY id DESC LIMIT 1;
 
 
 --name: insert_validator
-REPLACE INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15);
+INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15);
 
 --name: get_players
 SELECT * FROM blockchain.validator WHERE active = 1 AND failures < 6;
@@ -162,6 +162,9 @@ SELECT COUNT(1) FROM blockchain.validator;
 
 --name: next_id_validator
 SELECT COALESCE((SELECT id FROM blockchain.validator ORDER BY id DESC LIMIT 1) + 1, 0);
+
+--name: leave_validator
+UPDATE  blockchain.validator SET failures=?2 WHERE id = ?1;
 
 --name: delete_validator
 DELETE FROM blockchain.validator WHERE id = ?1;

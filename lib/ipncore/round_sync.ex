@@ -124,15 +124,15 @@ defmodule RoundSync do
 
         {:ok, rounds} ->
           # Build rounds and return total new blocks
-          total_blocks =
-            Enum.reduce(rounds, 0, fn msg_round, acc ->
+          result_block_id =
+            Enum.reduce(rounds, last_block_id, fn msg_round, bid ->
               %{id: id} = round = Round.from_remote(msg_round)
               creator = Validator.get(round.creator)
 
               unless Round.exists?(id) do
                 RoundManager.build_round(
                   round,
-                  last_block_id,
+                  bid,
                   %{creator | hostname: node.hostname},
                   db_ref,
                   balances,
@@ -143,11 +143,11 @@ defmodule RoundSync do
                 )
               end
 
-              acc + length(round.blocks)
+              bid + length(round.blocks)
             end)
 
           len = length(rounds)
-          new_state = %{state | block_id: last_block_id + total_blocks, offset: offset + len}
+          new_state = %{state | block_id: result_block_id, offset: offset + len}
 
           {:noreply, new_state, {:continue, {:fetch, round_id + len, node}}}
       end

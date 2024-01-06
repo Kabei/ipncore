@@ -76,8 +76,9 @@ defmodule Ippan.P2P do
                 :error
             end
 
-          _error ->
+          error ->
             Logger.debug("Invalid ntrukem ciphertext authentication")
+            inspect(error)
             :error
         end
 

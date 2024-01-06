@@ -16,7 +16,7 @@ defmodule RoundManager do
   @timeout Application.compile_env(@app, :round_timeout)
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
-  @time_to_request 6000
+  @time_to_request 7000
   # @worker_name :round_worker
 
   def start_link(args) do
@@ -140,7 +140,7 @@ defmodule RoundManager do
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
 
-    case sync_to_round_creator(state) do
+    case sync_to_round_creator(state, true) do
       :error ->
         if :ets.info(ets_players, :size) > 1 do
           pid = self()
@@ -464,12 +464,12 @@ defmodule RoundManager do
            balance: balance,
            rcid: rcid,
            miner_pool: pool_pid,
-           votes: ets_votes,
+           votes: _ets_votes,
            vid: vid,
            rRef: rRef,
            tRef: tRef
          },
-         message
+         msg_round
        ) do
     :timer.cancel(rRef)
     :timer.cancel(tRef)
@@ -479,8 +479,8 @@ defmodule RoundManager do
       IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
       spawn(fn ->
-        msg_round =
-          message || check_votes(%{round_id: round_id, votes: ets_votes})
+        # msg_round =
+        #   message || check_votes(%{round_id: round_id, votes: ets_votes}, false)
 
         IO.inspect(msg_round)
 
@@ -928,10 +928,11 @@ defmodule RoundManager do
            rc_node: validator_node,
            vid: vid,
            round_id: round_id
-         } = state
+         } = state,
+         forced_count \\ false
        ) do
     if vid != node_id do
-      case check_votes(state) do
+      case check_votes(state, forced_count) do
         nil ->
           IO.puts("sync_to_round_creator. no votes")
           # connect to round creator
@@ -1002,7 +1003,7 @@ defmodule RoundManager do
   #   end
   # end
 
-  defp check_votes(%{round_id: round_id, votes: ets_votes}) do
+  defp check_votes(%{round_id: round_id, votes: ets_votes}, forced_count) do
     # check votes
     n = NetworkNodes.count()
 
@@ -1014,8 +1015,16 @@ defmodule RoundManager do
         nil
 
       {_, x, count} ->
-        if count == div(n, 2) + 1 do
-          x
+        cond do
+          count == div(n, 2) + 1 ->
+            x
+
+          forced_count ->
+            Logger.debug("Forced count: ##{round_id}")
+            x
+
+          true ->
+            nil
         end
     end
   end

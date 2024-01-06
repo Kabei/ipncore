@@ -182,12 +182,12 @@ defmodule Ippan.Validator do
 
   defmacro delete(id) do
     quote bind_quoted: [id: id], location: :keep do
-      :ets.delete(:validator, id)
-      Sqlite.step("delete_validator", [id])
-
       if id == :persistent_term.get(:vid) do
-        Logger.warning("I have left the network")
+        Logger.warning("Delete validator #{id}")
         # System.halt()
+      else
+        :ets.delete(:validator, id)
+        Sqlite.step("delete_validator", [id])
       end
     end
   end

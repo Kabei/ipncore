@@ -13,9 +13,9 @@ defmodule Ippan.Funx.Validator do
 
   def join(
         %{id: account_id, round: round_id},
-        owner_id,
         hostname,
         port,
+        owner_id,
         name,
         pubkey,
         net_pubkey,

@@ -923,7 +923,7 @@ defmodule RoundManager do
               Logger.warning("It was not possible to connect to the round creator")
               :error
 
-            socket ->
+            true ->
               # candidate = BlockTimer.get_block()
 
               # if candidate do
@@ -939,7 +939,7 @@ defmodule RoundManager do
 
                   # Disconnect if count is greater than max_peers_conn
                   if NetworkNodes.count() > @max_peers_conn do
-                    NetworkNodes.disconnect(node_id, socket)
+                    NetworkNodes.disconnect_all(node_id)
                   end
 
                   :ok

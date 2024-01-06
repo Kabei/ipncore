@@ -70,7 +70,7 @@ defmodule Ippan.ClusterClient do
           {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
 
           # callback
-          callback(state[:pid], {:ok, socket})
+          callback(state[:pid], :ok)
 
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 

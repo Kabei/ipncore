@@ -265,15 +265,15 @@ defmodule Ippan.Network do
             %{id: node_id, hostname: hostname, port: port, net_pubkey: net_pubkey} = node,
             opts \\ @default_connect_opts
           ) do
-        case info(node_id) do
-          %{socket: socket} ->
-            socket
+        case alive?(node_id) do
+          true ->
+            true
 
           _ ->
             @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
 
             receive do
-              {:ok, socket} -> socket
+              :ok -> true
               _ -> false
             after
               10_000 ->

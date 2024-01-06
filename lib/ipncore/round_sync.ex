@@ -250,7 +250,7 @@ defmodule RoundSync do
                   Logger.warning("It is not possible connect to #{hostname}")
                   :idle
 
-                _socket ->
+                _true ->
                   {:ok, round_id, node}
               end
 

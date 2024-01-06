@@ -71,7 +71,7 @@ defmodule Ippan.NetworkClient do
           {:ok, tRef} = :timer.send_after(@ping_interval, :ping)
 
           # callback
-          callback(pid, {:ok, socket})
+          callback(pid, :ok)
 
           {:noreply, Map.put(new_state, :tRef, tRef), :hibernate}
 
@@ -82,8 +82,7 @@ defmodule Ippan.NetworkClient do
     else
       true ->
         IO.puts("[Node] member already exists")
-        %{scoket: socket} = @node.info(node_id)
-        callback(state[:pid], {:ok, socket})
+        callback(state[:pid], :ok)
         {:stop, :normal, state}
 
       error ->

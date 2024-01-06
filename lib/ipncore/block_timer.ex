@@ -1,6 +1,5 @@
 defmodule BlockTimer do
   use GenServer
-  require Logger
   alias Ippan.{Block, BlockHandler, Round}
   require Block
   require Sqlite
@@ -23,8 +22,6 @@ defmodule BlockTimer do
 
     [last_height, prev] =
       Block.last_created(vid, [-1, nil])
-
-    load()
 
     {:ok,
      %{
@@ -106,11 +103,11 @@ defmodule BlockTimer do
 
   @impl true
   def handle_continue(:check, state = %{candidate: nil}) do
-    {:noreply, do_check(state)}
+    {:noreply, do_check(state), :hibernate}
   end
 
   def handle_continue(:check, state) do
-    {:noreply, state}
+    {:noreply, state, :hibernate}
   end
 
   @impl true
@@ -147,42 +144,5 @@ defmodule BlockTimer do
   @impl true
   def terminate(_reason, _state) do
     :ok
-  end
-
-  @filename "mem.data"
-  # Create and load mempool table and counter
-  defp load do
-    dir = :persistent_term.get(:save_dir)
-    filepath = Path.join(dir, "mem.data")
-    cref = :persistent_term.get(:msg_counter)
-
-    if File.exists?(filepath) do
-      {:ok, content} = File.read(filepath)
-
-      case CBOR.Decoder.decode(content) do
-        {%{"data" => data, "ix" => ix}, _rest} ->
-          :ets.insert(:msg, data)
-          :counters.put(cref, 1, ix)
-
-        _other ->
-          Logger.error("Error decode mem.data")
-          {:error, :cbor_decoder_error}
-      end
-
-      File.rm(filepath)
-    end
-  end
-
-  def save do
-    size = :ets.info(:msg, :size)
-
-    if size != 0 do
-      dir = :persistent_term.get(:save_dir)
-      filepath = Path.join(dir, @filename)
-      data = :ets.tab2list(:msg)
-      ix = :erlang.element(1, :lists.last(data))
-      content = %{"msg" => data, "ix" => ix, "size" => size} |> CBOR.encode()
-      File.write(filepath, content)
-    end
   end
 end

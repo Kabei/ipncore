@@ -44,7 +44,7 @@ defmodule Ipncore.Application do
   @impl true
   def stop(_state) do
     IO.puts("Stopping application")
-    BlockTimer.save()
+    Mempool.save()
   end
 
   defp check_install do

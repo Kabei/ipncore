@@ -1,6 +1,7 @@
 defmodule Mempool do
   use GenServer
   alias Ippan.{Wallet}
+  require Logger
 
   @name :mempool
 
@@ -13,6 +14,8 @@ defmodule Mempool do
     :persistent_term.put(@name, self())
     cref = :counters.new(1, [])
     :persistent_term.put(:msg_counter, cref)
+
+    load()
 
     {:ok,
      %{
@@ -151,5 +154,42 @@ defmodule Mempool do
     end
 
     {:noreply, state}
+  end
+
+  @filename "mem.data"
+  # Create and load mempool table and counter
+  defp load do
+    dir = :persistent_term.get(:save_dir)
+    filepath = Path.join(dir, "mem.data")
+    cref = :persistent_term.get(:msg_counter)
+
+    if File.exists?(filepath) do
+      {:ok, content} = File.read(filepath)
+
+      case CBOR.Decoder.decode(content) do
+        {%{"data" => data, "ix" => ix}, _rest} ->
+          :ets.insert(:msg, data)
+          :counters.put(cref, 1, ix)
+
+        _other ->
+          Logger.error("Error decode mem.data")
+          {:error, :cbor_decoder_error}
+      end
+
+      File.rm(filepath)
+    end
+  end
+
+  def save do
+    size = :ets.info(:msg, :size)
+
+    if size != 0 do
+      dir = :persistent_term.get(:save_dir)
+      filepath = Path.join(dir, @filename)
+      data = :ets.tab2list(:msg)
+      ix = :erlang.element(1, :lists.last(data))
+      content = %{"msg" => data, "ix" => ix, "size" => size} |> CBOR.encode()
+      File.write(filepath, content)
+    end
   end
 end

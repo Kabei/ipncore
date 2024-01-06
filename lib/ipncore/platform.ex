@@ -24,8 +24,16 @@ defmodule Platform do
   end
 
   defp load_genesis_file(db_ref) do
+    IO.puts("Load Genesis File")
+
+    filename =
+      case Mix.env() do
+        :dev -> "genesis-dev.exs"
+        _ -> "genesis.exs"
+      end
+
     {data = %{"tokens" => _, "validators" => _, "wallets" => _}, _binding} =
-      Path.join(:code.priv_dir(@app), "genesis.exs")
+      Path.join(:code.priv_dir(@app), filename)
       |> Code.eval_file()
 
     wallet_dets = DetsPlux.get(:wallet)

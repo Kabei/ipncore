@@ -95,7 +95,7 @@ defmodule Ippan.Funx.Validator do
         Validator.update(map, id)
 
         # transform to text
-        fun = fn x -> Utils.encode64(x) end
+        fun = fn x -> Base.decode64!(x) end
 
         map =
           map

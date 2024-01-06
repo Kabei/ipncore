@@ -294,7 +294,6 @@ defmodule RoundManager do
           db_ref: db_ref,
           players: ets_players,
           votes: ets_votes,
-          rcid: rcid,
           round_id: round_id,
           status: status,
           vid: vid,

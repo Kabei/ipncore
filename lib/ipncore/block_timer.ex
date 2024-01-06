@@ -116,9 +116,11 @@ defmodule BlockTimer do
   @impl true
   def handle_cast({:complete, hash, blocks}, %{vid: vid} = state) do
     if Round.is_some_block_mine?(blocks, vid) do
-      {:noreply, %{state | candidate: nil, prev: hash}, {:continue, :check}}
+      {:noreply, %{state | candidate: nil, prev: hash}, :hibernate}
+      # {:noreply, %{state | candidate: nil, prev: hash}, {:continue, :check}}
     else
-      {:noreply, %{state | prev: hash}, {:continue, :check}}
+      {:noreply, %{state | prev: hash}, :hibernate}
+      # {:noreply, %{state | prev: hash}, {:continue, :check}}
     end
   end
 

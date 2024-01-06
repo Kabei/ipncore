@@ -109,7 +109,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       fa: 0,
       failures: 0,
       fb: 1,
-      hostname: "ippan.com",
+      hostname: "ippan.co.uk",
       id: 0,
       name: "Master",
       net_pubkey: npk,

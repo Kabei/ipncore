@@ -640,7 +640,7 @@ defmodule RoundManager do
         rm_notify \\ true
       ) do
     if Round.null?(map) do
-      GenServer.cast(pid, {:incomplete, map})
+      imcomplete(map, pid, db_ref, rm_notify)
     else
       creator_id = creator.id
       block_count = length(blocks)
@@ -749,15 +749,30 @@ defmodule RoundManager do
 
         {:ok, round}
       else
-        GenServer.cast(
-          pid,
-          {:incomplete,
-           Round.cancel(round_id, hash, prev_hash, signature, creator_id, 2, timestamp)}
-        )
+        round_nulled =
+          Round.cancel(round_id, hash, prev_hash, signature, creator_id, 2, timestamp)
 
-        :error
+        imcomplete(round_nulled, pid, db_ref, rm_notify)
       end
     end
+  end
+
+  defp imcomplete(round_nulled, pid, db_ref, rm_notify) do
+    # Reverse changes
+    RoundCommit.rollback(db_ref)
+
+    # round nulled
+    :done = Round.insert(Round.to_list(round_nulled))
+
+    # Delete validator
+    Validator.delete(round_nulled.creator)
+    Sqlite.sync(db_ref)
+
+    if rm_notify do
+      GenServer.cast(pid, {:incomplete, round_nulled})
+    end
+
+    :error
   end
 
   defp run_jackpot(

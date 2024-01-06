@@ -200,6 +200,8 @@ defmodule Ippan.Round do
   def null?(%{status: status}) when status > 0, do: true
   def null?(_), do: false
 
+  # status: 1 = timeout
+  # status: 2 = Error round data
   @spec cancel(
           non_neg_integer(),
           binary() | nil,

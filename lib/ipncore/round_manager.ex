@@ -752,7 +752,7 @@ defmodule RoundManager do
         GenServer.cast(
           pid,
           {:incomplete,
-           Round.cancel(round_id, hash, prev_hash, signature, creator_id, 3, timestamp)}
+           Round.cancel(round_id, hash, prev_hash, signature, creator_id, 2, timestamp)}
         )
 
         :error

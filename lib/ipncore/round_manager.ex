@@ -324,7 +324,7 @@ defmodule RoundManager do
       IO.puts("#{id} = #{round_id}")
       next = status == :synced
 
-      if id == round_id and next do
+      if id == round_id do
         :timer.cancel(rRef)
         n = NetworkNodes.count()
         IO.puts("n = #{n} | count = #{count}")
@@ -332,7 +332,10 @@ defmodule RoundManager do
         cond do
           count == div(n, 2) + 1 ->
             IO.puts("Vote ##{id}")
-            spawn_build_foreign_round(state, msg_round)
+
+            if next do
+              spawn_build_foreign_round(state, msg_round)
+            end
 
           true ->
             nil
@@ -345,7 +348,9 @@ defmodule RoundManager do
           vid
         ])
       else
-        RoundSync.add_queue(msg_round)
+        unless next do
+          RoundSync.add_queue(msg_round)
+        end
       end
     end
 

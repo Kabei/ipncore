@@ -185,10 +185,10 @@ defmodule Ippan.Validator do
       if id == :persistent_term.get(:vid) do
         Logger.warning("Delete validator #{id}")
         # System.halt()
-      else
-        :ets.delete(:validator, id)
-        Sqlite.step("delete_validator", [id])
       end
+
+      :ets.delete(:validator, id)
+      Sqlite.step("delete_validator", [id])
     end
   end
 end

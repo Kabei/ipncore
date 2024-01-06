@@ -186,8 +186,9 @@ defmodule Ippan.Round do
       end)
 
     msg_round
-    # |> MapUtil.to_atoms(~w(id creator hash prev signature timestamp))
-    |> MapUtil.to_atoms(~w(id creator extra hash prev signature size status timestamp tx_count))
+    |> MapUtil.to_atoms(
+      ~w(id creator extra hash prev signature coinbase reward count size status timestamp tx_count)
+    )
     |> Map.put(:blocks, blocks)
   end
 

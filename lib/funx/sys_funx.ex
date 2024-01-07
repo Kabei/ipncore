@@ -68,8 +68,7 @@ defmodule Ippan.Funx.Sys do
         case Map.get(opts, "reset") do
           # reset all
           "all" ->
-            IO.puts("Restart")
-            System.restart()
+            :init.restart()
 
           # reset specific modules
           files when is_list(files) ->

@@ -35,6 +35,7 @@ config/options.exs
 config/runtime.exs
 ./*.sh
 whitelist
+masterlist
 
 *.app
 *.keys

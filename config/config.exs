@@ -46,8 +46,6 @@ config :ipncore, :p2p_client, [
 config :ipncore, json: Jason
 config :blake3, rayon: true
 
-import_config "default.exs"
-
 if File.exists?("config/options.exs") do
   import_config "options.exs"
 end

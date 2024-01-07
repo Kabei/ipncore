@@ -16,7 +16,6 @@ defmodule Ipncore.Application do
   end
 
   defp start_app do
-    IO.puts("Starting application")
     check_install()
     start_node()
     make_folders()

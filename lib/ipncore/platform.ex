@@ -19,13 +19,9 @@ defmodule Platform do
       _owner ->
         :ok
     end
-
-    :ok
   end
 
   defp load_genesis_file(db_ref) do
-    IO.puts("Load Genesis File")
-
     filename =
       case Mix.env() do
         :dev -> "genesis-dev.exs"
@@ -68,8 +64,8 @@ defmodule Platform do
     end
 
     # save all
-    IO.puts("Here active")
     Sqlite.sync(db_ref)
     DetsPlux.sync(wallet_dets, wallet_tx)
+    IO.puts("Genesis file loaded")
   end
 end

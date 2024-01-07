@@ -48,17 +48,20 @@ defmodule LocalStore do
     :ignore
   end
 
+  @masterlist "masterlist"
   defp load_nodes(db_ref) do
     if Node.total() == 0 do
-      if File.exists?("masterlist") do
+      if File.exists?(@masterlist) do
         pk = :persistent_term.get(:pubkey)
         net_pk = :persistent_term.get(:net_pubkey)
         default_port = Application.get_env(@app, :cluster)[:port]
         timestamp = :erlang.system_time(:millisecond)
 
         # registry cluster nodes
-        File.stream!(@filename, [], :line)
-        |> Enum.map(fn txt -> String.split(txt, "@", trim: true) end)
+        File.stream!(@masterlist, [], :line)
+        |> Enum.map(fn txt ->
+          String.split(txt, "@", trim: true)
+        end)
         |> Enum.filter(fn
           [_a, _b] -> true
           _ -> false

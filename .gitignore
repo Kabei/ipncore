@@ -32,7 +32,6 @@ mix.lock
 
 env_file
 config/options.exs
-config/runtime.exs
 ./*.sh
 whitelist
 masterlist

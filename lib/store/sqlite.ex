@@ -186,8 +186,8 @@ defmodule Sqlite do
 
   defmacro sync(db_ref) do
     quote do
-      Sqlite3NIF.execute(unquote(db_ref), ~c"COMMIT") |> IO.inspect()
-      Sqlite3NIF.execute(unquote(db_ref), ~c"BEGIN") |> IO.inspect()
+      Sqlite3NIF.execute(unquote(db_ref), ~c"COMMIT")
+      Sqlite3NIF.execute(unquote(db_ref), ~c"BEGIN")
     end
   end
 

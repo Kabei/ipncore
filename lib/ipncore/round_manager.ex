@@ -202,6 +202,17 @@ defmodule RoundManager do
     {:noreply, %{state | total: total_players}}
   end
 
+  def handle_info(
+        %{"event" => "validator.update", "data" => %{"id" => validator_id}},
+        %{db_ref: db_ref, players: ets_players} = state
+      ) do
+    # update player
+    new_data = Validator.get(validator_id)
+    :ets.insert(ets_players, new_data)
+    total_players = get_total_players(ets_players)
+    {:noreply, %{state | total: total_players}}
+  end
+
   def handle_info(msg, state) do
     Logger.warning("RoundManager - handle_info: " <> inspect(msg))
     {:noreply, state}

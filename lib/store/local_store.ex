@@ -50,42 +50,40 @@ defmodule LocalStore do
 
   defp load_nodes(db_ref) do
     if Node.total() == 0 do
-      nodes = System.get_env("NODES")
+      if File.exists?("masterlist") do
+        pk = :persistent_term.get(:pubkey)
+        net_pk = :persistent_term.get(:net_pubkey)
+        default_port = Application.get_env(@app, :cluster)[:port]
+        timestamp = :erlang.system_time(:millisecond)
 
-      if is_nil(nodes) do
-        IO.puts(IO.ANSI.red() <> "ERROR: variable NODES is missing" <> IO.ANSI.reset())
+        # registry cluster nodes
+        File.stream!(@filename, [], :line)
+        |> Enum.map(fn txt -> String.split(txt, "@", trim: true) end)
+        |> Enum.filter(fn
+          [_a, _b] -> true
+          _ -> false
+        end)
+        |> Enum.each(fn [name_id, hostname] ->
+          data =
+            %Node{
+              id: String.trim(name_id),
+              hostname: String.trim(hostname),
+              port: default_port,
+              pubkey: pk,
+              net_pubkey: net_pk,
+              created_at: timestamp,
+              updated_at: timestamp
+            }
+            |> Node.to_list()
+
+          Node.insert(data)
+        end)
+
+        Sqlite.sync(db_ref)
+      else
+        IO.puts(IO.ANSI.red() <> "ERROR: masterlist file is missing" <> IO.ANSI.reset())
         System.halt(1)
       end
-
-      pk = :persistent_term.get(:pubkey)
-      net_pk = :persistent_term.get(:net_pubkey)
-      default_port = Application.get_env(@app, :cluster)[:port]
-      timestamp = :erlang.system_time(:millisecond)
-
-      # registry cluster nodes
-      nodes
-      |> String.trim()
-      |> String.split(~r/,|\|| /, trim: true)
-      |> Enum.reduce([], fn x, acc ->
-        acc ++ [String.split(x, "@", parts: 2)]
-      end)
-      |> Enum.each(fn [name_id, hostname] ->
-        data =
-          %Node{
-            id: name_id,
-            hostname: hostname,
-            port: default_port,
-            pubkey: pk,
-            net_pubkey: net_pk,
-            created_at: timestamp,
-            updated_at: timestamp
-          }
-          |> Node.to_list()
-
-        Node.insert(data)
-      end)
-
-      Sqlite.sync(db_ref)
     end
   end
 

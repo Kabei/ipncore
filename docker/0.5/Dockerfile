@@ -14,6 +14,8 @@ RUN git clone --branch v0.5 https://kabei@github.com/kabei/ipncore.git
 WORKDIR /usr/src/ipncore
 
 COPY env_file ./env_file
+COPY masterlist ./masterlist
+COPY whitelist ./whitelist
 COPY scripts/run.sh run.sh
 
 RUN mix local.hex --force && mix deps.get && mix local.rebar --force

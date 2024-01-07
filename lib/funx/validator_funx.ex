@@ -87,22 +87,22 @@ defmodule Ippan.Funx.Validator do
         :error
 
       _ ->
-        map =
+        # transform to binary
+        fun = fn x -> Base.decode64!(x) end
+
+        prev_map =
           MapUtil.to_atoms(map_filter)
           |> Map.put(:updated_at, round_id)
+
+        map =
+          prev_map
+          |> MapUtil.transform(:pubkey, fun)
+          |> MapUtil.transform(:net_pubkey, fun)
 
         db_ref = :persistent_term.get(:main_conn)
         Validator.update(map, id)
 
-        # transform to text
-        fun = fn x -> Base.decode64!(x) end
-
-        map =
-          map
-          |> MapUtil.transform(:pubkey, fun)
-          |> MapUtil.transform(:net_pubkey, fun)
-
-        event = %{"event" => "validator.update", "data" => %{"id" => id, "args" => map}}
+        event = %{"event" => "validator.update", "data" => %{"id" => id, "args" => prev_map}}
         PubSub.broadcast(@pubsub, @topic, event)
     end
   end

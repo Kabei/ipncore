@@ -141,6 +141,12 @@ defmodule Ippan.Node do
     end
   end
 
+  defmacro last_mod do
+    quote location: :keep do
+      Sqlite.one("last_mod", [])
+    end
+  end
+
   defmacro delete(id) do
     quote location: :keep do
       Sqlite.step("delete_node", [unquote(id)])

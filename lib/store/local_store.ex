@@ -50,43 +50,62 @@ defmodule LocalStore do
 
   @masterlist "masterlist"
   defp load_nodes(db_ref) do
-    if Node.total() == 0 do
-      if File.exists?(@masterlist) do
-        pk = :persistent_term.get(:pubkey)
-        net_pk = :persistent_term.get(:net_pubkey)
-        default_port = Application.get_env(@app, :cluster)[:port]
-        timestamp = :erlang.system_time(:millisecond)
+    case File.stat(@masterlist) do
+      {:ok, stat} ->
+        {x1, x2} = stat.mtime
+        {y, m, d} = x1
+        {h, min, s} = x2
+        {:ok, dt} = DateTime.new(Date.new!(y, m, d), Time.new!(h, min, s))
 
-        # registry cluster nodes
-        File.stream!(@masterlist, [], :line)
-        |> Enum.map(fn txt ->
-          String.split(txt, "@", trim: true)
-        end)
-        |> Enum.filter(fn
-          [_a, _b] -> true
-          _ -> false
-        end)
-        |> Enum.each(fn [name_id, hostname] ->
-          data =
-            %Node{
-              id: String.trim(name_id),
-              hostname: String.trim(hostname),
-              port: default_port,
-              pubkey: pk,
-              net_pubkey: net_pk,
-              created_at: timestamp,
-              updated_at: timestamp
-            }
-            |> Node.to_list()
+        # check last modification
+        continue =
+          case Node.last_mod() do
+            nil ->
+              true
 
-          Node.insert(data)
-        end)
+            u ->
+              DateTime.from_unix!(div(u, 1000), :second) < dt
+          end
 
-        Sqlite.sync(db_ref)
-      else
-        IO.puts(IO.ANSI.red() <> "ERROR: masterlist file is missing" <> IO.ANSI.reset())
-        System.halt(1)
-      end
+        if continue do
+          # registry cluster nodes
+          pk = :persistent_term.get(:pubkey)
+          net_pk = :persistent_term.get(:net_pubkey)
+          default_port = Application.get_env(@app, :cluster)[:port]
+          timestamp = :erlang.system_time(:millisecond)
+
+          File.stream!(@masterlist, [], :line)
+          |> Enum.map(fn txt ->
+            String.split(txt, "@", trim: true)
+          end)
+          |> Enum.filter(fn
+            [_a, _b] -> true
+            _ -> false
+          end)
+          |> Enum.each(fn [name_id, hostname] ->
+            data =
+              %Node{
+                id: String.trim(name_id),
+                hostname: String.trim(hostname),
+                port: default_port,
+                pubkey: pk,
+                net_pubkey: net_pk,
+                created_at: timestamp,
+                updated_at: timestamp
+              }
+              |> Node.to_list()
+
+            Node.insert(data)
+          end)
+
+          Sqlite.sync(db_ref)
+        end
+
+      _error ->
+        if Node.total() == 0 do
+          IO.puts(IO.ANSI.red() <> "ERROR: masterlist file is missing" <> IO.ANSI.reset())
+          System.halt(1)
+        end
     end
   end
 

@@ -64,7 +64,8 @@ defmodule LocalStore do
               true
 
             u ->
-              DateTime.from_unix!(div(u, 1000), :second) < dt
+              dtu = DateTime.from_unix!(div(u, 1000), :second)
+              dtu < dt
           end
 
         if continue do
@@ -82,12 +83,14 @@ defmodule LocalStore do
             [_a, _b] -> true
             _ -> false
           end)
-          |> Enum.each(fn [name_id, hostname] ->
+          |> Enum.each(fn [name_id, host] ->
+            {hostname, port} = extract_hostname_port(host, default_port)
+
             data =
               %Node{
                 id: String.trim(name_id),
                 hostname: String.trim(hostname),
-                port: default_port,
+                port: port,
                 pubkey: pk,
                 net_pubkey: net_pk,
                 created_at: timestamp,
@@ -106,6 +109,13 @@ defmodule LocalStore do
           IO.puts(IO.ANSI.red() <> "ERROR: masterlist file is missing" <> IO.ANSI.reset())
           System.halt(1)
         end
+    end
+  end
+
+  defp extract_hostname_port(host, default_port) do
+    case String.split(host, ":", parts: 2) do
+      [ip, port] -> {ip, port}
+      [ip] -> {ip, default_port}
     end
   end
 

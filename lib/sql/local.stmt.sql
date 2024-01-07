@@ -13,6 +13,9 @@ SELECT updated_at FROM nodes ORDER BY updated_at DESC LIMIT 1;
 --name: total_nodes
 SELECT COUNT(1) FROM nodes;
 
+--name: contains_class
+SELECT * FROM nodes WHERE class LIKE ?1;
+
 --name: all_nodes
 SELECT * FROM nodes;
 

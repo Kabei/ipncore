@@ -7,6 +7,7 @@ cpus = System.schedulers_online()
 port = System.get_env("PORT", "5815") |> String.to_integer()
 cluster_port = System.get_env("CLUSTER_PORT", "4848") |> String.to_integer()
 http_port = System.get_env("HTTP_PORT", "8080") |> String.to_integer()
+x_http_port = System.get_env("X_HTTP_PORT", "8080") |> String.to_integer()
 
 # Network setup
 # P2P server
@@ -67,3 +68,5 @@ config :ipncore, :http,
       reuseaddr: true
     ]
   ]
+
+  config :ipncore, :x_http_port, x_http_port

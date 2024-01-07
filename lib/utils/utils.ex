@@ -28,6 +28,18 @@ defmodule Ippan.Utils do
     end
   end
 
+  def class_encode(nil), do: nil
+
+  def class_encode(roles) do
+    Enum.join(roles, " ")
+  end
+
+  def class_decode(nil), do: nil
+
+  def class_decode(roles) do
+    String.split(roles, " ", trim: true)
+  end
+
   def sqlite_in(values) do
     Enum.reduce(values, "(", fn
       x, acc when is_binary(x) -> IO.iodata_to_binary([acc, x, ","])

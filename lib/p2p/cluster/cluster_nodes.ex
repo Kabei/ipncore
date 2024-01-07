@@ -96,7 +96,7 @@ defmodule Ippan.ClusterNodes do
   def handle_request("get_rounds", params, _state) do
     db_ref = :persistent_term.get(:main_conn)
     round_id = Map.get(params, "starts", 0)
-    limit = Map.get(params, "limit", 50) |> min(100) |> trunc()
+    limit = Map.get(params, "limit", 50) |> min(200) |> trunc()
     offset = Map.get(params, "offset", 0)
 
     case Sqlite.fetch_all("get_rounds", [round_id, limit, offset]) do

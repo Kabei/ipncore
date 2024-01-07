@@ -7,6 +7,7 @@ defmodule Ippan.Validator do
           port: integer(),
           name: String.t(),
           owner: binary(),
+          class: String.t(),
           pubkey: binary(),
           net_pubkey: binary(),
           avatar: String.t() | nil,
@@ -34,11 +35,12 @@ defmodule Ippan.Validator do
     :updated_at,
     active: false,
     failures: 0,
-    env: %{}
+    env: %{},
+    class: ""
   ]
 
   @impl true
-  def editable, do: ~w(hostname port name avatar fa fb owner pubkey net_pubkey)
+  def editable, do: ~w(hostname port name avatar fa fb owner pubkey net_pubkey class)
   @impl true
   def optionals, do: ~w(avatar env)
 
@@ -50,6 +52,7 @@ defmodule Ippan.Validator do
       x.port,
       x.name,
       x.owner,
+      x.class,
       x.pubkey,
       x.net_pubkey,
       x.avatar,
@@ -80,6 +83,7 @@ defmodule Ippan.Validator do
         port,
         name,
         owner,
+        class,
         pubkey,
         net_pubkey,
         avatar,
@@ -97,6 +101,7 @@ defmodule Ippan.Validator do
       port: port,
       name: name,
       owner: owner,
+      class: class,
       avatar: avatar,
       pubkey: pubkey,
       net_pubkey: net_pubkey,

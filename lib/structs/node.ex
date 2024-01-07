@@ -6,7 +6,7 @@ defmodule Ippan.Node do
           id: binary,
           hostname: charlist(),
           port: non_neg_integer(),
-          role: [binary] | nil,
+          class: [binary] | nil,
           pubkey: binary,
           net_pubkey: binary,
           avatar: binary | nil,
@@ -18,12 +18,12 @@ defmodule Ippan.Node do
     :id,
     :hostname,
     :port,
-    :role,
     :pubkey,
     :net_pubkey,
     :avatar,
     :created_at,
-    :updated_at
+    :updated_at,
+    class: ""
   ]
 
   # @fields __MODULE__.__struct__() |> Map.keys() |> Enum.map(&to_string(&1)) |> IO.inspect()
@@ -31,7 +31,7 @@ defmodule Ippan.Node do
   # def fields, do: @fields
 
   @impl true
-  def editable, do: ~w(hostname port role avatar)
+  def editable, do: ~w(hostname port class avatar)
 
   @impl true
   def optionals, do: ~w(avatar)
@@ -42,7 +42,7 @@ defmodule Ippan.Node do
       x.id,
       x.hostname,
       x.port,
-      role_encode(x.role),
+      x.class,
       x.pubkey,
       x.net_pubkey,
       x.avatar,
@@ -66,7 +66,7 @@ defmodule Ippan.Node do
         id,
         hostname,
         port,
-        role,
+        class,
         pubkey,
         net_pubkey,
         avatar,
@@ -77,7 +77,7 @@ defmodule Ippan.Node do
       id: id,
       hostname: hostname,
       port: port,
-      role: role_decode(role),
+      class: class,
       pubkey: pubkey,
       net_pubkey: net_pubkey,
       avatar: avatar,
@@ -88,18 +88,6 @@ defmodule Ippan.Node do
 
   @impl true
   def to_map({_id, x}), do: x
-
-  def role_encode(nil), do: nil
-
-  def role_encode(roles) do
-    Enum.join(roles, " ")
-  end
-
-  def role_decode(nil), do: nil
-
-  def role_decode(roles) do
-    String.split(roles, " ", trim: true)
-  end
 
   defmacro insert(args) do
     quote do

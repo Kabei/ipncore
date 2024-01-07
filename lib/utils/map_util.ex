@@ -70,6 +70,15 @@ defmodule MapUtil do
     map
   end
 
+  def validate_text(map, key) do
+    x = Map.get(map, key)
+
+    if not is_nil(x) and not String.valid?(x),
+      do: raise(ArgumentError, "Invalid #{key} is not a text valid")
+
+    map
+  end
+
   def validate_map(map, key) do
     value = Map.get(map, key)
 

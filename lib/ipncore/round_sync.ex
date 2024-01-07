@@ -19,7 +19,7 @@ defmodule RoundSync do
   @app Mix.Project.config()[:app]
   @json Application.compile_env(@app, :json)
   @blockchain Application.compile_env(@app, :name)
-  @offset 50
+  @offset 200
 
   def start_link(args) do
     case Process.whereis(__MODULE__) do

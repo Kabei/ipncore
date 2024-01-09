@@ -55,38 +55,15 @@ defmodule RoundSync do
         } = state
       ) do
     {current_round_id, _hash} = Round.last()
-    hostname = get_random_host()
+    hosts = get_whitelist()
 
-    case hostname do
-      nil ->
-        Logger.warning("There are no hosts in the whitelist file")
+    case hosts do
+      [] ->
+        Logger.warning("No hosts in whitelist file")
         stop(state, true)
 
-      hostname ->
-        case check(hostname, current_round_id) do
-          {:ok, last_round_id, node} ->
-            IO.puts("RoundSync Active")
-
-            map = %{
-              offset: 0,
-              starts: current_round_id + 1,
-              target: last_round_id
-            }
-
-            {
-              :noreply,
-              Map.merge(state, map),
-              {:continue, {:fetch, current_round_id + 1, node}}
-            }
-
-          :stop ->
-            IO.puts("RoundSync Stop")
-            stop(state, false)
-
-          :idle ->
-            IO.puts("RoundSync Idle")
-            stop(state, true)
-        end
+      hosts ->
+        do_results(hosts, current_round_id, state)
     end
   end
 
@@ -207,68 +184,100 @@ defmodule RoundSync do
   end
 
   @filename "whitelist"
-  # Get random hostname from whitelist
-  defp get_random_host do
+  # Get hosts from whitelist
+  defp get_whitelist do
     if File.exists?(@filename) do
       File.stream!(@filename, [], :line)
       |> Enum.map(fn text ->
         String.trim(text)
       end)
-      |> Enum.filter(fn x -> Match.hostname?(x) or Match.ipv4?(x) end)
-      |> Enum.take_random(1)
-      |> List.first()
-    end
+    end || []
   end
 
   defp check(hostname, my_last_round) do
     try do
-      {:ok, r1 = %{status_code: 200}} =
-        HTTPoison.get("https://#{hostname}/v1/info", [], hackney: [:insecure])
+      case HTTPoison.get("https://#{hostname}/v1/info", [], hackney: [:insecure]) do
+        {:ok, r1 = %{status_code: 200}} ->
+          case HTTPoison.get("https://#{hostname}/v1/network/status", [],
+                 hackney: [:insecure],
+                 timeout: 10_000
+               ) do
+            {:ok, r2 = %{status_code: 200}} ->
+              {:ok, validator} = @json.decode(r1.body)
 
-      case HTTPoison.get("https://#{hostname}/v1/network/status", [],
-             hackney: [:insecure],
-             timeout: 10_000
-           ) do
-        {:ok, r2 = %{status_code: 200}} ->
-          {:ok, validator} = @json.decode(r1.body)
+              {:ok, %{"id" => round_id, "name" => blockchain}} = @json.decode(r2.body)
 
-          {:ok, %{"id" => round_id, "name" => blockchain}} = @json.decode(r2.body)
+              cond do
+                blockchain != @blockchain ->
+                  Logger.warning("Wrong blockchain \"#{blockchain}\" - My config: #{@blockchain}")
+                  :error
 
-          cond do
-            blockchain != @blockchain ->
-              Logger.warning("Wrong blockchain \"#{blockchain}\" - My config: #{@blockchain}")
-              :stop
+                round_id > my_last_round ->
+                  # validator
+                  node =
+                    validator
+                    |> Map.take(~w(id hostname port pubkey net_pubkey))
+                    |> MapUtil.to_atoms()
+                    |> MapUtil.transform(:pubkey, fn x -> Base.decode64!(x) end)
+                    |> MapUtil.transform(:net_pubkey, fn x -> Base.decode64!(x) end)
 
-            round_id > my_last_round ->
-              # validator
-              node =
-                validator
-                |> Map.take(~w(id hostname port pubkey net_pubkey))
-                |> MapUtil.to_atoms()
-                |> MapUtil.transform(:pubkey, fn x -> Base.decode64!(x) end)
-                |> MapUtil.transform(:net_pubkey, fn x -> Base.decode64!(x) end)
+                  case NetworkNodes.connect(node) do
+                    false ->
+                      Logger.warning("Error connecting to P2P #{hostname}")
+                      :error
 
-              case NetworkNodes.connect(node) do
-                false ->
-                  Logger.warning("It is not possible connect to #{hostname}")
+                    _true ->
+                      {:ok, round_id, node}
+                  end
+
+                true ->
+                  Logger.info("No Sync")
                   :idle
-
-                _true ->
-                  {:ok, round_id, node}
               end
 
-            true ->
-              Logger.info("No Sync")
-              :idle
+            _ ->
+              :error
           end
 
-        _ ->
-          :idle
+        {:error, err} ->
+          Logger.warning("Error connecting to #{hostname} | reason: #{inspect(err.reason)}")
+
+          :error
       end
     rescue
       error ->
         Logger.error(Exception.format(:error, error, __STACKTRACE__))
-        :idle
+        :error
+    end
+  end
+
+  defp do_results([], _, state) do
+    IO.puts("RoundSync Stop")
+    stop(state, false)
+  end
+
+  defp do_results([host | hosts], current_round_id, state) do
+    case check(host, current_round_id) do
+      {:ok, last_round_id, node} ->
+        IO.puts("RoundSync Active")
+
+        map = %{
+          offset: 0,
+          starts: current_round_id + 1,
+          target: last_round_id
+        }
+
+        {
+          :noreply,
+          Map.merge(state, map),
+          {:continue, {:fetch, current_round_id + 1, node}}
+        }
+
+      :idle ->
+        stop(state, true)
+
+      :error ->
+        do_results(hosts, current_round_id, state)
     end
   end
 

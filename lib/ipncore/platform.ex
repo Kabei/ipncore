@@ -1,5 +1,5 @@
 defmodule Platform do
-  alias Ippan.{Env, Token, Validator}
+  alias Ippan.{Token, Validator}
   require Token
   require Validator
   require Sqlite
@@ -14,7 +14,6 @@ defmodule Platform do
     case EnvStore.owner() do
       nil ->
         load_genesis_file(db_ref)
-        EnvStore.load(db_ref)
 
       _owner ->
         :ok
@@ -57,8 +56,8 @@ defmodule Platform do
           end)
 
         "env" ->
-          Enum.each(values, fn x ->
-            Sqlite.step("insert_env", Env.to_list(x))
+          Enum.each(values, fn %{name: name, value: value} ->
+            EnvStore.put(db_ref, name, value)
           end)
       end
     end

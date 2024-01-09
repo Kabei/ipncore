@@ -44,7 +44,7 @@ defmodule EnvStore do
   end
 
   def block_limit do
-    :persistent_term.get({:env, "block.limit"}, 10)
+    :persistent_term.get({:env, "block.limit"}, 1)
   end
 
   defp transform("owner", x) when byte_size(x) <= 255, do: x

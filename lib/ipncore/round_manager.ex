@@ -549,8 +549,12 @@ defmodule RoundManager do
         blocks =
           case status do
             :synced ->
-              BlockTimer.get_block(block_id) ++
-                Enum.map(:ets.tab2list(ets_candidates), fn {_, b} -> b end)
+              limit = EnvStore.block_limit()
+
+              BlockTimer.get_block(block_id)
+              |> Kernel.++(:ets.tab2list(ets_candidates))
+              |> Enum.take(limit)
+              |> Enum.map(fn {_, b} -> b end)
 
             # Time to wait messages (msg_block) to arrived
             _ ->

@@ -552,9 +552,11 @@ defmodule RoundManager do
               limit = EnvStore.block_limit()
 
               BlockTimer.get_block(block_id)
-              |> Kernel.++(:ets.tab2list(ets_candidates))
+              |> Kernel.++(
+                :ets.tab2list(ets_candidates)
+                |> Enum.map(fn {_, b} -> b end)
+              )
               |> Enum.take(limit)
-              |> Enum.map(fn {_, b} -> b end)
 
             # Time to wait messages (msg_block) to arrived
             _ ->

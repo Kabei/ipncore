@@ -239,6 +239,9 @@ defmodule RoundSync do
               :error
           end
 
+        {:ok, _} ->
+          :error
+
         {:error, err} ->
           Logger.warning("Error connecting to #{hostname} | reason: #{inspect(err.reason)}")
 
@@ -253,7 +256,7 @@ defmodule RoundSync do
 
   defp do_results([], _, state) do
     IO.puts("RoundSync Stop")
-    stop(state, false)
+    stop(state, true)
   end
 
   defp do_results([host | hosts], current_round_id, state) do

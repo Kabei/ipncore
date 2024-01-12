@@ -171,6 +171,7 @@ defmodule RoundManager do
       message ->
         IO.puts("sync_to_round_creator #{inspect(message)}")
         spawn_build_foreign_round(state, message)
+        {:noreply, state, :hibernate}
     end
   end
 
@@ -258,7 +259,6 @@ defmodule RoundManager do
   def handle_cast(
         {:incomplete, %{id: round_nulled_id} = round_nulled},
         %{
-          db_ref: db_ref,
           players: ets_players,
           rcid: rcid,
           status: status,
@@ -268,16 +268,6 @@ defmodule RoundManager do
       ) do
     next = status == :synced
     Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_nulled.status}")
-
-    # Reverse changes
-    RoundCommit.rollback(db_ref)
-
-    # round nulled
-    :done = Round.insert(Round.to_list(round_nulled))
-
-    # Delete validator
-    Validator.delete(rcid)
-    Sqlite.sync(db_ref)
 
     # Delete player
     :ets.delete(ets_players, rcid)

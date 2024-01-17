@@ -822,14 +822,16 @@ defmodule RoundManager do
                   [_hash, _type, account_id, _nonce, _args, _sig, _size] ->
                     BalanceStore.income(balances, balance_tx, account_id, @token, amount)
                     # Update Token Supply
-                    TokenSupply.add(supply, amount)
+                    su = TokenSupply.new(@token)
+                    TokenSupply.add(su, amount)
 
                     account_id
 
                   [_hash, _type, _arg_key, account_id, _nonce, _args, _sig, _size] ->
                     BalanceStore.income(balances, balance_tx, account_id, @token, amount)
                     # Update Token Supply
-                    TokenSupply.add(supply, amount)
+                    su = TokenSupply.new(@token)
+                    TokenSupply.add(su, amount)
                     account_id
                 end
 

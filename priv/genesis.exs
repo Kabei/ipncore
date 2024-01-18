@@ -92,12 +92,12 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       max_supply: 0,
       name: "Xtream Payment Network",
       owner: address,
-      props: ["burn", "coinbase", "drop", "lock", "reload", "stream"],
+      props: ["burn", "drop", "lock", "reload", "stream"],
       symbol: "xÞ",
       updated_at: 0,
       env: %{
-        "reload.amount" => 500,
-        "reload.times" => 6,
+        "reload.amount" => 75000,
+        "reload.times" => 15000,
         "reload.expiry" => 18250000,
       }
     }

@@ -604,26 +604,34 @@ defmodule RoundManager do
   # {supply_tx, supply_key, supply, max_supply}
   defmacrop run_reward do
     quote location: :keep do
-      reward = Round.calc_reward(var!(tx_count), var!(txs_rejected), var!(size))
-      total = TokenSupply.get(var!(supply)) + reward
+      computed = Round.calc_reward(var!(tx_count), var!(txs_rejected), var!(size))
+      current = TokenSupply.get(var!(supply))
+      total = current + computed
 
-      case reward > 0 and var!(max_supply) >= total do
-        true ->
-          # Update balance
-          BalanceStore.income(
-            var!(balance_pid),
-            var!(balance_tx),
-            var!(creator).owner,
-            @token,
-            reward
-          )
+      reward =
+        cond do
+          computed == 0 ->
+            0
 
-          # Update Token Supply
-          TokenSupply.add(var!(supply), reward)
+          total > var!(max_supply) and var!(max_supply) > 0 ->
+            var!(max_supply) - current
+
+          true ->
+            total
+        end
+
+      if reward > 0 do
+        BalanceStore.income(
+          var!(balance_pid),
+          var!(balance_tx),
+          var!(creator).owner,
+          @token,
           reward
+        )
 
-        false ->
-          0
+        reward
+      else
+        0
       end
     end
   end
@@ -694,24 +702,30 @@ defmodule RoundManager do
         # Run deferred txs
         TxHandler.run_deferred_txs()
 
-        # Get info native token and current supply
-        %{max_supply: max_supply} = Token.get(@token)
-
-        supply = TokenSupply.new(@token)
-
         # Calculate reward
-        reward = run_reward()
+        reward_task =
+          Task.async(fn ->
+            # Get info native token and current supply
+            %{max_supply: max_supply} = Token.get(@token)
+            supply = TokenSupply.new(@token)
+            run_reward()
+          end)
 
         # Run jackpot and events
-        jackpot_result =
-          run_jackpot(
-            db_ref,
-            balance_pid,
-            balance_tx,
-            round_id,
-            prev_hash,
-            block_id + block_count
-          )
+        jackpot_task =
+          Task.async(fn ->
+            run_jackpot(
+              db_ref,
+              balance_pid,
+              balance_tx,
+              round_id,
+              prev_hash,
+              block_id + block_count
+            )
+          end)
+
+        reward = Task.await(reward_task, :infinity)
+        jackpot = Task.await(jackpot_task, :infinity)
 
         # save round
         round = %{
@@ -730,7 +744,7 @@ defmodule RoundManager do
           extra: nil,
           reward: reward,
           # extra data
-          jackpot: jackpot_result
+          jackpot: jackpot
         }
 
         :done = Round.to_list(round) |> Round.insert()

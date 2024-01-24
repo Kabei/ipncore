@@ -10,6 +10,7 @@ defmodule Ippan.NetworkNodes do
     app: @app,
     name: :network,
     table: :nw,
+    bag: :nwb,
     server: Ippan.NetworkNodes.Server,
     pubsub: :pubsub,
     topic: "network",

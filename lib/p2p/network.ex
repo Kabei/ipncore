@@ -65,6 +65,7 @@ defmodule Ippan.Network do
       @otp_app opts[:app]
       @name opts[:name]
       @table opts[:table]
+      @bag opts[:bag]
       @server opts[:server] || opts[:name]
       @pubsub opts[:pubsub]
       @topic opts[:topic]
@@ -82,6 +83,21 @@ defmodule Ippan.Network do
             :undefined ->
               :ets.new(@table, [
                 :set,
+                :named_table,
+                :public,
+                read_concurrency: false,
+                write_concurrency: false
+              ])
+
+            ref ->
+              ref
+          end
+
+        bag_table =
+          case :ets.whereis(@bag) do
+            :undefined ->
+              :ets.new(@bag, [
+                :bag,
                 :named_table,
                 :public,
                 read_concurrency: false,
@@ -121,7 +137,7 @@ defmodule Ippan.Network do
 
         PubSub.subscribe(@pubsub, @topic)
 
-        state = %{sup: sup, server: server, ets: table}
+        state = %{sup: sup, server: server, ets: table, bag: bag_table}
         on_init(state)
         {:ok, state, {:continue, :init}}
       end
@@ -151,10 +167,11 @@ defmodule Ippan.Network do
       # end
 
       @impl true
-      def terminate(_reason, %{ets: ets, server: server, sup: sup}) do
+      def terminate(_reason, %{bag: bag_ets, ets: ets, server: server, sup: sup}) do
         ThousandIsland.stop(server, :infinity)
         PubSub.unsubscribe(@pubsub, @topic)
         :ets.delete(ets)
+        :ets.delete(bag_ets)
         DynamicSupervisor.stop(sup)
       end
 
@@ -162,7 +179,7 @@ defmodule Ippan.Network do
       def on_connect(
             node_id,
             %{
-              socket: _socket,
+              socket: socket,
               sharedkey: _sharedkey,
               hostname: _hostname,
               net_pubkey: _net_pubkey
@@ -175,6 +192,8 @@ defmodule Ippan.Network do
         if via == :client do
           :ets.insert(@table, {node_id, map})
         end
+
+        :ets.insert(@bag, {node_id, socket})
       end
 
       @impl Network
@@ -238,7 +257,6 @@ defmodule Ippan.Network do
 
           m ->
             Logger.debug(inspect(m))
-            :ok
         end
       end
 
@@ -275,25 +293,22 @@ defmodule Ippan.Network do
       end
 
       # :ets.fun2ms(fn {id, %{socket: socket}} when id == 1 and socket == 2 -> true end)
+      # :ets.fun2ms(fn {id, socket} when id == 1 and socket == 2 -> true end)
       @impl Network
       def disconnect(%{id: node_id, socket: socket}) do
-        match = [
-          {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
-           [true]}
-        ]
+        match = [{{:"$1", :"$2"}, [{:andalso, {:==, :"$1", 1}, {:==, :"$2", 2}}], [true]}]
 
-        :ets.select_delete(@table, match)
+        :ets.delete(@table, node_id)
+        :ets.select_delete(@bag, match)
         @adapter.close(socket)
       end
 
       @impl Network
       def disconnect(node_id, socket) do
-        match = [
-          {{:"$1", %{socket: :"$2"}}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
-           [true]}
-        ]
+        match = [{{:"$1", :"$2"}, [{:andalso, {:==, :"$1", 1}, {:==, :"$2", 2}}], [true]}]
 
-        :ets.select_delete(@table, match)
+        :ets.delete(@table, node_id)
+        :ets.select_delete(@bag, match)
         @adapter.close(socket)
       end
 
@@ -303,10 +318,10 @@ defmodule Ippan.Network do
       end
 
       def disconnect_all(node_id) do
-        data = :ets.lookup(@table, node_id)
+        data = :ets.lookup(@bag, node_id)
         :ets.delete(@table, node_id)
 
-        Enum.each(data, fn {_, %{socket: socket}} ->
+        Enum.each(data, fn {_, socket} ->
           @adapter.close(socket)
         end)
       end

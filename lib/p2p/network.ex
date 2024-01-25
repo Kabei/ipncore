@@ -320,6 +320,7 @@ defmodule Ippan.Network do
       def disconnect_all(node_id) do
         data = :ets.lookup(@bag, node_id)
         :ets.delete(@table, node_id)
+        :ets.delete(@bag, node_id)
 
         Enum.each(data, fn {_, socket} ->
           @adapter.close(socket)
@@ -436,7 +437,7 @@ defmodule Ippan.Network do
       @impl Network
       def broadcast(message) do
         list()
-        |> Enum.uniq_by(fn {node_id, _} -> node_id end)
+        # |> Enum.uniq_by(fn {node_id, _} -> node_id end)
         |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
           @adapter.send(socket, encode(message, sharedkey))
         end)
@@ -447,7 +448,7 @@ defmodule Ippan.Network do
         data = :ets.select(@table, [{{:_, %{role: :"$1"}}, [{:==, :"$1", role}], [:"$_"]}])
 
         data
-        |> Enum.uniq_by(fn {node_id, _} -> node_id end)
+        # |> Enum.uniq_by(fn {node_id, _} -> node_id end)
         |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
           @adapter.send(socket, encode(message, sharedkey))
         end)
@@ -456,7 +457,7 @@ defmodule Ippan.Network do
       @impl Network
       def broadcast_except(message, ids) do
         list()
-        |> Enum.uniq_by(fn {node_id, _} -> node_id end)
+        # |> Enum.uniq_by(fn {node_id, _} -> node_id end)
         |> Enum.each(fn {id, %{sharedkey: sharedkey, socket: socket}} ->
           if id not in ids do
             @adapter.send(socket, encode(message, sharedkey))

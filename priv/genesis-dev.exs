@@ -97,44 +97,44 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       updated_at: 0,
       env: %{
         "reload.amount" => 500,
-        "reload.times" => 120,
+        "reload.times" => 6,
         "reload.expiry" => 18250000,
       }
     }
   ],
   "validators" => [
-    %Validator{
-      avatar: nil,
-      created_at: 0,
-      fa: 0,
-      failures: 0,
-      fb: 1,
-      hostname: "visurpay.com",
-      id: 0,
-      name: "Speedy",
-      net_pubkey: npk,
-      owner: address,
-      port: 5815,
-      pubkey: pk,
-      active: true,
-      updated_at: 0
-    },
     # %Validator{
     #   avatar: nil,
     #   created_at: 0,
     #   fa: 0,
     #   failures: 0,
     #   fb: 1,
-    #   hostname: "ippan.co.uk",
-    #   id: 1,
-    #   name: "Raptor",
+    #   hostname: "visurpay.com",
+    #   id: 0,
+    #   name: "Speedy",
     #   net_pubkey: npk,
     #   owner: address,
     #   port: 5815,
     #   pubkey: pk,
     #   active: true,
     #   updated_at: 0
-    # }
+    # },
+    %Validator{
+      avatar: nil,
+      created_at: 0,
+      fa: 0,
+      failures: 0,
+      fb: 1,
+      hostname: "ippan.co.uk",
+      id: 0,
+      name: "Raptor",
+      net_pubkey: npk,
+      owner: address,
+      port: 5815,
+      pubkey: pk,
+      active: true,
+      updated_at: 0
+    }
   ],
   "wallets" => [
     %Wallet{

@@ -2,7 +2,7 @@ defmodule Ipncore.MixProject do
   use Mix.Project
 
   @app :ipncore
-  @version "0.5.0"
+  @version "0.5.1"
   @min_otp 25
 
   def project do

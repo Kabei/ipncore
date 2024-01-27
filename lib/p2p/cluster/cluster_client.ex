@@ -10,6 +10,7 @@ defmodule Ippan.ClusterClient do
   @ping_interval 45_000
   @app Mix.Project.config()[:app]
   @opts Application.compile_env(@app, :p2p_client)
+  @time_to_connect 5_000
   @time_to_reconnect 1_000
   @via :client
 
@@ -55,7 +56,7 @@ defmodule Ippan.ClusterClient do
     from_id = :persistent_term.get(@id)
 
     with {:ok, ip_addr} <- Utils.getaddr(hostname),
-         {:ok, socket} <- @adapter.connect(ip_addr, port, @opts),
+         {:ok, socket} <- @adapter.connect(ip_addr, port, @opts, @time_to_connect),
          false <- @node.alive?(node_id) do
       case P2P.client_handshake(socket, from_id, net_pubkey, :persistent_term.get(:privkey)) do
         {:ok, sharedkey} ->

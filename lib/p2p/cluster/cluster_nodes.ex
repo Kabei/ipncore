@@ -32,6 +32,8 @@ defmodule Ippan.ClusterNodes do
     if via == :server do
       :ets.insert(@table, {node_id, map})
     end
+
+    :ets.insert(@bag, {node_id, map.socket})
   end
 
   @impl Network

@@ -17,7 +17,6 @@ defmodule RoundManager do
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
   @time_to_request 7000
-  # @worker_name :round_worker
 
   def start_link(args) do
     case System.get_env("test") do
@@ -119,8 +118,9 @@ defmodule RoundManager do
 
     if new_state.turn do
       spawn_build_local_round(new_state)
+      {:ok, tRef} = :timer.send_after(@timeout, :timeout)
 
-      {:noreply, new_state, :hibernate}
+      {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
       {:ok, rRef} = :timer.send_after(@time_to_request, :request)
@@ -318,8 +318,7 @@ defmodule RoundManager do
     Logger.debug(inspect(msg_round))
     limit = EnvStore.block_limit()
 
-    with true <- vid != creator_id,
-         true <- limit >= length(blocks),
+    with true <- limit >= length(blocks),
          true <- Validator.exists?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          false <-
@@ -527,71 +526,75 @@ defmodule RoundManager do
          balance: balances,
          miner_pool: pool_pid,
          rcid: rcid,
+         total: total_players,
          vid: vid
        }) do
-    pid = self()
-
     if rcid == vid do
-      spawn(fn ->
-        # Process.register(self(), @worker_name)
-        IO.puts("RM: build_local_round #{round_id}")
+      IO.puts("RM: build_local_round #{round_id}")
 
-        blocks =
-          case status do
-            :synced ->
-              limit = EnvStore.block_limit()
+      blocks =
+        case status do
+          :synced ->
+            limit = EnvStore.block_limit()
 
-              BlockTimer.get_block(block_id)
-              |> Kernel.++(
-                :ets.tab2list(ets_candidates)
-                |> Enum.map(fn {_, b} -> b end)
-              )
-              |> Enum.take(limit)
+            BlockTimer.get_block(block_id)
+            |> Kernel.++(
+              :ets.tab2list(ets_candidates)
+              |> Enum.map(fn {_, b} -> b end)
+            )
+            |> Enum.take(limit)
 
-            # Time to wait messages (msg_block) to arrived
-            _ ->
-              []
-          end
+          # Time to wait messages (msg_block) to arrived
+          _ ->
+            []
+        end
 
-        creator = Validator.get(vid)
-        timestamp = :erlang.system_time(:millisecond)
-        {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
-        hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
-        {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
+      creator = Validator.get(vid)
+      timestamp = :erlang.system_time(:millisecond)
+      {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
+      hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
+      {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
 
-        # pre-build
-        pre_round = %{
-          id: round_id,
-          blocks: blocks,
-          creator: creator.id,
-          hash: hash,
-          signature: signature,
-          prev: prev_hash,
-          timestamp: timestamp
-        }
+      # pre-build
+      pre_round = %{
+        id: round_id,
+        blocks: blocks,
+        creator: creator.id,
+        hash: hash,
+        signature: signature,
+        prev: prev_hash,
+        timestamp: timestamp,
+        size: size,
+        tx_count: tx_count
+      }
 
-        # send message pre-build
-        NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
+      # send message pre-build
+      NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
 
-        build_round(
-          %{
-            id: round_id,
-            hash: hash,
-            prev: prev_hash,
-            blocks: blocks,
-            signature: signature,
-            size: size,
-            tx_count: tx_count,
-            timestamp: timestamp
-          },
-          block_id,
-          creator,
-          db_ref,
-          balances,
-          pool_pid,
-          pid
-        )
-      end)
+      if total_players == 1 do
+        pid = self()
+
+        spawn(fn ->
+          build_round(
+            %{
+              id: round_id,
+              hash: hash,
+              prev: prev_hash,
+              blocks: blocks,
+              signature: signature,
+              size: size,
+              tx_count: tx_count,
+              timestamp: timestamp
+            },
+            block_id,
+            creator,
+            db_ref,
+            balances,
+            pool_pid,
+            pid
+          )
+        end)
+      end
     end
   end
 

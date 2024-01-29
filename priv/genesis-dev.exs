@@ -96,29 +96,13 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       symbol: "xÞ",
       updated_at: 0,
       env: %{
-        "reload.amount" => 500,
-        "reload.times" => 6,
-        "reload.expiry" => 18250000,
+        "reload.amount" => 3125,
+        "reload.times" => 720,
+        "reload.expiry" => 103680,
       }
     }
   ],
   "validators" => [
-    # %Validator{
-    #   avatar: nil,
-    #   created_at: 0,
-    #   fa: 0,
-    #   failures: 0,
-    #   fb: 1,
-    #   hostname: "visurpay.com",
-    #   id: 0,
-    #   name: "Speedy",
-    #   net_pubkey: npk,
-    #   owner: address,
-    #   port: 5815,
-    #   pubkey: pk,
-    #   active: true,
-    #   updated_at: 0
-    # },
     %Validator{
       avatar: nil,
       created_at: 0,
@@ -127,7 +111,23 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       fb: 1,
       hostname: "ippan.co.uk",
       id: 0,
-      name: "Raptor",
+      name: "Raptor | UK",
+      net_pubkey: npk,
+      owner: address,
+      port: 5815,
+      pubkey: pk,
+      active: true,
+      updated_at: 0
+    },
+    %Validator{
+      avatar: nil,
+      created_at: 0,
+      fa: 0,
+      failures: 0,
+      fb: 1,
+      hostname: "opasy.com",
+      id: 1,
+      name: "Redbull | BU",
       net_pubkey: npk,
       owner: address,
       port: 5815,
@@ -135,7 +135,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       active: true,
       updated_at: 0
     }
-  ],
+    ],
   "wallets" => [
     %Wallet{
       id: "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc",

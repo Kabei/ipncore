@@ -488,33 +488,34 @@ defmodule RoundManager do
     :timer.cancel(rRef)
     :timer.cancel(tRef)
 
-    if rcid != vid do
-      pid = self()
-      IO.puts("RM: spawn_build_foreign_round #{round_id}")
+    # if rcid != vid do
+    pid = self()
+    IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
-      spawn(fn ->
-        # msg_round =
-        #   message || check_votes(%{round_id: round_id, votes: ets_votes}, false)
+    spawn(fn ->
+      # msg_round =
+      #   message || check_votes(%{round_id: round_id, votes: ets_votes}, false)
 
-        creator = Validator.get(rcid)
+      creator = Validator.get(rcid)
 
-        build_round(
-          %{
-            id: round_id,
-            blocks: msg_round.blocks,
-            prev: prev_hash,
-            signature: msg_round.signature,
-            timestamp: msg_round.timestamp
-          },
-          block_id,
-          creator,
-          db_ref,
-          balance,
-          pool_pid,
-          pid
-        )
-      end)
-    end
+      build_round(
+        %{
+          id: round_id,
+          blocks: msg_round.blocks,
+          prev: prev_hash,
+          signature: msg_round.signature,
+          timestamp: msg_round.timestamp
+        },
+        block_id,
+        creator,
+        db_ref,
+        balance,
+        pool_pid,
+        pid
+      )
+    end)
+
+    # end
   end
 
   defp spawn_build_local_round(%{

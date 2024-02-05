@@ -6,7 +6,7 @@ IPPAN blockchain transaction verification node.
 * Memory: 4 GB RAM
 * Storage: 50 GB SSD NVME
 * Bandwitch: 1 Gbps
-* Public IPv4 / IPv6
+* Public IPv4 or web domain
 
 ## Dependencies
 * Erlang 25

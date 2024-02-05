@@ -340,7 +340,8 @@ defmodule RoundManager do
         IO.puts("n = #{n} | count = #{count}")
 
         cond do
-          count == div(n, 2) + 1 ->
+          (count == 1 and n == 2) or
+              count == div(n, 2) + 1 ->
             IO.puts("Vote ##{id}")
 
             if next do
@@ -353,8 +354,8 @@ defmodule RoundManager do
 
         # Replicate message to rest of nodes except creator and sender
         NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
-          node_id,
-          creator_id,
+          # node_id,
+          # creator_id,
           vid
         ])
       else
@@ -788,7 +789,7 @@ defmodule RoundManager do
     :done = Round.insert(Round.to_list(round_nulled))
 
     # Delete validator
-    Validator.delete(round_nulled.creator)
+    # Validator.delete(round_nulled.creator)
     Sqlite.sync(db_ref)
 
     if rm_notify do

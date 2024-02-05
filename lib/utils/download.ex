@@ -132,6 +132,8 @@ defmodule Download do
 
   defp handle_async_response_chunk(%AsyncEnd{}, opts), do: finish_download(:ok, opts)
 
+  defp handle_async_response_chunk(%HTTPoison.Error{reason: reason}, opts), do: finish_download({:error, reason}, opts)
+
   # Uncomment one line below if you are prefer to test not "Content-Length" header response, but a real file size
   # defp do_handle_content_length(_, opts), do: do_download(opts)
   defp do_handle_content_length({"Content-Length", content_length}, opts) do

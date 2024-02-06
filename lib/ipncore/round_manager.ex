@@ -124,9 +124,16 @@ defmodule RoundManager do
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
-      {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-      {:ok, rRef} = :timer.send_after(time_to_request, :request)
-      {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
+      case check_votes(state, false) do
+        nil ->
+          {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+          {:ok, rRef} = :timer.send_after(time_to_request, :request)
+          {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
+
+        message ->
+          spawn_build_foreign_round(state, message)
+          {:noreply, state, :hibernate}
+      end
     end
   end
 
@@ -488,7 +495,7 @@ defmodule RoundManager do
            balance: balance,
            rcid: rcid,
            miner_pool: pool_pid,
-           votes: _ets_votes,
+           # votes: _ets_votes,
            #  vid: vid,
            rRef: rRef,
            tRef: tRef
@@ -802,7 +809,8 @@ defmodule RoundManager do
     RoundCommit.rollback(db_ref)
 
     # round nulled
-    :done = Round.insert(Round.to_list(round_nulled))
+    r = Round.to_list(round_nulled)
+    :done = Round.insert(r)
 
     # Delete validator if round.status is 2 (error in data)
     case status do
@@ -1045,7 +1053,7 @@ defmodule RoundManager do
   #   end
   # end
 
-  defp check_votes(%{round_id: round_id, votes: ets_votes}, forced_count) do
+  defp check_votes(%{round_id: round_id, total: total_players, votes: ets_votes}, forced_count) do
     # check votes
     n = NetworkNodes.count()
 
@@ -1058,6 +1066,9 @@ defmodule RoundManager do
 
       {_, x, count} ->
         cond do
+          count == total_players ->
+            x
+
           count == div(n, 2) + 1 ->
             x
 

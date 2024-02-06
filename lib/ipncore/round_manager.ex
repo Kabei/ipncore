@@ -789,15 +789,18 @@ defmodule RoundManager do
     end
   end
 
-  defp incomplete(round_nulled, pid, db_ref, rm_notify) do
+  defp incomplete(%{status: status} = round_nulled, pid, db_ref, rm_notify) do
     # Reverse changes
     RoundCommit.rollback(db_ref)
 
     # round nulled
     :done = Round.insert(Round.to_list(round_nulled))
 
-    # Delete validator
-    # Validator.delete(round_nulled.creator)
+    # Delete validator if round.status is 2 (error in data)
+    if status == 2 do
+      Validator.delete(round_nulled.creator)
+    end
+
     Sqlite.sync(db_ref)
 
     if rm_notify do

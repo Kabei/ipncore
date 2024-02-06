@@ -327,6 +327,7 @@ defmodule RoundManager do
           votes: ets_votes,
           round_id: round_id,
           status: status,
+          total: total_players,
           vid: vid,
           rRef: rRef
         } =
@@ -356,17 +357,19 @@ defmodule RoundManager do
         n = NetworkNodes.count()
         IO.puts("n = #{n} | count = #{count}")
 
-        cond do
-          (count == 1 and n == 2) or
-              count == div(n, 2) + 1 ->
-            IO.puts("Vote ##{id}")
-
-            if next do
+        if next do
+          cond do
+            total_players == count ->
               spawn_build_foreign_round(state, msg_round)
-            end
 
-          true ->
-            nil
+            count == div(n, 2) + 1 ->
+              IO.puts("Vote ##{id}")
+
+              spawn_build_foreign_round(state, msg_round)
+
+            true ->
+              nil
+          end
         end
 
         # Replicate message to rest of nodes except creator and sender

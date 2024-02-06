@@ -270,12 +270,15 @@ defmodule Ippan.Network do
             true
 
           _ ->
-            @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
+            Task.async(fn ->
+              @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
 
-            receive do
-              :ok -> true
-              _error -> false
-            end
+              receive do
+                :ok -> true
+                _error -> false
+              end
+            end)
+            |> Task.await(:infinity)
         end
       end
 

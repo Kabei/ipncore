@@ -338,7 +338,7 @@ defmodule RoundManager do
     limit = EnvStore.block_limit()
 
     with true <- limit >= length(blocks),
-         true <- Validator.exists?(creator_id),
+         true <- Validator.active?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          false <-
            Enum.any?(blocks, fn block ->

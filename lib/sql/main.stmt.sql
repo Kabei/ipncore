@@ -154,6 +154,9 @@ SELECT 1 FROM blockchain.validator WHERE id = ? LIMIT 1;
 --name: exists_host_validator
 SELECT 1 FROM blockchain.validator WHERE hostname = ?1;
 
+--name: exists_active_validator
+SELECT 1 FROM blockchain.validator WHERE id = ? AND active = 1 LIMIT 1;
+
 --name: owner_validator
 SELECT 1 FROM blockchain.validator WHERE id = ?1 AND owner = ?2;
 

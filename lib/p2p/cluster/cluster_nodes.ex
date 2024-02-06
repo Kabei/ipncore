@@ -33,7 +33,7 @@ defmodule Ippan.ClusterNodes do
       :ets.insert(@table, {node_id, map})
     end
 
-    :ets.insert(@bag, {node_id, map.socket})
+    :ets.insert(@bag, {node_id, map.socket, map.sharedkey})
   end
 
   @impl Network

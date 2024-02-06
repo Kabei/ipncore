@@ -152,6 +152,12 @@ defmodule Ippan.Validator do
     end
   end
 
+  defmacro active?(id) do
+    quote location: :keep do
+      Sqlite.exists?("exists_active_validator", [unquote(id)])
+    end
+  end
+
   defmacro exists_host?(hostname) do
     quote location: :keep do
       Sqlite.exists?("exists_host_validator", [unquote(hostname)])

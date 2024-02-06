@@ -345,7 +345,7 @@ defmodule Ippan.Network do
         :ets.delete(@table, node_id)
         :ets.delete(@bag, node_id)
 
-        Enum.each(data, fn {_, socket, _sharekey} ->
+        Enum.each(data, fn {_, socket, _sharedkey} ->
           @adapter.close(socket)
         end)
       end

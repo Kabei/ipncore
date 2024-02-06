@@ -2,7 +2,7 @@ defmodule Ippan.Network do
   @callback on_connect(node_id :: term(), map :: map(), via :: atom()) :: any()
   @callback on_disconnect(state :: term(), action :: integer(), via :: atom()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
-  @callback connect(node :: term(), opts :: keyword()) :: port() | false
+  @callback connect(node :: term(), opts :: keyword()) :: boolean()
   @callback connect_async(node :: term(), opts :: keyword()) ::
               {:ok, pid()} | true | {:error, term()}
   @callback disconnect(node_id_or_state :: term()) :: :ok

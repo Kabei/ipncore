@@ -158,7 +158,7 @@ defmodule RoundManager do
         IO.puts("no votes")
 
         case sync_to_round_creator(state) do
-          :error ->
+          x when x in [:error, nil] ->
             if :ets.info(ets_players, :size) > 1 do
               pid = self()
 

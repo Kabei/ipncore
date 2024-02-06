@@ -23,18 +23,8 @@ defmodule Ippan.ClusterClient do
   end
 
   @impl true
-  def init(args = %{opts: opts}) do
-    if Keyword.get(opts, :async, false) do
-      {:ok, args, {:continue, :init}}
-    else
-      case connect(args) do
-        {:noreply, state, _} ->
-          {:ok, state, :hibernate}
-
-        stop ->
-          stop
-      end
-    end
+  def init(args) do
+    {:ok, args, {:continue, :init}}
   end
 
   @impl true

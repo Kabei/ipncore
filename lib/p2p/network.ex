@@ -274,11 +274,7 @@ defmodule Ippan.Network do
 
             receive do
               :ok -> true
-              _ -> false
-            after
-              10_000 ->
-                IO.puts("Time to connect exceeded")
-                false
+              _error -> false
             end
         end
       end

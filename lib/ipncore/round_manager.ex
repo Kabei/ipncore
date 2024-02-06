@@ -338,7 +338,8 @@ defmodule RoundManager do
     limit = EnvStore.block_limit()
 
     with true <- limit >= length(blocks),
-         true <- Validator.active?(creator_id),
+         true <- Validator.active?(node_id),
+         true <- Validator.exists?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          false <-
            Enum.any?(blocks, fn block ->
@@ -513,7 +514,7 @@ defmodule RoundManager do
     pid = self()
     IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
-    spawn(fn ->
+    spawn_link(fn ->
       # msg_round =
       #   message || check_votes(%{round_id: round_id, votes: ets_votes}, false)
 
@@ -597,7 +598,7 @@ defmodule RoundManager do
       if total_players == 1 do
         pid = self()
 
-        spawn(fn ->
+        spawn_link(fn ->
           build_round(
             %{
               id: round_id,

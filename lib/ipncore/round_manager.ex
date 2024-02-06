@@ -944,9 +944,7 @@ defmodule RoundManager do
       |> Enum.filter(fn {id, _} = x -> id != vid and x not in players_connected end)
       |> Enum.take_random(take)
       |> Enum.map(fn {_id, node} ->
-        Task.async(fn ->
-          NetworkNodes.connect(node)
-        end)
+        NetworkNodes.connect_async(node)
       end)
       |> Task.await_many(:infinity)
       |> Enum.reduce_while(0, fn

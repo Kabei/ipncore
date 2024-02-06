@@ -83,26 +83,25 @@ defmodule Ippan.ClusterClient do
     end
   end
 
-  defp retry_connect(state, retry, error) do
-    cond do
-      error == :halt ->
-        # IO.inspect(error)
-        callback(state[:pid], :error)
-        {:stop, :normal, state}
+  defp retry_connect(state, _retry, :halt) do
+    callback(state[:pid], :error)
+    {:stop, :normal, state}
+  end
 
-      retry == :infinity ->
-        :timer.sleep(@time_to_reconnect)
-        connect(state)
+  defp retry_connect(state, :infinity, _error) do
+    :timer.sleep(@time_to_reconnect)
+    connect(state)
+  end
 
-      retry > 0 ->
-        :timer.sleep(@time_to_reconnect)
-        opts = Keyword.put(state.opts, :retry, retry - 1)
-        connect(%{state | opts: opts})
+  defp retry_connect(state, retry, _error) when retry > 0 do
+    :timer.sleep(@time_to_reconnect)
+    opts = Keyword.put(state.opts, :retry, retry - 1)
+    connect(%{state | opts: opts})
+  end
 
-      true ->
-        callback(state[:pid], :error)
-        {:stop, :normal, state}
-    end
+  defp retry_connect(state, _retry, _error) do
+    callback(state[:pid], :error)
+    {:stop, :normal, state}
   end
 
   defp callback(nil, _message), do: nil

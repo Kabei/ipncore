@@ -4,7 +4,7 @@ defmodule Ippan.Network do
   @callback on_message(packet :: term(), state :: term()) :: any()
   @callback connect(node :: term(), opts :: keyword()) :: boolean()
   @callback connect_async(node :: term(), opts :: keyword()) ::
-              {:ok, pid()} | true | {:error, term()}
+              Task.t() | true | {:error, term()}
   @callback disconnect(node_id_or_state :: term()) :: :ok
   @callback disconnect(node_id :: binary(), socket :: port()) :: :ok
   @callback disconnect_all(node_id_or_state :: binary() | term()) :: :ok
@@ -285,7 +285,14 @@ defmodule Ippan.Network do
       @impl Network
       def connect_async(%{id: node_id} = node, opts \\ @default_connect_opts) do
         unless alive?(node_id) do
-          @supervisor.start_child(Map.put(node, :opts, opts))
+          Task.async(fn ->
+            @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
+
+            receive do
+              :ok -> true
+              _error -> false
+            end
+          end)
         else
           true
         end

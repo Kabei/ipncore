@@ -276,7 +276,8 @@ defmodule RoundManager do
           players: ets_players,
           rcid: rcid,
           status: status,
-          round_id: round_id
+          round_id: round_id,
+          total: total_players
         } =
           state
       ) do
@@ -284,7 +285,7 @@ defmodule RoundManager do
     Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_status}")
 
     # Delete player
-    if round_status in 1..2 do
+    if total_players != 1 and round_status in 1..2 do
       :ets.delete(ets_players, rcid)
       NetworkNodes.disconnect_all(rcid)
     end
@@ -803,7 +804,8 @@ defmodule RoundManager do
   end
 
   defp incomplete(
-         %{creator: creator_id, id: round_id, status: status} = round_nulled,
+         %{creator: creator_id, id: round_id, status: status} =
+           round_nulled,
          pid,
          db_ref,
          rm_notify
@@ -815,7 +817,6 @@ defmodule RoundManager do
     r = Round.to_list(round_nulled)
     :done = Round.insert(r)
 
-    # Delete validator if round.status is 2 (error in data)
     case status do
       1 ->
         Validator.put_active(creator_id, false, round_id)

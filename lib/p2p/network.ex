@@ -12,6 +12,7 @@ defmodule Ippan.Network do
   @callback exists?(id :: term()) :: map() | nil
   @callback info(node_id :: term()) :: map() | nil
   @callback list() :: [term()]
+  @callback all() :: [term()]
   @callback alive?(node :: term()) :: boolean()
   @callback count() :: non_neg_integer()
   @callback cast(node_or_id :: binary | term(), message :: term) :: :ok | :disconnect
@@ -180,7 +181,7 @@ defmodule Ippan.Network do
             node_id,
             %{
               socket: socket,
-              sharedkey: _sharedkey,
+              sharedkey: sharedkey,
               hostname: _hostname,
               net_pubkey: _net_pubkey
             } =
@@ -193,7 +194,7 @@ defmodule Ippan.Network do
           :ets.insert(@table, {node_id, map})
         end
 
-        :ets.insert(@bag, {node_id, socket})
+        :ets.insert(@bag, {node_id, socket, sharedkey})
       end
 
       @impl Network
@@ -318,7 +319,7 @@ defmodule Ippan.Network do
       # :ets.fun2ms(fn {id, socket} when id == 1 and socket == 2 -> true end)
       @impl Network
       def disconnect(%{id: node_id, socket: socket}) do
-        match = [{{:"$1", :"$2"}, [{:andalso, {:==, :"$1", 1}, {:==, :"$2", 2}}], [true]}]
+        match = [{{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", 1}, {:==, :"$2", 2}}], [true]}]
 
         :ets.delete(@table, node_id)
         :ets.select_delete(@bag, match)
@@ -327,7 +328,7 @@ defmodule Ippan.Network do
 
       @impl Network
       def disconnect(node_id, socket) do
-        match = [{{:"$1", :"$2"}, [{:andalso, {:==, :"$1", 1}, {:==, :"$2", 2}}], [true]}]
+        match = [{{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", 1}, {:==, :"$2", 2}}], [true]}]
 
         :ets.delete(@table, node_id)
         :ets.select_delete(@bag, match)
@@ -344,7 +345,7 @@ defmodule Ippan.Network do
         :ets.delete(@table, node_id)
         :ets.delete(@bag, node_id)
 
-        Enum.each(data, fn {_, socket} ->
+        Enum.each(data, fn {_, socket, _sharekey} ->
           @adapter.close(socket)
         end)
       end
@@ -360,6 +361,11 @@ defmodule Ippan.Network do
       @impl Network
       def list do
         :ets.tab2list(@table)
+      end
+
+      @impl Network
+      def all do
+        :ets.tab2list(@bag)
       end
 
       @impl Network
@@ -458,9 +464,9 @@ defmodule Ippan.Network do
 
       @impl Network
       def broadcast(message) do
-        list()
-        # |> Enum.uniq_by(fn {node_id, _} -> node_id end)
-        |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
+        all()
+        # |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
+        |> Enum.each(fn {_, socket, sharedkey} ->
           @adapter.send(socket, encode(message, sharedkey))
         end)
       end
@@ -472,15 +478,17 @@ defmodule Ippan.Network do
         data
         # |> Enum.uniq_by(fn {node_id, _} -> node_id end)
         |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
+          # |> Enum.each(fn {_, socket, sharedkey} ->
           @adapter.send(socket, encode(message, sharedkey))
         end)
       end
 
       @impl Network
       def broadcast_except(message, ids) do
-        list()
+        all()
         # |> Enum.uniq_by(fn {node_id, _} -> node_id end)
-        |> Enum.each(fn {id, %{sharedkey: sharedkey, socket: socket}} ->
+        # |> Enum.each(fn {id, %{sharedkey: sharedkey, socket: socket}} ->
+        |> Enum.each(fn {id, socket, sharedkey} ->
           if id not in ids do
             @adapter.send(socket, encode(message, sharedkey))
           end

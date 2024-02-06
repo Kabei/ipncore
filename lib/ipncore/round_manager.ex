@@ -154,8 +154,8 @@ defmodule RoundManager do
           round_id: round_id,
           round_hash: prev_hash,
           db_ref: db_ref,
-          players: ets_players,
-          rcid: rcid
+          rcid: rcid,
+          total: total_players
         } = state
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
@@ -166,7 +166,7 @@ defmodule RoundManager do
 
         case sync_to_round_creator(state) do
           x when x in [:error, nil] ->
-            if :ets.info(ets_players, :size) > 1 do
+            if total_players > 1 do
               pid = self()
 
               round_nulled = Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)

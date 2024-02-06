@@ -339,7 +339,7 @@ defmodule RoundManager do
 
     with true <- limit >= length(blocks),
          true <- Validator.active?(node_id),
-         true <- Validator.exists?(creator_id),
+         true <- node_id == creator_id or Validator.active?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          false <-
            Enum.any?(blocks, fn block ->
@@ -820,7 +820,11 @@ defmodule RoundManager do
 
     case status do
       1 ->
-        Validator.put_active(creator_id, false, round_id)
+        n = Sqlite.one("total_players", [], 0)
+
+        if n != 1 do
+          Validator.put_active(creator_id, false, round_id)
+        end
 
       2 ->
         Validator.delete(creator_id)

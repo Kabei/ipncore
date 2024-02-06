@@ -186,8 +186,8 @@ defmodule Ippan.Validator do
   defmacro put_active(id, active, round_id) do
     quote bind_quoted: [id: id, active: active, round: round_id], location: :keep do
       :ets.delete(:validator, id)
-      active = if active == true, do: 1, else: 0
-      Sqlite.update("blockchain.validator", %{"active" => active, "updated_at" => round}, id: id)
+      value = if active == true, do: 1, else: 0
+      Sqlite.update("blockchain.validator", %{"active" => value, "updated_at" => round}, id: id)
     end
   end
 

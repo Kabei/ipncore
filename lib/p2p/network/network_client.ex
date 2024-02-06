@@ -25,20 +25,10 @@ defmodule Ippan.NetworkClient do
   @impl true
   def init(args) do
     {:ok, args, {:continue, :init}}
-    # if Keyword.get(opts, :async, false) do
-    # else
-    #   case connect(args) do
-    #     {:noreply, state, _} ->
-    #       {:ok, state, :hibernate}
-
-    #     stop ->
-    #       stop
-    #   end
-    # end
   end
 
   @impl true
-  def handle_continue(:connect, state) do
+  def handle_continue(:init, state) do
     connect(state)
   end
 

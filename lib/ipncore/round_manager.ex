@@ -16,7 +16,8 @@ defmodule RoundManager do
   @timeout Application.compile_env(@app, :round_timeout)
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
-  @time_to_request 7000
+  @min_time_to_request 0
+  @max_time_to_request 7_000
 
   def start_link(args) do
     case System.get_env("test") do
@@ -85,6 +86,7 @@ defmodule RoundManager do
        total: total_players,
        rRef: nil,
        tRef: nil,
+       ttr: @max_time_to_request,
        vid: vid
      }, {:continue, :next}}
   end
@@ -110,7 +112,7 @@ defmodule RoundManager do
     {:noreply, state, :hibernate}
   end
 
-  def handle_continue(:next, %{rRef: rRef, tRef: tRef} = state) do
+  def handle_continue(:next, %{rRef: rRef, tRef: tRef, ttr: time_to_request} = state) do
     IO.puts("RM next")
     :timer.cancel(rRef)
     :timer.cancel(tRef)
@@ -123,15 +125,20 @@ defmodule RoundManager do
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-      {:ok, rRef} = :timer.send_after(@time_to_request, :request)
+      {:ok, rRef} = :timer.send_after(time_to_request, :request)
       {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
     end
   end
 
   @impl true
   def handle_info(:request, state) do
-    sync_to_round_creator(state)
-    {:noreply, state}
+    case sync_to_round_creator(state) do
+      :error ->
+        {:noreply, %{state | ttr: @max_time_to_request}}
+
+      _ ->
+        {:noreply, %{state | ttr: @min_time_to_request}}
+    end
   end
 
   def handle_info(
@@ -479,7 +486,7 @@ defmodule RoundManager do
            rcid: rcid,
            miner_pool: pool_pid,
            votes: _ets_votes,
-           vid: vid,
+           #  vid: vid,
            rRef: rRef,
            tRef: tRef
          },

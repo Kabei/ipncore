@@ -264,7 +264,7 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {:incomplete, %{id: round_nulled_id} = round_nulled},
+        {:incomplete, %{id: round_nulled_id, status: round_status} = round_nulled},
         %{
           players: ets_players,
           rcid: rcid,
@@ -274,11 +274,14 @@ defmodule RoundManager do
           state
       ) do
     next = status == :synced
-    Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_nulled.status}")
+    Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_status}")
 
     # Delete player
-    :ets.delete(ets_players, rcid)
-    NetworkNodes.disconnect_all(rcid)
+    if round_status == 2 do
+      :ets.delete(ets_players, rcid)
+      NetworkNodes.disconnect_all(rcid)
+    end
+
     total_players = get_total_players(ets_players)
 
     if next do

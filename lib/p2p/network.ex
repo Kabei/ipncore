@@ -3,8 +3,6 @@ defmodule Ippan.Network do
   @callback on_disconnect(state :: term(), action :: integer(), via :: atom()) :: any()
   @callback on_message(packet :: term(), state :: term()) :: any()
   @callback connect(node :: term(), opts :: keyword()) :: boolean()
-  @callback connect_async(node :: term(), opts :: keyword()) :: Task.t()
-  @callback connect_spawn(node :: term(), opts :: keyword()) :: pid()
   @callback disconnect(node_id_or_state :: term()) :: :ok
   @callback disconnect(node_id :: binary(), socket :: port()) :: :ok
   @callback disconnect_all(node_id_or_state :: binary() | term()) :: :ok
@@ -215,7 +213,7 @@ defmodule Ippan.Network do
 
                 if (action == 1 or Keyword.get(opts, :reconnect, false)) and
                      exists?(node_id) do
-                  connect_spawn(node, opts)
+                  spawn(fn -> connect(node, opts) end)
                 end
             end
 
@@ -271,48 +269,13 @@ defmodule Ippan.Network do
             true
 
           _ ->
-            Task.async(fn ->
-              @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
+            @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
 
-              receive do
-                :ok -> true
-                _error -> false
-              end
-            end)
-            |> Task.await(:infinity)
+            receive do
+              :ok -> true
+              _error -> false
+            end
         end
-      end
-
-      @impl Network
-      def connect_async(%{id: node_id} = node, opts \\ @default_connect_opts) do
-        Task.async(fn ->
-          unless alive?(node_id) do
-            @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
-
-            receive do
-              :ok -> true
-              _error -> false
-            end
-          else
-            true
-          end
-        end)
-      end
-
-      @impl Network
-      def connect_spawn(%{id: node_id} = node, opts \\ @default_connect_opts) do
-        spawn(fn ->
-          unless alive?(node_id) do
-            @supervisor.start_child(Map.merge(node, %{opts: opts, pid: self()}))
-
-            receive do
-              :ok -> true
-              _error -> false
-            end
-          else
-            true
-          end
-        end)
       end
 
       # :ets.fun2ms(fn {id, %{socket: socket}} when id == 1 and socket == 2 -> true end)

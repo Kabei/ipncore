@@ -17,25 +17,21 @@ defmodule RoundTask do
 
   def get_state_after_check(params) do
     {:ok, pid} = start_link()
-    result = :gen_server.call(pid, {:get_state_after_check, params}, :infinity)
-    :gen_server.stop(pid)
-    result
+    :gen_server.call(pid, {:get_state_after_check, params}, :infinity)
   end
 
   def sync_to_round_creator(params) do
     {:ok, pid} = start_link()
-    result = :gen_server.call(pid, {:sync_to_round_creator, params}, :infinity)
-    :gen_server.stop(pid)
-    result
+    :gen_server.call(pid, {:sync_to_round_creator, params}, :infinity)
   end
 
   @impl true
   def handle_call({:get_state_after_check, params}, _from, state) do
-    {:reply, get_state_after_checkp(params), state}
+    {:stop, :normal, get_state_after_checkp(params), state}
   end
 
-  def handle_call({:sync_to_round_creator, params}, from, state) do
-    {:reply, sync_to_round_creatorp(params, from), state}
+  def handle_call({:sync_to_round_creator, params}, {from_pid, _}, state) do
+    {:stop, :normal, sync_to_round_creatorp(params, from_pid), state}
   end
 
   # Check turn of the round and connect to round creator, check another connections

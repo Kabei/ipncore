@@ -7,7 +7,7 @@ defmodule Ippan.Func do
           fun: atom() | function(),
           deferred: boolean(),
           check: integer(),
-          check: integer() | nil
+          key: integer() | nil
         }
 
   @enforce_keys [:id, :mod, :modx, :fun]

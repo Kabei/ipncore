@@ -106,7 +106,7 @@ defmodule Builder do
     {pk, sk, Address.hash(2, pk)}
   end
 
-  # Builder.wallet_new(client, 0) |> Builder.print
+  # Builder.wallet_new(client, 0, 0, 0, 1) |> Builder.print
   def wallet_new(
         client = %Client{
           id: account_id,
@@ -114,7 +114,9 @@ defmodule Builder do
           pk: pk,
           sig_type: sig_type
         },
-        validator_id
+        vid,
+        fa,
+        fb
       ) do
     body =
       [
@@ -122,8 +124,10 @@ defmodule Builder do
         nonce,
         account_id,
         Base.encode64(pk),
-        validator_id,
-        sig_type
+        sig_type,
+        vid,
+        fa,
+        fb
       ]
       |> encode_fun!()
 
@@ -134,16 +138,18 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.wallet_sub(client) |> Builder.print
+  # Builder.wallet_sub(client, 1, 0, 1) |> Builder.print
   def wallet_sub(
         client = %Client{
           id: account_id,
           nonce: nonce
         },
-        validator_id
+        validator_id,
+        fa,
+        fb
       ) do
     body =
-      [1, nonce, account_id, validator_id]
+      [1, nonce, account_id, validator_id, fa, fb]
       |> encode_fun!()
 
     hash = hash_fun(body)

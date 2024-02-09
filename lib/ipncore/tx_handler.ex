@@ -6,14 +6,14 @@ defmodule Ippan.TxHandler do
       case type do
         # check from variable
         0 ->
-          {pk, sig_type, %{"vid" => v}} =
+          {pk, sig_type, %{"vid" => v} = account_map} =
             DetsPlux.get_cache(dets, tx, var!(from))
 
           if vid != v do
             raise IppanRedirectError, "#{v}"
           end
 
-          {pk, sig_type}
+          {pk, sig_type, account_map}
 
         # get from argument and not check (wallet.new)
         {1, pos} ->
@@ -36,11 +36,7 @@ defmodule Ippan.TxHandler do
 
         # get from variable not redirect
         3 ->
-          account =
-            {_, _, _} =
-            DetsPlux.get_cache(dets, tx, var!(from))
-
-          account
+          DetsPlux.get_cache(dets, tx, var!(from))
       end
     end
   end

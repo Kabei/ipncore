@@ -21,21 +21,8 @@ defmodule Ippan.TxHandler do
           sig_type = var!(args) |> Enum.at(pos + 1)
           {Fast64.decode64(pk), sig_type, nil}
 
-        # check first argument
-        2 ->
-          key = hd(var!(args))
-
-          {pk, sig_type, %{"vid" => v} = map} =
-            DetsPlux.get_tx(dets, tx, key)
-
-          if v != vid do
-            raise IppanRedirectError, "#{v}"
-          end
-
-          {pk, sig_type, map}
-
         # get from variable not redirect
-        3 ->
+        2 ->
           DetsPlux.get_cache(dets, tx, var!(from))
       end
     end
@@ -135,7 +122,7 @@ defmodule Ippan.TxHandler do
                   1 ->
                     var!(from)
 
-                  _ ->
+                  2 ->
                     hd(var!(args)) |> to_string()
                 end
 
@@ -225,7 +212,7 @@ defmodule Ippan.TxHandler do
                   1 ->
                     var!(from)
 
-                  _ ->
+                  2 ->
                     hd(var!(args)) |> to_string()
                 end
 

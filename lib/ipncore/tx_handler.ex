@@ -6,7 +6,7 @@ defmodule Ippan.TxHandler do
       case type do
         # check from variable
         0 ->
-          {pk, v, sig_type} =
+          {pk, sig_type, %{"vid" => v}} =
             DetsPlux.get_cache(dets, tx, var!(from))
 
           if vid != v do
@@ -16,29 +16,31 @@ defmodule Ippan.TxHandler do
           {pk, sig_type}
 
         # get from argument and not check (wallet.new)
-        1 ->
-          [pk, _, sig_type | _rest] = var!(args)
-          {Fast64.decode64(pk), sig_type}
+        {1, pos} ->
+          pk = var!(args) |> Enum.at(pos)
+          sig_type = var!(args) |> Enum.at(pos + 1)
+          {Fast64.decode64(pk), sig_type, nil}
 
         # check first argument
         2 ->
           key = hd(var!(args))
 
-          {pk, v, sig_type} =
+          {pk, sig_type, %{"vid" => v} = map} =
             DetsPlux.get_tx(dets, tx, key)
 
           if v != vid do
             raise IppanRedirectError, "#{v}"
           end
 
-          {pk, sig_type}
+          {pk, sig_type, map}
 
         # get from variable not redirect
         3 ->
-          {pk, _v, sig_type} =
+          account =
+            {_, _, _} =
             DetsPlux.get_cache(dets, tx, var!(from))
 
-          {pk, sig_type}
+          account
       end
     end
   end
@@ -51,20 +53,20 @@ defmodule Ippan.TxHandler do
         0 ->
           # verify ed25519 signature
           if Cafezinho.Impl.verify(var!(signature), var!(hash), pk) != :ok,
-            do: raise(IppanError, "Invalid signature verify")
+            do: raise(IppanHighError, "Invalid signature verify")
 
         1 ->
           # verify secp256k1 signature
           if ExSecp256k1.Impl.verify(var!(hash), var!(signature), pk) != :ok,
-            do: raise(IppanError, "Invalid signature verify")
+            do: raise(IppanHighError, "Invalid signature verify")
 
         2 ->
           # verify falcon-512 signature
           if Falcon.verify(var!(hash), var!(signature), pk) != :ok,
-            do: raise(IppanError, "Invalid signature verify")
+            do: raise(IppanHighError, "Invalid signature verify")
 
         _ ->
-          raise(IppanError, "Signature type: #{sig_type} is not supported")
+          raise(IppanHighError, "Signature type: #{sig_type} is not supported")
       end
     end
   end
@@ -79,15 +81,22 @@ defmodule Ippan.TxHandler do
       wallet_dets = DetsPlux.get(:wallet)
       wallet_cache = DetsPlux.tx(wallet_dets, :cache_wallet)
 
-      {wallet_pk, sig_type} =
+      {wallet_pk, sig_type, account_map} =
         TxHandler.get_public_key!(wallet_dets, wallet_cache, type_of_verification, var!(vid))
+
+      if account_map != nil do
+        %{"fa" => fa, "fb" => fb} = account_map
+        %{fa: vfa, fb: vfb} = var!(validator)
+
+        if fb != vfb or fa != vfa, do: raise(IppanError, "Invalid fees")
+      end
 
       TxHandler.check_signature!(sig_type, wallet_pk)
 
       # Check nonce
       nonce_dets = DetsPlux.get(:nonce)
       cache_nonce_tx = DetsPlux.tx(nonce_dets, :cache_nonce)
-      Wallet.gte_nonce!(nonce_dets, cache_nonce_tx, var!(from), var!(nonce))
+      Wallet.update_nonce!(nonce_dets, cache_nonce_tx, var!(from), var!(nonce))
 
       source = %{
         id: var!(from),
@@ -158,7 +167,7 @@ defmodule Ippan.TxHandler do
       %{deferred: deferred, mod: mod, fun: fun, check: type_of_verification, key: key_unique} =
         Funcs.lookup(var!(type))
 
-      {wallet_pk, sig_type} =
+      {wallet_pk, sig_type, account_map} =
         TxHandler.get_public_key!(
           var!(wallet_dets),
           var!(wallet_tx),
@@ -166,9 +175,16 @@ defmodule Ippan.TxHandler do
           var!(creator_id)
         )
 
+      if account_map != nil do
+        %{"fa" => fa, "fb" => fb} = account_map
+        %{fa: vfa, fb: vfb} = var!(validator)
+
+        if fb != vfb or fa != vfa, do: raise(IppanError, "Invalid fees")
+      end
+
       TxHandler.check_signature!(sig_type, wallet_pk)
 
-      Wallet.gte_nonce!(var!(nonce_dets), var!(nonce_tx), var!(from), var!(nonce))
+      Wallet.update_nonce!(var!(nonce_dets), var!(nonce_tx), var!(from), var!(nonce))
 
       source = %{
         id: var!(from),
@@ -179,11 +195,12 @@ defmodule Ippan.TxHandler do
         validator: var!(validator)
       }
 
-      apply(mod, fun, [source | var!(args)])
+      return = apply(mod, fun, [source | var!(args)])
 
-      case deferred do
-        false ->
+      case return do
+        :error ->
           [
+            "error",
             var!(hash),
             var!(type),
             var!(from),
@@ -193,26 +210,40 @@ defmodule Ippan.TxHandler do
             var!(size)
           ]
 
-        _true ->
-          key =
-            case key_unique do
-              1 ->
-                var!(from)
+        _ ->
+          case deferred do
+            false ->
+              [
+                var!(hash),
+                var!(type),
+                var!(from),
+                var!(nonce),
+                var!(args),
+                var!(signature),
+                var!(size)
+              ]
 
-              _ ->
-                hd(var!(args)) |> to_string()
-            end
+            _true ->
+              key =
+                case key_unique do
+                  1 ->
+                    var!(from)
 
-          [
-            var!(hash),
-            var!(type),
-            key,
-            var!(from),
-            var!(nonce),
-            var!(args),
-            var!(signature),
-            var!(size)
-          ]
+                  _ ->
+                    hd(var!(args)) |> to_string()
+                end
+
+              [
+                var!(hash),
+                var!(type),
+                key,
+                var!(from),
+                var!(nonce),
+                var!(args),
+                var!(signature),
+                var!(size)
+              ]
+          end
       end
     end
   end

@@ -1,6 +1,6 @@
 defmodule MinerWorker do
   use GenServer
-  alias Ippan.{Block, TxHandler, Validator, Wallet}
+  alias Ippan.{Block, TxHandler, Validator}
   alias Ippan.ClusterNodes
   require Ippan.{Block, Validator, TxHandler}
   require Sqlite
@@ -144,8 +144,8 @@ defmodule MinerWorker do
 
   # Process the block
   defp run_miner(round_id, block_id, validator, transactions) do
-    nonce_dets = DetsPlux.get(:nonce)
-    nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
+    # nonce_dets = DetsPlux.get(:nonce)
+    # nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
     dtx = :ets.whereis(:dtx)
     dtmp = :ets.new(:tmp, [:set])
     # 1. tx counter
@@ -153,41 +153,32 @@ defmodule MinerWorker do
     cref = :counters.new(2, [])
 
     Enum.each(transactions, fn
+      ["error", _hash, _type, _from, _nonce, _args, _sig, _size] ->
+        :counters.add(cref, 2, 1)
+
       [hash, type, from, nonce, args, _sig, size] ->
-        case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
+        case TxHandler.regular() do
+          {:error, _} ->
+            :counters.add(cref, 2, 1)
+
           :error ->
             :counters.add(cref, 2, 1)
 
-          _true ->
-            case TxHandler.regular() do
-              {:error, _} ->
-                :counters.add(cref, 2, 1)
-
-              :error ->
-                :counters.add(cref, 2, 1)
-
-              _ ->
-                nil
-            end
+          _ ->
+            nil
         end
 
         :counters.add(cref, 1, 1)
 
       [hash, type, arg_key, from, nonce, args, _sig, size] ->
-        case Wallet.gte_nonce(nonce_dets, nonce_tx, from, nonce) do
-          :error ->
+        ix = :counters.get(cref, 1)
+
+        case TxHandler.insert_deferred(dtx, dtmp) do
+          true ->
+            nil
+
+          false ->
             :counters.add(cref, 2, 1)
-
-          _true ->
-            ix = :counters.get(cref, 1)
-
-            case TxHandler.insert_deferred(dtx, dtmp) do
-              true ->
-                nil
-
-              false ->
-                :counters.add(cref, 2, 1)
-            end
         end
 
         :counters.add(cref, 1, 1)

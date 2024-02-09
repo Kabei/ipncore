@@ -118,23 +118,23 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       pubkey: pk,
       active: true,
       updated_at: 0
-    },
-    %Validator{
-      avatar: nil,
-      created_at: 0,
-      fa: 0,
-      failures: 0,
-      fb: 1,
-      hostname: "opasy.com",
-      id: 1,
-      name: "Redbull | BU",
-      net_pubkey: npk,
-      owner: address,
-      port: 5815,
-      pubkey: pk,
-      active: true,
-      updated_at: 0
     }
+    # %Validator{
+    #   avatar: nil,
+    #   created_at: 0,
+    #   fa: 0,
+    #   failures: 0,
+    #   fb: 1,
+    #   hostname: "opasy.com",
+    #   id: 1,
+    #   name: "Redbull | BU",
+    #   net_pubkey: npk,
+    #   owner: address,
+    #   port: 5815,
+    #   pubkey: pk,
+    #   active: true,
+    #   updated_at: 0
+    # }
     ],
   "wallets" => [
     %Wallet{

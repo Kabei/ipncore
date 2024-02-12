@@ -32,19 +32,6 @@ defmodule Download do
   @timeout 60_000
   @module __MODULE__
 
-  def await(url, path, max_file_size \\ @max_file_size, timeout \\ @timeout) do
-    File.rm(path)
-
-    Task.async(fn ->
-      with {:ok, file} <- create_file(path),
-           {:ok, response_parsing_pid} <- create_process(file, path, max_file_size, timeout),
-           {:ok, _pid} <- start_download(url, response_parsing_pid, path),
-           :ok <- wait_for_download(),
-           do: :ok
-    end)
-    |> Task.await(timeout)
-  end
-
   def from(url, path, max_file_size \\ @max_file_size, timeout \\ @timeout) do
     with {:ok, file} <- create_file(path),
          {:ok, response_parsing_pid} <- create_process(file, path, max_file_size, timeout),
@@ -132,7 +119,8 @@ defmodule Download do
 
   defp handle_async_response_chunk(%AsyncEnd{}, opts), do: finish_download(:ok, opts)
 
-  defp handle_async_response_chunk(%HTTPoison.Error{reason: reason}, opts), do: finish_download({:error, reason}, opts)
+  defp handle_async_response_chunk(%HTTPoison.Error{reason: reason}, opts),
+    do: finish_download({:error, reason}, opts)
 
   # Uncomment one line below if you are prefer to test not "Content-Length" header response, but a real file size
   # defp do_handle_content_length(_, opts), do: do_download(opts)
@@ -154,5 +142,34 @@ defmodule Download do
     end
 
     send(opts.controlling_pid, reason)
+  end
+end
+
+defmodule DownloadTask do
+  use GenServer
+
+  @max_file_size 1024 * 1024 * 1000
+  @timeout 60_000
+  @module __MODULE__
+
+  def start_link do
+    GenServer.start_link(@module, [], [])
+  end
+
+  @impl true
+  def init(_) do
+    {:ok, nil}
+  end
+
+  def start(url, path, max_file_size \\ @max_file_size, timeout \\ @timeout) do
+    {:ok, pid} = start_link()
+
+    :gen_server.call(pid, {:download, url, path, max_file_size, timeout}, :infinity)
+  end
+
+  @impl true
+  def handle_call({:download, url, path, max_file_size, timeout}, _from, state) do
+    result = Download.from(url, path, max_file_size, timeout)
+    {:stop, :normal, result, state}
   end
 end

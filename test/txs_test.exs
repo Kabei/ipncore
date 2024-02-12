@@ -1,7 +1,7 @@
 defmodule TransactionsTest do
   use ExUnit.Case
   doctest Ipncore
-  import Builder, only: [post: 2]
+  import Builder
 
   test "send txs" do
     # Variables

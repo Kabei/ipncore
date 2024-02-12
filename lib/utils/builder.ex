@@ -106,7 +106,7 @@ defmodule Builder do
     {pk, sk, Address.hash(2, pk)}
   end
 
-  # Builder.wallet_new(client, 0, 0, 0, 1) |> Builder.print
+  # Builder.wallet_new(client, 0, 0, 1) |> Builder.print
   def wallet_new(
         client = %Client{
           id: account_id,
@@ -138,7 +138,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.wallet_sub(client, 1, 0, 1) |> Builder.print
+  # Builder.wallet_sub(client, 0, 0, 1) |> Builder.print
   def wallet_sub(
         client = %Client{
           id: account_id,

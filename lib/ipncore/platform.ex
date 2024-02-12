@@ -27,7 +27,7 @@ defmodule Platform do
         _ -> "genesis.exs"
       end
 
-    {data = %{"tokens" => _, "validators" => _, "wallets" => _}, _binding} =
+    {data = %{"tokens" => _, "validators" => _, "accounts" => _}, _binding} =
       Path.join(:code.priv_dir(@app), filename)
       |> Code.eval_file()
 
@@ -36,7 +36,7 @@ defmodule Platform do
 
     for {key, values} <- data do
       case key do
-        "wallets" ->
+        "accounts" ->
           Enum.each(values, fn x ->
             DetsPlux.put(wallet_tx, {x.id, x.pubkey, x.validator, x.sig_type})
           end)

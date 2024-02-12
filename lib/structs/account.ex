@@ -1,4 +1,4 @@
-defmodule Ippan.Wallet do
+defmodule Ippan.Account do
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: String.t(),

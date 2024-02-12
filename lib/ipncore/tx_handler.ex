@@ -1,5 +1,5 @@
 defmodule Ippan.TxHandler do
-  alias Ippan.{Funcs, Wallet, TxHandler}
+  alias Ippan.{Funcs, Account, TxHandler}
 
   defmacro get_public_key!(dets, tx, type, vid) do
     quote location: :keep, bind_quoted: [dets: dets, tx: tx, type: type, vid: vid] do
@@ -15,7 +15,7 @@ defmodule Ippan.TxHandler do
 
           {pk, sig_type, account_map}
 
-        # get from argument and not check (wallet.new)
+        # get from argument and not check (account.new)
         {:arg, pos} ->
           pk = var!(args) |> Enum.at(pos)
           sig_type = var!(args) |> Enum.at(pos + 1)
@@ -79,7 +79,7 @@ defmodule Ippan.TxHandler do
       # Check nonce
       nonce_dets = DetsPlux.get(:nonce)
       cache_nonce_tx = DetsPlux.tx(nonce_dets, :cache_nonce)
-      Wallet.update_nonce!(nonce_dets, cache_nonce_tx, var!(from), var!(nonce))
+      Account.update_nonce!(nonce_dets, cache_nonce_tx, var!(from), var!(nonce))
 
       source = %{
         id: var!(from),
@@ -167,7 +167,7 @@ defmodule Ippan.TxHandler do
 
       TxHandler.check_signature!(sig_type, wallet_pk)
 
-      Wallet.update_nonce!(var!(nonce_dets), var!(nonce_tx), var!(from), var!(nonce))
+      Account.update_nonce!(var!(nonce_dets), var!(nonce_tx), var!(from), var!(nonce))
 
       source = %{
         id: var!(from),

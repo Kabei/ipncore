@@ -5,9 +5,9 @@ defmodule Ippan.Funcs do
   def lookup(0) do
     %Func{
       id: 0,
-      name: "wallet.new",
-      mod: Func.Wallet,
-      modx: Funx.Wallet,
+      name: "account.new",
+      mod: Func.Account,
+      modx: Funx.Account,
       fun: :new,
       deferred: true,
       check: {:arg, 0},
@@ -18,9 +18,9 @@ defmodule Ippan.Funcs do
   def lookup(1) do
     %Func{
       id: 1,
-      name: "wallet.sub",
-      mod: Func.Wallet,
-      modx: Funx.Wallet,
+      name: "account.sub",
+      mod: Func.Account,
+      modx: Funx.Account,
       fun: :subscribe,
       deferred: true,
       check: 2,
@@ -286,46 +286,46 @@ defmodule Ippan.Funcs do
     }
   end
 
-  def lookup(400) do
-    %Func{
-      id: 400,
-      name: "domain.new",
-      mod: Func.Domain,
-      modx: Funx.Domain,
-      fun: :new,
-      deferred: true
-    }
-  end
+  # def lookup(400) do
+  #   %Func{
+  #     id: 400,
+  #     name: "domain.new",
+  #     mod: Func.Domain,
+  #     modx: Funx.Domain,
+  #     fun: :new,
+  #     deferred: true
+  #   }
+  # end
 
-  def lookup(401) do
-    %Func{
-      id: 401,
-      name: "domain.update",
-      mod: Func.Domain,
-      modx: Funx.Domain,
-      fun: :update
-    }
-  end
+  # def lookup(401) do
+  #   %Func{
+  #     id: 401,
+  #     name: "domain.update",
+  #     mod: Func.Domain,
+  #     modx: Funx.Domain,
+  #     fun: :update
+  #   }
+  # end
 
-  def lookup(402) do
-    %Func{
-      id: 402,
-      name: "domain.delete",
-      mod: Func.Domain,
-      modx: Funx.Domain,
-      fun: :delete
-    }
-  end
+  # def lookup(402) do
+  #   %Func{
+  #     id: 402,
+  #     name: "domain.delete",
+  #     mod: Func.Domain,
+  #     modx: Funx.Domain,
+  #     fun: :delete
+  #   }
+  # end
 
-  def lookup(403) do
-    %Func{
-      id: 403,
-      name: "domain.renew",
-      mod: Func.Domain,
-      modx: Funx.Domain,
-      fun: :renew
-    }
-  end
+  # def lookup(403) do
+  #   %Func{
+  #     id: 403,
+  #     name: "domain.renew",
+  #     mod: Func.Domain,
+  #     modx: Funx.Domain,
+  #     fun: :renew
+  #   }
+  # end
 
   def lookup(500) do
     %Func{

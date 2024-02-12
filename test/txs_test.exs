@@ -18,12 +18,12 @@ defmodule TransactionsTest do
         Base.decode16!("9B85EA08993CA1F9CAFFBD73F7F596D24A7EB419F68DB28AB0EC6A1149483E24")
       )
 
-    {:ok, c2} = Builder.wallet_new(c2, vid, 0, 1) |> post(hostname)
-    {:ok, c3} = Builder.wallet_new(c3, vid1, 0, 1) |> post(hostname1)
-    {:ok, c4} = Builder.wallet_new(c4, vid1, 0, 1) |> post(hostname1)
+    {:ok, c2} = Builder.account_new(c2, vid, 0, 1) |> post(hostname)
+    {:ok, c3} = Builder.account_new(c3, vid1, 0, 1) |> post(hostname1)
+    {:ok, c4} = Builder.account_new(c4, vid1, 0, 1) |> post(hostname1)
 
     # First
-    # {:ok, c1} = Builder.wallet_new(c1, vid) |> post(hostname)
+    # {:ok, c1} = Builder.account_new(c1, vid) |> post(hostname)
 
     # Next
     {:ok, c1} =

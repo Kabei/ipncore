@@ -1,6 +1,6 @@
 defmodule Mempool do
   use GenServer
-  alias Ippan.{Wallet}
+  alias Ippan.Account
   require Logger
 
   @name :mempool
@@ -60,7 +60,7 @@ defmodule Mempool do
 
           # IO.puts("The nonce")
 
-          case Wallet.update_nonce(dets, cache, from, nonce) do
+          case Account.update_nonce(dets, cache, from, nonce) do
             :error ->
               :ets.delete(ets_hash, nonce_key)
               {"error", "Invalid nonce x1"}
@@ -106,7 +106,7 @@ defmodule Mempool do
 
               # IO.puts("The nonce")
 
-              case Wallet.update_nonce(dets, cache, from, nonce) do
+              case Account.update_nonce(dets, cache, from, nonce) do
                 :error ->
                   :ets.delete(ets_hash, nonce_key)
                   :ets.delete(ets_dhash, msg_key)
@@ -127,7 +127,7 @@ defmodule Mempool do
 
             false ->
               :ets.delete(ets_hash, nonce_key)
-              Wallet.revert_nonce(cache, from)
+              Account.revert_nonce(cache, from)
               {"error", "Deferred transaction already exists (Core)"}
           end
 

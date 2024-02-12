@@ -1,4 +1,4 @@
-alias Ippan.{Validator, Token, Wallet}
+alias Ippan.{Validator, Token, Account}
 
 pk =
   <<133, 210, 110, 113, 239, 43, 61, 189, 153, 31, 241, 205, 62, 28, 241, 50, 184, 225, 166, 252,
@@ -120,8 +120,8 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       updated_at: 0
     }
   ],
-  "wallets" => [
-    %Wallet{
+  "accounts" => [
+    %Account{
       id: "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc",
       pubkey: pk,
       sig_type: 0,

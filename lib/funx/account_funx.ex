@@ -1,12 +1,15 @@
-defmodule Ippan.Funx.Wallet do
+defmodule Ippan.Funx.Account do
   require BalanceStore
-  alias Ippan.{Address, Utils}
+  alias Ippan.{Utils}
 
-  def new(_, pubkey, sig_type, validator_id, fa, fb) do
+  def new(%{id: account_id}, pubkey, sig_type, validator_id, fa, fb) do
     pubkey = Fast64.decode64(pubkey)
-    id = Address.hash(sig_type, pubkey)
     tx = DetsPlux.tx(:wallet)
-    DetsPlux.put(tx, {id, pubkey, sig_type, %{"fa" => fa, "fb" => fb, "vid" => validator_id}})
+
+    DetsPlux.put(
+      tx,
+      {account_id, pubkey, sig_type, %{"fa" => fa, "fb" => fb, "vid" => validator_id}}
+    )
   end
 
   def subscribe(

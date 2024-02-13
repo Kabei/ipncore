@@ -33,15 +33,36 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro send(amount) do
-    quote bind_quoted: [amount: amount], location: :keep do
-      balance_key = DetsPlux.tuple(var!(from), var!(token_id))
-      to_balance_key = DetsPlux.tuple(var!(to), var!(token_id))
-      DetsPlux.get_cache(var!(dets), var!(tx), balance_key, {0, %{}})
-      DetsPlux.get_cache(var!(dets), var!(tx), to_balance_key, {0, %{}})
+  defmacro load(account_id, token_id) do
+    quote bind_quoted: [account: account_id, token: token_id] do
+      balance = DetsPlux.tuple(account, token)
+      DetsPlux.get_cache(var!(dets), var!(tx), balance, {0, %{}})
+      balance
+    end
+  end
 
-      DetsPlux.update_counter(var!(tx), balance_key, {2, -amount})
-      DetsPlux.update_counter(var!(tx), to_balance_key, {2, amount})
+  defmacro pay(balance, amount, do: expression) do
+    quote bind_quoted: [amount: amount, balance: balance, expression: expression], location: :keep do
+      if DetsPlux.update_counter(var!(tx), balance, {2, -amount}) >= 0 do
+        expression
+      else
+        DetsPlux.update_counter(var!(tx), balance, {2, amount})
+        :error
+      end
+    end
+  end
+
+  defmacro send(balance, amount) do
+    quote bind_quoted: [amount: amount, balance: balance], location: :keep do
+      DetsPlux.update_counter(var!(tx), balance, {2, amount})
+    end
+  end
+
+  defmacro send(to, token, amount) do
+    quote bind_quoted: [to: to, token: token, amount: amount], location: :keep do
+      balance = DetsPlux.tuple(to, token)
+      DetsPlux.get_cache(var!(dets), var!(tx), balance, {0, %{}})
+      DetsPlux.update_counter(var!(tx), balance, {2, amount})
     end
   end
 
@@ -49,56 +70,42 @@ defmodule BalanceStore do
     quote bind_quoted: [from: from, to: old_sender, token: token, amount: amount],
           location: :keep do
       balance_key = DetsPlux.tuple(from, token)
-      to_balance_key = DetsPlux.tuple(to, token)
       DetsPlux.get_cache(var!(dets), var!(tx), balance_key, {0, %{}})
-      DetsPlux.get_cache(var!(dets), var!(tx), to_balance_key, {0, %{}})
 
-      DetsPlux.update_counter(var!(tx), balance_key, {2, -amount})
-      DetsPlux.update_counter(var!(tx), to_balance_key, {2, amount})
+      if DetsPlux.update_counter(var!(tx), balance_key, {2, -amount}) >= 0 do
+        to_balance_key = DetsPlux.tuple(to, token)
+        DetsPlux.get_cache(var!(dets), var!(tx), to_balance_key, {0, %{}})
+        DetsPlux.update_counter(var!(tx), to_balance_key, {2, amount})
+      else
+        DetsPlux.update_counter(var!(tx), balance_key, {2, amount})
+        :error
+      end
     end
   end
 
-  defmacro fees(total_fees, fees, reserve) do
-    quote bind_quoted: [total_fees: total_fees, fees: fees, reserve: reserve, token: @token],
+  defmacro fees(validator_balance_id, fees) do
+    quote bind_quoted: [
+            balance: validator_balance_id,
+            fees: fees,
+            token: @token
+          ],
           location: :keep do
-      balance_key = DetsPlux.tuple(var!(from), token)
-      validator_key = DetsPlux.tuple(var!(vOwner), token)
-      DetsPlux.get_cache(var!(dets), var!(tx), balance_key, {0, %{}})
-      DetsPlux.get_cache(var!(dets), var!(tx), validator_key, {0, %{}})
-
-      DetsPlux.update_counter(var!(tx), balance_key, {2, -total_fees})
-      DetsPlux.update_counter(var!(tx), validator_key, {2, fees})
-      BalanceStore.reserve(reserve)
+      DetsPlux.update_counter(var!(tx), balance, {2, fees})
     end
   end
 
   defmacro reserve(amount) do
     quote bind_quoted: [token: @token, amount: amount], location: :keep do
-      if amount > 0 do
-        supply = TokenSupply.jackpot()
-        TokenSupply.add(supply, amount)
-      end
+      supply = TokenSupply.jackpot()
+      TokenSupply.add(supply, amount)
     end
   end
 
-  defmacro fee_reserve(from, amount) do
-    quote bind_quoted: [from: from, token: @token, amount: amount], location: :keep do
-      if amount > 0 do
-        balance_key = DetsPlux.tuple(var!(from), token)
-        DetsPlux.get_cache(var!(dets), var!(tx), balance_key, {0, %{}})
-
-        DetsPlux.update_counter(var!(tx), balance_key, {2, -amount})
-        supply = TokenSupply.jackpot()
-        TokenSupply.add(supply, amount)
-      end
-    end
-  end
-
-  defmacro burn(account, token, amount) do
-    quote bind_quoted: [account: account, token: token, amount: amount], location: :keep do
-      key = DetsPlux.tuple(account, token)
-      DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
-      DetsPlux.update_counter(var!(tx), key, {2, -amount})
+  defmacro burn(balance, account, token, amount) do
+    quote bind_quoted: [account: account, balance: balance, token: token, amount: amount],
+          location: :keep do
+      DetsPlux.update_counter(var!(tx), balance, {2, -amount})
+      supply = TokenSupply.new(token)
       TokenSupply.subtract(var!(supply), amount)
     end
   end
@@ -194,6 +201,44 @@ defmodule BalanceStore do
 
   defmacro pay_burn(from, value) do
     quote bind_quoted: [from: from, token: @token, value: value],
+          location: :keep do
+      key = DetsPlux.tuple(from, token)
+      {balance, _map} = DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
+
+      result = balance - value
+
+      if result >= 0 do
+        DetsPlux.update_counter(var!(tx), key, {2, -value})
+
+        supply = TokenSupply.new(token)
+        TokenSupply.subtract(supply, value)
+      else
+        :error
+      end
+    end
+  end
+
+  defmacro pay_burn(from, token, value) do
+    quote bind_quoted: [from: from, token: token, value: value],
+          location: :keep do
+      key = DetsPlux.tuple(from, token)
+      {balance, _map} = DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
+
+      result = balance - value
+
+      if result >= 0 do
+        DetsPlux.update_counter(var!(tx), key, {2, -value})
+
+        supply = TokenSupply.new(token)
+        TokenSupply.subtract(supply, value)
+      else
+        :error
+      end
+    end
+  end
+
+  defmacro pay_drop(from, token, value) do
+    quote bind_quoted: [from: from, token: token, value: value],
           location: :keep do
       key = DetsPlux.tuple(from, token)
       {balance, _map} = DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})

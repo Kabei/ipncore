@@ -6,6 +6,7 @@ defmodule Ippan.Funx.Coin do
 
   @app Mix.Project.config()[:app]
   @refund_timeout Application.compile_env(@app, :timeout_refund)
+  @token Application.compile_env(@app, :token)
 
   def send(
         %{
@@ -23,13 +24,23 @@ defmodule Ippan.Funx.Coin do
     tfees = Utils.calc_fees(fa, fb, size)
     reserve = Utils.calc_reserve(tfees)
 
-    BalanceStore.send(amount)
+    balance = BalanceStore.load(from, token_id)
 
-    if is_validator do
-      BalanceStore.fee_reserve(vOwner, reserve)
-    else
+    BalanceStore.pay balance, amount + tfees do
+      balance_to = BalanceStore.load(to, token_id)
+      BalanceStore.send(balance_to, amount)
+
       fees = tfees - reserve
-      BalanceStore.fees(tfees, fees, reserve)
+
+      if is_validator do
+        supply = TokenSupply.new(token_id)
+        BalanceStore.burn(balance, from, token_id, fees)
+        BalanceStore.reserve(reserve)
+      else
+        validator_balance = BalanceStore.load(vOwner, @token)
+        BalanceStore.fees(validator_balance, fees)
+        BalanceStore.reserve(reserve)
+      end
     end
   end
 
@@ -38,7 +49,7 @@ defmodule Ippan.Funx.Coin do
   end
 
   def send(
-        source = %{hash: hash, id: account_id, round: round_id},
+        source = %{hash: hash, id: from, round: round_id},
         to,
         token_id,
         amount,
@@ -51,7 +62,7 @@ defmodule Ippan.Funx.Coin do
 
     Sqlite.step("insert_refund", [
       hash,
-      account_id,
+      from,
       to,
       token_id,
       amount,
@@ -71,24 +82,31 @@ defmodule Ippan.Funx.Coin do
     is_validator = vOwner == from
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-    supply = TokenSupply.new(token_id)
     tfees = Utils.calc_fees(fa, fb, size)
     reserve = Utils.calc_reserve(tfees)
+    balance = BalanceStore.load(from, token_id)
 
-    total =
-      for [account, value] <- outputs do
-        BalanceStore.coinbase(account, token_id, value)
-        value
-      end
-      |> Enum.sum()
+    BalanceStore.pay balance, tfees do
+      total =
+        for [account, value] <- outputs do
+          BalanceStore.coinbase(account, token_id, value)
+          value
+        end
+        |> Enum.sum()
 
-    TokenSupply.add(supply, total)
+      supply = TokenSupply.new(token_id)
+      TokenSupply.add(supply, total)
 
-    if is_validator do
-      BalanceStore.fee_reserve(vOwner, reserve)
-    else
       fees = tfees - reserve
-      BalanceStore.fees(tfees, fees, reserve)
+
+      if is_validator do
+        BalanceStore.burn(balance, from, token_id, fees)
+        BalanceStore.reserve(reserve)
+      else
+        validator_balance = BalanceStore.load(vOwner, @token)
+        BalanceStore.fees(validator_balance, fees)
+        BalanceStore.reserve(reserve)
+      end
     end
   end
 
@@ -104,19 +122,27 @@ defmodule Ippan.Funx.Coin do
     is_validator = vOwner == from
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-
-    Enum.each(outputs, fn [to, amount] ->
-      BalanceStore.send(amount)
-    end)
-
     tfees = Utils.calc_fees(fa, fb, size)
     reserve = Utils.calc_reserve(tfees)
+    balance = BalanceStore.load(from, token_id)
+    total = Enum.reduce(outputs, 0, fn [_to, amount], acc -> acc + amount end)
 
-    if is_validator do
-      BalanceStore.fee_reserve(vOwner, reserve)
-    else
+    BalanceStore.pay balance, total do
+      Enum.each(outputs, fn [to, amount] ->
+        BalanceStore.send(to, token_id, amount)
+      end)
+
       fees = tfees - reserve
-      BalanceStore.fees(tfees, fees, reserve)
+
+      if is_validator do
+        supply = TokenSupply.new(token_id)
+        BalanceStore.burn(balance, from, token_id, fees)
+        BalanceStore.reserve(reserve)
+      else
+        validator_balance = BalanceStore.load(vOwner, @token)
+        BalanceStore.fees(validator_balance, fees)
+        BalanceStore.reserve(reserve)
+      end
     end
   end
 
@@ -127,20 +153,47 @@ defmodule Ippan.Funx.Coin do
   def burn(%{id: account_id}, token_id, amount) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-    supply = TokenSupply.new(token_id)
 
-    BalanceStore.burn(account_id, token_id, amount)
+    BalanceStore.pay_drop(account_id, token_id, amount)
   end
 
   def burn(_source, to, token_id, amount) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-    supply = TokenSupply.new(token_id)
 
-    BalanceStore.burn(to, token_id, amount)
+    BalanceStore.pay_burn(to, token_id, amount)
   end
 
-  # block: block_id, hash: hash
+  def refund(%{id: from}, hash16) do
+    hash = Base.decode16!(hash16, case: :mixed)
+    db_ref = :persistent_term.get(:main_conn)
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(:balance)
+
+    case Sqlite.step("get_refund", [hash, from]) do
+      {:row, [to, token_id, refund_amount]} ->
+        Sqlite.step("delete_refund", [hash, from])
+        BalanceStore.refund(from, to, token_id, refund_amount)
+
+      _ ->
+        :error
+    end
+  end
+
+  def lock(_source, to, token_id, amount) do
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(dets, :balance)
+
+    BalanceStore.lock(to, token_id, amount)
+  end
+
+  def unlock(_source, to, token_id, amount) do
+    dets = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(dets, :balance)
+
+    BalanceStore.unlock(to, token_id, amount)
+  end
+
   def reload(%{id: account_id, round: round_id}, token_id) do
     db_ref = :persistent_term.get(:main_conn)
     dets = DetsPlux.get(:balance)
@@ -183,36 +236,6 @@ defmodule Ippan.Funx.Coin do
         DetsPlux.update_element(tx, target, 3, new_map)
         BalanceStore.reload(target, token_id, value * mult)
     end
-  end
-
-  def refund(%{id: from}, hash16) do
-    hash = Base.decode16!(hash16, case: :mixed)
-    db_ref = :persistent_term.get(:main_conn)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
-
-    case Sqlite.step("get_refund", [hash, from]) do
-      {:row, [to, token_id, refund_amount]} ->
-        Sqlite.step("delete_refund", [hash, from])
-        BalanceStore.refund(from, to, token_id, refund_amount)
-
-      _ ->
-        :error
-    end
-  end
-
-  def lock(_source, to, token_id, amount) do
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(dets, :balance)
-
-    BalanceStore.lock(to, token_id, amount)
-  end
-
-  def unlock(_source, to, token_id, amount) do
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(dets, :balance)
-
-    BalanceStore.unlock(to, token_id, amount)
   end
 
   defp calc_reload_mult(round_id, init_round, _last_round, _times) when round_id == init_round,

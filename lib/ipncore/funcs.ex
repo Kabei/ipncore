@@ -22,8 +22,6 @@ defmodule Ippan.Funcs do
       mod: Func.Account,
       modx: Funx.Account,
       fun: :subscribe,
-      deferred: true,
-      check: 0,
       key: 1
     }
   end
@@ -349,35 +347,35 @@ defmodule Ippan.Funcs do
   #   }
   # end
 
-  def lookup(500) do
-    %Func{
-      id: 500,
-      name: "dns.new",
-      mod: Func.Dns,
-      modx: Funx.Dns,
-      fun: :new
-    }
-  end
+  # def lookup(500) do
+  #   %Func{
+  #     id: 500,
+  #     name: "dns.new",
+  #     mod: Func.Dns,
+  #     modx: Funx.Dns,
+  #     fun: :new
+  #   }
+  # end
 
-  def lookup(501) do
-    %Func{
-      id: 501,
-      name: "dns.update",
-      mod: Func.Dns,
-      modx: Funx.Dns,
-      fun: :update
-    }
-  end
+  # def lookup(501) do
+  #   %Func{
+  #     id: 501,
+  #     name: "dns.update",
+  #     mod: Func.Dns,
+  #     modx: Funx.Dns,
+  #     fun: :update
+  #   }
+  # end
 
-  def lookup(502) do
-    %Func{
-      id: 502,
-      name: "dns.delete",
-      mod: Func.Dns,
-      modx: Funx.Dns,
-      fun: :delete
-    }
-  end
+  # def lookup(502) do
+  #   %Func{
+  #     id: 502,
+  #     name: "dns.delete",
+  #     mod: Func.Dns,
+  #     modx: Funx.Dns,
+  #     fun: :delete
+  #   }
+  # end
 
   def lookup(600) do
     %Func{

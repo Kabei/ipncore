@@ -99,6 +99,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
         "reload.amount" => 3125,
         "reload.times" => 720,
         "reload.expiry" => 103680,
+        "stream.times" => 12
       }
     }
   ],

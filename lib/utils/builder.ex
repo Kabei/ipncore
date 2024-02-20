@@ -563,7 +563,7 @@ defmodule Builder do
   # Builder.coin_stream(client, client.id, "XPN", 500)
   def coin_stream(client = %Client{id: account_id, nonce: nonce}, to, token, amount) do
     body =
-      [309, nonce, account_id, to, token, amount]
+      [308, nonce, account_id, to, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)

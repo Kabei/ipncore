@@ -7,22 +7,34 @@ defmodule Stats do
     db = DetsPlux.get(@db)
     tx = DetsPlux.tx(db, @tx)
 
-    tx
+    %{db: db, tx: tx}
   end
 
-  def put_round(tx, round_id) do
+  def get_round(%{db: db, tx: tx}) do
+    DetsPlux.get_cache(db, tx, "rounds", 0)
+  end
+
+  def put_round(%{tx: tx}, round_id) do
     DetsPlux.put(tx, "rounds", round_id)
   end
 
-  def count_txs(_tx, 0), do: :ok
+  def txs(%{db: db, tx: tx}) do
+    DetsPlux.get_cache(db, tx, "txs", 0)
+  end
 
-  def count_txs(tx, number) do
+  def count_txs(_, 0), do: :ok
+
+  def count_txs(%{tx: tx}, number) do
     DetsPlux.update_counter(tx, "txs", {2, number})
   end
 
-  def count_blocks(_tx, 0), do: :ok
+  def blocks(%{db: db, tx: tx}) do
+    DetsPlux.get_cache(db, tx, "blocks", 0)
+  end
 
-  def count_blocks(tx, number) do
+  def count_blocks(_, 0), do: :ok
+
+  def count_blocks(%{tx: tx}, number) do
     DetsPlux.update_counter(tx, "blocks", {2, number})
   end
 end

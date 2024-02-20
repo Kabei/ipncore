@@ -69,7 +69,8 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
     %{name: "owner", value: address},
     %{name: "block.limit", value: 1},
     %{name: "token.price", value: 50_000},
-    %{name: "validator.price", value: 100_000}
+    %{name: "validator.price", value: 100_000},
+    %{name: "service.price", value: 100_000}
   ],
   "tokens" => [
     %Token{

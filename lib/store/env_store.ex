@@ -35,6 +35,10 @@ defmodule EnvStore do
 
   def owner, do: :persistent_term.get({:env, "owner"}, nil)
 
+  def service_price do
+    :persistent_term.get({:env, "service.price"}, 50_000)
+  end
+
   def token_price do
     :persistent_term.get({:env, "token.price"}, 50_000)
   end
@@ -47,9 +51,18 @@ defmodule EnvStore do
     :persistent_term.get({:env, "block.limit"}, 1)
   end
 
+  def min_fa do
+    :persistent_term.get({:env, "fees.fa"}, 0)
+  end
+
+  def min_fb do
+    :persistent_term.get({:env, "fees.fb"}, 1)
+  end
+
   defp transform("owner", x) when byte_size(x) <= 255, do: x
   defp transform("owner", _x), do: nil
 
+  defp transform("service.price", x), do: if(is_integer(x) and x > 0, do: x, else: 50_000)
   defp transform("token.price", x), do: if(is_integer(x) and x > 0, do: x, else: 50_000)
 
   defp transform("validator.price", x), do: if(is_integer(x) and x > 0, do: x, else: 100_000)

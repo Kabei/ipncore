@@ -1,3 +1,24 @@
+CREATE TABLE IF NOT EXISTS validator(
+  id BIGINT PRIMARY KEY NOT NULL,
+  hostname VARCHAR(50) UNIQUE NOT NULL,
+  port INTEGER NOT NULL,
+  name VARCHAR(30) NOT NULL,
+  owner BLOB NOT NULL,
+  class TEXT,
+  pubkey BLOB NOT NULL,
+  net_pubkey BLOB NOT NULL,
+  avatar TEXT,
+  fa INTEGER NOT NULL,
+  fb INTEGER NOT NULL,
+  active BOOLEAN,
+  failures INTEGER,
+  env BLOB,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+) WITHOUT ROWID;
+
+CREATE INDEX IF NOT EXISTS idx_val_class ON validator(class);
+
 CREATE TABLE IF NOT EXISTS token(
   id VARCHAR(20) PRIMARY KEY NOT NULL,
   owner BLOB NOT NULL,
@@ -11,19 +32,6 @@ CREATE TABLE IF NOT EXISTS token(
   created_at BIGINT NOT NULL,
   updated_at BIGINT NOT NULL
 ) WITHOUT ROWID;
-
-CREATE TABLE IF NOT EXISTS domain(
-  name TEXT PRIMARY KEY NOT NULL,
-  owner BLOB NOT NULL,
-  email TEXT,
-  avatar TEXT,
-  records BIGINT DEFAULT 0,
-  created_at BIGINT NOT NULL,
-  renewed_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL
-) WITHOUT ROWID;
-    
-CREATE INDEX IF NOT EXISTS idx_domain_renew ON domain(renewed_at);
 
 CREATE TABLE IF NOT EXISTS refund(
   hash BLOB PRIMARY KEY NOT NULL,

@@ -23,7 +23,7 @@ defmodule Ippan.Funcs do
       modx: Funx.Account,
       fun: :subscribe,
       deferred: true,
-      check: 2,
+      check: 0,
       key: 1
     }
   end
@@ -286,6 +286,28 @@ defmodule Ippan.Funcs do
     }
   end
 
+  def lookup(308) do
+    %Func{
+      id: 308,
+      name: "coin.stream",
+      mod: Func.Coin,
+      modx: Funx.Coin,
+      fun: :stream,
+      check: {:check, 0}
+    }
+  end
+
+  def lookup(309) do
+    %Func{
+      id: 309,
+      name: "coin.auth",
+      mod: Func.Coin,
+      modx: Funx.Coin,
+      fun: :auth,
+      key: 1
+    }
+  end
+
   # def lookup(400) do
   #   %Func{
   #     id: 400,
@@ -354,6 +376,56 @@ defmodule Ippan.Funcs do
       mod: Func.Dns,
       modx: Funx.Dns,
       fun: :delete
+    }
+  end
+
+  def lookup(600) do
+    %Func{
+      id: 600,
+      name: "service.new",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :new
+    }
+  end
+
+  def lookup(601) do
+    %Func{
+      id: 601,
+      name: "service.update",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :update
+    }
+  end
+
+  def lookup(602) do
+    %Func{
+      id: 602,
+      name: "service.delete",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :update
+    }
+  end
+
+  def lookup(610) do
+    %Func{
+      id: 610,
+      name: "service.subscribe",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :subscribe
+    }
+  end
+
+  def lookup(611) do
+    %Func{
+      id: 611,
+      name: "service.unsubscribe",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :unsubscribe
     }
   end
 

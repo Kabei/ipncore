@@ -160,7 +160,7 @@ defmodule Ippan.Domain do
 
   defmacro update(map, name) do
     quote location: :keep do
-      Sqlite.update("assets.domain", unquote(map), name: unquote(name))
+      Sqlite.update("dns.domain", unquote(map), name: unquote(name))
     end
   end
 end

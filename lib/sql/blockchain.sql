@@ -1,22 +1,3 @@
-CREATE TABLE IF NOT EXISTS validator(
-  id BIGINT PRIMARY KEY NOT NULL,
-  hostname VARCHAR(50) UNIQUE NOT NULL,
-  port INTEGER NOT NULL,
-  name VARCHAR(30) NOT NULL,
-  owner BLOB NOT NULL,
-  class TEXT,
-  pubkey BLOB NOT NULL,
-  net_pubkey BLOB NOT NULL,
-  avatar TEXT,
-  fa INTEGER NOT NULL,
-  fb INTEGER NOT NULL,
-  active BOOLEAN,
-  failures INTEGER,
-  env BLOB,
-  created_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL
-) WITHOUT ROWID;
-
 CREATE TABLE IF NOT EXISTS block(
   id BIGINT PRIMARY KEY,
   creator BIGINT NOT NULL,
@@ -64,5 +45,3 @@ CREATE TABLE IF NOT EXISTS snapshot(
   hash BLOB NOT NULL,
   size BIGINT NOT NULL
 ) WITHOUT ROWID;
-
-CREATE INDEX IF NOT EXISTS idx_val_class ON validator(class);

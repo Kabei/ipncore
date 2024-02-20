@@ -4,8 +4,12 @@ defmodule Ippan.TxHandler do
   defmacro get_public_key!(dets, tx, type, vid) do
     quote location: :keep, bind_quoted: [dets: dets, tx: tx, type: type, vid: vid] do
       case type do
-        # check from variable (check redirect)
+        # get from FROM variable not check its validator
         0 ->
+          DetsPlux.get_cache(dets, tx, var!(from))
+
+        # get data from FROM and check its validator
+        1 ->
           {pk, sig_type, %{"vid" => v} = account_map} =
             DetsPlux.get_cache(dets, tx, var!(from))
 
@@ -15,14 +19,21 @@ defmodule Ippan.TxHandler do
 
           {pk, sig_type, account_map}
 
-        # get from argument and not check (account.new)
+        # get data from argument position (wallet.new)
         {:arg, pos} ->
-          pk = var!(args) |> Enum.at(pos)
+          pk = Enum.at(var!(args), pos)
           sig_type = var!(args) |> Enum.at(pos + 1)
           {Fast64.decode64(pk), sig_type, nil}
 
-        # get from variable
-        2 ->
+        # check validator from argument position and get data from FROM variable
+        {:check, pos} ->
+          id = Enum.at(var!(args), pos)
+          {_, _sig_type, %{"vid" => v}} = DetsPlux.get_cache(dets, tx, var!(from))
+
+          if vid != v do
+            raise IppanRedirectError, "#{v}"
+          end
+
           DetsPlux.get_cache(dets, tx, var!(from))
       end
     end

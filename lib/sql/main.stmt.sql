@@ -31,25 +31,25 @@ DELETE FROM assets.token WHERE id = ?1 AND owner = ?2;
 
 
 --name: insert_domain
-INSERT INTO assets.domain VALUES(?1,?2,?3,?4,?5,?6,?7,?8);
+INSERT INTO dns.domain VALUES(?1,?2,?3,?4,?5,?6,?7,?8);
 
 --name: get_domain
-SELECT * FROM assets.domain WHERE name = ? LIMIT 1;
+SELECT * FROM dns.domain WHERE name = ? LIMIT 1;
 
 --name: exists_domain
-SELECT 1 FROM assets.domain WHERE name = ? LIMIT 1;
+SELECT 1 FROM dns.domain WHERE name = ? LIMIT 1;
 
 --name: owner_domain
-SELECT 1 FROM assets.domain WHERE name = ?1 AND owner = ?2 LIMIT 1;
+SELECT 1 FROM dns.domain WHERE name = ?1 AND owner = ?2 LIMIT 1;
 
 --name: delete_domain
-DELETE FROM assets.domain WHERE name = ?1 AND owner =?2;
+DELETE FROM dns.domain WHERE name = ?1 AND owner =?2;
 
 --name: renew_domain
-UPDATE assets.domain SET renewed_at = renewed_at + ?3, updated_at = ?4 WHERE name=?1 AND owner=?2;
+UPDATE dns.domain SET renewed_at = renewed_at + ?3, updated_at = ?4 WHERE name=?1 AND owner=?2;
 
 --name: expiry_domain
-DELETE FROM assets.domain WHERE renewed_at < ?;
+DELETE FROM dns.domain WHERE renewed_at < ?;
 
 
 --name: insert_dns
@@ -140,40 +140,40 @@ SELECT id, hash FROM blockchain.round ORDER BY id DESC LIMIT 1;
 
 
 --name: insert_validator
-INSERT INTO blockchain.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16);
+INSERT INTO assets.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16);
 
 --name: total_players
-SELECT count(1) FROM blockchain.validator WHERE active = 1 AND failures < 6;
+SELECT count(1) FROM assets.validator WHERE active = 1 AND failures < 6;
 
 --name: get_players
-SELECT * FROM blockchain.validator WHERE active = 1 AND failures < 6;
+SELECT * FROM assets.validator WHERE active = 1 AND failures < 6;
 
 --name: get_validator
-SELECT * FROM blockchain.validator WHERE id = ? LIMIT 1;
+SELECT * FROM assets.validator WHERE id = ? LIMIT 1;
 
 --name: exists_validator
-SELECT 1 FROM blockchain.validator WHERE id = ? LIMIT 1;
+SELECT 1 FROM assets.validator WHERE id = ? LIMIT 1;
 
 --name: exists_host_validator
-SELECT 1 FROM blockchain.validator WHERE hostname = ?1;
+SELECT 1 FROM assets.validator WHERE hostname = ?1;
 
 --name: exists_active_validator
-SELECT 1 FROM blockchain.validator WHERE id = ? AND active = 1 LIMIT 1;
+SELECT 1 FROM assets.validator WHERE id = ? AND active = 1 LIMIT 1;
 
 --name: owner_validator
-SELECT 1 FROM blockchain.validator WHERE id = ?1 AND owner = ?2;
+SELECT 1 FROM assets.validator WHERE id = ?1 AND owner = ?2;
 
 --name: total_validators
-SELECT COUNT(1) FROM blockchain.validator;
+SELECT COUNT(1) FROM assets.validator;
 
 --name: next_id_validator
-SELECT COALESCE((SELECT id FROM blockchain.validator ORDER BY id DESC LIMIT 1) + 1, 0);
+SELECT COALESCE((SELECT id FROM assets.validator ORDER BY id DESC LIMIT 1) + 1, 0);
 
 --name: leave_validator
-UPDATE  blockchain.validator SET failures=?2 WHERE id = ?1;
+UPDATE  assets.validator SET failures=?2 WHERE id = ?1;
 
 --name: delete_validator
-DELETE FROM blockchain.validator WHERE id = ?1;
+DELETE FROM assets.validator WHERE id = ?1;
 
 
 --name: insert_refund
@@ -197,3 +197,35 @@ INSERT INTO blockchain.jackpot VALUES(?1,?2,?3);
 
 --name: get_jackpot
 SELECT winner, amount FROM blockchain.jackpot WHERE round_id=? LIMIT 1;
+
+
+--name: insert_paysrv
+INSERT INTO pay.serv VALUES(?1,?2,?3,?4,?4);
+
+--name: get_paysrv
+SELECT id, name, extra FROM pay.serv WHERE id = ? LIMIT 1;
+
+--name: exists_paysrv
+SELECT 1 FROM pay.serv WHERE id = ? LIMIT 1;
+
+--name: delete_paysrv
+DELETE FROM pay.serv WHERE id = ?;
+
+
+--name: insert_subpay
+INSERT INTO pay.subpay VALUES(?1,?2,?3,?4,?5,?5);
+
+--name: exists_subpay
+SELECT 1 FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
+
+--name: get_subpay
+SELECT extra FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
+
+--name: up_subpay
+UPDATE pay.subpay SET last_round=?4 WHERE id=?1 AND payer=?2 AND token=?3;
+
+--name: delete_subpay
+DELETE FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3;
+
+--name: delete_all_subpay
+DELETE FROM pay.subpay WHERE id=?;

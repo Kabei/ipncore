@@ -179,7 +179,7 @@ defmodule Ippan.Validator do
   defmacro update(map, id) do
     quote bind_quoted: [map: map, id: id], location: :keep do
       :ets.delete(:validator, id)
-      Sqlite.update("blockchain.validator", map, id: id)
+      Sqlite.update("assets.validator", map, id: id)
     end
   end
 
@@ -187,7 +187,7 @@ defmodule Ippan.Validator do
     quote bind_quoted: [id: id, active: active, round: round_id], location: :keep do
       :ets.delete(:validator, id)
       value = if active == true, do: 1, else: 0
-      Sqlite.update("blockchain.validator", %{"active" => value, "updated_at" => round}, id: id)
+      Sqlite.update("assets.validator", %{"active" => value, "updated_at" => round}, id: id)
     end
   end
 

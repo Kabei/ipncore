@@ -197,7 +197,7 @@ defmodule Ippan.Funx.Token do
   end
 
   def env_delete(
-         %{
+        %{
           id: account_id,
           round: round_id,
           size: size,

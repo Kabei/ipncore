@@ -41,6 +41,14 @@ defmodule BalanceStore do
     end
   end
 
+  defmacro get(account_id, token_id) do
+    quote bind_quoted: [account: account_id, token: token_id] do
+      balance = DetsPlux.tuple(account, token)
+      DetsPlux.get_cache(var!(dets), var!(tx), balance, {0, %{}})
+      balance
+    end
+  end
+
   defmacro pay(balance, amount, do: expression) do
     quote bind_quoted: [amount: amount, balance: balance, expression: expression], location: :keep do
       if DetsPlux.update_counter(var!(tx), balance, {2, -amount}) >= 0 do
@@ -253,6 +261,12 @@ defmodule BalanceStore do
       else
         :error
       end
+    end
+  end
+
+  defmacro stream(balance, amount) do
+    quote bind_quoted: [amount: amount, balance: balance], location: :keep do
+      DetsPlux.update_counter(var!(tx), balance, {2, amount})
     end
   end
 

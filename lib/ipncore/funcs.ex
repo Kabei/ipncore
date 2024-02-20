@@ -26,6 +26,17 @@ defmodule Ippan.Funcs do
     }
   end
 
+  def lookup(2) do
+    %Func{
+      id: 2,
+      name: "account.editKey",
+      mod: Func.Account,
+      modx: Funx.Account,
+      fun: :edit_key,
+      key: 1
+    }
+  end
+
   def lookup(50) do
     %Func{
       id: 50,

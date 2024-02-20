@@ -159,6 +159,26 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
+  # Builder.account_editKey(client, <<191, 139, 1, 109, 27, 99, 67, 136, 137, 116, 102, 35, 203, 89, 225, 151, 213, 34, 125, 73, 244, 184, 108, 186, 47, 89, 90, 128, 52, 120, 125, 119>>, 0) |> Builder.print
+  def account_sub(
+        client = %Client{
+          id: account_id,
+          nonce: nonce
+        },
+        pubkey,
+        sig_type
+      ) do
+    body =
+      [2, nonce, account_id, Base.encode64(pubkey), sig_type]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
   # Builder.env_set(client, "test", "value-test") |> Builder.print
   def env_set(
         client = %Client{id: account_id, nonce: nonce},
@@ -540,6 +560,32 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
+  # Builder.coin_stream(client, client.id, "XPN", 500)
+  def coin_stream(client = %Client{id: account_id, nonce: nonce}, to, token, amount) do
+    body =
+      [309, nonce, account_id, to, token, amount]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # Builder.coin_auth(client, client.id, "XPN", true)
+  def coin_auth(client = %Client{id: account_id, nonce: nonce}, to, token, auth) do
+    body =
+      [309, nonce, account_id, to, token, auth]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
   # Builder.domain_new(client, "example.ipn", account_id, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Builder.print()
   def domain_new(
         client = %Client{id: account_id, nonce: nonce},
@@ -657,6 +703,71 @@ defmodule Builder do
   def dns_delete(client = %Client{id: account_id, nonce: nonce}, fullname, hash16) do
     body =
       [502, nonce, account_id, fullname, hash16]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_new(client, "@ippan", "movies-live", %{"summary" => "Watch movies", "image" => "http://image.com", "max_amount" => 1500})
+  def service_new(client = %Client{id: account_id, nonce: nonce}, id, name, extra) do
+    body =
+      [600, nonce, account_id, id, name, extra]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_update(client, "@ippan", %{"name" => "movies-live", "summary" => "Watch movies 2"})
+  def service_update(client = %Client{id: account_id, nonce: nonce}, service_id, map) do
+    body =
+      [601, nonce, account_id, service_id, map]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_delete(client, "@ippan")
+  def service_delete(client = %Client{id: account_id, nonce: nonce}, service_id) do
+    body =
+      [602, nonce, account_id, service_id]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_subscribe(client, "@ippan", %{"max_amount" => 50000})
+  def service_subscribe(client = %Client{id: account_id, nonce: nonce}, service_id, extra) do
+    body =
+      [603, nonce, account_id, service_id, extra]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_unsubscribe(client, "@ippan", %{"max_amount" => 50000})
+  def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id) do
+    body =
+      [604, nonce, account_id, service_id]
       |> encode_fun!()
 
     hash = hash_fun(body)

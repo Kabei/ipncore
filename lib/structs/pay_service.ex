@@ -7,10 +7,10 @@ defmodule PayService do
         nil
 
       [id, name, extra, created_at, updated_at] ->
-        extras = :erlang.element(1, CBOR.Decoder.decode(extra))
+        extra = :erlang.element(1, CBOR.Decoder.decode(extra))
 
         %{id: id, name: name, created_at: created_at, updated_at: updated_at}
-        |> Map.merge(extras)
+        |> Map.merge(extra)
     end
   end
 

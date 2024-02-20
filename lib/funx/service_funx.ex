@@ -51,7 +51,7 @@ defmodule Ippan.Funx.Service do
         },
         service_id,
         token_id,
-        extras
+        max_amount
       ) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
@@ -63,7 +63,15 @@ defmodule Ippan.Funx.Service do
 
       _ ->
         db_ref = :persistent_term.get(:main_conn)
-        SubPay.subscribe(db_ref, service_id, account_id, token_id, extras, round_id)
+
+        SubPay.subscribe(
+          db_ref,
+          service_id,
+          account_id,
+          token_id,
+          %{"max_amount" => max_amount},
+          round_id
+        )
     end
   end
 

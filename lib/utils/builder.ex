@@ -18,7 +18,7 @@ defmodule Builder do
 
     @spec new(binary, 0 | 1 | 2) :: t()
     def new(seed, sig_type \\ 0) do
-      {pk, sk, account_id} =
+      {pk, sk, address} =
         case sig_type do
           0 ->
             Builder.gen_ed25519(seed)
@@ -30,7 +30,24 @@ defmodule Builder do
             Builder.gen_falcon(seed)
         end
 
-      %Client{secret: sk, pk: pk, seed: seed, id: account_id, sig_type: sig_type}
+      %Client{secret: sk, pk: pk, seed: seed, id: address, sig_type: sig_type}
+    end
+
+    @spec new(binary, binary, 0 | 1 | 2) :: t()
+    def new(nickname, seed, sig_type) do
+      {pk, sk, _address} =
+        case sig_type do
+          0 ->
+            Builder.gen_ed25519(seed)
+
+          1 ->
+            Builder.gen_secp256k1(seed)
+
+          2 ->
+            Builder.gen_falcon(seed)
+        end
+
+      %Client{secret: sk, pk: pk, seed: seed, id: nickname, sig_type: sig_type}
     end
 
     @spec cont(t) :: t

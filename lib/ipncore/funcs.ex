@@ -394,7 +394,8 @@ defmodule Ippan.Funcs do
       name: "service.new",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :new
+      fun: :new,
+      deferred: true
     }
   end
 

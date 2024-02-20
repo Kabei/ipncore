@@ -1,5 +1,4 @@
 defmodule TokenSupply do
-  require DetsPlux
   @db :stats
   @tx :supply
   @cache_tx :cache_supply

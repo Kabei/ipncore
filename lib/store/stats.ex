@@ -1,5 +1,4 @@
 defmodule Stats do
-  require DetsPlux
   @db :stats
   @tx :stats
 
@@ -10,12 +9,20 @@ defmodule Stats do
     %{db: db, tx: tx}
   end
 
-  def get_round(%{db: db, tx: tx}) do
+  def rounds(%{db: db, tx: tx}) do
     DetsPlux.get_cache(db, tx, "rounds", 0)
   end
 
   def put_round(%{tx: tx}, round_id) do
     DetsPlux.put(tx, "rounds", round_id)
+  end
+
+  def last_hash(%{db: db, tx: tx}) do
+    DetsPlux.get_cache(db, tx, "last_hash", "")
+  end
+
+  def put_last_hash(%{tx: tx}, hash) do
+    DetsPlux.put(tx, "last_hash", hash)
   end
 
   def txs(%{db: db, tx: tx}) do
@@ -25,7 +32,7 @@ defmodule Stats do
   def count_txs(_, 0), do: :ok
 
   def count_txs(%{tx: tx}, number) do
-    DetsPlux.update_counter(tx, "txs", {2, number})
+    DetsPlux.update_counter(tx, "txs", {2, number}, {2, 0})
   end
 
   def blocks(%{db: db, tx: tx}) do
@@ -35,6 +42,6 @@ defmodule Stats do
   def count_blocks(_, 0), do: :ok
 
   def count_blocks(%{tx: tx}, number) do
-    DetsPlux.update_counter(tx, "blocks", {2, number})
+    DetsPlux.update_counter(tx, "blocks", {2, number}, {2, 0})
   end
 end

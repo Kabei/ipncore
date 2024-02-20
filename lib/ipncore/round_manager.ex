@@ -783,6 +783,7 @@ defmodule RoundManager do
         Stats.count_blocks(stats_tx, block_count)
         Stats.count_txs(stats_tx, tx_count)
         Stats.put_round(stats_tx, round_id)
+        Stats.put_last_hash(stats_tx, hash)
 
         # save all round
         RoundCommit.sync(db_ref, round.tx_count)

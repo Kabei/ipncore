@@ -33,10 +33,12 @@ defmodule RoundCommit do
       |> Task.await_many(:infinity)
     else
       balance_dets = DetsPlux.get(:balance)
-      balance_tx = DetsPlux.tx(balance_dets, :balance)
       stats_dets = DetsPlux.get(:stats)
+      balance_tx = DetsPlux.tx(balance_dets, :balance)
+      stats_tx = DetsPlux.tx(stats_dets, :stats)
       supply_tx = DetsPlux.tx(stats_dets, :supply)
       DetsPlux.sync(balance_dets, balance_tx)
+      DetsPlux.sync(stats_dets, stats_tx)
       DetsPlux.sync(stats_dets, supply_tx)
       Sqlite.sync(db_ref)
     end

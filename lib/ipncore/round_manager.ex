@@ -778,6 +778,12 @@ defmodule RoundManager do
 
         run_maintenance(round_id, db_ref)
 
+        # update stats
+        stats_tx = Stats.new()
+        Stats.count_blocks(stats_tx, new_blocks)
+        Stats.count_txs(stats_tx, tx_count)
+        Stats.put_round(stats_tx, round_id)
+
         # save all round
         RoundCommit.sync(db_ref, round.tx_count)
 

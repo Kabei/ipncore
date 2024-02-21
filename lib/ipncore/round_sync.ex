@@ -48,13 +48,9 @@ defmodule RoundSync do
 
   # Check last state from multiples nodes
   @impl true
-  def handle_continue(
-        :prepare,
-        %{
-          db_ref: db_ref
-        } = state
-      ) do
-    {current_round_id, _hash} = Round.last()
+  def handle_continue(:prepare, state) do
+    stats = Stats.new()
+    current_round_id = Stats.rounds(stats)
     hosts = get_whitelist()
 
     case hosts do

@@ -13,12 +13,16 @@ defmodule Stats do
     DetsPlux.get_cache(db, tx, "rounds", 0)
   end
 
+  def rounds(%{db: db, tx: tx}, default) do
+    DetsPlux.get_cache(db, tx, "rounds", default)
+  end
+
   def put_round(%{tx: tx}, round_id) do
     DetsPlux.put(tx, "rounds", round_id)
   end
 
   def last_hash(%{db: db, tx: tx}) do
-    DetsPlux.get_cache(db, tx, "last_hash", "")
+    DetsPlux.get_cache(db, tx, "last_hash", nil)
   end
 
   def put_last_hash(%{tx: tx}, hash) do

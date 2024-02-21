@@ -38,7 +38,7 @@ defmodule Platform do
       case key do
         "accounts" ->
           Enum.each(values, fn x ->
-            DetsPlux.put(wallet_tx, {x.id, x.pubkey, x.validator, x.sig_type})
+            DetsPlux.put(wallet_tx, {x.id, x.pubkey, x.sig_type, %{vid: x.vid, fa: x.fa, fb: x.fb}})
           end)
 
         "tokens" ->

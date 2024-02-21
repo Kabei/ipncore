@@ -3,11 +3,13 @@ defmodule Ippan.Account do
   @type t :: %__MODULE__{
           id: String.t(),
           pubkey: binary,
-          validator: non_neg_integer(),
+          vid: non_neg_integer(),
+          fa: non_neg_integer(),
+          fb: non_neg_integer(),
           sig_type: non_neg_integer()
         }
 
-  defstruct [:id, :pubkey, :validator, :sig_type]
+  defstruct [:id, :fa, :fb, :pubkey, :vid, :sig_type]
 
   @impl true
   def to_list(x) do

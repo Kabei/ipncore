@@ -90,7 +90,7 @@ defmodule Ippan.TxHandler do
       # Check nonce
       nonce_dets = DetsPlux.get(:nonce)
       cache_nonce_tx = DetsPlux.tx(nonce_dets, :cache_nonce)
-      Account.update_nonce!(nonce_dets, cache_nonce_tx, var!(from), var!(nonce))
+      Account.gte_nonce!(nonce_dets, cache_nonce_tx, var!(from), var!(nonce))
 
       source = %{
         id: var!(from),

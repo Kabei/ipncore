@@ -1,4 +1,4 @@
-defmodule Ippan.Funx.Wallet do
+defmodule Ippan.Funx.Account do
   require BalanceStore
   alias Ippan.{Utils}
 

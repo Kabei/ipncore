@@ -768,7 +768,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_subscribe(client, "@ippan", "XPN", %{"max_amount" => 50000})
+  # service_subscribe(client, "@ippan", "XPN", 1500)
   def service_subscribe(client = %Client{id: account_id, nonce: nonce}, service_id, token_id, extra) do
     body =
       [610, nonce, account_id, service_id, token_id, extra]
@@ -781,7 +781,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_unsubscribe(client, "@ippan", %{"max_amount" => 50000})
+  # service_unsubscribe(client, "@ippan", "XPN")
   def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id, token_id) do
     body =
       [611, nonce, account_id, service_id, token_id]

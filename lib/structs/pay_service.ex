@@ -16,7 +16,7 @@ defmodule PayService do
   end
 
   def create(db_ref, id, name, extra, round_id) do
-    Sqlite.step("insert_paysrv", [id, name, extra, round_id])
+    Sqlite.step("insert_paysrv", [id, name, CBOR.encode(extra), round_id])
   end
 
   def update(db_ref, map, id) do

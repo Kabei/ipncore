@@ -251,17 +251,17 @@ defmodule Ippan.Funx.Coin do
     div(round_id - init_round, times) - div(last_round - init_round, times)
   end
 
-  def stream(%{round: round_id}, to, token_id, amount) do
+  def stream(%{id: from, round: round_id}, to, token_id, amount) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
 
     BalanceStore.pay to, token_id, amount do
-      key_to = DetsPlux.tuple(to, token_id)
-      {_balance, map} = DetsPlux.get_cache(dets, tx, key_to, {0, %{}})
-
+      key_to = BalanceStore.make(to, token_id)
+      DetsPlux.get_cache(dets, tx, key_to, {0, %{}})
       BalanceStore.stream(key_to, amount)
 
-      DetsPlux.update_element(tx, key_to, 3, Map.put(map, "lastStream", round_id))
+      db_ref = :persistent_term.get(:main_conn)
+      SubPay.update(db_ref, from, to, token_id, round_id)
     end
   end
 

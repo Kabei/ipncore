@@ -213,7 +213,7 @@ DELETE FROM pay.serv WHERE id = ?;
 
 
 --name: insert_subpay
-INSERT INTO pay.subpay VALUES(?1,?2,?3,?4,?5,?5);
+INSERT INTO pay.subpay VALUES(?1,?2,?3,?4,?5,0);
 
 --name: exists_subpay
 SELECT 1 FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;

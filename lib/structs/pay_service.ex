@@ -39,8 +39,8 @@ end
 defmodule SubPay do
   require Sqlite
 
-  def subscribe(db_ref, id, payer, token, extra, last_round) do
-    Sqlite.step("insert_subpay", [id, payer, token, CBOR.encode(extra), last_round])
+  def subscribe(db_ref, id, payer, token, extra, created_at) do
+    Sqlite.step("insert_subpay", [id, payer, token, CBOR.encode(extra), created_at])
   end
 
   def has?(db_ref, id, payer, token) do
@@ -52,6 +52,10 @@ defmodule SubPay do
       nil -> nil
       result -> to_map(result)
     end
+  end
+
+  def update(db_ref, id, payer, token, last_round) do
+    Sqlite.step("up_subpay", [id, payer, token, last_round])
   end
 
   def unsubscribe(db_ref, id, payer, token) do

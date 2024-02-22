@@ -1,6 +1,6 @@
 defmodule MinerWorker do
   use GenServer
-  alias Ippan.{Block, TxHandler, Validator}
+  alias Ippan.{Account, Block, TxHandler, Validator}
   alias Ippan.ClusterNodes
   require Ippan.{Block, Validator, TxHandler}
   require Sqlite
@@ -157,7 +157,7 @@ defmodule MinerWorker do
         :counters.add(cref, 2, 1)
 
       [hash, type, from, nonce, args, _sig, size] ->
-        DetsPlux.put(nonce_tx, from, nonce)
+        Account.gte_nonce(nonce_dets, nonce_tx, from, nonce)
 
         case TxHandler.regular() do
           {:error, _} ->
@@ -175,7 +175,7 @@ defmodule MinerWorker do
       [hash, type, arg_key, from, nonce, args, _sig, size] ->
         ix = :counters.get(cref, 1)
 
-        DetsPlux.put(nonce_tx, from, nonce)
+        Account.gte_nonce(nonce_dets, nonce_tx, from, nonce)
         case TxHandler.insert_deferred(dtx, dtmp) do
           true ->
             nil

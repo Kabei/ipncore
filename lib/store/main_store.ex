@@ -18,7 +18,6 @@ defmodule MainStore do
 
   # databases
   @attaches %{
-    "account" => "accounts.db",
     "assets" => "assets.db",
     "pay" => "pay.db",
     "dns" => "dns.db",

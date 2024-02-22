@@ -144,8 +144,8 @@ defmodule MinerWorker do
 
   # Process the block
   defp run_miner(round_id, block_id, validator, transactions) do
-    # nonce_dets = DetsPlux.get(:nonce)
-    # nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
+    nonce_dets = DetsPlux.get(:nonce)
+    nonce_tx = DetsPlux.tx(nonce_dets, :nonce)
     dtx = :ets.whereis(:dtx)
     dtmp = :ets.new(:tmp, [:set])
     # 1. tx counter
@@ -157,6 +157,8 @@ defmodule MinerWorker do
         :counters.add(cref, 2, 1)
 
       [hash, type, from, nonce, args, _sig, size] ->
+        DetsPlux.put(nonce_tx, from, nonce)
+
         case TxHandler.regular() do
           {:error, _} ->
             :counters.add(cref, 2, 1)
@@ -173,6 +175,7 @@ defmodule MinerWorker do
       [hash, type, arg_key, from, nonce, args, _sig, size] ->
         ix = :counters.get(cref, 1)
 
+        DetsPlux.put(nonce_tx, from, nonce)
         case TxHandler.insert_deferred(dtx, dtmp) do
           true ->
             nil

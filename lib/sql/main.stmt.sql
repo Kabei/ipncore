@@ -209,7 +209,7 @@ SELECT id, name, extra, created_at, updated_at FROM pay.serv WHERE id = ? LIMIT 
 SELECT 1 FROM pay.serv WHERE id = ? LIMIT 1;
 
 --name: delete_paysrv
-DELETE FROM pay.serv WHERE id = ?;
+DELETE FROM pay.serv WHERE id = ?1;
 
 
 --name: insert_subpay
@@ -228,7 +228,7 @@ UPDATE pay.subpay SET last_round=?4 WHERE id=?1 AND payer=?2 AND token=?3;
 DELETE FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3;
 
 --name: delete_all_subpay
-DELETE FROM pay.subpay WHERE id=?;
+DELETE FROM pay.subpay WHERE id = ?1;
 
 --name: delete_payer_subpay
-DELETE FROM pay.subpay WHERE payer=?;
+DELETE FROM pay.subpay WHERE payer = ?1;

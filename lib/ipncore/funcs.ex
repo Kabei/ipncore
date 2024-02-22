@@ -422,7 +422,7 @@ defmodule Ippan.Funcs do
       name: "service.delete",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :update
+      fun: :delete
     }
   end
 

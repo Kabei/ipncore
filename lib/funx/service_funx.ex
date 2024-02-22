@@ -39,7 +39,14 @@ defmodule Ippan.Funx.Service do
 
   def delete(_source, id) do
     db_ref = :persistent_term.get(:main_conn)
-    PayService.delete(db_ref, id)
+
+    cond do
+      not PayService.exists?(db_ref, id) ->
+        raise IppanError, "Not exists service: #{id}"
+
+      true ->
+        PayService.delete(db_ref, id)
+    end
   end
 
   def subscribe(

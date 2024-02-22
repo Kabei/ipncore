@@ -219,7 +219,7 @@ INSERT INTO pay.subpay VALUES(?1,?2,?3,?4,?5,?5);
 SELECT 1 FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
 
 --name: get_subpay
-SELECT extra FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
+SELECT id, payer, token, created_at, last_round, extra FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
 
 --name: up_subpay
 UPDATE pay.subpay SET last_round=?4 WHERE id=?1 AND payer=?2 AND token=?3;

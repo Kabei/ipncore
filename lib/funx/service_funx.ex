@@ -23,26 +23,26 @@ defmodule Ippan.Funx.Service do
         id,
         map
       ) do
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
-    fees = Utils.calc_fees(fa, fb, size)
-    db_ref = :persistent_term.get(:main_conn)
+        dets = DetsPlux.get(:balance)
+        tx = DetsPlux.tx(:balance)
+        fees = Utils.calc_fees(fa, fb, size)
+        db_ref = :persistent_term.get(:main_conn)
 
-    case PayService.get(db_ref, id) do
-      nil ->
-        :error
-
-      service ->
-        case BalanceStore.pay_fee(account_id, vOwner, fees) do
-          :error ->
+        case PayService.get(db_ref, id) do
+          nil ->
             :error
 
-          _ ->
-            extra = Map.delete(map, "name") |> Map.merge(service.extra)
-            name = Map.get(map, "name", service.name)
-            PayService.update(db_ref, %{"name" => name, "extra" => CBOR.encode(extra)}, id)
+          %{name: current_name, extra: current_extra} ->
+            case BalanceStore.pay_fee(account_id, vOwner, fees) do
+              :error ->
+                :error
+
+              _ ->
+                name = Map.get(map, "name", current_name)
+                extra = Map.delete(map, "name") |> Map.merge(current_extra)
+                PayService.update(db_ref, %{"name" => name, "extra" => CBOR.encode(extra)}, id)
+            end
         end
-    end
   end
 
   def delete(_source, id) do

@@ -21,8 +21,7 @@ defmodule Ippan.Funcs do
       name: "account.sub",
       mod: Func.Account,
       modx: Funx.Account,
-      fun: :subscribe,
-      key: 1
+      fun: :subscribe
     }
   end
 
@@ -44,7 +43,8 @@ defmodule Ippan.Funcs do
       mod: Func.Env,
       modx: Funx.Env,
       fun: :set,
-      deferred: true
+      deferred: true,
+      key: 2
     }
   end
 
@@ -55,7 +55,8 @@ defmodule Ippan.Funcs do
       mod: Func.Env,
       modx: Funx.Env,
       fun: :delete,
-      deferred: true
+      deferred: true,
+      key: 2
     }
   end
 
@@ -66,7 +67,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :join,
-      deferred: true
+      deferred: true,
+      key: 2
     }
   end
 
@@ -77,7 +79,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :update,
-      deferred: true
+      deferred: true,
+      key: 2
     }
   end
 
@@ -88,7 +91,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :leave,
-      deferred: true
+      deferred: true,
+      key: 2
     }
   end
 
@@ -124,7 +128,7 @@ defmodule Ippan.Funcs do
       modx: Funx.Validator,
       fun: :active,
       deferred: true,
-      key: 1
+      key: 2
     }
   end
 
@@ -135,7 +139,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :new,
-      deferred: true
+      deferred: true,
+      key: 2
     }
   end
 
@@ -167,7 +172,7 @@ defmodule Ippan.Funcs do
       modx: Funx.Token,
       fun: :prop_add,
       deferred: true,
-      key: 1
+      key: 2
     }
   end
 
@@ -179,7 +184,7 @@ defmodule Ippan.Funcs do
       modx: Funx.Token,
       fun: :prop_drop,
       deferred: true,
-      key: 1
+      key: 2
     }
   end
 
@@ -191,7 +196,7 @@ defmodule Ippan.Funcs do
       modx: Funx.Token,
       fun: :env_put,
       deferred: true,
-      key: 1
+      key: 2
     }
   end
 
@@ -203,7 +208,7 @@ defmodule Ippan.Funcs do
       modx: Funx.Token,
       fun: :env_delete,
       deferred: true,
-      key: 1
+      key: 2
     }
   end
 
@@ -325,6 +330,7 @@ defmodule Ippan.Funcs do
   #     modx: Funx.Domain,
   #     fun: :new,
   #     deferred: true
+  #     key: 2
   #   }
   # end
 
@@ -395,7 +401,8 @@ defmodule Ippan.Funcs do
       mod: Func.Service,
       modx: Funx.Service,
       fun: :new,
-      deferred: true
+      deferred: true,
+      key: 2
     }
   end
 

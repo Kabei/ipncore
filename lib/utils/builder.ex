@@ -768,10 +768,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_subscribe(client, "@ippan", %{"max_amount" => 50000})
-  def service_subscribe(client = %Client{id: account_id, nonce: nonce}, service_id, extra) do
+  # service_subscribe(client, "@ippan", "XPN", %{"max_amount" => 50000})
+  def service_subscribe(client = %Client{id: account_id, nonce: nonce}, service_id, token_id, extra) do
     body =
-      [610, nonce, account_id, service_id, name, extra]
+      [610, nonce, account_id, service_id, token_id, extra]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -782,9 +782,9 @@ defmodule Builder do
   end
 
   # service_unsubscribe(client, "@ippan", %{"max_amount" => 50000})
-  def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id) do
+  def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id, token_id) do
     body =
-      [611, nonce, account_id, service_id]
+      [611, nonce, account_id, service_id, token_id]
       |> encode_fun!()
 
     hash = hash_fun(body)

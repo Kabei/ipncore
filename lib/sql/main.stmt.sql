@@ -229,3 +229,6 @@ DELETE FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3;
 
 --name: delete_all_subpay
 DELETE FROM pay.subpay WHERE id=?;
+
+--name: delete_payer_subpay
+DELETE FROM pay.subpay WHERE payer=?;

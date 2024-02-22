@@ -125,7 +125,7 @@ defmodule Ippan.Funx.Coin do
     balance = BalanceStore.load(from, token_id)
     total = Enum.reduce(outputs, 0, fn [_to, amount], acc -> acc + amount end)
 
-    BalanceStore.pay balance, total do
+    BalanceStore.pay balance, total + tfees do
       Enum.each(outputs, fn [to, amount] ->
         BalanceStore.send(to, token_id, amount)
       end)

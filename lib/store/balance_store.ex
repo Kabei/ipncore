@@ -114,7 +114,6 @@ defmodule BalanceStore do
   defmacro burn(balance, account, token, amount) do
     quote bind_quoted: [account: account, balance: balance, token: token, amount: amount],
           location: :keep do
-      # DetsPlux.update_counter(var!(tx), balance, {2, -amount})
       supply = TokenSupply.new(token)
       TokenSupply.subtract(var!(supply), amount)
     end
@@ -213,16 +212,13 @@ defmodule BalanceStore do
     quote bind_quoted: [from: from, token: @token, value: value],
           location: :keep do
       key = DetsPlux.tuple(from, token)
-      {balance, _map} = DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
+      DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
 
-      result = balance - value
-
-      if result >= 0 do
-        DetsPlux.update_counter(var!(tx), key, {2, -value})
-
+      if DetsPlux.update_counter(var!(tx), key, {2, -value}) >= 0 do
         supply = TokenSupply.new(token)
         TokenSupply.subtract(supply, value)
       else
+        DetsPlux.update_counter(var!(tx), key, {2, value})
         :error
       end
     end
@@ -232,16 +228,13 @@ defmodule BalanceStore do
     quote bind_quoted: [from: from, token: token, value: value],
           location: :keep do
       key = DetsPlux.tuple(from, token)
-      {balance, _map} = DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
+      DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
 
-      result = balance - value
-
-      if result >= 0 do
-        DetsPlux.update_counter(var!(tx), key, {2, -value})
-
+      if DetsPlux.update_counter(var!(tx), key, {2, -value}) >= 0 do
         supply = TokenSupply.new(token)
         TokenSupply.subtract(supply, value)
       else
+        DetsPlux.update_counter(var!(tx), key, {2, value})
         :error
       end
     end
@@ -251,16 +244,13 @@ defmodule BalanceStore do
     quote bind_quoted: [from: from, token: token, value: value],
           location: :keep do
       key = DetsPlux.tuple(from, token)
-      {balance, _map} = DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
+      DetsPlux.get_cache(var!(dets), var!(tx), key, {0, %{}})
 
-      result = balance - value
-
-      if result >= 0 do
-        DetsPlux.update_counter(var!(tx), key, {2, -value})
-
+      if DetsPlux.update_counter(var!(tx), key, {2, -value}) >= 0 do
         supply = TokenSupply.new(token)
         TokenSupply.subtract(supply, value)
       else
+        DetsPlux.update_counter(var!(tx), key, {2, value})
         :error
       end
     end

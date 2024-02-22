@@ -22,9 +22,9 @@ defmodule Ippan.Funx.Coin do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
     tfees = Utils.calc_fees(fa, fb, size)
-    balance = BalanceStore.load(from, token_id)
 
-    BalanceStore.pay balance, amount + tfees do
+    BalanceStore.pay from, token_id, amount, tfees do
+      balance = BalanceStore.make(from, @token)
       balance_to = BalanceStore.load(to, token_id)
       BalanceStore.send(balance_to, amount)
 
@@ -32,8 +32,8 @@ defmodule Ippan.Funx.Coin do
       fees = tfees - reserve
 
       if is_validator do
-        supply = TokenSupply.new(token_id)
-        BalanceStore.burn(balance, from, token_id, fees)
+        supply = TokenSupply.new(@token)
+        BalanceStore.burn(balance, from, @token, fees)
         BalanceStore.reserve(reserve)
       else
         validator_balance = BalanceStore.load(vOwner, @token)
@@ -82,30 +82,36 @@ defmodule Ippan.Funx.Coin do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
     tfees = Utils.calc_fees(fa, fb, size)
-    balance = BalanceStore.load(from, token_id)
 
-    BalanceStore.pay balance, tfees do
-      total =
-      for [account, value] <- outputs do
-        BalanceStore.coinbase(account, token_id, value)
-        value
-      end
-      |> Enum.sum()
+    case BalanceStore.pay_fee(from, vOwner, tfees) do
+      :error ->
+        :error
 
-      supply = TokenSupply.new(token_id)
-      TokenSupply.add(supply, total)
+      _ ->
+        balance = BalanceStore.make(from, @token)
 
-      reserve = Utils.calc_reserve(tfees)
-      fees = tfees - reserve
+        total =
+          for [account, value] <- outputs do
+            BalanceStore.coinbase(account, token_id, value)
+            value
+          end
+          |> Enum.sum()
 
-      if is_validator do
-        BalanceStore.burn(balance, from, token_id, fees)
-        BalanceStore.reserve(reserve)
-      else
-        validator_balance = BalanceStore.load(vOwner, @token)
-        BalanceStore.fees(validator_balance, fees)
-        BalanceStore.reserve(reserve)
-      end
+        supply = TokenSupply.new(token_id)
+        TokenSupply.add(supply, total)
+
+        reserve = Utils.calc_reserve(tfees)
+        fees = tfees - reserve
+
+        if is_validator do
+          supply = TokenSupply.new(@token)
+          BalanceStore.burn(balance, from, @token, fees)
+          BalanceStore.reserve(reserve)
+        else
+          validator_balance = BalanceStore.load(vOwner, @token)
+          BalanceStore.fees(validator_balance, fees)
+          BalanceStore.reserve(reserve)
+        end
     end
   end
 
@@ -122,10 +128,11 @@ defmodule Ippan.Funx.Coin do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
     tfees = Utils.calc_fees(fa, fb, size)
-    balance = BalanceStore.load(from, token_id)
     total = Enum.reduce(outputs, 0, fn [_to, amount], acc -> acc + amount end)
 
-    BalanceStore.pay balance, total + tfees do
+    BalanceStore.pay from, token_id, total, tfees do
+      balance = BalanceStore.make(from, token_id)
+
       Enum.each(outputs, fn [to, amount] ->
         BalanceStore.send(to, token_id, amount)
       end)
@@ -134,8 +141,8 @@ defmodule Ippan.Funx.Coin do
       fees = tfees - reserve
 
       if is_validator do
-        supply = TokenSupply.new(token_id)
-        BalanceStore.burn(balance, from, token_id, fees)
+        supply = TokenSupply.new(@token)
+        BalanceStore.burn(balance, from, @token, fees)
         BalanceStore.reserve(reserve)
       else
         validator_balance = BalanceStore.load(vOwner, @token)
@@ -247,9 +254,8 @@ defmodule Ippan.Funx.Coin do
   def stream(%{round: round_id}, to, token_id, amount) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
-    balance = BalanceStore.load(to, token_id)
 
-    BalanceStore.pay balance, amount do
+    BalanceStore.pay to, token_id, amount do
       key_to = DetsPlux.tuple(to, token_id)
       {_balance, map} = DetsPlux.get_cache(dets, tx, key_to, {0, %{}})
 
@@ -263,7 +269,7 @@ defmodule Ippan.Funx.Coin do
         %{
           id: account_id,
           size: size,
-          validator: %{fa: fa, fb: fb}
+          validator: %{fa: fa, fb: fb, owner: vOwner}
         },
         token_id,
         to,
@@ -273,7 +279,7 @@ defmodule Ippan.Funx.Coin do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(dets, :balance)
 
-    case BalanceStore.pay_fee(account_id, account_id, fees) do
+    case BalanceStore.pay_fee(account_id, vOwner, fees) do
       :error ->
         :error
 

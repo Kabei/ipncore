@@ -41,21 +41,56 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro get(account_id, token_id) do
+  defmacro make(account_id, token_id) do
     quote bind_quoted: [account: account_id, token: token_id] do
-      balance = DetsPlux.tuple(account, token)
-      DetsPlux.get_cache(var!(dets), var!(tx), balance, {0, %{}})
-      balance
+      DetsPlux.tuple(account, token)
     end
   end
 
-  defmacro pay(balance, amount, do: expression) do
-    quote bind_quoted: [amount: amount, balance: balance, expression: expression], location: :keep do
+  defmacro pay(from, token, amount, do: expression) do
+    quote bind_quoted: [amount: amount, from: from, token: token, expression: expression], location: :keep do
+      balance = BalanceStore.load(from, token)
       if DetsPlux.update_counter(var!(tx), balance, {2, -amount}) >= 0 do
         expression
       else
         DetsPlux.update_counter(var!(tx), balance, {2, amount})
         :error
+      end
+    end
+  end
+
+  defmacro pay(from, token, amount, fees, do: expression) do
+    quote bind_quoted: [
+      amount: amount,
+      fees: fees,
+      from: from,
+      token: token,
+      expression: expression
+    ], location: :keep do
+      balance = BalanceStore.load(from, token)
+
+      if @token == token do
+        total = amount + fees
+        if DetsPlux.update_counter(var!(tx), balance, {2, -total}) >= 0 do
+          expression
+        else
+          DetsPlux.update_counter(var!(tx), balance, {2, total})
+          :error
+        end
+      else
+        balance_native = BalanceStore.load(from, @token)
+        if DetsPlux.update_counter(var!(tx), balance, {2, -amount}) >= 0 do
+          if DetsPlux.update_counter(var!(tx), balance_native, {2, -fees}) >= 0 do
+            expression
+          else
+            DetsPlux.update_counter(var!(tx), balance, {2, amount})
+            DetsPlux.update_counter(var!(tx), balance_native, {2, fees})
+            :error
+          end
+        else
+          DetsPlux.update_counter(var!(tx), balance, {2, amount})
+          :error
+        end
       end
     end
   end

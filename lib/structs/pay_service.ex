@@ -31,7 +31,6 @@ defmodule PayService do
   def to_map([id, name, extra, created_at, updated_at]) do
     extra = :erlang.element(1, CBOR.Decoder.decode(extra))
 
-    %{id: id, name: name, created_at: created_at, updated_at: updated_at}
-    |> Map.merge(extra)
+    %{id: id, name: name, created_at: created_at, extra: extra, updated_at: updated_at}
   end
 end

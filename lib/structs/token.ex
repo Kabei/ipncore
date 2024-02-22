@@ -25,7 +25,7 @@ defmodule Ippan.Token do
   @impl true
   def editable, do: ~w(avatar name owner)
 
-  def props, do: ~w(burn coinbase drop lock reload)
+  def props, do: ~w(burn coinbase drop lock reload stream)
 
   defstruct id: nil,
             name: nil,

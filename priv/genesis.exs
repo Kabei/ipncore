@@ -62,11 +62,11 @@ npk =
     97, 68, 88, 96, 41, 28, 39, 109, 69, 52, 228, 12, 46, 102, 10, 194, 23, 12, 150, 46, 243, 127,
     185, 186, 144, 79, 233, 251, 32, 6, 138, 219, 74, 18, 65, 222, 71, 228, 32, 0, 97, 92, 3>>
 
-address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
+owner = "@ippan"
 
 %{
   "env" => [
-    %{name: "owner", value: address},
+    %{name: "owner", value: owner},
     %{name: "block.limit", value: 1},
     %{name: "token.price", value: 50_000},
     %{name: "validator.price", value: 100_000},
@@ -92,7 +92,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       id: "XPN",
       max_supply: 0,
       name: "Xtream Payment Network",
-      owner: address,
+      owner: owner,
       props: ["burn", "drop", "lock", "reload", "stream"],
       symbol: "xÞ",
       updated_at: 0,
@@ -115,7 +115,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
       id: 0,
       name: "Master",
       net_pubkey: npk,
-      owner: address,
+      owner: owner,
       port: 5815,
       pubkey: pk,
       active: true,
@@ -124,7 +124,7 @@ address = "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc"
   ],
   "accounts" => [
     %Account{
-      id: "0x2Qyubpv2bgy8bDZ7UpkuwabHjJdc",
+      id: "@ippan",
       pubkey: pk,
       sig_type: 0,
       vid: 0,

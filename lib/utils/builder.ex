@@ -66,7 +66,7 @@ defmodule Builder do
       <<140, 176, 158, 128, 218, 167, 112, 93, 41, 250, 55, 168, 169, 1, 96, 21, 68, 114, 250,
         100, 126, 90, 183, 50, 86, 23, 97, 61, 25, 114, 63, 84>>
 
-    {Client.new(sk), Client.new(sk2)}
+    {Client.new("@ippan", sk, 0), Client.new("@sandbox", sk2, 0)}
   end
 
   @spec print(response) :: Client.t()

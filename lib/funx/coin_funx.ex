@@ -270,8 +270,8 @@ defmodule Ippan.Funx.Coin do
           size: size,
           validator: %{fa: fa, fb: fb, owner: vOwner}
         },
-        token_id,
         to,
+        token_id,
         auth
       ) do
     fees = Utils.calc_fees(fa, fb, size)

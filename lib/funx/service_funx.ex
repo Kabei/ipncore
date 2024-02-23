@@ -53,7 +53,7 @@ defmodule Ippan.Funx.Service do
 
     cond do
       not PayService.exists?(db_ref, id) ->
-        raise IppanError, "Not exists service: #{id}"
+        :error
 
       true ->
         PayService.delete(db_ref, id)

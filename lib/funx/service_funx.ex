@@ -19,7 +19,7 @@ defmodule Ippan.Funx.Service do
   end
 
   def update(
-        %{id: account_id, size: size, validator: %{fa: fa, fb: fb, owner: vOwner}},
+        %{id: account_id, round: round_id, size: size, validator: %{fa: fa, fb: fb, owner: vOwner}},
         id,
         map
       ) do
@@ -40,7 +40,10 @@ defmodule Ippan.Funx.Service do
               _ ->
                 name = Map.get(map, "name", current_name)
                 extra = Map.delete(map, "name") |> Map.merge(current_extra)
-                PayService.update(db_ref, %{"name" => name, "extra" => CBOR.encode(extra)}, id)
+                PayService.update(db_ref, %{
+                  "name" => name,
+                  "extra" => CBOR.encode(extra),
+                  "updated_at" => round_id}, id)
             end
         end
   end

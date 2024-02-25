@@ -69,7 +69,7 @@ defmodule Ippan.Funx.Service do
         },
         service_id,
         token_id,
-        max_amount
+        extra
       ) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
@@ -87,7 +87,7 @@ defmodule Ippan.Funx.Service do
           service_id,
           account_id,
           token_id,
-          %{"max_amount" => max_amount},
+          extra,
           round_id
         )
     end

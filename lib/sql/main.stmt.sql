@@ -200,7 +200,7 @@ SELECT winner, amount FROM blockchain.jackpot WHERE round_id=? LIMIT 1;
 
 
 --name: insert_paysrv
-INSERT INTO pay.serv VALUES(?1,?2,?3,?4,?4);
+INSERT INTO pay.serv VALUES(?1,?2,?3,?4,?5,?5);
 
 --name: get_paysrv
 SELECT id, name, extra, created_at, updated_at FROM pay.serv WHERE id = ? LIMIT 1;

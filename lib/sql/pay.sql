@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS serv(
   id TEXT NOT NULL PRIMARY KEY,
-  name TEXT NOT NULL,
+  name TEXT,
+  image TEXT,
   extra BLOB,
   created_at BIGINT,
   updated_at BIGINT

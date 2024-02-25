@@ -3,7 +3,7 @@ defmodule Ippan.Funx.Service do
   alias Ippan.Utils
   require Sqlite
 
-  def new(%{id: account_id, round: round_id}, id, name, extra) do
+  def new(%{id: account_id, round: round_id}, id, name, image, extra) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
     price = EnvStore.service_price()
@@ -14,7 +14,7 @@ defmodule Ippan.Funx.Service do
 
       _ ->
         db_ref = :persistent_term.get(:main_conn)
-        PayService.create(db_ref, id, name, extra, round_id)
+        PayService.create(db_ref, id, name, image, extra, round_id)
     end
   end
 

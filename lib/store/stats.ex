@@ -48,4 +48,12 @@ defmodule Stats do
   def count_blocks(%{tx: tx}, number) do
     DetsPlux.update_counter(tx, "blocks", {2, number}, {2, 0})
   end
+
+  def services(%{db: db, tx: tx}) do
+    DetsPlux.get_cache(db, tx, "services", 0)
+  end
+
+  def count_services(%{tx: tx}, number) do
+    DetsPlux.update_counter(tx, "services", {2, number}, {2, 0})
+  end
 end

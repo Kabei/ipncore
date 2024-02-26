@@ -5,7 +5,7 @@ defmodule Ippan.Funx.Token do
   require BalanceStore
 
   @app Mix.Project.config()[:app]
-  @max_tokens Application.compile_env(@app, :max_tokens)
+  @max_tokens Application.compile_env(@app, :max_tokens, 0)
   @json Application.compile_env(@app, :json)
 
   def new(
@@ -23,7 +23,7 @@ defmodule Ippan.Funx.Token do
     tx = DetsPlux.tx(:balance)
 
     cond do
-      @max_tokens <= Token.total() ->
+      @max_tokens != 0 and @max_tokens <= Token.total() ->
         :error
 
       true ->

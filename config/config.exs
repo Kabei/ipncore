@@ -31,6 +31,7 @@ config :ipncore, :max_validators, 20_000
 config :ipncore, :max_tokens, 1_000
 config :ipncore, :maintenance, 25_000
 config :ipncore, :reserve, 0.3
+config :ipnworker, :max_services, 5_000
 # Only core
 config :ipncore, :max_peers_conn, 20
 

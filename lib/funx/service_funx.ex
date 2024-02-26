@@ -3,18 +3,26 @@ defmodule Ippan.Funx.Service do
   alias Ippan.Utils
   require Sqlite
 
+  @app Mix.Project.config()[:app]
+  @max_services Application.compile_env(@app, :max_services, 0)
+
   def new(%{id: account_id, round: round_id}, id, name, image, extra) do
     dets = DetsPlux.get(:balance)
     tx = DetsPlux.tx(:balance)
     price = EnvStore.service_price()
+    stats = Stats.new()
 
-    case BalanceStore.pay_burn(account_id, price) do
-      :error ->
+    cond do
+      @max_services != 0 and @max_services <= Stats.services(stats) ->
         :error
 
-      _ ->
+      BalanceStore.pay_burn(account_id, price) == :error ->
+        :error
+
+      true ->
         db_ref = :persistent_term.get(:main_conn)
         PayService.create(db_ref, id, name, image, extra, round_id)
+        Stats.count_services(stats, 1)
     end
   end
 
@@ -57,6 +65,8 @@ defmodule Ippan.Funx.Service do
 
       true ->
         PayService.delete(db_ref, id)
+        stats = Stats.new()
+        Stats.count_services(stats, -1)
     end
   end
 

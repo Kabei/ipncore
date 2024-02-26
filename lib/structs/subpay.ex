@@ -24,6 +24,10 @@ defmodule SubPay do
     Sqlite.step("delete_subpay", [id, payer, token])
   end
 
+  def total(db_ref, payer) do
+    Sqlite.one("total_subpay_payer", [payer], 0)
+  end
+
   def to_map([id, payer, token, extra, created_at, last_round]) do
     extra = :erlang.element(1, CBOR.Decoder.decode(extra))
 

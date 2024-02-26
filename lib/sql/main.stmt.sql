@@ -221,6 +221,9 @@ SELECT 1 FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
 --name: get_subpay
 SELECT id, payer, token, extra, created_at, last_round FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
 
+--name: total_subpay_payer
+SELECT count(1) FROM pay.subpay WHERE payer=?2;
+
 --name: up_subpay
 UPDATE pay.subpay SET last_round=?4 WHERE id=?1 AND payer=?2 AND token=?3;
 

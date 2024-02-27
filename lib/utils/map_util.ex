@@ -181,8 +181,15 @@ defmodule MapUtil do
     val = Map.get(map, key)
 
     if not is_nil(val) and not Enum.any?(val, fn x -> x in list end),
-      do: raise(ArgumentError, "Invalid range: #{key}")
+      do: raise(ArgumentError, "Invalid key: #{key}")
 
+    map
+  end
+
+  def only(map, keys) when is_list(keys) do
+    result = Enum.any?(Map.keys(map), fn x -> x not in keys end)
+
+    if result, do: raise(ArgumentError, "Only accepted: #{inspect(keys)}")
     map
   end
 

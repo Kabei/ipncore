@@ -5,8 +5,12 @@ defmodule SubPay do
     Sqlite.step("insert_subpay", [id, payer, token, CBOR.encode(extra), created_at])
   end
 
+  def has?(db_ref, id, payer) do
+    Sqlite.exists?("exists_subpay", [id, payer])
+  end
+
   def has?(db_ref, id, payer, token) do
-    Sqlite.exists?("exists_subpay", [id, payer, token])
+    Sqlite.exists?("exists_subpay_token", [id, payer, token])
   end
 
   def get(db_ref, id, payer, token) do
@@ -20,8 +24,12 @@ defmodule SubPay do
     Sqlite.step("up_subpay", [id, payer, token, last_round])
   end
 
+  def unsubscribe(db_ref, id, payer) do
+    Sqlite.step("delete_subpay", [id, payer])
+  end
+
   def unsubscribe(db_ref, id, payer, token) do
-    Sqlite.step("delete_subpay", [id, payer, token])
+    Sqlite.step("delete_subpay_token", [id, payer, token])
   end
 
   def total(db_ref, payer) do

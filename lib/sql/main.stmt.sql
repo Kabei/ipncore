@@ -216,6 +216,9 @@ DELETE FROM pay.serv WHERE id = ?;
 INSERT INTO pay.subpay VALUES(?1,?2,?3,?4,?5,0);
 
 --name: exists_subpay
+SELECT 1 FROM pay.subpay WHERE id=?1 AND payer=?2 LIMIT 1;
+
+--name: exists_subpay_token
 SELECT 1 FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
 
 --name: get_subpay
@@ -228,6 +231,9 @@ SELECT count(1) FROM pay.subpay WHERE payer=?1;
 UPDATE pay.subpay SET last_round=?4 WHERE id=?1 AND payer=?2 AND token=?3;
 
 --name: delete_subpay
+DELETE FROM pay.subpay WHERE id=?1 AND payer=?2;
+
+--name: delete_subpay_token
 DELETE FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3;
 
 --name: delete_all_subpay

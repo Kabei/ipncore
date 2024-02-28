@@ -103,6 +103,11 @@ defmodule Ippan.Funx.Service do
     end
   end
 
+  def unsubscribe(%{id: account_id}, service_id) do
+    db_ref = :persistent_term.get(:main_conn)
+    SubPay.unsubscribe(db_ref, service_id, account_id)
+  end
+
   def unsubscribe(%{id: account_id}, service_id, token_id) do
     db_ref = :persistent_term.get(:main_conn)
     SubPay.unsubscribe(db_ref, service_id, account_id, token_id)

@@ -781,6 +781,19 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
+  # service_unsubscribe(client, "@ippan")
+  def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id) do
+    body =
+      [611, nonce, account_id, service_id]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
   # service_unsubscribe(client, "@ippan", "XPN")
   def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id, token_id) do
     body =

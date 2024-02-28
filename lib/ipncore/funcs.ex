@@ -21,7 +21,8 @@ defmodule Ippan.Funcs do
       name: "account.sub",
       mod: Func.Account,
       modx: Funx.Account,
-      fun: :subscribe
+      fun: :subscribe,
+      check: 2
     }
   end
 

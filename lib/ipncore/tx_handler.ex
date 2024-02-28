@@ -1,5 +1,6 @@
 defmodule Ippan.TxHandler do
-  alias Ippan.{Funcs, Account, TxHandler}
+  alias Ippan.{Funcs, Account, TxHandler, Validator}
+  require Sqlite
 
   defmacro get_public_key!(dets, tx, type, vid) do
     quote location: :keep, bind_quoted: [dets: dets, tx: tx, type: type, vid: vid] do
@@ -14,6 +15,17 @@ defmodule Ippan.TxHandler do
             DetsPlux.get_cache(dets, tx, var!(from))
 
           if vid != v do
+            raise IppanRedirectError, "#{v}"
+          end
+
+          {pk, sig_type, account_map}
+
+        # get data from FROM and check its validator if not check if validator exists
+        2 ->
+          {pk, sig_type, %{"vid" => v} = account_map} =
+            DetsPlux.get_cache(dets, tx, var!(from))
+
+          if vid != v and Validator.exists?(v) do
             raise IppanRedirectError, "#{v}"
           end
 
@@ -35,6 +47,8 @@ defmodule Ippan.TxHandler do
           end
 
           DetsPlux.get_cache(dets, tx, var!(from))
+
+
       end
     end
   end

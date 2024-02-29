@@ -641,10 +641,10 @@ defmodule RoundManager do
             0
 
           total > var!(max_supply) and var!(max_supply) > 0 ->
-            var!(max_supply) - current
+            0
 
           true ->
-            total
+            computed
         end
 
       if reward > 0 do

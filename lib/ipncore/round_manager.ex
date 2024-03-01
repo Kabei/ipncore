@@ -235,7 +235,7 @@ defmodule RoundManager do
       ) do
     # update player
     new_data = Validator.get(validator_id)
-    :ets.insert(ets_players, new_data)
+    :ets.insert(ets_players, {validator_id, new_data})
     total_players = get_total_players(ets_players)
     {:noreply, %{state | total: total_players}}
   end
@@ -698,9 +698,9 @@ defmodule RoundManager do
         rm_notify \\ true
       ) do
     unless Round.null?(map) do
-      IO.puts("Bulding: Round: ##{round_id} | Blocks: #{length(blocks)}")
       creator_id = creator.id
       block_count = length(blocks)
+      IO.puts("Bulding Round: ##{round_id} | Creator: #{creator_id} | Blocks: #{block_count}")
 
       # IO.inspect(map)
 

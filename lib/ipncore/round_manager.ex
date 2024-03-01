@@ -698,6 +698,7 @@ defmodule RoundManager do
         rm_notify \\ true
       ) do
     unless Round.null?(map) do
+      IO.puts("Bulding: Round: ##{round_id} | Blocks: #{length(blocks)}")
       creator_id = creator.id
       block_count = length(blocks)
 
@@ -728,7 +729,7 @@ defmodule RoundManager do
         end)
         |> Task.await_many(:infinity)
 
-      IO.puts("MinerWorker: " <> inspect(result))
+      # IO.puts("MinerWorker: " <> inspect(result))
 
       # Count Blocks and txs rejected
       {new_blocks, blocks_approved_count, txs_rejected} =

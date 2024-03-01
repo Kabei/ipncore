@@ -109,6 +109,7 @@ defmodule Ippan.TxHandler do
       source = %{
         id: var!(from),
         hash: var!(hash),
+        map: account_map,
         nonce: var!(nonce),
         size: var!(size),
         type: var!(type),
@@ -197,6 +198,7 @@ defmodule Ippan.TxHandler do
       source = %{
         id: var!(from),
         hash: var!(hash),
+        map: account_map,
         nonce: var!(nonce),
         size: var!(size),
         type: var!(type),

@@ -177,7 +177,7 @@ defmodule Builder do
   end
 
   # Builder.account_editKey(client, <<191, 139, 1, 109, 27, 99, 67, 136, 137, 116, 102, 35, 203, 89, 225, 151, 213, 34, 125, 73, 244, 184, 108, 186, 47, 89, 90, 128, 52, 120, 125, 119>>, 0) |> Builder.print
-  def account_sub(
+  def account_editKey(
         client = %Client{
           id: account_id,
           nonce: nonce
@@ -264,7 +264,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_update(client, 1, %{"fa" => 7}) |> Builder.print()
+  # Builder.validator_update(c1, 1, %{"pubkey" => "hdJuce8rPb2ZH/HNPhzxMrjhpvysYPYLIIKnwjnOlGg=", "net_pubkey" => "OeJ6+HckIv9Dq0DWzYtRJDQ+BRAEkYL66Hhfld5bew9KGWqfD5SNVdbatgnu1ztnn8O5RJG/aeD8Q7lhVbV21NlwZflJ/SFUPnQUsuYd4FGpLTCEzBljQMgnKQy9fKVIYY1yADKj/I0ddJszws+9l1051f1penhHuZ3SyE+aqRSLt/70WIr19JqV3Oho1hnxox8sUBZ2tjdUEjbImZXHNSIjmthjvSj1j/Df/NEk1kVxxLHdg1TAIq6jPcZLpBNlKH8kHF6bXc71JSrZTFc2K+nAubpolzs5p4k44xPx75hwvkW0QCwTZJX12yx9KsCjD+hDu/qcMeAHmr/iYgyrXV0fIP8671bipcLo2g01MmHFC1gFT6QUrTAqHPCdM+CR+Uq2NqB3SceobDpgwtkNp8tfcsjdaRAIq9Y6xZ1ZQpJQEenjcAFEaamE94t+P3HeeIVzp+RT/LQd5JQuZmQouZLF/3vA6aWUD2rhlRPobrVpT6zMW9QRtr7ZFh9ZQwIpSBRe6TB6JYJ0A21uf4ZnkkSdjjFHiEEaaXWj2B2CSVqHaOJUbs9s7bT7gkTIT6Fdl/2PV6SHWSvIdANi/wDayMDkbPtFTr6mN2dCEODwzI2yJIHUTj2hABzKfRCvMQVRTvrsTfS4DYCGzSiCZ4NPXGGBuLQr/CcMou0jGdzjUWLMa1JeC9TeAQ1iUfG8CFeG8dyybfa20hKTK2e46d+6qtCpNMvh/q7YBthpWj3bcPD5Vgpj2Xk3ic8hueDJty0I6x/QtGIEMS6j5w03A/8WGNlzOlze2riv4XOBnx4EGMf4aGusQtckt1D27OCajVvJcppicjrkNOfSeMrBZIZBC3bBHAzpsunXwmoZBxQfTpnNCSRePNE4cFqO0+g26zgSGwhCmOeMIASE7bpKcc1xf+sHb0C2mROA7LmUeU/otzMai4ojxu1lN/+MaNzRrDJFoyZ0I7DUk6GwSAiS6Sbjp33/CxL2Rtk4IfKvIwpl3cmsattCT0b4MkqWzhq9k47qpK+61DZFF+wWwwk5jyzXYVKC8b4ltiagbgvr4rQ/zInm98k9tgFKIiBgTj3iCB6b3xI7e7af/sKxsAoNMk+g8nWhCKTqO4+U5Wu7ZQ2Yqld6WNiCTXyu7E0F3ygCSPew61OLyo7VVQxQgVsXA3lvYi7cI1DdWf8TrZrS5ny6v4WPNae8Ct+okjuSSV/7ekUWr4YOf0GFVxn8wtuz9/onnLZMmE9Q2MsOBXvT0GALcunKiIKq45K5ALJG9Xp8bNbUL40IVO8W2EGZloageZVL+oXcUKVDgQBeRYok7pbWh0kw/NyVbLE4n9akhxd6MfWgf450C+Pp3MN29+wr1JNrxXLqK+a2lu0GGWsRkuYOQsXnrrGY5liI22pxMN8Imj8Uc1kFWC3g3zYy11ZvhsjBPBgm4aueXSXMrXdetcGjMLLSyMob1OMkYURYYCkcJ21FNOQMLmYKwhcMli7zf7m6kE/p+yAGittKEkHeR+QgAGFcAw=="}) |> Builder.post(h)
   def validator_update(client = %Client{id: account_id, nonce: nonce}, id, params) do
     body =
       [101, nonce, account_id, id, params]
@@ -769,7 +769,12 @@ defmodule Builder do
   end
 
   # service_subscribe(client, "@ippan", "XPN", %{"max_amount" => 1500, "exp" => 1500000})
-  def service_subscribe(client = %Client{id: account_id, nonce: nonce}, service_id, token_id, extra) do
+  def service_subscribe(
+        client = %Client{id: account_id, nonce: nonce},
+        service_id,
+        token_id,
+        extra
+      ) do
     body =
       [610, nonce, account_id, service_id, token_id, extra]
       |> encode_fun!()

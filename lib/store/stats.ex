@@ -35,8 +35,9 @@ defmodule Stats do
 
   def count_txs(_, 0), do: :ok
 
-  def count_txs(%{tx: tx}, number) do
-    DetsPlux.update_counter(tx, "txs", {2, number}, {2, 0})
+  def count_txs(%{db: db, tx: tx}, number) do
+    DetsPlux.get_cache(db, tx, "txs", 0)
+    DetsPlux.update_counter(tx, "txs", {2, number})
   end
 
   def blocks(%{db: db, tx: tx}) do
@@ -45,15 +46,17 @@ defmodule Stats do
 
   def count_blocks(_, 0), do: :ok
 
-  def count_blocks(%{tx: tx}, number) do
-    DetsPlux.update_counter(tx, "blocks", {2, number}, {2, 0})
+  def count_blocks(%{db: db, tx: tx}, number) do
+    DetsPlux.get_cache(db, tx, "blocks", 0)
+    DetsPlux.update_counter(tx, "blocks", {2, number})
   end
 
   def services(%{db: db, tx: tx}) do
     DetsPlux.get_cache(db, tx, "services", 0)
   end
 
-  def count_services(%{tx: tx}, number) do
-    DetsPlux.update_counter(tx, "services", {2, number}, {2, 0})
+  def count_services(%{db: db, tx: tx}, number) do
+    DetsPlux.get_cache(db, tx, "services", 0)
+    DetsPlux.update_counter(tx, "services", {2, number})
   end
 end

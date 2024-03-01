@@ -1,17 +1,20 @@
 defmodule Ippan.BlockHandler do
-  alias Ippan.{ClusterNodes, Block}
+  alias Ippan.{ClusterNodes, Block, Validator}
 
   import Ippan.Block,
     only: [decode_file!: 1, encode_file!: 1, hash_file: 1]
 
   require BalanceStore
   require Sqlite
+  require Validator
+  require Logger
 
   @app Mix.Project.config()[:app]
   @version Application.compile_env(@app, :version)
   @block_extension Application.compile_env(@app, :block_extension)
   @decode_extension Application.compile_env(@app, :decode_extension)
   @max_size Application.compile_env(@app, :max_block_data_size)
+  @max_block_size Application.compile_env(@app, :block_max_size)
 
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
@@ -221,4 +224,67 @@ defmodule Ippan.BlockHandler do
   #     _ -> true
   #   end)
   # end
+
+  def check(%{
+        creator: creator_id,
+        hash: hash,
+        filehash: filehash,
+        height: height,
+        prev: prev,
+        signature: signature,
+        size: size,
+        timestamp: timestamp,
+        vsn: version
+      }, db_ref) do
+    try do
+      %{hostname: hostname, pubkey: pubkey} = Validator.get(creator_id)
+      remote_url = Block.url(hostname, creator_id, height)
+      output_path = Block.block_path(creator_id, height)
+      file_exists = File.exists?(output_path)
+
+      if file_exists do
+        {:ok, filestat} = File.stat(output_path)
+
+        if filestat.size != size do
+          File.rm(output_path)
+          DownloadTask.start(remote_url, output_path, @max_block_size)
+        end
+      else
+        DownloadTask.start(remote_url, output_path, @max_block_size)
+      end
+      |> case do
+        :ok ->
+          {:ok, filestat} = File.stat(output_path)
+
+          cond do
+            filestat.size > @max_block_size or filestat.size != size ->
+              :error
+
+            hash != Block.compute_hash(creator_id, height, prev, filehash, timestamp) ->
+              :error
+
+            filehash != hash_file(output_path) ->
+              :error
+
+            Cafezinho.Impl.verify(signature, hash, pubkey) != :ok ->
+              :error
+
+            @version != version ->
+              :error
+
+            true ->
+              :ok
+          end
+
+        _error ->
+          :error
+      end
+    rescue
+      err ->
+        Logger.error(Exception.format(:error, err, __STACKTRACE__))
+        :error
+    end
+  end
+
+  def check(_, _db_ref), do: :error
 end

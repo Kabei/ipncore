@@ -1,6 +1,18 @@
 defmodule RoundManager do
   use GenServer
-  alias Ippan.{BlockHandler, NetworkNodes, ClusterNodes, Block, Round, Token, TxHandler, Validator, Round}
+
+  alias Ippan.{
+    BlockHandler,
+    NetworkNodes,
+    ClusterNodes,
+    Block,
+    Round,
+    Token,
+    TxHandler,
+    Validator,
+    Round
+  }
+
   alias Phoenix.PubSub
   import Ippan.Block, only: [decode_file!: 1]
   require Ippan.{Block, Round, Token, TxHandler, Validator}

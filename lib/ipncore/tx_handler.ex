@@ -47,8 +47,6 @@ defmodule Ippan.TxHandler do
           end
 
           DetsPlux.get_cache(dets, tx, var!(from))
-
-
       end
     end
   end

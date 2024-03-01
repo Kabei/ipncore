@@ -48,8 +48,10 @@ defmodule BalanceStore do
   end
 
   defmacro pay(from, token, amount, do: expression) do
-    quote bind_quoted: [amount: amount, from: from, token: token, expression: expression], location: :keep do
+    quote bind_quoted: [amount: amount, from: from, token: token, expression: expression],
+          location: :keep do
       balance = BalanceStore.load(from, token)
+
       if DetsPlux.update_counter(var!(tx), balance, {2, -amount}) >= 0 do
         expression
       else
@@ -61,16 +63,18 @@ defmodule BalanceStore do
 
   defmacro pay(from, token, amount, fees, do: expression) do
     quote bind_quoted: [
-      amount: amount,
-      fees: fees,
-      from: from,
-      token: token,
-      expression: expression
-    ], location: :keep do
+            amount: amount,
+            fees: fees,
+            from: from,
+            token: token,
+            expression: expression
+          ],
+          location: :keep do
       balance = BalanceStore.load(from, token)
 
       if @token == token do
         total = amount + fees
+
         if DetsPlux.update_counter(var!(tx), balance, {2, -total}) >= 0 do
           expression
         else
@@ -79,6 +83,7 @@ defmodule BalanceStore do
         end
       else
         balance_native = BalanceStore.load(from, @token)
+
         if DetsPlux.update_counter(var!(tx), balance, {2, -amount}) >= 0 do
           if DetsPlux.update_counter(var!(tx), balance_native, {2, -fees}) >= 0 do
             expression

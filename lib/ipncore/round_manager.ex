@@ -136,7 +136,7 @@ defmodule RoundManager do
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
-      case check_votes(state, false) do
+      case check_votes(state) do
         nil ->
           {:ok, tRef} = :timer.send_after(@timeout, :timeout)
           {:ok, rRef} = :timer.send_after(time_to_request, :request)
@@ -172,7 +172,7 @@ defmodule RoundManager do
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
 
-    case check_votes(state, true) do
+    case check_votes(state) do
       nil ->
         IO.puts("no votes")
 
@@ -548,7 +548,7 @@ defmodule RoundManager do
 
     spawn_link(fn ->
       # msg_round =
-      #   message || check_votes(%{round_id: round_id, votes: ets_votes}, false)
+      #   message || check_votes(%{round_id: round_id, votes: ets_votes})
 
       creator = Validator.get(rcid)
 
@@ -988,7 +988,7 @@ defmodule RoundManager do
   #   end
   # end
 
-  defp check_votes(%{round_id: round_id, total: total_players, votes: ets_votes}, forced_count) do
+  defp check_votes(%{round_id: round_id, total: total_players, votes: ets_votes}) do
     # check votes
     n = NetworkNodes.count()
 
@@ -1013,9 +1013,9 @@ defmodule RoundManager do
           total_players == 2 and count == 1 ->
             x
 
-          forced_count == true ->
-            Logger.debug("Forced count: ##{round_id}")
-            x
+          # forced_count == true ->
+          #   Logger.debug("Forced count: ##{round_id}")
+          #   x
 
           true ->
             nil

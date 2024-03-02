@@ -373,9 +373,6 @@ defmodule RoundManager do
 
         if next do
           cond do
-            total_players == 2 and total_players == count ->
-              spawn_build_foreign_round(state, msg_round)
-
             count == div(n, 2) + 1 ->
               IO.puts("Vote ##{id}")
 
@@ -1004,13 +1001,7 @@ defmodule RoundManager do
         IO.inspect("check votes: #{x.id} #{count}")
 
         cond do
-          count >= total_players ->
-            x
-
           count >= div(n, 2) + 1 ->
-            x
-
-          total_players == 2 and count == 1 ->
             x
 
           # forced_count == true ->

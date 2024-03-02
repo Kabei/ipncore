@@ -136,7 +136,7 @@ defmodule RoundManager do
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
-      case check_votes(state) do
+      case check_votes(state, true) do
         nil ->
           {:ok, tRef} = :timer.send_after(@timeout, :timeout)
           {:ok, rRef} = :timer.send_after(time_to_request, :request)
@@ -172,7 +172,7 @@ defmodule RoundManager do
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
 
-    case check_votes(state) do
+    case check_votes(state, true) do
       nil ->
         IO.puts("no votes")
 
@@ -351,47 +351,53 @@ defmodule RoundManager do
       ) do
     Logger.debug(inspect(msg_round))
     limit = EnvStore.block_limit()
+    same_id = id == round_id
 
-    with true <- limit >= length(blocks),
-         true <- Validator.active?(node_id),
-         true <- node_id == creator_id or Validator.active?(creator_id),
-         [{_, player}] <- :ets.lookup(ets_players, creator_id),
-         hashes <- Enum.map(blocks, & &1.hash),
-         true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
-         true <- blocks_verificacion(blocks, db_ref, ets_players),
-         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
-      count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
+    if same_id and creator_id == vid do
+      check_votes(status, false)
+    else
+      with true <- creator_id != vid,
+           true <- limit >= length(blocks),
+           true <- Validator.active?(node_id),
+           true <- node_id == creator_id or Validator.active?(creator_id),
+           [{_, player}] <- :ets.lookup(ets_players, creator_id),
+           hashes <- Enum.map(blocks, & &1.hash),
+           true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
+           true <- blocks_verificacion(blocks, db_ref, ets_players),
+           :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
+           true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
+        count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
 
-      IO.puts("#{id} = #{round_id}")
-      next = status == :synced
+        IO.puts("#{id} = #{round_id}")
+        next = status == :synced
 
-      if id == round_id do
-        :timer.cancel(rRef)
-        n = NetworkNodes.count()
-        IO.puts("n = #{n} | count = #{count}")
+        if same_id do
+          :timer.cancel(rRef)
+          n = NetworkNodes.count()
+          IO.puts("n = #{n} | count = #{count}")
 
-        if next do
-          cond do
-            count == div(n, 2) + 1 ->
-              IO.puts("Vote ##{id}")
+          if next do
+            cond do
+              count == div(n, 2) + 1 ->
+                IO.puts("Vote ##{id}")
 
-              spawn_build_foreign_round(state, msg_round)
+                spawn_build_foreign_round(state, msg_round)
 
-            true ->
-              nil
+              true ->
+                nil
+            end
           end
-        end
 
-        # Replicate message to rest of nodes except creator and sender
-        NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
-          # node_id,
-          # creator_id,
-          vid
-        ])
-      else
-        unless next do
-          RoundSync.add_queue(msg_round)
+          # Replicate message to rest of nodes except creator and sender
+          NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
+            # node_id,
+            # creator_id,
+            vid
+          ])
+        else
+          unless next do
+            RoundSync.add_queue(msg_round)
+          end
         end
       end
     end
@@ -980,13 +986,16 @@ defmodule RoundManager do
   #   end
   # end
 
-  defp check_votes(%{
-         round_id: round_id,
-         status: status,
-         total: _total_players,
-         vid: vid,
-         votes: ets_votes
-       }) do
+  defp check_votes(
+         %{
+           round_id: round_id,
+           status: status,
+           total: _total_players,
+           vid: vid,
+           votes: ets_votes
+         },
+         notify
+       ) do
     # check votes
     n = NetworkNodes.count()
 
@@ -1003,7 +1012,7 @@ defmodule RoundManager do
 
         cond do
           count >= div(n, 2) + 1 ->
-            if status == :synced do
+            if status == :synced and notify do
               # Replicate message to rest of nodes except creator and sender
               NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [vid])
             end

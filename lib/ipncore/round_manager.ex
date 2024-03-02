@@ -343,7 +343,7 @@ defmodule RoundManager do
           votes: ets_votes,
           round_id: round_id,
           status: status,
-          total: _total_players,
+          total: total_players,
           vid: vid,
           rRef: rRef
         } =
@@ -353,8 +353,7 @@ defmodule RoundManager do
     limit = EnvStore.block_limit()
     same_id = id == round_id
 
-    with true <- creator_id != vid,
-         true <- limit >= length(blocks),
+    with true <- limit >= length(blocks),
          true <- Validator.active?(node_id),
          true <- node_id == creator_id or Validator.active?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
@@ -375,7 +374,8 @@ defmodule RoundManager do
 
         if next do
           cond do
-            count == div(n, 2) + 1 ->
+            total_players == count or
+                count == div(n, 2) + 1 ->
               IO.puts("Vote ##{id}")
 
               spawn_build_foreign_round(state, msg_round)
@@ -986,7 +986,7 @@ defmodule RoundManager do
   defp check_votes(%{
          round_id: round_id,
          status: status,
-         total: _total_players,
+         total: total_players,
          vid: vid,
          votes: ets_votes
        }) do
@@ -1005,7 +1005,8 @@ defmodule RoundManager do
         IO.inspect("check votes: #{msg_round.id} #{count}")
 
         cond do
-          count >= div(n, 2) + 1 ->
+          total_players == count or
+              count >= div(n, 2) + 1 ->
             notify =
               :ets.member(ets_votes, {round_id, vid, :vote}) == false
 

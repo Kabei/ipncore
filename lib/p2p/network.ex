@@ -282,7 +282,7 @@ defmodule Ippan.Network do
       # :ets.fun2ms(fn {id, socket} when id == 1 and socket == 2 -> true end)
       @impl Network
       def disconnect(%{id: node_id, socket: socket}) do
-        match = [{{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", 1}, {:==, :"$2", 2}}], [true]}]
+        match = [{{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}], [true]}]
 
         :ets.delete(@table, node_id)
         :ets.select_delete(@bag, match)
@@ -291,7 +291,7 @@ defmodule Ippan.Network do
 
       @impl Network
       def disconnect(node_id, socket) do
-        match = [{{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", 1}, {:==, :"$2", 2}}], [true]}]
+        match = [{{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}], [true]}]
 
         :ets.delete(@table, node_id)
         :ets.select_delete(@bag, match)

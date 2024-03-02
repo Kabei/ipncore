@@ -478,11 +478,20 @@ defmodule RoundManager do
     end
   end
 
+  defp auto_vote(ets_votes, id, hash, vid, msg_round) do
+    :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
+    :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
+  end
+
   defp blocks_verificacion(blocks, db_ref, ets_players) when is_list(blocks) do
     Enum.map(blocks, fn block ->
       Task.async(fn -> block_verificacion(block, db_ref, ets_players) end)
     end)
     |> Task.await_many(:infinity)
+    |> then(fn x ->
+      IO.inspect(x)
+      x
+    end)
     |> Enum.all?()
   end
 
@@ -574,7 +583,8 @@ defmodule RoundManager do
          miner_pool: pool_pid,
          rcid: rcid,
          total: total_players,
-         vid: vid
+         vid: vid,
+         votes: ets_votes
        }) do
     if rcid == vid do
       IO.puts("RM: build_local_round #{round_id}")
@@ -614,6 +624,9 @@ defmodule RoundManager do
         size: size,
         tx_count: tx_count
       }
+
+      # put auto vote
+      auto_vote(ets_votes, round_id, hash, vid, pre_round)
 
       # send message pre-build
       NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
@@ -988,10 +1001,10 @@ defmodule RoundManager do
 
       {_, x, count} ->
         cond do
-          count == total_players ->
+          count >= total_players ->
             x
 
-          count == div(n, 2) + 1 ->
+          count >= div(n, 2) + 1 ->
             x
 
           forced_count ->

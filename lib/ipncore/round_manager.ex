@@ -581,8 +581,7 @@ defmodule RoundManager do
          miner_pool: pool_pid,
          rcid: rcid,
          total: total_players,
-         vid: vid,
-         votes: ets_votes
+         vid: vid
        }) do
     if rcid == vid do
       IO.puts("RM: build_local_round #{round_id}")

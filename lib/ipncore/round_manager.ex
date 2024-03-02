@@ -552,10 +552,8 @@ defmodule RoundManager do
     pid = self()
     IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
-    start_link(fn ->
-      IO.puts("get validator")
+    spawn_link(fn ->
       creator = Validator.get(rcid)
-      IO.puts("get validator pass")
 
       build_round(
         %{

@@ -480,13 +480,17 @@ defmodule RoundManager do
   #   :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
   # end
 
+  defp blocks_verificacion([], _db_ref, _ets_players), do: true
+
   defp blocks_verificacion(blocks, db_ref, ets_players) when is_list(blocks) do
     Enum.map(blocks, fn block ->
-      Task.async(fn -> block_verificacion(block, db_ref, ets_players) end)
+      # Task.async(fn ->
+      block_verificacion(block, db_ref, ets_players)
+      # end)
     end)
-    |> Task.await_many(:infinity)
+    # |> Task.await_many(:infinity)
     |> then(fn x ->
-      IO.inspect(x)
+      IO.puts("blocks vrf: #{inspect(x)}")
       x
     end)
     |> Enum.all?()
@@ -529,8 +533,6 @@ defmodule RoundManager do
            balance: balance,
            rcid: rcid,
            miner_pool: pool_pid,
-           # votes: _ets_votes,
-           #  vid: vid,
            rRef: rRef,
            tRef: tRef
          },
@@ -539,14 +541,10 @@ defmodule RoundManager do
     :timer.cancel(rRef)
     :timer.cancel(tRef)
 
-    # if rcid != vid do
     pid = self()
     IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
     start_link(fn ->
-      # msg_round =
-      #   message || check_votes(%{round_id: round_id, votes: ets_votes})
-
       creator = Validator.get(rcid)
 
       build_round(
@@ -565,8 +563,6 @@ defmodule RoundManager do
         pid
       )
     end)
-
-    # end
   end
 
   defp spawn_build_local_round(%{

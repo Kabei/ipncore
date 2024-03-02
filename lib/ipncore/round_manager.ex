@@ -350,18 +350,19 @@ defmodule RoundManager do
           state
       ) do
     Logger.debug(inspect(msg_round))
-    limit = EnvStore.block_limit()
     same_id = id == round_id
 
-    with true <- limit >= length(blocks),
+    with false <- :ets.member(ets_votes, {id, node_id, :vote}),
+         true <- EnvStore.block_limit() >= length(blocks),
          true <- Validator.active?(node_id),
          true <- node_id == creator_id or Validator.active?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          hashes <- Enum.map(blocks, & &1.hash),
          true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
-         true <- blocks_verificacion(blocks, db_ref, ets_players),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil}) do
+         true <- blocks_verificacion(blocks, db_ref, ets_players) do
+      :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil})
+
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
 
       IO.puts("#{id} = #{round_id}")
@@ -386,11 +387,16 @@ defmodule RoundManager do
         end
 
         :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
-        # Replicate message to rest of nodes except creator and sender
-        NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
-          node_id,
-          vid
-        ])
+
+        if vid != creator_id do
+          # Replicate message to rest of nodes except creator and sender
+          except = if node_id != creator_id, do: [node_id], else: []
+
+          NetworkNodes.broadcast_except(
+            %{"event" => "msg_round", "data" => msg_round},
+            except
+          )
+        end
       else
         unless next do
           RoundSync.add_queue(msg_round)

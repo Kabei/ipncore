@@ -360,7 +360,7 @@ defmodule RoundManager do
          hashes <- Enum.map(blocks, & &1.hash),
          true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
          :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- blocks_verificacion(blocks, db_ref, ets_players) do
+         true <- blocks_verificacion(blocks, db_ref) do
       :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil})
 
       count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
@@ -412,13 +412,12 @@ defmodule RoundManager do
         state = %{
           db_ref: db_ref,
           candidates: ets_candidates,
-          players: ets_players,
           status: status
         }
       ) do
     with true <- status == :synced,
          true <- Validator.exists?(creator_id),
-         true <- block_verificacion(block, db_ref, ets_players) do
+         true <- block_verificacion(block, db_ref) do
       :ets.insert(ets_candidates, {{creator_id, height}, block})
     end
 
@@ -488,12 +487,12 @@ defmodule RoundManager do
   #   :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
   # end
 
-  defp blocks_verificacion([], _db_ref, _ets_players), do: true
+  defp blocks_verificacion([], _db_ref), do: true
 
-  defp blocks_verificacion(blocks, db_ref, ets_players) when is_list(blocks) do
+  defp blocks_verificacion(blocks, db_ref) when is_list(blocks) do
     Enum.map(blocks, fn block ->
       # Task.async(fn ->
-      block_verificacion(block, db_ref, ets_players)
+      block_verificacion(block, db_ref)
       # end)
     end)
     # |> Task.await_many(:infinity)
@@ -504,25 +503,21 @@ defmodule RoundManager do
     |> Enum.all?()
   end
 
-  defp blocks_verificacion(_, _, _), do: false
+  defp blocks_verificacion(_, _), do: false
 
   defp block_verificacion(
          %{
            creator: creator_id,
            height: height,
-           hash: hash,
-           signature: signature,
-           prev: prev,
-           filehash: filehash,
-           timestamp: timestamp
+           hash: _hash,
+           signature: _signature,
+           prev: _prev,
+           filehash: _filehash,
+           timestamp: _timestamp
          } = block,
-         db_ref,
-         ets_players
+         db_ref
        ) do
-    with [{_, player}] <- :ets.lookup(ets_players, creator_id),
-         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
-         true <- hash == Block.compute_hash(creator_id, height, prev, filehash, timestamp),
-         true <- height == 1 + Sqlite.one("last_block_height_created", [creator_id]),
+    with true <- height == 1 + Sqlite.one("last_block_height_created", [creator_id]),
          :ok <- BlockHandler.check(block, db_ref) do
       true
     else
@@ -530,7 +525,7 @@ defmodule RoundManager do
     end
   end
 
-  defp block_verificacion(_, _, _), do: false
+  defp block_verificacion(_, _), do: false
 
   defp spawn_build_foreign_round(
          %{

@@ -225,17 +225,20 @@ defmodule Ippan.BlockHandler do
   #   end)
   # end
 
-  def check(%{
-        creator: creator_id,
-        hash: hash,
-        filehash: filehash,
-        height: height,
-        prev: prev,
-        signature: signature,
-        size: size,
-        timestamp: timestamp,
-        vsn: version
-      }, db_ref) do
+  def check(
+        %{
+          creator: creator_id,
+          hash: hash,
+          filehash: filehash,
+          height: height,
+          prev: prev,
+          signature: signature,
+          size: size,
+          timestamp: timestamp,
+          vsn: version
+        },
+        db_ref
+      ) do
     try do
       %{hostname: hostname, pubkey: pubkey} = Validator.get(creator_id)
       remote_url = Block.url(hostname, creator_id, height)
@@ -248,6 +251,8 @@ defmodule Ippan.BlockHandler do
         if filestat.size != size do
           File.rm(output_path)
           DownloadTask.start(remote_url, output_path, @max_block_size)
+        else
+          :ok
         end
       else
         DownloadTask.start(remote_url, output_path, @max_block_size)

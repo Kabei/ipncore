@@ -388,8 +388,7 @@ defmodule RoundManager do
         :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
         # Replicate message to rest of nodes except creator and sender
         NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
-          # node_id,
-          # creator_id,
+          node_id,
           vid
         ])
       else

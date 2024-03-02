@@ -625,9 +625,6 @@ defmodule RoundManager do
         tx_count: tx_count
       }
 
-      # put auto vote
-      # auto_vote(ets_votes, round_id, hash, vid, pre_round)
-
       # send message pre-build
       NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
 
@@ -1018,9 +1015,7 @@ defmodule RoundManager do
             if status == :synced and notify do
               :ets.insert_new(ets_votes, {{round_id, vid, :vote}, nil})
               # Replicate message to rest of nodes except creator and sender
-              NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [
-                vid
-              ])
+              NetworkNodes.broadcast(%{"event" => "msg_round", "data" => msg_round})
             end
 
             msg_round

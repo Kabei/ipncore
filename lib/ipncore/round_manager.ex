@@ -543,7 +543,7 @@ defmodule RoundManager do
     pid = self()
     IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
-    spawn_link(fn ->
+    Task.async(fn ->
       # msg_round =
       #   message || check_votes(%{round_id: round_id, votes: ets_votes})
 
@@ -565,6 +565,7 @@ defmodule RoundManager do
         pid
       )
     end)
+    |> Task.await(:infinity)
 
     # end
   end
@@ -631,7 +632,7 @@ defmodule RoundManager do
       if total_players == 1 do
         pid = self()
 
-        spawn_link(fn ->
+        Task.async(fn ->
           build_round(
             %{
               id: round_id,
@@ -651,6 +652,7 @@ defmodule RoundManager do
             pid
           )
         end)
+        |> Task.await(:infinity)
       end
     end
   end

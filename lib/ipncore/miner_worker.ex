@@ -78,9 +78,6 @@ defmodule MinerWorker do
 
               :error ->
                 raise IppanError, "Error block verify"
-
-              {:error, _} ->
-                raise IppanError, "Error Node verify"
             end
 
           false ->
@@ -188,8 +185,11 @@ defmodule MinerWorker do
   end
 
   defp random_node_verify(block) do
+    IO.inspect("random_node_verify")
+
     case ClusterNodes.get_random_node() do
       nil ->
+        IO.inspect("random_node_verify: nil")
         :timer.sleep(500)
         random_node_verify(block)
 
@@ -199,16 +199,20 @@ defmodule MinerWorker do
                retry: 2
              ) do
           {:ok, 1} ->
+            IO.inspect("random_node_verify Call 1")
             {:ok, node}
 
           {:ok, 0} ->
+            IO.inspect("random_node_verify Call 0")
             :error
 
           {:ok, 2} ->
+            IO.inspect("random_node_verify Call 2")
             :timer.sleep(500)
             random_node_verify(block)
 
           {:error, _} ->
+            IO.inspect("random_node_verify Call ERROR")
             :timer.sleep(500)
             random_node_verify(block)
         end

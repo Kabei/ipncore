@@ -543,7 +543,7 @@ defmodule RoundManager do
     pid = self()
     IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
-    Task.async(fn ->
+    start_link(fn ->
       # msg_round =
       #   message || check_votes(%{round_id: round_id, votes: ets_votes})
 
@@ -565,7 +565,6 @@ defmodule RoundManager do
         pid
       )
     end)
-    |> Task.await(:infinity)
 
     # end
   end
@@ -631,7 +630,7 @@ defmodule RoundManager do
       if total_players == 1 do
         pid = self()
 
-        Task.async(fn ->
+        spawn_link(fn ->
           build_round(
             %{
               id: round_id,
@@ -651,7 +650,6 @@ defmodule RoundManager do
             pid
           )
         end)
-        |> Task.await(:infinity)
       end
     end
   end
@@ -986,7 +984,13 @@ defmodule RoundManager do
   #   end
   # end
 
-  defp check_votes(%{round_id: round_id, total: _total_players, votes: ets_votes}) do
+  defp check_votes(%{
+         round_id: round_id,
+         status: status,
+         total: _total_players,
+         vid: vid,
+         votes: ets_votes
+       }) do
     # check votes
     n = NetworkNodes.count()
 
@@ -998,12 +1002,17 @@ defmodule RoundManager do
         IO.puts("nil in check_votes")
         nil
 
-      {_, x, count} ->
-        IO.inspect("check votes: #{x.id} #{count}")
+      {_, msg_round, count} ->
+        IO.inspect("check votes: #{msg_round.id} #{count}")
 
         cond do
           count >= div(n, 2) + 1 ->
-            x
+            if status == :synced do
+              # Replicate message to rest of nodes except creator and sender
+              NetworkNodes.broadcast_except(%{"event" => "msg_round", "data" => msg_round}, [vid])
+            end
+
+            msg_round
 
           # forced_count == true ->
           #   Logger.debug("Forced count: ##{round_id}")

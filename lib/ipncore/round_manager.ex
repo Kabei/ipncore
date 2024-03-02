@@ -176,7 +176,10 @@ defmodule RoundManager do
       nil ->
         IO.puts("no votes")
 
-        case RoundTask.sync_to_round_creator(state) do
+        r = RoundTask.sync_to_round_creator(state)
+        IO.inspect(r)
+
+        case r do
           x when x in [:error, nil] ->
             if total_players > 1 do
               pid = self()

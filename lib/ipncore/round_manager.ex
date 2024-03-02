@@ -373,7 +373,7 @@ defmodule RoundManager do
 
         if next do
           cond do
-            total_players == 2 and count == 1 ->
+            total_players == 2 and total_players == count ->
               spawn_build_foreign_round(state, msg_round)
 
             count == div(n, 2) + 1 ->

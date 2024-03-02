@@ -26,6 +26,20 @@ defmodule TokenSupply do
     }
   end
 
+  def new(id, tx_name) do
+    db = DetsPlux.get(@db)
+    tx = DetsPlux.tx(db, tx_name)
+    key = key(id)
+    DetsPlux.get_cache(db, tx, key, 0)
+
+    %__MODULE__{
+      id: id,
+      db: db,
+      tx: tx,
+      key: key
+    }
+  end
+
   def jackpot do
     db = DetsPlux.get(@db)
     tx = DetsPlux.tx(db, @tx)

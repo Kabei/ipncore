@@ -1,4 +1,5 @@
 defmodule Ippan.TxHandler do
+  alias Ippan.DetsSup
   alias Ippan.{Funcs, Account, TxHandler, Validator}
   require Sqlite
 
@@ -106,6 +107,7 @@ defmodule Ippan.TxHandler do
 
       source = %{
         id: var!(from),
+        dets: DetsSup.cache(),
         hash: var!(hash),
         map: account_map,
         nonce: var!(nonce),
@@ -195,6 +197,7 @@ defmodule Ippan.TxHandler do
 
       source = %{
         id: var!(from),
+        dets: var!(dets),
         hash: var!(hash),
         map: account_map,
         nonce: var!(nonce),

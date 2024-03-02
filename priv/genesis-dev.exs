@@ -120,6 +120,22 @@ owner = "@ippan"
       pubkey: pk,
       active: true,
       updated_at: 0
+    },
+    %Validator{
+      avatar: nil,
+      created_at: 0,
+      fa: 0,
+      failures: 0,
+      fb: 1,
+      hostname: "ippan.co.uk",
+      id: 1,
+      name: "Castle | UK",
+      net_pubkey: npk,
+      owner: owner,
+      port: 5815,
+      pubkey: pk,
+      active: true,
+      updated_at: 0
     }
     ],
   "accounts" => [

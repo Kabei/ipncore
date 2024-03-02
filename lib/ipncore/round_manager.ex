@@ -997,9 +997,11 @@ defmodule RoundManager do
     |> List.first()
     |> case do
       nil ->
+        IO.puts("nil in check_votes")
         nil
 
       {_, x, count} ->
+        IO.inspect("check votes: #{x.id} #{count}")
         cond do
           count >= total_players ->
             x
@@ -1007,7 +1009,10 @@ defmodule RoundManager do
           count >= div(n, 2) + 1 ->
             x
 
-          forced_count ->
+          total_players == 2 and count == 1 ->
+            x
+
+          forced_count == true ->
             Logger.debug("Forced count: ##{round_id}")
             x
 

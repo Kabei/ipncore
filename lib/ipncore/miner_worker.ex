@@ -71,17 +71,12 @@ defmodule MinerWorker do
 
         case verify_block do
           true ->
-            {node_id, node} = random_node()
-
-            case ClusterNodes.call(node_id, "verify_block", block_check,
-                   timeout: 10_000,
-                   retry: 2
-                 ) do
-              {:ok, true} ->
+            case random_node_verify(block_check) do
+              {:ok, node} ->
                 url = Block.cluster_decode_url(node.hostname, creator_id, height)
                 :ok = Download.from(url, decode_path)
 
-              {:ok, false} ->
+              :error ->
                 raise IppanError, "Error block verify"
 
               {:error, _} ->
@@ -176,6 +171,7 @@ defmodule MinerWorker do
         ix = :counters.get(cref, 1)
 
         Account.gte_nonce(nonce_dets, nonce_tx, from, nonce)
+
         case TxHandler.insert_deferred(dtx, dtmp) do
           true ->
             nil
@@ -191,14 +187,31 @@ defmodule MinerWorker do
     :counters.get(cref, 2)
   end
 
-  defp random_node do
+  defp random_node_verify(block) do
     case ClusterNodes.get_random_node() do
       nil ->
-        :timer.sleep(1_000)
-        random_node()
+        :timer.sleep(500)
+        random_node_verify(block)
 
-      result ->
-        result
+      {node_id, node} ->
+        case ClusterNodes.call(node_id, "verify_block", block,
+               timeout: 10_000,
+               retry: 2
+             ) do
+          {:ok, 1} ->
+            {:ok, node}
+
+          {:ok, 0} ->
+            :error
+
+          {:ok, 2} ->
+            :timer.sleep(500)
+            random_node_verify(block)
+
+          {:error, _} ->
+            :timer.sleep(500)
+            random_node_verify(block)
+        end
     end
   end
 end

@@ -354,7 +354,7 @@ defmodule RoundManager do
     same_id = id == round_id
 
     if same_id and creator_id == vid do
-      check_votes(status, false)
+      check_votes(state, false)
     else
       with true <- creator_id != vid,
            true <- limit >= length(blocks),

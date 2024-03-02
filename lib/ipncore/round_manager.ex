@@ -343,7 +343,7 @@ defmodule RoundManager do
           votes: ets_votes,
           round_id: round_id,
           status: status,
-          total: total_players,
+          total: _total_players,
           vid: vid,
           rRef: rRef
         } =
@@ -475,10 +475,10 @@ defmodule RoundManager do
     end
   end
 
-  defp auto_vote(ets_votes, id, hash, vid, msg_round) do
-    :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
-    :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
-  end
+  # defp auto_vote(ets_votes, id, hash, vid, msg_round) do
+  #   :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
+  #   :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
+  # end
 
   defp blocks_verificacion(blocks, db_ref, ets_players) when is_list(blocks) do
     Enum.map(blocks, fn block ->
@@ -623,7 +623,7 @@ defmodule RoundManager do
       }
 
       # put auto vote
-      auto_vote(ets_votes, round_id, hash, vid, pre_round)
+      # auto_vote(ets_votes, round_id, hash, vid, pre_round)
 
       # send message pre-build
       NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
@@ -858,7 +858,7 @@ defmodule RoundManager do
       1 ->
         n = Sqlite.one("total_players", [], 0)
 
-        if n != 1 do
+        if n > 2 do
           Validator.put_active(creator_id, false, round_id)
         end
 
@@ -985,7 +985,7 @@ defmodule RoundManager do
   #   end
   # end
 
-  defp check_votes(%{round_id: round_id, total: total_players, votes: ets_votes}) do
+  defp check_votes(%{round_id: round_id, total: _total_players, votes: ets_votes}) do
     # check votes
     n = NetworkNodes.count()
 

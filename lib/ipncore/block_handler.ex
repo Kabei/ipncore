@@ -263,8 +263,8 @@ defmodule Ippan.BlockHandler do
           {:ok, filestat} = File.stat(output_path)
 
           cond do
-            match?(%{hash: ^prev}, Block.last_created(creator_id)) == false ->
-              :error
+            # match?(%{hash: ^prev}, Block.last_created(creator_id)) == false ->
+            #   :error
 
             filestat.size > @max_block_size or filestat.size != size ->
               :error

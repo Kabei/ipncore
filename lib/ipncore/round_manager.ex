@@ -184,7 +184,7 @@ defmodule RoundManager do
             GenServer.cast(self(), {"msg_round", response, node_id})
 
           _error ->
-            round_nulled = Round.cancel(round_id, prev_hash, nil, rcid, 1, 0)
+            round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
             GenServer.cast(self(), {"msg_round", round_nulled, vid})
         end
 
@@ -565,13 +565,7 @@ defmodule RoundManager do
       creator = Validator.get(creator_id)
 
       build_round(
-        %{
-          id: round_id,
-          blocks: msg_round.blocks,
-          prev: prev_hash,
-          signature: msg_round.signature,
-          timestamp: msg_round.timestamp
-        },
+        msg_round,
         block_id,
         creator,
         db_ref,
@@ -643,16 +637,7 @@ defmodule RoundManager do
 
         spawn_link(fn ->
           build_round(
-            %{
-              id: round_id,
-              hash: hash,
-              prev: prev_hash,
-              blocks: blocks,
-              signature: signature,
-              size: size,
-              tx_count: tx_count,
-              timestamp: timestamp
-            },
+            pre_round,
             block_id,
             creator,
             db_ref,
@@ -841,7 +826,7 @@ defmodule RoundManager do
         {:ok, round}
       else
         round_nulled =
-          Round.cancel(round_id, prev_hash, signature, creator_id, 2, timestamp)
+          Round.cancel(round_id, prev_hash, creator_id, 2)
 
         incomplete(round_nulled, pid, db_ref, rm_notify)
       end

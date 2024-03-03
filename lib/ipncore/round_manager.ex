@@ -184,7 +184,7 @@ defmodule RoundManager do
             GenServer.cast(self(), {"msg_round", response, node_id})
 
           _error ->
-            round_nulled = Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)
+            round_nulled = Round.cancel(round_id, prev_hash, nil, rcid, 1, 0)
             GenServer.cast(self(), {"msg_round", round_nulled, vid})
         end
 
@@ -841,7 +841,7 @@ defmodule RoundManager do
         {:ok, round}
       else
         round_nulled =
-          Round.cancel(round_id, hash, prev_hash, signature, creator_id, 2, timestamp)
+          Round.cancel(round_id, prev_hash, signature, creator_id, 2, timestamp)
 
         incomplete(round_nulled, pid, db_ref, rm_notify)
       end

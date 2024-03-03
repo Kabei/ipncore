@@ -207,15 +207,16 @@ defmodule Ippan.Round do
           non_neg_integer(),
           binary() | nil,
           binary() | nil,
-          binary() | nil,
           non_neg_integer(),
           non_neg_integer(),
           non_neg_integer()
         ) :: map
-  def cancel(id, hash, prev, signature, creator_id, status, timestamp) when status > 0 do
+  def cancel(id, prev, signature, creator_id, status, timestamp) when status > 0 do
+    hash = compute_hash(id, prev, creator_id, [], timestamp)
+
     %{
       id: id,
-      hash: hash || prev,
+      hash: hash,
       prev: prev,
       creator: creator_id,
       signature: signature,

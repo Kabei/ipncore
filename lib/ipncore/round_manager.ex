@@ -290,13 +290,13 @@ defmodule RoundManager do
          %{id: round_nulled_id, creator: creator_id, status: round_status} = round_nulled},
         %{
           players: ets_players,
-          status: status,
+          status: _status,
           round_id: round_id,
           total: total_players
         } =
           state
       ) do
-    next = status == :synced
+    # next = status == :synced
     Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_status}")
 
     # Delete player
@@ -354,8 +354,6 @@ defmodule RoundManager do
 
     with false <- :ets.member(ets_votes, {id, node_id, :vote}),
          true <- EnvStore.block_limit() >= length(blocks),
-         true <- Validator.active?(node_id),
-         true <- node_id == creator_id or Validator.active?(creator_id),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          hashes <- Enum.map(blocks, & &1.hash),
          true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),

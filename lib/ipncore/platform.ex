@@ -32,7 +32,7 @@ defmodule Platform do
       |> Code.eval_file()
 
     wallet_dets = DetsPlux.get(:wallet)
-    wallet_tx = DetsPlux.tx(:wallet)
+    wallet_tx = DetsPlux.tx(wallet_dets, :wallet)
 
     for {key, values} <- data do
       case key do

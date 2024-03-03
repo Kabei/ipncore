@@ -4,8 +4,12 @@ defmodule EnvStore do
   def all(db_ref) do
     data = Sqlite.all("all_env")
 
-    Enum.map(data, fn [name, value] ->
-      {name, :erlang.binary_to_term(value)}
+    Enum.map(data, fn
+      [name, value] ->
+        {name, :erlang.binary_to_term(value)}
+
+      [name, nil] ->
+        {name, nil}
     end)
     |> Map.new()
   end

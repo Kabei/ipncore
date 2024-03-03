@@ -136,15 +136,15 @@ defmodule RoundManager do
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
-      case check_votes(state) do
+      case check_votes(new_state) do
         nil ->
           {:ok, tRef} = :timer.send_after(@timeout, :timeout)
           {:ok, rRef} = :timer.send_after(time_to_request, :request)
           {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
 
         message ->
-          spawn_build_foreign_round(state, message)
-          {:noreply, state, :hibernate}
+          spawn_build_foreign_round(new_state, message)
+          {:noreply, new_state, :hibernate}
       end
     end
   end

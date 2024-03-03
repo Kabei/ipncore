@@ -57,7 +57,7 @@ defmodule RoundManager do
     ets_candidates =
       ets_start(:candidates, [:set, :public])
 
-    [round_id, round_hash] = Sqlite.fetch("last_round", [], [-1, nil])
+    %{id: round_id, hash: round_hash} = Round.last()
 
     block_id = Sqlite.one("last_block_id", [], -1)
 
@@ -364,8 +364,10 @@ defmodule RoundManager do
       ) do
     Logger.debug(inspect(msg_round))
     same_id = id == round_id
+    last_round = Round.get(id - 1) || %{prev: nil}
 
     with false <- :ets.member(ets_votes, {id, node_id, :vote}),
+         true <- last_round.prev == prev,
          true <- EnvStore.block_limit() >= length(blocks),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          hashes <- Enum.map(blocks, & &1.hash),
@@ -446,7 +448,7 @@ defmodule RoundManager do
     if next do
       # update state
       db_ref = :persistent_term.get(:main_conn)
-      [round_id, round_hash] = Sqlite.fetch("last_round", [], [-1, nil])
+      %{id: round_id, hash: round_hash} = Round.last()
       block_id = Sqlite.one("last_block_id", [], -1)
 
       new_state = %{
@@ -522,8 +524,8 @@ defmodule RoundManager do
 
   defp block_verificacion(
          %{
-           creator: creator_id,
-           height: height,
+           #  creator: creator_id,
+           #  height: height,
            hash: _hash,
            signature: _signature,
            prev: _prev,
@@ -532,8 +534,7 @@ defmodule RoundManager do
          } = block,
          db_ref
        ) do
-    with true <- height == 1 + Sqlite.one("last_block_height_created", [creator_id]),
-         :ok <- BlockHandler.check(block, db_ref) do
+    with :ok <- BlockHandler.check(block, db_ref) do
       true
     else
       _ -> false

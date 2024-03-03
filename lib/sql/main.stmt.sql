@@ -95,17 +95,11 @@ SELECT 1 FROM blockchain.block WHERE creator=? AND height=? LIMIT 1;
 --name: get_block
 SELECT * FROM blockchain.block WHERE id=? LIMIT 1;
 
---name: get_pending_block
-SELECT * FROM blockchain.block WHERE id IS NULL AND creator=? AND height=? LIMIT 1;
-
---name: total_pending_blocks
-SELECT count(1) FROM blockchain.block WHERE id IS NULL;
-
 --name: total_blocks_created
 SELECT count(1) FROM blockchain.block WHERE creator=?;
 
---name: last_block_created
-SELECT height, hash FROM blockchain.block WHERE creator=? ORDER BY height DESC LIMIT 1;
+--name: last_block_by_creator
+SELECT * FROM blockchain.block WHERE creator=? ORDER BY id DESC LIMIT 1;
 
 --name: last_block_id
 SELECT id FROM blockchain.block ORDER BY id DESC LIMIT 1;
@@ -136,7 +130,7 @@ SELECT * FROM blockchain.round WHERE id = ? LIMIT 1;
 SELECT * FROM blockchain.round WHERE id >= ?1 LIMIT ?2 OFFSET ?3;
 
 --name: last_round
-SELECT id, hash FROM blockchain.round ORDER BY id DESC LIMIT 1;
+SELECT * FROM blockchain.round ORDER BY id DESC LIMIT 1;
 
 
 --name: insert_validator

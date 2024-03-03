@@ -255,12 +255,22 @@ defmodule Ippan.Round do
     end
   end
 
-  defmacro last(default \\ {0, nil}) do
+  defmacro last do
     quote location: :keep do
       Sqlite.fetch("last_round", [])
       |> case do
-        nil -> unquote(default)
-        x -> :erlang.list_to_tuple(x)
+        nil -> %{hash: nil, id: -1}
+        x -> Ippan.Round.list_to_map(x)
+      end
+    end
+  end
+
+  defmacro last_created(creator_id, default \\ nil) do
+    quote bind_quoted: [id: creator_id, default: default], location: :keep do
+      Sqlite.fetch("last_round_by_creator", [id])
+      |> case do
+        nil -> default
+        x -> Ippan.Round.list_to_map(x)
       end
     end
   end

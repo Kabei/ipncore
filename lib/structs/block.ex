@@ -269,7 +269,11 @@ defmodule Ippan.Block do
 
   defmacro last_created(creator_id, default \\ nil) do
     quote bind_quoted: [id: creator_id, default: default], location: :keep do
-      Sqlite.fetch("last_block_created", [id], default)
+      Sqlite.fetch("last_block_by_creator", [id])
+      |> case do
+        nil -> default
+        x -> Ippan.Block.list_to_map(x)
+      end
     end
   end
 

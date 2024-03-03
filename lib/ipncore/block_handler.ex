@@ -7,6 +7,7 @@ defmodule Ippan.BlockHandler do
   require BalanceStore
   require Sqlite
   require Validator
+  require Block
   require Logger
 
   @app Mix.Project.config()[:app]
@@ -262,6 +263,9 @@ defmodule Ippan.BlockHandler do
           {:ok, filestat} = File.stat(output_path)
 
           cond do
+            match?(%{hash: ^prev}, Block.last_created(creator_id, %{prev: nil})) == false ->
+              :error
+
             filestat.size > @max_block_size or filestat.size != size ->
               :error
 

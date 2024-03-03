@@ -46,8 +46,8 @@ defmodule MinerWorker do
     try do
       IO.puts("Here 0")
 
-      [block_height, prev_hash] =
-        Block.last_created(creator_id, [-1, nil])
+      %{height: block_height, prev: prev_hash} =
+        Block.last_created(creator_id, %{height: -1, prev: nil})
 
       IO.puts("height #{height} sql-height #{block_height}")
 

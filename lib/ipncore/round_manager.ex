@@ -565,7 +565,7 @@ defmodule RoundManager do
       creator = Validator.get(creator_id)
 
       build_round(
-        msg_round,
+        %{msg_round | prev: prev_hash},
         block_id,
         creator,
         db_ref,

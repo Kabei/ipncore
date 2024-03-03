@@ -364,10 +364,10 @@ defmodule RoundManager do
       ) do
     Logger.debug(inspect(msg_round))
     same_id = id == round_id
-    last_round = Round.get(id - 1) || %{prev: nil}
+    last_round = Round.get(id - 1) || %{hash: nil}
 
     with false <- :ets.member(ets_votes, {id, node_id, :vote}),
-         true <- last_round.prev == prev,
+         true <- last_round.hash == prev,
          true <- EnvStore.block_limit() >= length(blocks),
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          hashes <- Enum.map(blocks, & &1.hash),

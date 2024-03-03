@@ -21,7 +21,7 @@ defmodule BlockTimer do
     block_id = Sqlite.one("last_block_id", [], -1) + 1
 
     %{height: last_height, prev: prev} =
-      Block.last_created(vid, %{height: -1, prev: nil})
+      Block.last_created(vid)
 
     {:ok,
      %{

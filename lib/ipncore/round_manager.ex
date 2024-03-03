@@ -307,20 +307,20 @@ defmodule RoundManager do
 
     total_players = get_total_players(ets_players)
 
-    if next do
-      # replicate data to cluster nodes
-      ClusterNodes.broadcast(%{"event" => "round.new", "data" => round_nulled})
+    # replicate data to cluster nodes
+    ClusterNodes.broadcast(%{"event" => "round.new", "data" => round_nulled})
 
-      # send event
-      PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
-        "event" => "validator.leave",
-        "data" => creator_id
-      })
+    # send event
+    PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
+      "event" => "validator.leave",
+      "data" => creator_id
+    })
 
-      {:noreply, %{state | round_id: round_id + 1, total: total_players}, {:continue, :next}}
-    else
-      {:noreply, %{state | total: total_players}, :hibernate}
-    end
+    {:noreply, %{state | round_id: round_id + 1, total: total_players}, {:continue, :next}}
+    # if next do
+    # else
+    #   {:noreply, %{state | total: total_players}, :hibernate}
+    # end
   end
 
   def handle_cast(

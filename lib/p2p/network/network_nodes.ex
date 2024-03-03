@@ -11,6 +11,7 @@ defmodule Ippan.NetworkNodes do
     name: :network,
     table: :nw,
     bag: :nwb,
+    via: :client,
     server: Ippan.NetworkNodes.Server,
     pubsub: :pubsub,
     topic: "network",

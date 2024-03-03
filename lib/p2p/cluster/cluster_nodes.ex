@@ -14,6 +14,7 @@ defmodule Ippan.ClusterNodes do
     name: :cluster,
     table: :cnw,
     bag: :cnb,
+    via: :server,
     server: Ippan.ClusterNode.Server,
     pubsub: :pubsub,
     topic: "cluster",
@@ -23,17 +24,6 @@ defmodule Ippan.ClusterNodes do
 
   def on_init(_) do
     :ok
-  end
-
-  @impl Network
-  def on_connect(node_id, map, via) do
-    Logger.debug("On connect #{node_id} via: #{via}")
-
-    if via == :server do
-      :ets.insert(@table, {node_id, map})
-    end
-
-    :ets.insert(@bag, {node_id, map.socket, map.sharedkey})
   end
 
   @impl Network

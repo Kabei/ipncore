@@ -167,7 +167,7 @@ defmodule RoundManager do
           round_hash: prev_hash,
           db_ref: db_ref,
           rcid: rcid,
-          total: total_players
+          total: _total_players
         } = state
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
@@ -181,17 +181,18 @@ defmodule RoundManager do
 
         case r do
           x when x in [:error, nil] ->
-            if total_players > 1 do
-              pid = self()
+            pid = self()
 
-              round_nulled = Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)
-              incomplete(round_nulled, pid, db_ref, true)
+            round_nulled = Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)
+            incomplete(round_nulled, pid, db_ref, true)
 
-              {:noreply, state, :hibernate}
-            else
-              {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-              {:noreply, %{state | tRef: tRef}, :hibernate}
-            end
+            {:noreply, state, :hibernate}
+
+          # if total_players > 1 do
+          # else
+          #   {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+          #   {:noreply, %{state | tRef: tRef}, :hibernate}
+          # end
 
           _ ->
             {:noreply, state, :hibernate}
@@ -332,6 +333,7 @@ defmodule RoundManager do
             creator: creator_id,
             hash: hash,
             signature: signature,
+            status: status,
             timestamp: timestamp,
             prev: prev
           },
@@ -357,7 +359,9 @@ defmodule RoundManager do
          [{_, player}] <- :ets.lookup(ets_players, creator_id),
          hashes <- Enum.map(blocks, & &1.hash),
          true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
-         :ok <- Cafezinho.Impl.verify(signature, hash, player.pubkey),
+         true <-
+           (status != 0 and signature == nil) or
+             Cafezinho.Impl.verify(signature, hash, player.pubkey) == :ok,
          true <- blocks_verificacion(blocks, db_ref) do
       :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil})
 
@@ -613,6 +617,7 @@ defmodule RoundManager do
         signature: signature,
         prev: prev_hash,
         timestamp: timestamp,
+        status: 0,
         size: size,
         tx_count: tx_count
       }

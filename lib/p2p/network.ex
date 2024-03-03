@@ -13,6 +13,7 @@ defmodule Ippan.Network do
   @callback all() :: [term()]
   @callback alive?(node :: term()) :: boolean()
   @callback count() :: non_neg_integer()
+  @callback total() :: non_neg_integer()
   @callback cast(node_or_id :: binary | term(), message :: term) :: :ok | :disconnect
   @callback cast(node_or_id :: term(), event :: binary, data :: term) :: :ok | :disconnect
   @callback call(node_or_id :: binary | map, method :: binary) :: {:ok, term()} | {:error, term()}
@@ -342,6 +343,11 @@ defmodule Ippan.Network do
       @impl Network
       def count do
         :ets.info(@table, :size)
+      end
+
+      @impl Network
+      def total do
+        :ets.info(@bag, :size)
       end
 
       @impl Network

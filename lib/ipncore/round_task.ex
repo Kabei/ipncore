@@ -30,8 +30,8 @@ defmodule RoundTask do
     {:stop, :normal, get_state_after_checkp(params), state}
   end
 
-  def handle_call({:sync_to_round_creator, params}, {from_pid, _}, state) do
-    {:stop, :normal, sync_to_round_creatorp(params, from_pid), state}
+  def handle_call({:sync_to_round_creator, params}, _from, state) do
+    {:stop, :normal, sync_to_round_creatorp(params), state}
   end
 
   # Check turn of the round and connect to round creator, check another connections
@@ -96,15 +96,12 @@ defmodule RoundTask do
     end
   end
 
-  defp sync_to_round_creatorp(
-         %{
-           rcid: node_id,
-           rc_node: validator_node,
-           vid: vid,
-           round_id: round_id
-         },
-         from_pid
-       ) do
+  defp sync_to_round_creatorp(%{
+         rcid: node_id,
+         rc_node: validator_node,
+         vid: vid,
+         round_id: round_id
+       }) do
     if vid != node_id do
       # connect to round creator
       case NetworkNodes.connect(validator_node, retry: 3) do
@@ -123,17 +120,12 @@ defmodule RoundTask do
             {:ok, response} when is_map(response) ->
               Logger.debug("From get_round")
 
-              GenServer.cast(
-                from_pid,
-                {"msg_round", Round.from_remote(response), node_id}
-              )
-
               # Disconnect if count is greater than max_peers_conn
               if NetworkNodes.count() > @max_peers_conn do
                 NetworkNodes.disconnect_all(node_id)
               end
 
-              :ok
+              {:ok, Round.from_remote(response), node_id}
 
             {:ok, nil} ->
               :error

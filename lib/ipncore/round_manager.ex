@@ -155,7 +155,9 @@ defmodule RoundManager do
       :error ->
         {:noreply, %{state | ttr: @max_time_to_request}}
 
-      _ ->
+      {:ok, response, node_id} ->
+        GenServer.cast(self(), {"msg_round", response, node_id})
+
         {:noreply, %{state | ttr: @min_time_to_request}}
     end
   end
@@ -165,9 +167,10 @@ defmodule RoundManager do
         %{
           round_id: round_id,
           round_hash: prev_hash,
-          db_ref: db_ref,
+          # db_ref: db_ref,
           rcid: rcid,
-          total: _total_players
+          vid: vid
+          # total: _total_players
         } = state
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
@@ -176,27 +179,35 @@ defmodule RoundManager do
       nil ->
         IO.puts("no votes")
 
-        r = RoundTask.sync_to_round_creator(state)
-        IO.inspect(r)
+        case RoundTask.sync_to_round_creator(state) do
+          {:ok, response, node_id} ->
+            GenServer.cast(self(), {"msg_round", response, node_id})
 
-        case r do
-          x when x in [:error, nil] ->
-            pid = self()
-
+          _error ->
             round_nulled = Round.cancel(round_id, prev_hash, prev_hash, nil, rcid, 1, 0)
-            incomplete(round_nulled, pid, db_ref, true)
-
-            {:noreply, state, :hibernate}
-
-          # if total_players > 1 do
-          # else
-          #   {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-          #   {:noreply, %{state | tRef: tRef}, :hibernate}
-          # end
-
-          _ ->
-            {:noreply, state, :hibernate}
+            GenServer.cast(self(), {"msg_round", round_nulled, vid})
         end
+
+      # IO.inspect(r)
+
+      # case r do
+      #   x when x in [:error, nil] ->
+      #     pid = self()
+
+      #     incomplete(round_nulled, pid, db_ref, true)
+      #     GenServer.cast(pid, {"msg_round", round_nulled})
+
+      #     {:noreply, state, :hibernate}
+
+      # if total_players > 1 do
+      # else
+      #   {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+      #   {:noreply, %{state | tRef: tRef}, :hibernate}
+      # end
+
+      #   _ ->
+      #     {:noreply, state, :hibernate}
+      # end
 
       message ->
         IO.puts("sync_to_round_creator #{inspect(message)}")
@@ -333,7 +344,6 @@ defmodule RoundManager do
             creator: creator_id,
             hash: hash,
             signature: signature,
-            status: status,
             timestamp: timestamp,
             prev: prev
           },
@@ -360,7 +370,7 @@ defmodule RoundManager do
          hashes <- Enum.map(blocks, & &1.hash),
          true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
          true <-
-           (status != 0 and signature == nil) or
+           (status > 0 and signature == nil) or
              Cafezinho.Impl.verify(signature, hash, player.pubkey) == :ok,
          true <- blocks_verificacion(blocks, db_ref) do
       :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil})
@@ -388,7 +398,9 @@ defmodule RoundManager do
           end
         end
 
-        :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
+        if node_id != vid do
+          :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
+        end
 
         if vid != creator_id do
           # Replicate message to rest of nodes except creator and sender

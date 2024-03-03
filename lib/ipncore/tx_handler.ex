@@ -23,8 +23,10 @@ defmodule Ippan.TxHandler do
 
         # get data from FROM and check its validator if not check if validator exists
         2 ->
-          {pk, sig_type, %{"vid" => v} = account_map} =
+          {pk, sig_type, account_map} =
             DetsPlux.get_cache(dets, tx, var!(from))
+
+          v = Map.get(account_map, "vid", -1)
 
           if vid != v and Validator.exists?(v) do
             raise IppanRedirectError, "#{v}"
@@ -32,7 +34,7 @@ defmodule Ippan.TxHandler do
 
           {pk, sig_type, account_map}
 
-        # get data from argument position (wallet.new)
+        # get data from argument position (account.new)
         {:arg, pos} ->
           pk = Enum.at(var!(args), pos)
           sig_type = var!(args) |> Enum.at(pos + 1)

@@ -18,7 +18,7 @@ defmodule Ippan.Funcs do
   def lookup(1) do
     %Func{
       id: 1,
-      name: "account.sub",
+      name: "account.subscribe",
       mod: Func.Account,
       modx: Funx.Account,
       fun: :subscribe,

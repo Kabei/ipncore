@@ -565,15 +565,17 @@ defmodule RoundManager do
     spawn_link(fn ->
       creator = Validator.get(creator_id)
 
-      build_round(
-        %{msg_round | prev: prev_hash},
-        block_id,
-        creator,
-        db_ref,
-        balance,
-        pool_pid,
-        pid
-      )
+      unless Round.exists?(round_id) do
+        build_round(
+          %{msg_round | prev: prev_hash},
+          block_id,
+          creator,
+          db_ref,
+          balance,
+          pool_pid,
+          pid
+        )
+      end
     end)
   end
 

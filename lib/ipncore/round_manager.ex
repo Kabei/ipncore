@@ -313,7 +313,7 @@ defmodule RoundManager do
     Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_status}")
 
     # Delete player
-    if total_players != 1 and round_status in 1..2 do
+    if total_players > 2 and round_status in 1..2 do
       :ets.delete(ets_players, creator_id)
       NetworkNodes.disconnect_all(creator_id)
     end

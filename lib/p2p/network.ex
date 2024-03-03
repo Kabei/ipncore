@@ -282,7 +282,10 @@ defmodule Ippan.Network do
       # :ets.fun2ms(fn {id, socket} when id == 1 and socket == 2 -> true end)
       @impl Network
       def disconnect(%{id: node_id, socket: socket}) do
-        match = [{{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}], [true]}]
+        match = [
+          {{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
+           [true]}
+        ]
 
         :ets.delete(@table, node_id)
         :ets.select_delete(@bag, match)
@@ -291,7 +294,10 @@ defmodule Ippan.Network do
 
       @impl Network
       def disconnect(node_id, socket) do
-        match = [{{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}], [true]}]
+        match = [
+          {{:"$1", :"$2", :"$3"}, [{:andalso, {:==, :"$1", node_id}, {:==, :"$2", socket}}],
+           [true]}
+        ]
 
         :ets.delete(@table, node_id)
         :ets.select_delete(@bag, match)
@@ -427,10 +433,13 @@ defmodule Ippan.Network do
 
       @impl Network
       def broadcast(message) do
+        IO.puts("broadcast")
+
         all()
         |> Enum.uniq_by(fn {node_id, _, _} -> node_id end)
         # |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
-        |> Enum.each(fn {_, socket, sharedkey} ->
+        |> Enum.each(fn {node_id, socket, sharedkey} ->
+          IO.puts(node_id)
           @adapter.send(socket, encode(message, sharedkey))
         end)
       end

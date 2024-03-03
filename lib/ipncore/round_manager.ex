@@ -286,10 +286,10 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {:incomplete, %{id: round_nulled_id, status: round_status} = round_nulled},
+        {:incomplete,
+         %{id: round_nulled_id, creator: creator_id, status: round_status} = round_nulled},
         %{
           players: ets_players,
-          rcid: rcid,
           status: status,
           round_id: round_id,
           total: total_players
@@ -301,8 +301,8 @@ defmodule RoundManager do
 
     # Delete player
     if total_players != 1 and round_status in 1..2 do
-      :ets.delete(ets_players, rcid)
-      NetworkNodes.disconnect_all(rcid)
+      :ets.delete(ets_players, creator_id)
+      NetworkNodes.disconnect_all(creator_id)
     end
 
     total_players = get_total_players(ets_players)
@@ -314,7 +314,7 @@ defmodule RoundManager do
       # send event
       PubSub.local_broadcast_from(@pubsub, self(), "validator", %{
         "event" => "validator.leave",
-        "data" => rcid
+        "data" => creator_id
       })
 
       {:noreply, %{state | round_id: round_id + 1, total: total_players}, {:continue, :next}}
@@ -534,12 +534,11 @@ defmodule RoundManager do
            round_hash: prev_hash,
            db_ref: db_ref,
            balance: balance,
-           rcid: rcid,
            miner_pool: pool_pid,
            rRef: rRef,
            tRef: tRef
          },
-         msg_round
+         %{creator: creator_id} = msg_round
        ) do
     :timer.cancel(rRef)
     :timer.cancel(tRef)
@@ -548,7 +547,7 @@ defmodule RoundManager do
     IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
     spawn_link(fn ->
-      creator = Validator.get(rcid)
+      creator = Validator.get(creator_id)
 
       build_round(
         %{

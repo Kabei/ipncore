@@ -212,8 +212,9 @@ defmodule RoundManager do
       message ->
         IO.puts("sync_to_round_creator #{inspect(message)}")
         spawn_build_foreign_round(state, message)
-        {:noreply, state, :hibernate}
     end
+
+    {:noreply, state, :hibernate}
   end
 
   def handle_info(

@@ -692,7 +692,9 @@ defmodule RoundManager do
         %{
           id: round_id,
           blocks: blocks,
+          creator: creator_id,
           prev: prev_hash,
+          status: status,
           signature: signature,
           timestamp: timestamp
         } = map,
@@ -706,7 +708,6 @@ defmodule RoundManager do
         rm_notify \\ true
       ) do
     unless Round.null?(map) do
-      creator_id = creator.id
       block_count = length(blocks)
       IO.puts("Bulding Round: ##{round_id} | Creator: #{creator_id} | Blocks: #{block_count}")
 
@@ -831,7 +832,10 @@ defmodule RoundManager do
         incomplete(round_nulled, pid, db_ref, rm_notify)
       end
     else
-      incomplete(map, pid, db_ref, rm_notify)
+      round_nulled =
+        Round.cancel(round_id, prev_hash, creator_id, status)
+
+      incomplete(round_nulled, pid, db_ref, rm_notify)
     end
   end
 

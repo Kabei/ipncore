@@ -739,7 +739,7 @@ defmodule Builder do
         extra \\ %{}
       ) do
     body =
-      [600, nonce, account_id, id, owner, name, image, extra]
+      [600, nonce, account_id, id, name, owner, image, extra]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -775,10 +775,15 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_withdraw(client, "s-ippan")
-  def service_withdraw(client = %Client{id: account_id, nonce: nonce}, service_id) do
+  # service_withdraw(client, "s-ippan", "XPN", 500)
+  def service_withdraw(
+        client = %Client{id: account_id, nonce: nonce},
+        service_id,
+        token_id,
+        amount
+      ) do
     body =
-      [602, nonce, account_id, service_id]
+      [602, nonce, account_id, service_id, token_id, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -832,10 +837,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_kick(client, "@ippan")
-  def service_kick(client = %Client{id: account_id, nonce: nonce}, to) do
+  # service_kick(client, "s-ippan", "@name")
+  def service_kick(client = %Client{id: account_id, nonce: nonce}, service_id, to) do
     body =
-      [612, nonce, account_id, to]
+      [612, nonce, account_id, service_id, to]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -845,10 +850,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_kick(client, "@ippan", "XPN")
-  def service_kick(client = %Client{id: account_id, nonce: nonce}, to, token_id) do
+  # service_kick(client, "s-ippan", "@name", "XPN")
+  def service_kick(client = %Client{id: account_id, nonce: nonce}, service_id, to, token_id) do
     body =
-      [612, nonce, account_id, to, token_id]
+      [612, nonce, account_id, service_id, to, token_id]
       |> encode_fun!()
 
     hash = hash_fun(body)

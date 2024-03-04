@@ -50,7 +50,7 @@ defmodule RoundSync do
   @impl true
   def handle_continue(:prepare, state) do
     stats = Stats.new()
-    current_round_id = Stats.rounds(stats)
+    current_round_id = Stats.get(stats, "last_round")
     hosts = get_whitelist()
 
     case hosts do

@@ -7,6 +7,7 @@ defmodule Ippan.Funx.Service do
   @app Mix.Project.config()[:app]
   @max_services Application.compile_env(@app, :max_services, 0)
   @token Application.compile_env(@app, :token)
+  @skey "services"
 
   def new(%{id: account_id, round: round_id}, id, name, owner, image, extra) do
     db = DetsPlux.get(:balance)
@@ -15,7 +16,7 @@ defmodule Ippan.Funx.Service do
     stats = Stats.new()
 
     cond do
-      @max_services != 0 and @max_services <= Stats.services(stats) ->
+      @max_services != 0 and @max_services <= Stats.get(stats, @skey) ->
         :error
 
       BalanceStore.pay_burn(account_id, price) == :error ->
@@ -24,7 +25,7 @@ defmodule Ippan.Funx.Service do
       true ->
         db_ref = :persistent_term.get(:main_conn)
         PayService.create(db_ref, id, name, owner, image, extra, round_id)
-        Stats.count_services(stats, 1)
+        Stats.incr(stats, @skey, 1)
     end
   end
 
@@ -86,7 +87,7 @@ defmodule Ippan.Funx.Service do
       true ->
         PayService.delete(db_ref, id)
         stats = Stats.new()
-        Stats.count_services(stats, -1)
+        Stats.incr(stats, @skey, -1)
     end
   end
 

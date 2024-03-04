@@ -807,14 +807,14 @@ defmodule RoundManager do
         run_maintenance(round_id, db_ref)
 
         # update stats
-        stats_tx = Stats.new()
-        Stats.count_blocks(stats_tx, block_count)
-        Stats.count_txs(stats_tx, tx_count)
-        Stats.put_round(stats_tx, round_id)
-        Stats.put_last_hash(stats_tx, hash)
+        stats = Stats.new()
+        Stats.incr(stats, "blocks", block_count)
+        Stats.incr(stats, "txs", tx_count)
+        Stats.put(stats, "last_round", round_id)
+        Stats.put(stats, "last_hash", hash)
 
         # save all round
-        RoundCommit.sync(db_ref, round.tx_count)
+        RoundCommit.sync(db_ref, tx_count)
 
         fun = :persistent_term.get(:last_fun, nil)
 

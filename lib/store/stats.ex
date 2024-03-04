@@ -1,6 +1,7 @@
 defmodule Stats do
   @db :stats
   @tx :stats
+  @cache :cache_stats
 
   def new do
     db = DetsPlux.get(@db)
@@ -9,54 +10,38 @@ defmodule Stats do
     %{db: db, tx: tx}
   end
 
-  def rounds(%{db: db, tx: tx}) do
-    DetsPlux.get_cache(db, tx, "rounds", 0)
+  def new(tx) do
+    db = DetsPlux.get(@db)
+    tx = DetsPlux.tx(db, tx)
+
+    %{db: db, tx: tx}
   end
 
-  def rounds(%{db: db, tx: tx}, default) do
-    DetsPlux.get_cache(db, tx, "rounds", default)
+  def cache do
+    db = DetsPlux.get(@db)
+    tx = DetsPlux.tx(db, @cache)
+
+    %{db: db, tx: tx}
   end
 
-  def put_round(%{tx: tx}, round_id) do
-    DetsPlux.put(tx, "rounds", round_id)
+  def get(%{db: db, tx: tx}, key) do
+    DetsPlux.get_cache(db, tx, key, 0)
   end
 
-  def last_hash(%{db: db, tx: tx}) do
-    DetsPlux.get_cache(db, tx, "last_hash", nil)
+  def get(%{db: db, tx: tx}, key, default) do
+    DetsPlux.get_cache(db, tx, key) || default
   end
 
-  def put_last_hash(%{tx: tx}, hash) do
-    DetsPlux.put(tx, "last_hash", hash)
+  def put(%{tx: tx}, key, value) do
+    DetsPlux.put(tx, key, value)
   end
 
-  def txs(%{db: db, tx: tx}) do
-    DetsPlux.get_cache(db, tx, "txs", 0)
+  def incr(%{db: db, tx: tx}, key, number) do
+    DetsPlux.get_cache(db, tx, key, 0)
+    DetsPlux.update_counter(tx, key, {2, number})
   end
 
-  def count_txs(_, 0), do: :ok
-
-  def count_txs(%{db: db, tx: tx}, number) do
-    DetsPlux.get_cache(db, tx, "txs", 0)
-    DetsPlux.update_counter(tx, "txs", {2, number})
-  end
-
-  def blocks(%{db: db, tx: tx}) do
-    DetsPlux.get_cache(db, tx, "blocks", 0)
-  end
-
-  def count_blocks(_, 0), do: :ok
-
-  def count_blocks(%{db: db, tx: tx}, number) do
-    DetsPlux.get_cache(db, tx, "blocks", 0)
-    DetsPlux.update_counter(tx, "blocks", {2, number})
-  end
-
-  def services(%{db: db, tx: tx}) do
-    DetsPlux.get_cache(db, tx, "services", 0)
-  end
-
-  def count_services(%{db: db, tx: tx}, number) do
-    DetsPlux.get_cache(db, tx, "services", 0)
-    DetsPlux.update_counter(tx, "services", {2, number})
+  def sync(%{db: db, tx: tx}) do
+    DetsPlux.sync(db, tx)
   end
 end

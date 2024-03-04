@@ -27,47 +27,83 @@ defmodule Platform do
         _ -> "genesis.exs"
       end
 
-    {data = %{"tokens" => _, "validators" => _, "accounts" => _}, _binding} =
-      Path.join(:code.priv_dir(@app), filename)
-      |> Code.eval_file()
+    path = Path.join(:code.priv_dir(@app), filename)
 
-    wallet_dets = DetsPlux.get(:wallet)
-    wallet_tx = DetsPlux.tx(wallet_dets, :wallet)
+    if File.exists?(path) do
+      {data = %{"tokens" => _, "validators" => _, "accounts" => _}, _binding} =
+        Code.eval_file(path)
 
-    for {key, values} <- data do
-      case key do
-        "accounts" ->
-          Enum.each(values, fn x ->
-            DetsPlux.put(
-              wallet_tx,
-              {x.id, x.pubkey, x.sig_type, %{vid: x.vid, fa: x.fa, fb: x.fb}}
-            )
-          end)
+      wallet_db = DetsPlux.get(:wallet)
+      nonce_db = DetsPlux.get(:nonce)
+      balance_db = DetsPlux.get(:balance)
+      wallet_tx = DetsPlux.tx(wallet_db, :wallet)
+      balance_tx = DetsPlux.tx(balance_db, :balance)
+      nonce_tx = DetsPlux.tx(nonce_db, :nonce)
 
-        "tokens" ->
-          unless Enum.any?(values, fn x -> x.id == @token end) do
-            raise IppanCriticalError, "Native token missing"
-          end
+      for {key, values} <- data do
+        case key do
+          "accounts" ->
+            Task.async(fn ->
+              Enum.each(values, fn x ->
+                DetsPlux.put(
+                  wallet_tx,
+                  {x.id, x.pubkey, x.sig_type, %{"vid" => x.vid, "fa" => x.fa, "fb" => x.fb}}
+                )
 
-          Enum.each(values, fn x ->
-            Token.insert(Token.to_list(x))
-          end)
+                if Map.get(x, :nonce) do
+                  DetsPlux.put(
+                    nonce_tx,
+                    {x.id, x.nonce}
+                  )
+                end
+              end)
+            end)
 
-        "validators" ->
-          Enum.each(values, fn x ->
-            Validator.insert(Validator.to_list(x))
-          end)
+          "balances" ->
+            Task.async(fn ->
+              Enum.each(values, fn x ->
+                DetsPlux.put(balance_tx, x)
+              end)
+            end)
 
-        "env" ->
-          Enum.each(values, fn %{name: name, value: value} ->
-            EnvStore.put(db_ref, name, value)
-          end)
+          "tokens" ->
+            Task.async(fn ->
+              unless Enum.any?(values, fn x -> x.id == @token end) do
+                raise IppanCriticalError, "Native token missing"
+              end
+
+              Enum.each(values, fn x ->
+                Token.insert(Token.to_list(x))
+              end)
+            end)
+
+          "validators" ->
+            Task.async(fn ->
+              Enum.each(values, fn x ->
+                Validator.insert(Validator.to_list(x))
+              end)
+            end)
+
+          "env" ->
+            Task.async(fn ->
+              Enum.each(values, fn %{name: name, value: value} ->
+                EnvStore.put(db_ref, name, value)
+              end)
+            end)
+        end
       end
-    end
+      |> Task.await_many(:infinity)
 
-    # save all
-    Sqlite.sync(db_ref)
-    DetsPlux.sync(wallet_dets, wallet_tx)
-    IO.puts("Genesis file loaded")
+      # save all
+      [
+        Task.async(fn -> Sqlite.sync(db_ref) end),
+        Task.async(fn -> DetsPlux.sync(wallet_db, wallet_tx) end),
+        Task.async(fn -> DetsPlux.sync(nonce_db, nonce_tx) end),
+        Task.async(fn -> DetsPlux.sync(balance_db, balance_tx) end)
+      ]
+      |> Task.await_many(:infinity)
+
+      IO.puts("Genesis file loaded")
+    end
   end
 end

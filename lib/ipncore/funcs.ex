@@ -427,6 +427,16 @@ defmodule Ippan.Funcs do
     }
   end
 
+  def lookup(603) do
+    %Func{
+      id: 603,
+      name: "service.withdraw",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :withdraw
+    }
+  end
+
   def lookup(610) do
     %Func{
       id: 610,
@@ -444,6 +454,16 @@ defmodule Ippan.Funcs do
       mod: Func.Service,
       modx: Funx.Service,
       fun: :unsubscribe
+    }
+  end
+
+  def lookup(612) do
+    %Func{
+      id: 612,
+      name: "service.kick",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :kick
     }
   end
 

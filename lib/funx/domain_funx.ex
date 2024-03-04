@@ -21,8 +21,8 @@ defmodule Ippan.Funx.Domain do
         :error
 
       true ->
-        dets = DetsPlux.get(:balance)
-        tx = DetsPlux.tx(:balance)
+        db = DetsPlux.get(:balance)
+        tx = DetsPlux.tx(db, :balance)
         price = Domain.price(name, days)
 
         case BalanceStore.pay_burn(account_id, price) do
@@ -59,8 +59,8 @@ defmodule Ippan.Funx.Domain do
         opts \\ %{}
       ) do
     map_filter = Map.take(opts, Domain.editable())
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
@@ -88,8 +88,8 @@ defmodule Ippan.Funx.Domain do
         name,
         days
       ) do
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     price = Domain.price(name, days)
 
     case BalanceStore.pay_burn(account_id, price) do

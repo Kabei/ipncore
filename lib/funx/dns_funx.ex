@@ -12,8 +12,8 @@ defmodule Ippan.Funx.Dns do
         ttl
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
@@ -45,8 +45,8 @@ defmodule Ippan.Funx.Dns do
         params
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do

@@ -194,13 +194,16 @@ SELECT winner, amount FROM blockchain.jackpot WHERE round_id=? LIMIT 1;
 
 
 --name: insert_paysrv
-INSERT INTO pay.serv VALUES(?1,?2,?3,?4,?5,?5);
+INSERT INTO pay.serv VALUES(?1,?2,?3,?4,?5,?6,?6);
 
 --name: get_paysrv
-SELECT id, name, image, extra, created_at, updated_at FROM pay.serv WHERE id = ? LIMIT 1;
+SELECT * FROM pay.serv WHERE id = ? LIMIT 1;
 
 --name: exists_paysrv
 SELECT 1 FROM pay.serv WHERE id = ? LIMIT 1;
+
+--name: owner_paysrv
+SELECT 1 FROM pay.serv WHERE id = ?2 AND owner = ?2 LIMIT 1;
 
 --name: delete_paysrv
 DELETE FROM pay.serv WHERE id = ?;

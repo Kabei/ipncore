@@ -37,8 +37,8 @@ defmodule Ippan.Funx.Validator do
         map_filter = Map.take(opts, Validator.optionals())
         pubkey = Fast64.decode64(pubkey)
         net_pubkey = Fast64.decode64(net_pubkey)
-        dets = DetsPlux.get(:balance)
-        tx = DetsPlux.tx(:balance)
+        db = DetsPlux.get(:balance)
+        tx = DetsPlux.tx(db, :balance)
         price = Validator.calc_price(total)
 
         case BalanceStore.pay_burn(account_id, price) do
@@ -78,8 +78,8 @@ defmodule Ippan.Funx.Validator do
         opts
       ) do
     map_filter = Map.take(opts, Validator.editable())
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_burn(account_id, fees) do
@@ -118,8 +118,8 @@ defmodule Ippan.Funx.Validator do
         active
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
@@ -154,8 +154,8 @@ defmodule Ippan.Funx.Validator do
       ) do
     db_ref = :persistent_term.get(:main_conn)
     validator = Validator.get(id)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case is_nil(validator) do
@@ -187,8 +187,8 @@ defmodule Ippan.Funx.Validator do
       ) do
     db_ref = :persistent_term.get(:main_conn)
     validator = Validator.get(id)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case is_nil(validator) do

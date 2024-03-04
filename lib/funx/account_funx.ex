@@ -22,8 +22,8 @@ defmodule Ippan.Funx.Account do
         fa,
         fb
       ) do
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(dets, :balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(from, vOwner, fees) do
@@ -31,9 +31,9 @@ defmodule Ippan.Funx.Account do
         :error
 
       _ ->
-        wdets = DetsPlux.get(:wallet)
-        wtx = DetsPlux.tx(:wallet)
-        DetsPlux.get_cache(wdets, wtx, from)
+        wallet = DetsPlux.get(:wallet)
+        wtx = DetsPlux.tx(wallet, :wallet)
+        DetsPlux.get_cache(wallet, wtx, from)
         DetsPlux.update_element(wtx, from, 4, %{"fa" => fa, "fb" => fb, "vid" => validator_id})
     end
   end
@@ -47,8 +47,8 @@ defmodule Ippan.Funx.Account do
         pubkey,
         sig_type
       ) do
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(dets, :balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
     pubkey = Fast64.decode64(pubkey)
 
@@ -57,9 +57,9 @@ defmodule Ippan.Funx.Account do
         :error
 
       _ ->
-        wdets = DetsPlux.get(:wallet)
-        wtx = DetsPlux.tx(:wallet)
-        DetsPlux.get_cache(wdets, wtx, from)
+        wallet = DetsPlux.get(:wallet)
+        wtx = DetsPlux.tx(wallet, :wallet)
+        DetsPlux.get_cache(wallet, wtx, from)
         DetsPlux.update_element(wtx, from, 2, pubkey)
         DetsPlux.update_element(wtx, from, 3, sig_type)
     end

@@ -19,8 +19,8 @@ defmodule Ippan.Funx.Token do
         opts \\ %{}
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
 
     cond do
       @max_tokens != 0 and @max_tokens <= Token.total() ->
@@ -65,8 +65,8 @@ defmodule Ippan.Funx.Token do
         opts \\ %{}
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
 
     map_filter = Map.take(opts, Token.editable())
     fees = Utils.calc_fees(fa, fb, size)
@@ -106,8 +106,8 @@ defmodule Ippan.Funx.Token do
       ) do
     db_ref = :persistent_term.get(:main_conn)
     token = Token.get(id)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
     props = if(is_list(prop), do: prop, else: [prop])
 
@@ -140,8 +140,8 @@ defmodule Ippan.Funx.Token do
       ) do
     db_ref = :persistent_term.get(:main_conn)
     token = Token.get(id)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
     props = if(is_list(prop), do: prop, else: [prop])
 
@@ -175,8 +175,8 @@ defmodule Ippan.Funx.Token do
       ) do
     db_ref = :persistent_term.get(:main_conn)
     token = Token.get(id)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case is_nil(token) do
@@ -208,8 +208,8 @@ defmodule Ippan.Funx.Token do
       ) do
     db_ref = :persistent_term.get(:main_conn)
     token = Token.get(id)
-    dets = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(:balance)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
 
     case is_nil(token) do

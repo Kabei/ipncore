@@ -729,10 +729,17 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_new(client, "@ippan", "movies-live", "https://image.com", %{"summary" => "Watch movies", "min_amount" => 1500})
-  def service_new(client = %Client{id: account_id, nonce: nonce}, id, name, image, extra \\ %{}) do
+  # service_new(client, "s-ippan", "@ippan, "movies-live", "https://image.com", %{"summary" => "Watch movies", "min_amount" => 1500})
+  def service_new(
+        client = %Client{id: account_id, nonce: nonce},
+        id,
+        owner,
+        name,
+        image,
+        extra \\ %{}
+      ) do
     body =
-      [600, nonce, account_id, id, name, image, extra]
+      [600, nonce, account_id, id, owner, name, image, extra]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -742,7 +749,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_update(client, "@ippan", %{"name" => "movies-live", "summary" => "Watch movies 2"})
+  # service_update(client, "s-ippan", %{"name" => "movies-live", "summary" => "Watch movies 2"})
   def service_update(client = %Client{id: account_id, nonce: nonce}, service_id, map) do
     body =
       [601, nonce, account_id, service_id, map]
@@ -755,7 +762,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_delete(client, "@ippan")
+  # service_delete(client, "s-ippan")
   def service_delete(client = %Client{id: account_id, nonce: nonce}, service_id) do
     body =
       [602, nonce, account_id, service_id]
@@ -768,7 +775,20 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_subscribe(client, "@ippan", "XPN", %{"max_amount" => 1500, "exp" => 1500000})
+  # service_withdraw(client, "s-ippan")
+  def service_withdraw(client = %Client{id: account_id, nonce: nonce}, service_id) do
+    body =
+      [602, nonce, account_id, service_id]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_subscribe(client, "s-ippan", "XPN", %{"max_amount" => 1500, "exp" => 1500000})
   def service_subscribe(
         client = %Client{id: account_id, nonce: nonce},
         service_id,
@@ -786,7 +806,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_unsubscribe(client, "@ippan")
+  # service_unsubscribe(client, "s-ippan")
   def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id) do
     body =
       [611, nonce, account_id, service_id]
@@ -799,10 +819,36 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_unsubscribe(client, "@ippan", "XPN")
+  # service_unsubscribe(client, "s-ippan", "XPN")
   def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id, token_id) do
     body =
       [611, nonce, account_id, service_id, token_id]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_kick(client, "@ippan")
+  def service_kick(client = %Client{id: account_id, nonce: nonce}, to) do
+    body =
+      [612, nonce, account_id, to]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_kick(client, "@ippan", "XPN")
+  def service_kick(client = %Client{id: account_id, nonce: nonce}, to, token_id) do
+    body =
+      [612, nonce, account_id, to, token_id]
       |> encode_fun!()
 
     hash = hash_fun(body)

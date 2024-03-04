@@ -60,7 +60,6 @@ defmodule Ippan.Funx.Service do
 
             extra =
               Map.drop(map, ["name", "image", "owner"])
-              |> Map.merge(current_extra)
 
             PayService.update(
               db_ref,
@@ -68,7 +67,7 @@ defmodule Ippan.Funx.Service do
                 "name" => name,
                 "image" => image,
                 "owner" => owner,
-                "extra" => CBOR.encode(extra),
+                "extra" => CBOR.encode(Map.merge(current_extra, extra)),
                 "updated_at" => round_id
               },
               id

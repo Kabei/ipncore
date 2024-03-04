@@ -577,10 +577,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_stream(client, client.id, "XPN", 500)
-  def coin_stream(client = %Client{id: account_id, nonce: nonce}, to, token, amount) do
+  # Builder.coin_stream(client, client.id, "s-ippan", "XPN", 500)
+  def coin_stream(client = %Client{id: account_id, nonce: nonce}, service_id, to, token, amount) do
     body =
-      [308, nonce, account_id, to, token, amount]
+      [308, nonce, account_id, service_id, to, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)

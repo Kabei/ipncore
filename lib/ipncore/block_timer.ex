@@ -89,7 +89,7 @@ defmodule BlockTimer do
       task =
         Task.async(fn -> do_check(%{state | block_id: current_block_id}, sleep) end)
 
-      new_state = Task.await(task, 15_000)
+      new_state = Task.await(task, 10_000)
       {:reply, new_state.candidate, new_state}
     catch
       :exit, _ ->

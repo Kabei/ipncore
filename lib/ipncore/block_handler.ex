@@ -267,18 +267,23 @@ defmodule Ippan.BlockHandler do
             #   :error
 
             filestat.size > @max_block_size or filestat.size != size ->
+              IO.puts("Error filesize")
               :error
 
             hash != Block.compute_hash(creator_id, height, prev, filehash, timestamp) ->
+              IO.puts("Error hash")
               :error
 
             filehash != hash_file(output_path) ->
+              IO.puts("Error filehash")
               :error
 
             Cafezinho.Impl.verify(signature, hash, pubkey) != :ok ->
+              IO.puts("Error block signature")
               :error
 
             @version != version ->
+              IO.puts("Error version")
               :error
 
             true ->
@@ -286,6 +291,7 @@ defmodule Ippan.BlockHandler do
           end
 
         _error ->
+          IO.puts("Error download file")
           :error
       end
     rescue

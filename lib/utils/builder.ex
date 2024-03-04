@@ -783,7 +783,7 @@ defmodule Builder do
         amount
       ) do
     body =
-      [602, nonce, account_id, service_id, token_id, amount]
+      [603, nonce, account_id, service_id, token_id, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)

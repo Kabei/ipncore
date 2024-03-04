@@ -1,6 +1,7 @@
 #!/bin/bash
 
 killall beam.smp
+sleep 2
 # killall epmd
 # epmd -daemon
 

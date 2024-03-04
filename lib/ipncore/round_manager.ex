@@ -276,7 +276,7 @@ defmodule RoundManager do
         } = state
       ) do
     # next = the_round_id == round_id
-    Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(round.hash)}")
+    Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(hash)}")
 
     # Clear round-message-votes and block-candidates
     :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
@@ -287,7 +287,7 @@ defmodule RoundManager do
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
     # Set last local height and prev hash and reset timer
-    BlockTimer.complete(hash, blocks)
+    BlockTimer.complete(blocks)
 
     {:noreply,
      %{

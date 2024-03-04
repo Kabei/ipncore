@@ -271,7 +271,7 @@ defmodule Ippan.Block do
     quote bind_quoted: [id: creator_id], location: :keep do
       Sqlite.fetch("last_block_by_creator", [id])
       |> case do
-        nil -> %{height: -1, prev: nil}
+        nil -> %{height: -1, hash: nil}
         x -> Ippan.Block.list_to_map(x)
       end
     end

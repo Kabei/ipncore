@@ -18,7 +18,7 @@ defmodule Ippan.BlockHandler do
   @max_block_size Application.compile_env(@app, :block_max_size)
 
   # Generate local block and decode block file
-  @spec generate_files(creator_id :: integer(), height :: integer(), prev_hash :: binary()) ::
+  @spec generate_files(creator_id :: integer(), height :: integer(), prev :: binary() | nil) ::
           map() | nil
   def generate_files(creator_id, height, prev) do
     block_path =

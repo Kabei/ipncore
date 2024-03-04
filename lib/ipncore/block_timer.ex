@@ -20,7 +20,7 @@ defmodule BlockTimer do
 
     block_id = Sqlite.one("last_block_id", [], -1) + 1
 
-    %{height: last_height, prev: prev} =
+    %{hash: prev, height: last_height} =
       Block.last_created(vid)
 
     {:ok,
@@ -55,9 +55,9 @@ defmodule BlockTimer do
   @doc """
   Update block height, prev hash and candidate in state
   """
-  @spec complete(hash :: binary(), list()) :: :ok
-  def complete(hash, blocks) do
-    GenServer.cast(@module, {:complete, hash, blocks})
+  @spec complete(blocks :: list()) :: :ok
+  def complete(blocks) do
+    GenServer.cast(@module, {:complete, blocks})
   end
 
   @spec stop :: :ok
@@ -111,12 +111,12 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_cast({:complete, hash, blocks}, %{vid: vid} = state) do
+  def handle_cast({:complete, blocks}, %{vid: vid} = state) do
     if Round.is_some_block_mine?(blocks, vid) do
-      {:noreply, %{state | candidate: nil, prev: hash}, :hibernate}
       # {:noreply, %{state | candidate: nil, prev: hash}, {:continue, :check}}
+      {:noreply, %{state | candidate: nil}, :hibernate}
     else
-      {:noreply, %{state | prev: hash}, :hibernate}
+      {:noreply, state, :hibernate}
       # {:noreply, %{state | prev: hash}, {:continue, :check}}
     end
   end
@@ -137,7 +137,7 @@ defmodule BlockTimer do
       block ->
         new_height = height + 1
 
-        %{state | candidate: block, height: new_height}
+        %{state | candidate: block, height: new_height, prev: block.hash}
     end
   end
 

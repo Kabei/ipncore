@@ -729,12 +729,12 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_new(client, "s-ippan", "@ippan, "movies-live", "https://image.com", %{"summary" => "Watch movies", "min_amount" => 1500})
+  # service_new(client, "s-ippan", "title", "@ippan", "https://image.com", %{"summary" => "Watch movies", "min_amount" => 1500})
   def service_new(
         client = %Client{id: account_id, nonce: nonce},
         id,
-        owner,
         name,
+        owner,
         image,
         extra \\ %{}
       ) do

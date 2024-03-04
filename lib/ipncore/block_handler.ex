@@ -272,6 +272,11 @@ defmodule Ippan.BlockHandler do
 
             hash != Block.compute_hash(creator_id, height, prev, filehash, timestamp) ->
               IO.puts("Error hash")
+              IO.inspect(creator_id)
+              IO.inspect(height)
+              IO.inspect(prev)
+              IO.inspect(filehash)
+              IO.inspect(timestamp)
               :error
 
             filehash != hash_file(output_path) ->

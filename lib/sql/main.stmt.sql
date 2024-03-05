@@ -166,8 +166,8 @@ SELECT COUNT(1) FROM assets.validator;
 --name: next_id_validator
 SELECT COALESCE((SELECT id FROM assets.validator ORDER BY id DESC LIMIT 1) + 1, 0);
 
---name: leave_validator
-UPDATE  assets.validator SET failures=?2 WHERE id = ?1;
+--name: inc_fail_validator
+UPDATE assets.validator SET failures = failures + ?2, updated_at = ?3 WHERE id = ?1;
 
 --name: delete_validator
 DELETE FROM assets.validator WHERE id = ?1;

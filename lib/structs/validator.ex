@@ -200,11 +200,31 @@ defmodule Ippan.Validator do
     end
   end
 
-  defmacro put_active(id, active, round_id) do
-    quote bind_quoted: [id: id, active: active, round: round_id], location: :keep do
+  defmacro enable(id, round_id) do
+    quote bind_quoted: [id: id, round: round_id], location: :keep do
       :ets.delete(:validator, id)
-      value = if active == true, do: 1, else: 0
-      Sqlite.update("assets.validator", %{"active" => value, "updated_at" => round}, id: id)
+      Sqlite.update("assets.validator", %{"active" => false, "updated_at" => round}, id: id)
+    end
+  end
+
+  defmacro disable(id, round_id) do
+    quote bind_quoted: [id: id, round: round_id], location: :keep do
+      :ets.delete(:validator, id)
+      Sqlite.update("assets.validator", %{"active" => false, "updated_at" => round}, id: id)
+    end
+  end
+
+  defmacro incr_failure(id, value, round_id) do
+    quote bind_quoted: [id: id, value: value, round: round_id], location: :keep do
+      case Ippan.Validator.get(id) do
+        nil ->
+          nil
+
+        validator ->
+          :ets.delete(:validator, id)
+          Sqlite.step("inc_fail_validator", [id, value, round])
+          validator.failures + value
+      end
     end
   end
 

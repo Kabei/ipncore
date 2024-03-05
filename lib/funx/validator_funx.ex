@@ -127,7 +127,12 @@ defmodule Ippan.Funx.Validator do
         :error
 
       _ ->
-        Validator.put_active(id, active, round_id)
+        if active do
+          Validator.enable(id, round_id)
+        else
+          Validator.disable(id, round_id)
+        end
+
         event = %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}}
         PubSub.broadcast(@pubsub, @topic, event)
     end

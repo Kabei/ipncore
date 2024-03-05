@@ -857,7 +857,9 @@ defmodule RoundManager do
         n = Sqlite.one("total_players", [], 0)
 
         if n > 2 do
-          Validator.put_active(creator_id, false, round_id)
+          if Validator.incr_failure(creator_id, 1, round_id) >= 6 do
+            Validator.disable(creator_id, round_id)
+          end
         end
 
       2 ->

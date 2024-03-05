@@ -235,8 +235,7 @@ defmodule Ippan.Funx.Coin do
     tx = DetsPlux.tx(db, :balance)
 
     BalanceStore.pay to, token_id, amount do
-      balance = BalanceStore.load(service_id, token_id)
-      BalanceStore.stream(balance, amount)
+      BalanceStore.stream(service_id, token_id, amount)
 
       db_ref = :persistent_term.get(:main_conn)
       SubPay.update(db_ref, service_id, to, token_id, round_id)

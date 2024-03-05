@@ -100,12 +100,6 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro send(balance, amount) do
-    quote bind_quoted: [amount: amount, balance: balance], location: :keep do
-      DetsPlux.update_counter(var!(tx), balance, {2, amount})
-    end
-  end
-
   defmacro send(to, token, amount) do
     quote bind_quoted: [to: to, token: token, amount: amount], location: :keep do
       balance = DetsPlux.tuple(to, token)
@@ -298,8 +292,8 @@ defmodule BalanceStore do
     end
   end
 
-  defmacro stream(service_id, token_id, amount) do
-    quote bind_quoted: [amount: amount, service: service_id, token: token_id],
+  defmacro stream(service, token, amount) do
+    quote bind_quoted: [amount: amount, service: service, token: token],
           location: :keep do
       balance = BalanceStore.load(service, token)
       DetsPlux.update_counter(var!(tx), balance, {2, amount})

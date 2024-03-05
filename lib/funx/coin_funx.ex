@@ -24,8 +24,7 @@ defmodule Ippan.Funx.Coin do
     tfees = Utils.calc_fees(fa, fb, size)
 
     BalanceStore.pay from, token_id, amount, tfees do
-      balance_to = BalanceStore.load(to, token_id)
-      BalanceStore.send(balance_to, amount)
+      BalanceStore.send(to, token_id, amount)
 
       reserve = Utils.calc_reserve(tfees)
       fees = tfees - reserve

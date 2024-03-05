@@ -118,7 +118,7 @@ SELECT count(1) FROM blockchain.block WHERE round = ?;
 
 
 --name: insert_round
-INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14);
+INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
 
 --name: exists_round
 SELECT 1 FROM blockchain.round WHERE id=? LIMIT 1;
@@ -145,11 +145,14 @@ SELECT * FROM assets.validator WHERE active = 1 AND failures < 6;
 --name: get_validator
 SELECT * FROM assets.validator WHERE id = ? LIMIT 1;
 
+--name: get_host_validator
+SELECT * FROM assets.validator WHERE hostname = ? LIMIT 1;
+
 --name: exists_validator
 SELECT 1 FROM assets.validator WHERE id = ? LIMIT 1;
 
 --name: exists_host_validator
-SELECT 1 FROM assets.validator WHERE hostname = ?1;
+SELECT 1 FROM assets.validator WHERE hostname = ? LIMIT 1;
 
 --name: exists_active_validator
 SELECT 1 FROM assets.validator WHERE id = ? AND active = 1 LIMIT 1;

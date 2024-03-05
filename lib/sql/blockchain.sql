@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS round(
   prev BLOB,
   creator BIGINT NOT NULL,
   signature BLOB,
-  coinbase BIGINT,
   reward BIGINT,
   count BIGINT,
   tx_count BIGINT,

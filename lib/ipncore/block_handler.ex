@@ -2,7 +2,7 @@ defmodule Ippan.BlockHandler do
   alias Ippan.{ClusterNodes, Block, Validator}
 
   import Ippan.Block,
-    only: [decode_file!: 1, encode_file!: 1, hash_file: 1]
+    only: [decode_file!: 1, encode_file!: 1]
 
   require BalanceStore
   require Sqlite
@@ -38,7 +38,7 @@ defmodule Ippan.BlockHandler do
 
         %{"data" => messages, "vsn" => version} = decode_file!(content)
 
-        filehash = hash_file(block_path)
+        filehash = Block.compute_hashfile(block_path)
         timestamp = :os.system_time(:millisecond)
         hash = Block.compute_hash(creator_id, height, prev, filehash, timestamp)
         {:ok, signature} = Block.sign(hash)
@@ -78,7 +78,7 @@ defmodule Ippan.BlockHandler do
 
         {:ok, file_info} = File.stat(block_path)
 
-        filehash = hash_file(block_path)
+        filehash = Block.compute_hashfile(block_path)
         timestamp = :os.system_time(:millisecond)
         hash = Block.compute_hash(creator_id, height, prev, filehash, timestamp)
         {:ok, signature} = Block.sign(hash)
@@ -279,7 +279,7 @@ defmodule Ippan.BlockHandler do
               IO.inspect(timestamp)
               :error
 
-            filehash != hash_file(output_path) ->
+            filehash != Block.compute_hashfile(output_path) ->
               IO.puts("Error filehash")
               :error
 

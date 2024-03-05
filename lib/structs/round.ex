@@ -8,7 +8,6 @@ defmodule Ippan.Round do
           prev: binary() | nil,
           creator: non_neg_integer(),
           signature: binary() | nil,
-          coinbase: non_neg_integer(),
           reward: non_neg_integer(),
           count: non_neg_integer(),
           tx_count: non_neg_integer(),
@@ -30,7 +29,6 @@ defmodule Ippan.Round do
     :prev,
     :creator,
     :signature,
-    :coinbase,
     :reward,
     :count,
     :tx_count,
@@ -49,7 +47,6 @@ defmodule Ippan.Round do
       x.prev,
       x.creator,
       x.signature,
-      x.coinbase,
       x.reward,
       x.count,
       x.tx_count,
@@ -78,7 +75,6 @@ defmodule Ippan.Round do
         prev,
         creator,
         signature,
-        coinbase,
         reward,
         count,
         tx_count,
@@ -94,7 +90,6 @@ defmodule Ippan.Round do
       prev: prev,
       creator: creator,
       signature: signature,
-      coinbase: coinbase,
       reward: reward,
       count: count,
       tx_count: tx_count,
@@ -187,7 +182,7 @@ defmodule Ippan.Round do
 
     msg_round
     |> MapUtil.to_atoms(
-      ~w(id creator extra hash prev signature coinbase reward count size status timestamp tx_count)
+      ~w(id creator extra hash prev signature reward count size status timestamp tx_count)
     )
     |> Map.put(:blocks, blocks)
   end
@@ -218,7 +213,6 @@ defmodule Ippan.Round do
       prev: prev,
       creator: creator_id,
       signature: nil,
-      coinbase: 0,
       reward: 0,
       count: 0,
       tx_count: 0,

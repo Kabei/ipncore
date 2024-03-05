@@ -140,6 +140,23 @@ defmodule Ippan.Validator do
     end
   end
 
+  def get_host(hostname) do
+    match = [{{:"$1", %{hostname: hostname}}, [], [:"$_"]}]
+
+    case :ets.select(:validator, match) do
+      [] ->
+        db_ref = :persistent_term.get(:main_conn)
+
+        case Sqlite.fetch("get_host_validator", [hostname]) do
+          nil -> nil
+          result -> list_to_map(result)
+        end
+
+      [{_id, map}] ->
+        map
+    end
+  end
+
   defmacro next_id do
     quote location: :keep do
       Sqlite.one("next_id_validator")

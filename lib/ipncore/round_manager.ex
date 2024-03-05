@@ -786,7 +786,6 @@ defmodule RoundManager do
           hash: hash,
           prev: prev_hash,
           signature: signature,
-          coinbase: reward,
           count: block_count,
           tx_count: tx_count,
           size: size,

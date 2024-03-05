@@ -168,6 +168,15 @@ defmodule Ippan.Block do
     |> @hash_module.hash()
   end
 
+  @spec compute_hashfile(Path.t()) :: binary()
+  def compute_hashfile(path) do
+    state = @hash_module.new()
+
+    File.stream!(path, [], 2048)
+    |> Enum.reduce(state, &@hash_module.update(&2, &1))
+    |> @hash_module.finalize()
+  end
+
   @spec sign(binary()) :: {:ok, binary()} | {:error, term()}
   def sign(hash) do
     privkey = :persistent_term.get(:privkey)
@@ -236,14 +245,6 @@ defmodule Ippan.Block do
 
   def decode_file!(content) do
     :erlang.element(1, CBOR.Decoder.decode(content))
-  end
-
-  def hash_file(path) do
-    state = @hash_module.new()
-
-    File.stream!(path, [], 2048)
-    |> Enum.reduce(state, &@hash_module.update(&2, &1))
-    |> @hash_module.finalize()
   end
 
   defp normalize(nil), do: ""

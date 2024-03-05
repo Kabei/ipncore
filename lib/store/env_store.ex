@@ -63,6 +63,10 @@ defmodule EnvStore do
     :persistent_term.get({:env, "fees.fb"}, 1)
   end
 
+  def max_failures do
+    :persistent_term.get({:env, "validator.max_failures"}, 6)
+  end
+
   defp transform("owner", x) when byte_size(x) <= 255, do: x
   defp transform("owner", _x), do: nil
 
@@ -77,6 +81,9 @@ defmodule EnvStore do
 
   defp transform("block.limit", x) when x in 1..100, do: x
   defp transform("block.limit", _), do: 10
+
+  defp transform("validator.max_failures", x) when x in 1..1000, do: x
+  defp transform("validator.max_failures", _), do: 6
 
   defp transform(_, x), do: x
 end

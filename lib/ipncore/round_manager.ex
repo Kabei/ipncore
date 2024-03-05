@@ -300,7 +300,7 @@ defmodule RoundManager do
 
   def handle_cast(
         {:incomplete,
-         %{id: round_nulled_id, creator: creator_id, status: round_status} = round_nulled},
+         %{id: round_id, hash: hash, creator: creator_id, status: round_status} = round_nulled},
         %{
           players: ets_players,
           status: _status,
@@ -310,7 +310,7 @@ defmodule RoundManager do
           state
       ) do
     # next = status == :synced
-    Logger.debug("[Incomplete] Round ##{round_nulled_id} | Status: #{round_status}")
+    Logger.debug("[Incomplete] Round ##{round_id} | Status: #{round_status}")
 
     # Delete player
     if total_players > 2 and round_status in 1..2 do
@@ -329,11 +329,8 @@ defmodule RoundManager do
       "data" => creator_id
     })
 
-    {:noreply, %{state | round_id: round_id + 1, total: total_players}, {:continue, :next}}
-    # if next do
-    # else
-    #   {:noreply, %{state | total: total_players}, :hibernate}
-    # end
+    {:noreply, %{state | round_id: round_id + 1, round_hash: hash, total: total_players},
+     {:continue, :next}}
   end
 
   def handle_cast(

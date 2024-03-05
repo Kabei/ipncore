@@ -96,35 +96,35 @@ defmodule Ippan.Funx.Service do
         token_id,
         amount
       ) do
-        db_ref = :persistent_term.get(:main_conn)
-        db = DetsPlux.get(:balance)
-        tx = DetsPlux.tx(db, :balance)
-        tfees = Utils.calc_fees(fa, fb, size)
-        is_validator = vOwner == to
-        %{env: env} = Token.get(token_id)
-        tax = round(amount * Map.get(env, "service.tax", 0))
+    db_ref = :persistent_term.get(:main_conn)
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
+    tfees = Utils.calc_fees(fa, fb, size)
+    is_validator = vOwner == to
+    %{env: env} = Token.get(token_id)
+    tax = round(amount * Map.get(env, "service.tax", 0))
 
-        BalanceStore.pay from, token_id, amount, tfees do
-          total = amount - tax
+    BalanceStore.pay from, token_id, amount, tfees do
+      total = amount - tax
 
-          if total > 0 do
-            BalanceStore.send(to, token_id, total)
-          end
+      if total > 0 do
+        BalanceStore.send(to, token_id, total)
+      end
 
-          reserve = Utils.calc_reserve(tfees)
-          fees = tfees - reserve
+      reserve = Utils.calc_reserve(tfees)
+      fees = tfees - reserve
 
-          if is_validator do
-            BalanceStore.burn(from, @token, fees)
-            BalanceStore.reserve(reserve)
-          else
-            validator_balance = BalanceStore.load(vOwner, @token)
-            BalanceStore.fees(validator_balance, fees)
-            BalanceStore.reserve(reserve)
-          end
+      if is_validator do
+        BalanceStore.burn(from, @token, fees)
+        BalanceStore.reserve(reserve)
+      else
+        validator_balance = BalanceStore.load(vOwner, @token)
+        BalanceStore.fees(validator_balance, fees)
+        BalanceStore.reserve(reserve)
+      end
 
-          BalanceStore.burn(from, token_id, tax)
-        end
+      BalanceStore.burn(from, token_id, tax)
+    end
   end
 
   def subscribe(

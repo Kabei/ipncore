@@ -144,7 +144,7 @@ defmodule RoundManager do
           {:ok, rRef} = :timer.send_after(time_to_request, :request)
 
           if time_to_request != @min_time_to_request do
-            send_block(new_state)
+            spawn_send_block(new_state)
           end
 
           {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}

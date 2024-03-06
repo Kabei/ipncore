@@ -122,7 +122,8 @@ defmodule RoundTask do
 
               # Disconnect if count is greater than max_peers_conn
               if NetworkNodes.count() > @max_peers_conn do
-                NetworkNodes.disconnect_all(node_id)
+                node = NetworkNodes.info(node_id)
+                NetworkNodes.disconnect(node)
               end
 
               {:ok, Round.from_remote(response), node_id}

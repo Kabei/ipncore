@@ -27,7 +27,7 @@ defmodule RoundManager do
   @validator_topic "validator"
   @token Application.compile_env(@app, :token)
   @timeout Application.compile_env(@app, :round_timeout)
-  # @max_peers_conn Application.compile_env(@app, :max_peers_conn)
+  @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
   @min_time_to_request 0
   @max_time_to_request 6_000
@@ -142,6 +142,11 @@ defmodule RoundManager do
         nil ->
           {:ok, tRef} = :timer.send_after(@timeout, :timeout)
           {:ok, rRef} = :timer.send_after(time_to_request, :request)
+
+          if time_to_request != @min_time_to_request do
+            send_block(new_state)
+          end
+
           {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
 
         message ->
@@ -183,13 +188,13 @@ defmodule RoundManager do
         case RoundTask.sync_to_round_creator(state) do
           {:ok, response, node_id} ->
             GenServer.cast(self(), {"msg_round", response, node_id})
-            {:noreply, state, :hibernate}
 
           _error ->
             round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
             GenServer.cast(self(), {"msg_round", round_nulled, vid})
-            {:noreply, state, :hibernate}
         end
+
+        {:noreply, %{state | ttr: @min_time_to_request}, :hibernate}
 
       # IO.inspect(r)
 
@@ -360,6 +365,7 @@ defmodule RoundManager do
           players: ets_players,
           votes: ets_votes,
           # round_id: round_id,
+          rcid: rcid,
           status: :synced,
           # total: total_players,
           # vid: vid,
@@ -368,7 +374,7 @@ defmodule RoundManager do
         } =
           state
       )
-      when vote_round_id == id do
+      when vote_round_id == id and creator_id == rcid do
     Logger.debug(inspect(msg_round))
 
     last_round = Round.get(id - 1) || %{hash: nil}
@@ -401,13 +407,13 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {"msg_round", mag_round = %{id: id, hash: hash}, node_id},
+        {"msg_round", msg_round = %{id: id, hash: hash}, node_id},
         %{db_ref: db_ref, vote_round_id: vote_round_id} = state
       )
       when vote_round_id > id do
     case Round.get(id) do
       %{hash: rhash} when rhash == hash ->
-        NetworkNodes.cast(node_id, "msg_round", mag_round)
+        NetworkNodes.cast(node_id, "msg_round", msg_round)
         {:noreply, state}
 
       _ ->
@@ -439,6 +445,7 @@ defmodule RoundManager do
         }
       ) do
     with true <- status == :synced,
+         true <- :ets.info(ets_candidates, :size) < 5,
          true <- Validator.exists?(creator_id),
          true <- block_verificacion(block, db_ref) do
       :ets.insert(ets_candidates, {{creator_id, height}, block})
@@ -1026,27 +1033,28 @@ defmodule RoundManager do
     :ets.info(ets_players, :size)
   end
 
-  # defp send_block(%{
-  #        rcid: node_id,
-  #        rc_node: validator_node
-  #      }) do
-  #   candidate = BlockTimer.get_block()
+  defp send_block(%{
+         rcid: node_id,
+         rc_node: validator_node
+       }) do
+    candidate = BlockTimer.get_block()
 
-  #   if candidate do
-  #     case NetworkNodes.connect(validator_node, retry: 3) do
-  #       false ->
-  #         Logger.warning("It was not possible to connect to the round creator")
-  #         :error
+    if candidate do
+      case NetworkNodes.connect(validator_node, retry: 1) do
+        false ->
+          Logger.warning("It was not possible to connect to the round creator (send_block)")
+          :error
 
-  #       socket ->
-  #         NetworkNodes.cast(node_id, "msg_block", candidate)
-  #         # Disconnect if count is greater than max_peers_conn
-  #         if NetworkNodes.count() > @max_peers_conn do
-  #           NetworkNodes.disconnect(node_id, socket)
-  #         end
-  #     end
-  #   end
-  # end
+        true ->
+          NetworkNodes.cast(node_id, "msg_block", candidate)
+          # Disconnect if count is greater than max_peers_conn
+          if NetworkNodes.count() > @max_peers_conn do
+            node = NetworkNodes.info(node_id)
+            NetworkNodes.disconnect(node)
+          end
+      end
+    end
+  end
 
   defp check_votes(%{
          round_id: round_id,

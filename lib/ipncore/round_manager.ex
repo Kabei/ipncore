@@ -168,8 +168,8 @@ defmodule RoundManager do
           round_id: round_id,
           round_hash: prev_hash,
           db_ref: db_ref,
-          rcid: rcid,
-          vid: vid
+          rcid: rcid
+          # vid: vid
           # total: _total_players
         } = state
       ) do
@@ -185,9 +185,10 @@ defmodule RoundManager do
             {:noreply, state, :hibernate}
 
           _error ->
+            pid = self()
             round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
-            incomplete(round_nulled, self(), db_ref, true)
-            GenServer.cast(self(), {"msg_round", round_nulled, vid})
+            incomplete(round_nulled, pid, db_ref, true)
+            # GenServer.cast(self(), {"msg_round", round_nulled, vid})
             {:noreply, state, :hibernate}
         end
 

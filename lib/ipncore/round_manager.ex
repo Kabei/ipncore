@@ -477,7 +477,7 @@ defmodule RoundManager do
          state = %{
            ets_votes: ets_votes,
            rRef: rRef,
-           total_players: total_players,
+           total: total_players,
            vote_round_id: vote_round_id
          }
        ) do

@@ -1033,27 +1033,29 @@ defmodule RoundManager do
     :ets.info(ets_players, :size)
   end
 
-  defp send_block(%{
+  defp spawn_send_block(%{
          rcid: node_id,
          rc_node: validator_node
        }) do
-    candidate = BlockTimer.get_block()
+    spawn_link(fn ->
+      candidate = BlockTimer.get_block()
 
-    if candidate do
-      case NetworkNodes.connect(validator_node, retry: 1) do
-        false ->
-          Logger.warning("It was not possible to connect to the round creator (send_block)")
-          :error
+      if candidate do
+        case NetworkNodes.connect(validator_node, retry: 1) do
+          false ->
+            Logger.warning("It was not possible to connect to the round creator (send_block)")
+            :error
 
-        true ->
-          NetworkNodes.cast(node_id, "msg_block", candidate)
-          # Disconnect if count is greater than max_peers_conn
-          if NetworkNodes.count() > @max_peers_conn do
-            node = NetworkNodes.info(node_id)
-            NetworkNodes.disconnect(node)
-          end
+          true ->
+            NetworkNodes.cast(node_id, "msg_block", candidate)
+            # Disconnect if count is greater than max_peers_conn
+            if NetworkNodes.count() > @max_peers_conn do
+              node = NetworkNodes.info(node_id)
+              NetworkNodes.disconnect(node)
+            end
+        end
       end
-    end
+    end)
   end
 
   defp check_votes(%{

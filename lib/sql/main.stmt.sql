@@ -137,10 +137,10 @@ SELECT * FROM blockchain.round ORDER BY id DESC LIMIT 1;
 INSERT INTO assets.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16);
 
 --name: total_players
-SELECT count(1) FROM assets.validator WHERE active = 1 AND failures < 6;
+SELECT count(1) FROM assets.validator WHERE active = 1;
 
 --name: get_players
-SELECT * FROM assets.validator WHERE active = 1 AND failures < 6;
+SELECT * FROM assets.validator WHERE active = 1;
 
 --name: get_validator
 SELECT * FROM assets.validator WHERE id = ? LIMIT 1;

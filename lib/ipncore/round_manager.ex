@@ -512,10 +512,10 @@ defmodule RoundManager do
         IO.puts("Vote ##{id}")
 
         spawn_build_foreign_round(state, msg_round)
-        {:reply, %{state | vote_round_id: vote_round_id + 1}}
+        {:noreply, %{state | vote_round_id: vote_round_id + 1}}
 
       true ->
-        {:reply, state}
+        {:noreply, state}
     end
   end
 

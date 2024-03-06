@@ -103,7 +103,7 @@ defmodule Ippan.Funx.Service do
     %{env: env} = Token.get(token_id)
     tax = round(amount * Map.get(env, "service.tax", 0))
 
-    BalanceStore.pay service_id, token_id, amount, tfees do
+    BalanceStore.pay2 [{service_id, token_id, amount}, {account_id, @token, tfees}] do
       total = amount - tax
 
       if total > 0 do

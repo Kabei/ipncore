@@ -100,6 +100,27 @@ defmodule BalanceStore do
     end
   end
 
+  defmacro pay2(outputs, do: expression) do
+    quote bind_quoted: [outputs: outputs, expression: expression],
+          location: :keep do
+      Enum.reduce_while(outputs, [], fn {from, token, amount}, acc ->
+        balance = BalanceStore.load(from, token)
+
+        if DetsPlux.update_counter(var!(tx), balance, {2, -amount}) >= 0 do
+          DetsPlux.update_counter(var!(tx), balance, {2, amount})
+          Enum.each(acc, fn {b, a} -> DetsPlux.update_counter(var!(tx), b, {2, a}) end)
+          {:cont, [{balance, amount} | acc]}
+        else
+          {:halt, :error}
+        end
+      end)
+      |> case do
+        :error -> :error
+        _ -> expression
+      end
+    end
+  end
+
   defmacro send(to, token, amount) do
     quote bind_quoted: [to: to, token: token, amount: amount], location: :keep do
       balance = DetsPlux.tuple(to, token)

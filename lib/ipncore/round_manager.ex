@@ -860,7 +860,9 @@ defmodule RoundManager do
         max = EnvStore.max_failures()
 
         if max != 0 do
-          if rem(Validator.incr_failure(creator_id, 1, round_id), max) == 0 do
+          number = Validator.incr_failure(creator_id, 1, round_id)
+
+          if number != nil and rem(number, max) == 0 do
             Validator.disable(creator_id, round_id)
           end
         end

@@ -98,7 +98,7 @@ defmodule RoundManager do
        total: total_players,
        rRef: nil,
        tRef: nil,
-       ttr: @max_time_to_request,
+       ttr: @min_time_to_request,
        vid: vid
      }, {:continue, :next}}
   end
@@ -167,7 +167,7 @@ defmodule RoundManager do
         %{
           round_id: round_id,
           round_hash: prev_hash,
-          # db_ref: db_ref,
+          db_ref: db_ref,
           rcid: rcid,
           vid: vid
           # total: _total_players
@@ -182,10 +182,13 @@ defmodule RoundManager do
         case RoundTask.sync_to_round_creator(state) do
           {:ok, response, node_id} ->
             GenServer.cast(self(), {"msg_round", response, node_id})
+            {:noreply, state, :hibernate}
 
           _error ->
             round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
+            incomplete(round_nulled, self(), db_ref, true)
             GenServer.cast(self(), {"msg_round", round_nulled, vid})
+            {:noreply, state, :hibernate}
         end
 
       # IO.inspect(r)
@@ -212,9 +215,8 @@ defmodule RoundManager do
       message ->
         IO.puts("sync_to_round_creator #{inspect(message)}")
         spawn_build_foreign_round(state, message)
+        {:noreply, %{state | ttr: @min_time_to_request}, :hibernate}
     end
-
-    {:noreply, state, :hibernate}
   end
 
   def handle_info(

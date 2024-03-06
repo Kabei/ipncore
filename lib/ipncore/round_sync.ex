@@ -78,7 +78,7 @@ defmodule RoundSync do
         } =
           state
       ) do
-    if round_id < target_id do
+    if round_id <= target_id do
       case NetworkNodes.call(node_id, "get_rounds", %{
              "limit" => @offset,
              "offset" => offset,
@@ -128,7 +128,7 @@ defmodule RoundSync do
       {
         :noreply,
         Map.drop(state, ~w(offset starts target)a),
-        {:continue, {:after, :ets.first(state.queue), node}}
+        {:continue, {:after, :ets.next(state.queue, round_id), node}}
       }
     end
   end

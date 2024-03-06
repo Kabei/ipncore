@@ -24,12 +24,13 @@ defmodule RoundManager do
   @app Mix.Project.config()[:app]
   @miner_pool :miner_pool
   @pubsub :pubsub
+  @validator_topic "validator"
   @token Application.compile_env(@app, :token)
   @timeout Application.compile_env(@app, :round_timeout)
   # @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
   @min_time_to_request 0
-  @max_time_to_request 7_000
+  @max_time_to_request 6_000
 
   def start_link(args) do
     case System.get_env("test") do
@@ -66,7 +67,7 @@ defmodule RoundManager do
 
     # Subscribe
     PubSub.subscribe(@pubsub, "validator")
-    PubSub.subscribe(@pubsub, "env")
+    # PubSub.subscribe(@pubsub, "env")
 
     # Get all players
     players = Sqlite.all("get_players")
@@ -99,7 +100,8 @@ defmodule RoundManager do
        rRef: nil,
        tRef: nil,
        ttr: @min_time_to_request,
-       vid: vid
+       vid: vid,
+       vote_round_id: current_round_id
      }, {:continue, :next}}
   end
 
@@ -167,10 +169,9 @@ defmodule RoundManager do
         %{
           round_id: round_id,
           round_hash: prev_hash,
-          db_ref: db_ref,
-          rcid: rcid
-          # vid: vid
-          # total: _total_players
+          # db_ref: db_ref,
+          rcid: rcid,
+          vid: vid
         } = state
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
@@ -185,10 +186,8 @@ defmodule RoundManager do
             {:noreply, state, :hibernate}
 
           _error ->
-            pid = self()
             round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
-            incomplete(round_nulled, pid, db_ref, true)
-            # GenServer.cast(self(), {"msg_round", round_nulled, vid})
+            GenServer.cast(self(), {"msg_round", round_nulled, vid})
             {:noreply, state, :hibernate}
         end
 
@@ -291,12 +290,14 @@ defmodule RoundManager do
 
     # Set last local height and prev hash and reset timer
     BlockTimer.complete(blocks)
+    next_id = the_round_id + 1
 
     {:noreply,
      %{
        state
        | block_id: block_id + length(round.blocks),
-         round_id: the_round_id + 1,
+         round_id: next_id,
+         vote_round_id: next_id,
          round_hash: round.hash
      }, {:continue, :next}}
   end
@@ -332,7 +333,10 @@ defmodule RoundManager do
       "data" => creator_id
     })
 
-    {:noreply, %{state | round_id: round_id + 1, round_hash: hash, total: total_players},
+    next_id = round_id + 1
+
+    {:noreply,
+     %{state | round_id: next_id, vote_round_id: next_id, round_hash: hash, total: total_players},
      {:continue, :next}}
   end
 
@@ -344,6 +348,7 @@ defmodule RoundManager do
             blocks: blocks,
             creator: creator_id,
             hash: hash,
+            status: status,
             signature: signature,
             timestamp: timestamp,
             prev: prev
@@ -354,73 +359,74 @@ defmodule RoundManager do
           db_ref: db_ref,
           players: ets_players,
           votes: ets_votes,
-          round_id: round_id,
-          status: status,
-          total: total_players,
-          vid: vid,
-          rRef: rRef
+          # round_id: round_id,
+          status: :synced,
+          # total: total_players,
+          # vid: vid,
+          # rRef: rRef,
+          vote_round_id: vote_round_id
         } =
           state
-      ) do
+      )
+      when vote_round_id == id do
     Logger.debug(inspect(msg_round))
-    same_id = id == round_id
+
     last_round = Round.get(id - 1) || %{hash: nil}
 
-    with false <- :ets.member(ets_votes, {id, node_id, :vote}),
-         true <- last_round.hash == prev,
-         true <- EnvStore.block_limit() >= length(blocks),
-         [{_, player}] <- :ets.lookup(ets_players, creator_id),
-         hashes <- Enum.map(blocks, & &1.hash),
-         true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
-         true <-
-           (status > 0 and signature == nil) or
-             Cafezinho.Impl.verify(signature, hash, player.pubkey) == :ok,
-         true <- blocks_verificacion(blocks, db_ref) do
-      :ets.insert_new(ets_votes, {{id, node_id, :vote}, nil})
+    cond do
+      :ets.member(ets_votes, {id, node_id, :vote}) ->
+        {:noreply, state}
 
-      count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
+      :ets.member(ets_votes, {id, hash}) ->
+        IO.puts("#{id} = #{vote_round_id} | single")
+        do_vote(msg_round, node_id, state)
 
-      IO.puts("#{id} = #{round_id}")
-      next = status == :synced
-
-      if same_id do
-        :timer.cancel(rRef)
-        n = NetworkNodes.count()
-        IO.puts("n = #{n} | count = #{count}")
-
-        if next do
-          cond do
-            total_players == count or
-                count == div(n, 2) + 1 ->
-              IO.puts("Vote ##{id}")
-
-              spawn_build_foreign_round(state, msg_round)
-
-            true ->
-              nil
-          end
+      true ->
+        with true <- last_round.hash == prev,
+             true <- EnvStore.block_limit() >= length(blocks),
+             [{_, player}] <- :ets.lookup(ets_players, creator_id),
+             hashes <- Enum.map(blocks, & &1.hash),
+             true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
+             true <-
+               (status > 0 and signature == nil) or
+                 Cafezinho.Impl.verify(signature, hash, player.pubkey) == :ok,
+             true <- blocks_verificacion(blocks, db_ref) do
+          IO.puts("#{id} = #{vote_round_id} | first")
+          do_vote(msg_round, node_id, state)
+        else
+          _ ->
+            {:noreply, state}
         end
+    end
+  end
 
-        if node_id != vid do
-          :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
-        end
+  def handle_cast(
+        {"msg_round", %{id: id, hash: hash}, node_id},
+        %{db_ref: db_ref, vote_round_id: vote_round_id} = state
+      )
+      when vote_round_id > id do
+    case Round.get(id) do
+      round = %{hash: rhash} when rhash == hash ->
+        NetworkNodes.cast(node_id, "msg_round", round)
+        {:noreply, state}
 
-        if vid != creator_id do
-          # Replicate message to rest of nodes except creator and sender
-          except = if node_id != creator_id, do: [node_id], else: []
+      _ ->
+        {:noreply, state}
+    end
+  end
 
-          NetworkNodes.broadcast_except(
-            %{"event" => "msg_round", "data" => msg_round},
-            except
-          )
-        end
-      else
-        unless next do
-          RoundSync.add_queue(msg_round)
-        end
-      end
+  def handle_cast(
+        {"msg_round", msg = %{id: id}, _node_id},
+        %{round_id: round_id, status: :startup} = state
+      ) do
+    if round_id >= id do
+      RoundSync.add_queue(msg)
     end
 
+    {:noreply, state}
+  end
+
+  def handle_cast({"msg_round", _, _node_id}, state) do
     {:noreply, state}
   end
 
@@ -462,6 +468,54 @@ defmodule RoundManager do
       {:noreply, new_state, {:continue, :next}}
     else
       {:noreply, %{state | status: status}, :hibernate}
+    end
+  end
+
+  defp do_vote(
+         msg_round = %{id: id, creator: creator_id, hash: hash},
+         node_id,
+         state = %{
+           ets_votes: ets_votes,
+           rRef: rRef,
+           total_players: total_players,
+           vote_round_id: vote_round_id
+         }
+       ) do
+    :ets.insert(ets_votes, {{id, node_id, :vote}, nil})
+    count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
+    n = NetworkNodes.count()
+
+    is_creator = creator_id == node_id
+
+    if is_creator do
+      :timer.cancel(rRef)
+    end
+
+    cond do
+      count == 1 ->
+        # Replicate message to rest of nodes except creator and sender
+        # except = if node_id != creator_id, do: [node_id], else: []
+        NetworkNodes.broadcast(%{"event" => "msg_round", "data" => msg_round})
+
+      true ->
+        NetworkNodes.cast(node_id, "msg_round", msg_round)
+    end
+
+    if count == 0 do
+    end
+
+    IO.puts("n = #{n} | count = #{count}")
+
+    cond do
+      total_players == count or
+          count == div(n, 2) + 1 ->
+        IO.puts("Vote ##{id}")
+
+        spawn_build_foreign_round(state, msg_round)
+        {:reply, %{state | vote_round_id: vote_round_id + 1}}
+
+      true ->
+        {:reply, state}
     end
   end
 
@@ -864,6 +918,13 @@ defmodule RoundManager do
 
           if number != nil and rem(number, max) == 0 do
             Validator.disable(creator_id, round_id)
+
+            event = %{
+              "event" => "validator.active",
+              "data" => %{"id" => creator_id, "active" => false}
+            }
+
+            PubSub.broadcast(@pubsub, @validator_topic, event)
           end
         end
 

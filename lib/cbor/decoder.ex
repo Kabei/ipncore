@@ -1,4 +1,6 @@
 defmodule CBOR.Decoder do
+  def decode(nil), do: {nil, ""}
+
   def decode(binary) do
     decode(binary, header(binary))
   end

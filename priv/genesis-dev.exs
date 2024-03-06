@@ -109,7 +109,7 @@ owner = "@ippan"
     %Validator{
       avatar: nil,
       created_at: 0,
-      fa: 0,
+      fa: 1,
       failures: 0,
       fb: 1,
       hostname: "opasy.com",
@@ -125,7 +125,7 @@ owner = "@ippan"
     %Validator{
       avatar: nil,
       created_at: 0,
-      fa: 0,
+      fa: 1,
       failures: 0,
       fb: 1,
       hostname: "ippan.co.uk",

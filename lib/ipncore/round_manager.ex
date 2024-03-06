@@ -435,7 +435,9 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast({"msg_round", _, _node_id}, state) do
+  def handle_cast({"msg_round", msg_round, _node_id}, state) do
+    Logger.debug("No match message")
+    Logger.debug(inspect(msg_round))
     {:noreply, state}
   end
 

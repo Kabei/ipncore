@@ -31,7 +31,7 @@ defmodule Ippan.BlockHandler do
 
     cond do
       File.exists?(decode_path) and File.exists?(block_path) ->
-        IO.inspect("Already exists blockFiles")
+        IO.inspect("Already exists blockFile")
         {:ok, file_info} = File.stat(block_path)
 
         {:ok, content} = File.read(block_path)

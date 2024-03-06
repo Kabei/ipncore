@@ -104,18 +104,12 @@ defmodule RoundTask do
        }) do
     if vid != node_id do
       # connect to round creator
-      case NetworkNodes.connect(validator_node, retry: 3) do
+      case NetworkNodes.connect(validator_node, retry: 2) do
         false ->
           Logger.warning("It was not possible to connect to the round creator")
           :error
 
         true ->
-          # candidate = BlockTimer.get_block()
-
-          # if candidate do
-          #   NetworkNodes.cast(node_id, "msg_block", candidate)
-          # end
-
           case NetworkNodes.call(node_id, "get_round", round_id) do
             {:ok, response} when is_map(response) ->
               Logger.debug("From get_round")

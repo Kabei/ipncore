@@ -185,14 +185,16 @@ defmodule RoundManager do
       nil ->
         IO.puts("no votes")
 
-        case RoundTask.sync_to_round_creator(state) do
-          {:ok, response, node_id} ->
-            GenServer.cast(self(), {"msg_round", response, node_id})
+        pid = self()
 
-          _error ->
-            round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
-            GenServer.cast(self(), {"msg_round", round_nulled, vid})
-        end
+        # case RoundTask.sync_to_round_creator(state) do
+        #   {:ok, response, node_id} ->
+        #     GenServer.cast(pid, {"msg_round", response, node_id})
+
+        #   _error ->
+        #   end
+        round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
+        GenServer.cast(pid, {"msg_round", round_nulled, vid})
 
         {:noreply, %{state | ttr: @min_time_to_request}, :hibernate}
 
@@ -365,6 +367,7 @@ defmodule RoundManager do
           players: ets_players,
           votes: ets_votes,
           # round_id: round_id,
+          # hash: round_hash,
           rcid: rcid,
           status: :synced,
           # total: total_players,

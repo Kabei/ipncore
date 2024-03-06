@@ -501,9 +501,6 @@ defmodule RoundManager do
         NetworkNodes.cast(node_id, "msg_round", msg_round)
     end
 
-    if count == 0 do
-    end
-
     IO.puts("n = #{n} | count = #{count}")
 
     cond do

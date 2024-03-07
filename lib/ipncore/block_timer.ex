@@ -78,7 +78,7 @@ defmodule BlockTimer do
             {:reply, nil, state}
 
           block ->
-            %{state | candidate: block, height: height + 1, prev: block.hash}
+            {:reply, block, %{state | candidate: block, height: height + 1, prev: block.hash}}
         end
 
       candidate ->

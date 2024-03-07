@@ -137,7 +137,7 @@ defmodule RoundManager do
 
     if new_state.turn do
       spawn_build_local_round(new_state)
-      {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+      # {:ok, tRef} = :timer.send_after(@timeout, :timeout)
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
@@ -1092,7 +1092,9 @@ defmodule RoundManager do
             :ets.delete(ets_votes, key)
             GenServer.cast(pid, {"msg_round", msg_round, node_id})
 
-          _x ->
+          x ->
+            Logger.debug("No recognized")
+            Logger.debug(inspect(x))
             nil
         end)
     end

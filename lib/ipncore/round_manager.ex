@@ -373,9 +373,9 @@ defmodule RoundManager do
           db_ref: db_ref,
           players: ets_players,
           votes: ets_votes,
-          # round_id: round_id,
+          round_id: round_id,
           round_hash: round_hash,
-          # rcid: rcid,
+          rcid: rcid,
           status: :synced,
           # total: total_players,
           # vid: vid,
@@ -384,8 +384,7 @@ defmodule RoundManager do
         } =
           state
       )
-      when vote_round_id == id do
-      # and round_id == vote_round_id and creator_id == rcid do
+      when vote_round_id == id and round_id == vote_round_id and creator_id == rcid do
     Logger.debug(inspect(msg_round))
 
     cond do

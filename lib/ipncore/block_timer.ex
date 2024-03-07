@@ -67,7 +67,13 @@ defmodule BlockTimer do
 
   @impl true
   def handle_call(:get, _from, state) do
-    {:reply, state.candidate, state}
+    case state.candidate do
+      nil ->
+        {:reply, do_check(state, 0), state}
+
+      candidate ->
+        {:reply, candidate, state}
+    end
   end
 
   def handle_call({:get, current_block_id}, _from, %{block_id: block_id, candidate: nil} = state) do

@@ -1095,8 +1095,8 @@ defmodule RoundManager do
             :ets.delete(ets_votes, key)
             GenServer.cast(pid, {"msg_round", node_id, msg_round})
 
-          _ ->
-            nil
+          x ->
+            IO.inspect(x)
         end)
     end
   end

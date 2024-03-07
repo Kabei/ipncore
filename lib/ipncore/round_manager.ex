@@ -451,7 +451,7 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast({"msg_round", _node_id, msg_round}, state) do
+  def handle_cast({"msg_round", msg_round, _node_id}, state) do
     Logger.debug("No match message")
     Logger.debug(inspect(msg_round))
     IO.inspect(state)
@@ -1087,7 +1087,7 @@ defmodule RoundManager do
         Enum.each(data, fn
           {{_, node_id, _msg} = key, msg_round} ->
             :ets.delete(ets_votes, key)
-            GenServer.cast(pid, {"msg_round", node_id, msg_round})
+            GenServer.cast(pid, {"msg_round", msg_round, node_id})
 
           x ->
             IO.inspect(x)

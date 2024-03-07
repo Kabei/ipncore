@@ -145,7 +145,7 @@ owner = "@ippan"
       pubkey: pk,
       sig_type: 0,
       vid: 0,
-      fa: 0,
+      fa: 1,
       fb: 1
     }
   ]

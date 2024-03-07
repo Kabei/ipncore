@@ -138,7 +138,7 @@ defmodule RoundManager do
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
-      case retrive_messages(ets_votes, new_state.round_id) do
+      case retrieve_messages(ets_votes, new_state.round_id) do
         nil ->
           {:ok, tRef} = :timer.send_after(@timeout, :timeout)
           {:ok, rRef} = :timer.send_after(time_to_request, :request)

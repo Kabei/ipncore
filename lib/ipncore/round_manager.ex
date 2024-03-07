@@ -126,7 +126,10 @@ defmodule RoundManager do
     {:noreply, state, :hibernate}
   end
 
-  def handle_continue(:next, %{rRef: rRef, tRef: tRef, ttr: time_to_request, votes: ets_votes} = state) do
+  def handle_continue(
+        :next,
+        %{rRef: rRef, tRef: tRef, ttr: time_to_request, votes: ets_votes} = state
+      ) do
     IO.puts("RM next")
     :timer.cancel(rRef)
     :timer.cancel(tRef)
@@ -148,18 +151,18 @@ defmodule RoundManager do
           end
 
           {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
-          :ok ->
 
-        case check_votes(new_state) do
-          nil ->
-            {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-            {:ok, rRef} = :timer.send_after(time_to_request, :request)
-            {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
+        :ok ->
+          case check_votes(new_state) do
+            nil ->
+              {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+              {:ok, rRef} = :timer.send_after(time_to_request, :request)
+              {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
 
-          message ->
-            spawn_build_foreign_round(new_state, message)
-            {:noreply, new_state, :hibernate}
-        end
+            message ->
+              spawn_build_foreign_round(new_state, message)
+              {:noreply, new_state, :hibernate}
+          end
       end
     end
   end
@@ -441,7 +444,11 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast({"msg_round", msg_round = %{round_id: id}, node_id}, state = %{round_id: round_id, votes: ets_votes}) when id > round_id do
+  def handle_cast(
+        {"msg_round", msg_round = %{id: id}, node_id},
+        state = %{round_id: round_id, votes: ets_votes}
+      )
+      when id > round_id do
     :ets.insert(ets_votes, {{id, node_id, :msg}, msg_round})
     {:noreply, state}
   end
@@ -1052,15 +1059,19 @@ defmodule RoundManager do
 
   defp retrieve_messages(ets_votes, round_id) do
     match = [{{round_id, :_, :msg}, [], [:"$_"]}]
+    Logger.debug("Retrieve messages")
     case :ets.select(ets_votes, match) do
-      [] -> nil
-        data ->
-          pid = self()
-          Enum.each(data, fn {{_, node_id, _msg} = key, msg} ->
-            :ets.delete(ets_votes, key)
-            GenServer.cast(pid, {"msg_round", node_id, msg})
-          end)
+      [] ->
+        nil
 
+      data ->
+        Logger.debug("some data")
+        pid = self()
+
+        Enum.each(data, fn {{_, node_id, _msg} = key, msg} ->
+          :ets.delete(ets_votes, key)
+          GenServer.cast(pid, {"msg_round", node_id, msg})
+        end)
     end
   end
 

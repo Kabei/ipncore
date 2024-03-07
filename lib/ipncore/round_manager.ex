@@ -552,6 +552,7 @@ defmodule RoundManager do
     |> Enum.each(fn
       {{x, _, _} = k, _} when x <= round_id -> :ets.delete(ets_votes, k)
       {{x, _} = k, _} when x <= round_id -> :ets.delete(ets_votes, k)
+      _ -> nil
     end)
 
     # :ets.select_delete(ets_votes, [{{{:"$1", :_, :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])

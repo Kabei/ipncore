@@ -449,6 +449,8 @@ defmodule RoundManager do
         state = %{round_id: round_id, votes: ets_votes}
       )
       when id > round_id do
+    Logger.debug("Id is high")
+    Logger.debug(inspect(msg_round))
     :ets.insert(ets_votes, {{id, node_id, :msg}, msg_round})
     {:noreply, state}
   end
@@ -1058,8 +1060,9 @@ defmodule RoundManager do
   end
 
   defp retrieve_messages(ets_votes, round_id) do
-    match = [{{round_id, :_, :msg}, [], [:"$_"]}]
+    match = [{{{round_id, :_, :msg}, :_}, [], [:"$_"]}]
     Logger.debug("Retrieve messages")
+
     case :ets.select(ets_votes, match) do
       [] ->
         nil

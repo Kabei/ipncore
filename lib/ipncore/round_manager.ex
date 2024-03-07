@@ -551,7 +551,7 @@ defmodule RoundManager do
     :ets.select_delete(ets_votes, [{{{:"$1", :_, :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
     |> IO.inspect()
 
-    :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_}, [{:"=<", :"$1", 1}], [true]}])
+    :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
     |> IO.inspect()
 
     :ets.delete_all_objects(ets_candidates)

@@ -295,9 +295,7 @@ defmodule RoundManager do
     # Clear round-message-votes and block-candidates
     IO.puts("Before delete")
     :ets.tab2list(ets_votes) |> IO.inspect()
-    :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
-    :ets.select_delete(ets_votes, [{{{round_id, :_, :_}, :_}, [], [true]}])
-    :ets.delete_all_objects(ets_candidates)
+    delete_old_votes(ets_votes, ets_candidates, round_id)
 
     # replicate data to cluster nodes
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
@@ -320,15 +318,19 @@ defmodule RoundManager do
         {:incomplete,
          %{id: round_id, hash: hash, creator: creator_id, status: round_status} = round_nulled},
         %{
+          candidates: ets_candidates,
           players: ets_players,
-          status: _status,
           round_id: round_id,
-          total: total_players
+          status: _status,
+          total: total_players,
+          votes: ets_votes
         } =
           state
       ) do
     # next = status == :synced
     Logger.debug("[Incomplete] Round ##{round_id} | Status: #{round_status}")
+
+    delete_old_votes(ets_votes, ets_candidates, round_id)
 
     # Delete player
     if total_players > 2 and round_status in 1..2 do
@@ -543,6 +545,16 @@ defmodule RoundManager do
       true ->
         {:noreply, state}
     end
+  end
+
+  defp delete_old_votes(ets_votes, ets_candidates, round_id) do
+    :ets.select_delete(ets_votes, [{{{:"$1", :_, :msg}, :_}, [{:"=<", :"$1", round_id}], [true]}])
+
+    :ets.select_delete(ets_votes, [{{{:"$1", :_, :vote}, :_}, [{:"=<", :"$1", round_id}], [true]}])
+
+    :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_}, [{:"=<", :"$1", 1}], [true]}])
+
+    :ets.delete_all_objects(ets_candidates)
   end
 
   @impl true
@@ -1057,11 +1069,10 @@ defmodule RoundManager do
 
   defp retrieve_messages(ets_votes, round_id) do
     match =
-      [{{{:"$_", :_, :msg}, :_}, [{:==, :"$_", round_id}], [:"$_"]}]
+      [{{{round_id, :_, :msg}, :_}, [], [:"$_"]}]
 
     Logger.debug("Retrieve messages #{round_id}")
 
-    IO.puts("Before delete")
     :ets.tab2list(ets_votes) |> IO.inspect()
 
     case :ets.select(ets_votes, match) do

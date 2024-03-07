@@ -367,7 +367,7 @@ defmodule RoundManager do
           players: ets_players,
           votes: ets_votes,
           # round_id: round_id,
-          # hash: round_hash,
+          hash: round_hash,
           rcid: rcid,
           status: :synced,
           # total: total_players,
@@ -380,8 +380,6 @@ defmodule RoundManager do
       when vote_round_id == id and creator_id == rcid do
     Logger.debug(inspect(msg_round))
 
-    last_round = Round.get(id - 1) || %{hash: nil}
-
     cond do
       :ets.member(ets_votes, {id, node_id, :vote}) ->
         {:noreply, state}
@@ -391,7 +389,7 @@ defmodule RoundManager do
         do_vote(msg_round, node_id, state)
 
       true ->
-        with true <- last_round.hash == prev,
+        with true <- round_hash == prev,
              true <- EnvStore.block_limit() >= length(blocks),
              [{_, player}] <- :ets.lookup(ets_players, creator_id),
              hashes <- Enum.map(blocks, & &1.hash),

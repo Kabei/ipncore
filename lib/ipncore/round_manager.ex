@@ -1075,8 +1075,8 @@ defmodule RoundManager do
   end
 
   defp retrieve_messages(ets_votes, round_id) do
-    match =
-      [{{{round_id, :_, :msg}, :_}, [], [:"$_"]}]
+    # match =
+    #   [{{{round_id, :_, :msg}, :_}, [], [:"$_"]}]
 
     Logger.debug("Retrieve messages #{round_id}")
 
@@ -1090,9 +1090,13 @@ defmodule RoundManager do
         Logger.debug("some data")
         pid = self()
 
-        Enum.each(data, fn {{_, node_id, _msg} = key, msg_round} ->
-          :ets.delete(ets_votes, key)
-          GenServer.cast(pid, {"msg_round", node_id, msg_round})
+        Enum.each(data, fn
+          {{_, node_id, _msg} = key, msg_round} ->
+            :ets.delete(ets_votes, key)
+            GenServer.cast(pid, {"msg_round", node_id, msg_round})
+
+          _ ->
+            nil
         end)
     end
   end

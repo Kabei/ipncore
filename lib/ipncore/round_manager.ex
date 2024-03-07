@@ -30,7 +30,7 @@ defmodule RoundManager do
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
   @min_time_to_request 0
-  @max_time_to_request 6_000
+  @max_time_to_request 4_000
 
   def start_link(args) do
     case System.get_env("test") do

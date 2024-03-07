@@ -159,11 +159,15 @@ defmodule RoundManager do
 
   @impl true
   def handle_info(:request, state) do
+    IO.inspect("request")
+
     case RoundTask.sync_to_round_creator(state) do
       :error ->
+        IO.inspect("nothing")
         {:noreply, %{state | ttr: @max_time_to_request}}
 
       {:ok, response, node_id} ->
+        IO.inspect("get data request")
         GenServer.cast(self(), {"msg_round", response, node_id})
 
         {:noreply, %{state | ttr: @min_time_to_request}}
@@ -1053,7 +1057,7 @@ defmodule RoundManager do
     match =
       [{{{:"$_", :_, :msg}, :_}, [{:==, :"$_", round_id}], [:"$_"]}]
 
-    Logger.debug("Retrieve messages")
+    Logger.debug("Retrieve messages #{round_id}")
 
     case :ets.select(ets_votes, match) do
       [] ->

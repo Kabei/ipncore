@@ -293,8 +293,6 @@ defmodule RoundManager do
     Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(hash)}")
 
     # Clear round-message-votes and block-candidates
-    IO.puts("Before delete")
-    :ets.tab2list(ets_votes) |> IO.inspect()
     delete_old_votes(ets_votes, ets_candidates, round_id)
 
     # replicate data to cluster nodes
@@ -548,11 +546,13 @@ defmodule RoundManager do
   end
 
   defp delete_old_votes(ets_votes, ets_candidates, round_id) do
-    :ets.select_delete(ets_votes, [{{{:"$1", :_, :msg}, :_}, [{:"=<", :"$1", round_id}], [true]}])
+    IO.puts("Before delete")
 
-    :ets.select_delete(ets_votes, [{{{:"$1", :_, :vote}, :_}, [{:"=<", :"$1", round_id}], [true]}])
+    :ets.select_delete(ets_votes, [{{{:"$1", :_, :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
+    |> IO.inspect()
 
     :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_}, [{:"=<", :"$1", 1}], [true]}])
+    |> IO.inspect()
 
     :ets.delete_all_objects(ets_candidates)
   end
@@ -1073,7 +1073,7 @@ defmodule RoundManager do
 
     Logger.debug("Retrieve messages #{round_id}")
 
-    :ets.tab2list(ets_votes) |> IO.inspect()
+    :ets.info(ets_votes, :size) |> IO.inspect()
 
     case :ets.select(ets_votes, match) do
       [] ->

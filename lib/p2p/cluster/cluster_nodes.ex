@@ -44,7 +44,7 @@ defmodule Ippan.ClusterNodes do
         [false, body, return],
         _state
       ) do
-    status = :persistent_term.get(:status)
+    status = :persistent_term.get(:status, nil)
 
     if status == :synced do
       Mempool.regular(body, return)
@@ -58,7 +58,7 @@ defmodule Ippan.ClusterNodes do
         [true, body, return],
         _state
       ) do
-    status = :persistent_term.get(:status)
+    status = :persistent_term.get(:status, nil)
 
     if status == :synced do
       Mempool.deferred(body, return)

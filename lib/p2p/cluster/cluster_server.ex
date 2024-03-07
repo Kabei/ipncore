@@ -10,7 +10,7 @@ defmodule Ippan.ClusterServer do
   def handle_connection(socket, state) do
     # Logger.debug("handle_connection #{inspect(state)}")
     tcp_socket = socket.socket
-    synced = :persistent_term.get(:status) == :synced
+    synced = :persistent_term.get(:status, nil) == :synced
 
     if synced do
       case P2P.server_handshake(

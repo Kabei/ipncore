@@ -126,7 +126,7 @@ defmodule RoundManager do
     {:noreply, state, :hibernate}
   end
 
-  def handle_continue(:next, %{rRef: rRef, tRef: tRef, ttr: time_to_request} = state) do
+  def handle_continue(:next, %{rRef: rRef, tRef: tRef, ttr: time_to_request, votes: ets_votes} = state) do
     IO.puts("RM next")
     :timer.cancel(rRef)
     :timer.cancel(tRef)
@@ -138,7 +138,7 @@ defmodule RoundManager do
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
-      case check_votes(new_state) do
+      case retrive_messages(ets_votes, new_state.round_id) do
         nil ->
           {:ok, tRef} = :timer.send_after(@timeout, :timeout)
           {:ok, rRef} = :timer.send_after(time_to_request, :request)
@@ -148,11 +148,33 @@ defmodule RoundManager do
           end
 
           {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
+          :ok ->
 
-        message ->
-          spawn_build_foreign_round(new_state, message)
-          {:noreply, new_state, :hibernate}
+        case check_votes(new_state) do
+          nil ->
+            {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+            {:ok, rRef} = :timer.send_after(time_to_request, :request)
+            {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
+
+          message ->
+            spawn_build_foreign_round(new_state, message)
+            {:noreply, new_state, :hibernate}
+        end
       end
+    end
+  end
+
+  defp retrive_messages(ets_votes, round_id) do
+    match = [{{round_id, :_, :msg}, [], [:"$_"]}]
+    case :ets.select(ets_votes, match) do
+      [] -> nil
+        data ->
+          pid = self()
+          Enum.each(data, fn {{_, node_id, _msg} = key, msg} ->
+            :ets.delete(ets_votes, key)
+            GenServer.cast(pid, {"msg_round", node_id, msg})
+          end)
+
     end
   end
 
@@ -366,7 +388,7 @@ defmodule RoundManager do
           db_ref: db_ref,
           players: ets_players,
           votes: ets_votes,
-          # round_id: round_id,
+          round_id: round_id,
           # hash: round_hash,
           rcid: rcid,
           status: :synced,
@@ -377,7 +399,7 @@ defmodule RoundManager do
         } =
           state
       )
-      when vote_round_id == id and creator_id == rcid do
+      when vote_round_id == id and round_id == vote_round_id and creator_id == rcid do
     Logger.debug(inspect(msg_round))
 
     last_round = Round.get(id - 1) || %{hash: nil}
@@ -435,6 +457,11 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
+  def handle_cast({"msg_round", msg_round = %{round_id: id}, node_id}, state = %{round_id: round_id, votes: ets_votes}) when id > round_id do
+    :ets.insert(ets_votes, {{id, node_id, :msg}, msg_round})
+    {:noreply, state}
+  end
+
   def handle_cast({"msg_round", msg_round, _node_id}, state) do
     Logger.debug("No match message")
     Logger.debug(inspect(msg_round))
@@ -459,20 +486,21 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast({:status, status, next}, state) do
+  def handle_cast({:status, status, next}, state = %{db_ref: db_ref}) do
     IO.puts("Set status: #{status} - #{next}")
     :persistent_term.put(:status, status)
 
     if next do
       # update state
-      db_ref = :persistent_term.get(:main_conn)
       %{id: round_id, hash: round_hash} = Round.last()
       block_id = Sqlite.one("last_block_id", [], -1)
+      next_id = round_id + 1
 
       new_state = %{
         state
         | block_id: block_id + 1,
-          round_id: round_id + 1,
+          round_id: next_id,
+          vote_round_id: next_id,
           round_hash: round_hash,
           status: status
       }

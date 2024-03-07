@@ -116,6 +116,9 @@ SELECT hash FROM blockchain.block WHERE round = ?1 ORDER BY id ASC;
 --name: total_round_blocks
 SELECT count(1) FROM blockchain.block WHERE round = ?;
 
+--name: delete_old_blocks
+DELETE FROM blockchain.block WHERE (creator, height) NOT IN (SELECT creator, MAX(height) FROM blockchain.block GROUP BY creator);
+
 
 --name: insert_round
 INSERT INTO blockchain.round VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);
@@ -131,6 +134,9 @@ SELECT * FROM blockchain.round WHERE id >= ?1 LIMIT ?2 OFFSET ?3;
 
 --name: last_round
 SELECT * FROM blockchain.round ORDER BY id DESC LIMIT 1;
+
+--name: delete_old_rounds
+DELETE FROM blockchain.round WHERE id NOT IN (SELECT MAX(id) FROM blockchain.round);
 
 
 --name: insert_validator

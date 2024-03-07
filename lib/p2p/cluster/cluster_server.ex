@@ -10,25 +10,26 @@ defmodule Ippan.ClusterServer do
   def handle_connection(socket, state) do
     # Logger.debug("handle_connection #{inspect(state)}")
     tcp_socket = socket.socket
-    synced = :persistent_term.get(:status, nil) == :synced
+    # synced = :persistent_term.get(:status, nil) == :synced
 
-    if synced do
-      case P2P.server_handshake(
-             tcp_socket,
-             :persistent_term.get(:net_privkey),
-             &ClusterNodes.fetch/1
-           ) do
-        {:ok, id, %{sharedkey: sharedkey} = node, timeout} ->
-          ClusterNodes.on_connect(id, node, @via)
+    # if synced do
+    case P2P.server_handshake(
+           tcp_socket,
+           :persistent_term.get(:net_privkey),
+           &ClusterNodes.fetch/1
+         ) do
+      {:ok, id, %{sharedkey: sharedkey} = node, timeout} ->
+        ClusterNodes.on_connect(id, node, @via)
 
-          {:continue, %{id: id, socket: tcp_socket, sharedkey: sharedkey}, timeout}
+        {:continue, %{id: id, socket: tcp_socket, sharedkey: sharedkey}, timeout}
 
-        _ ->
-          {:close, state}
-      end
-    else
-      {:close, state}
+      _ ->
+        {:close, state}
     end
+
+    # else
+    #   {:close, state}
+    # end
   end
 
   @impl ThousandIsland.Handler

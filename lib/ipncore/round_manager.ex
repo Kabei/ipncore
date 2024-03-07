@@ -293,6 +293,8 @@ defmodule RoundManager do
     Logger.debug("[completed] Round ##{the_round_id} | #{Base.encode16(hash)}")
 
     # Clear round-message-votes and block-candidates
+    IO.puts("Before delete")
+    :ets.tab2list(ets_votes) |> IO.inspect()
     :ets.select_delete(ets_votes, [{{{round_id, :_}, :_, :_}, [], [true]}])
     :ets.select_delete(ets_votes, [{{{round_id, :_, :_}, :_}, [], [true]}])
     :ets.delete_all_objects(ets_candidates)
@@ -1058,6 +1060,9 @@ defmodule RoundManager do
       [{{{:"$_", :_, :msg}, :_}, [{:==, :"$_", round_id}], [:"$_"]}]
 
     Logger.debug("Retrieve messages #{round_id}")
+
+    IO.puts("Before delete")
+    :ets.tab2list(ets_votes) |> IO.inspect()
 
     case :ets.select(ets_votes, match) do
       [] ->

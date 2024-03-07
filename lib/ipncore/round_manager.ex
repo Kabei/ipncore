@@ -128,7 +128,7 @@ defmodule RoundManager do
 
   def handle_continue(
         :next,
-        %{rRef: rRef, tRef: tRef, ttr: time_to_request, votes: ets_votes} = state
+        %{rRef: rRef, tRef: tRef, ttr: time_to_request} = state
       ) do
     IO.puts("RM next")
     :timer.cancel(rRef)
@@ -141,8 +141,6 @@ defmodule RoundManager do
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
-      retrieve_messages(ets_votes, new_state.round_id)
-
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
       {:ok, rRef} = :timer.send_after(time_to_request, :request)
 
@@ -150,8 +148,13 @@ defmodule RoundManager do
         spawn_send_block(new_state)
       end
 
-      {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
+      {:noreply, %{new_state | rRef: rRef, tRef: tRef}, {:continue, :retrieve}}
     end
+  end
+
+  def handle_continue(:retrieve, state = %{votes: ets_votes}) do
+    retrieve_messages(ets_votes, state.round_id)
+    {:noreply, state}
   end
 
   @impl true

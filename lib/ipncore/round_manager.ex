@@ -96,6 +96,7 @@ defmodule RoundManager do
        rc_node: nil,
        round_id: current_round_id,
        round_hash: round_hash,
+       round_candidate: nil,
        total: total_players,
        rRef: nil,
        tRef: nil,
@@ -308,6 +309,7 @@ defmodule RoundManager do
        | block_id: block_id + length(round.blocks),
          round_id: next_id,
          vote_round_id: next_id,
+         round_candidate: nil,
          round_hash: round.hash
      }, {:continue, :next}}
   end
@@ -350,8 +352,14 @@ defmodule RoundManager do
     next_id = round_id + 1
 
     {:noreply,
-     %{state | round_id: next_id, vote_round_id: next_id, round_hash: hash, total: total_players},
-     {:continue, :next}}
+     %{
+       state
+       | round_id: next_id,
+         vote_round_id: next_id,
+         round_candidate: nil,
+         round_hash: hash,
+         total: total_players
+     }, {:continue, :next}}
   end
 
   def handle_cast(
@@ -507,6 +515,10 @@ defmodule RoundManager do
     end
   end
 
+  def handle_cast({"round.candidate", round}, state) do
+    {:reply, %{state | round_candidate: round}}
+  end
+
   defp do_vote(
          msg_round = %{id: id, creator: creator_id, hash: hash},
          node_id,
@@ -556,6 +568,15 @@ defmodule RoundManager do
     :ets.select_delete(ets_votes, [{{{:"$1", :_, :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
     :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_, :_}, [{:"=<", :"$1", round_id}], [true]}])
     :ets.delete_all_objects(ets_candidates)
+  end
+
+  @impl true
+  def handle_call({:round, id}, _from, state = %{round_candidate: %{id: rid}}) when rid == id do
+    {:reply, state.round, state}
+  end
+
+  def handle_call({:round, _id}, _from, state) do
+    {:reply, nil, state}
   end
 
   @impl true
@@ -729,6 +750,7 @@ defmodule RoundManager do
       }
 
       # send message pre-build
+      GenServer.cast(pid, {"round.candidate", pre_round})
       NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
 
       if total_players == 1 do

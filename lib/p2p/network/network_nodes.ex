@@ -42,7 +42,14 @@ defmodule Ippan.NetworkNodes do
 
   def handle_request("get_round", id, _state) when is_integer(id) do
     db_ref = :persistent_term.get(:main_conn)
-    Round.get(id)
+
+    case Round.get(id) do
+      nil ->
+        GenServer.call(RoundManager, {:round, id}, 10_000)
+
+      r ->
+        r
+    end
   end
 
   def handle_request("last_round", _params, _state) do

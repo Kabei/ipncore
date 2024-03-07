@@ -97,7 +97,8 @@ defmodule Ippan.TxHandler do
         %{"fa" => fa, "fb" => fb} = account_map
         %{fa: vfa, fb: vfb} = var!(validator)
 
-        if fb != vfb or fa != vfa, do: raise(IppanError, "Invalid fees")
+        if type_of_verification != 2 and (fb != vfb or fa != vfa),
+          do: raise(IppanError, "Invalid fees")
       end
 
       TxHandler.check_signature!(sig_type, wallet_pk)
@@ -190,7 +191,8 @@ defmodule Ippan.TxHandler do
         %{"fa" => fa, "fb" => fb} = account_map
         %{fa: vfa, fb: vfb} = var!(validator)
 
-        if fb != vfb or fa != vfa, do: raise(IppanError, "Invalid fees")
+        if type_of_verification != 2 and (fb != vfb or fa != vfa),
+          do: raise(IppanError, "Invalid fees")
       end
 
       TxHandler.check_signature!(sig_type, wallet_pk)

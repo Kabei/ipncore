@@ -375,7 +375,7 @@ defmodule RoundManager do
           players: ets_players,
           votes: ets_votes,
           round_id: round_id,
-          hash: round_hash,
+          round_hash: round_hash,
           rcid: rcid,
           status: :synced,
           # total: total_players,

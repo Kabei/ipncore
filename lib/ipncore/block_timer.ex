@@ -66,10 +66,16 @@ defmodule BlockTimer do
   end
 
   @impl true
-  def handle_call(:get, _from, state) do
-    case state.candidate do
+  def handle_call(
+        :get,
+        _from,
+        %{candidate: candidate, vid: vid, height: height, prev: prev} = state
+      ) do
+    case candidate do
       nil ->
-        {:reply, do_check(state, 0), state}
+        block = BlockHandler.generate_files(vid, height, prev)
+
+        {:reply, block, %{state | candidate: block}}
 
       candidate ->
         {:reply, candidate, state}

@@ -463,16 +463,22 @@ defmodule RoundManager do
         state = %{
           db_ref: db_ref,
           candidates: ets_candidates,
-          status: status
+          status: :synced
         }
       ) do
-    with true <- status == :synced,
-         true <- :ets.info(ets_candidates, :size) < 5,
+    with false <- Block.exists_local?(creator_id, height),
+         true <- :ets.info(ets_candidates, :size) < 10,
          true <- Validator.exists?(creator_id),
          true <- block_verificacion(block, db_ref) do
       :ets.insert(ets_candidates, {{creator_id, height}, block})
     end
 
+    {:noreply, state}
+  end
+
+  def handle_cast({"msg_block", block, _node_id}, state) do
+    IO.inspect("block message no match")
+    IO.inspect(block)
     {:noreply, state}
   end
 

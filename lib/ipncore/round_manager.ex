@@ -548,7 +548,7 @@ defmodule RoundManager do
   defp delete_old_votes(ets_votes, ets_candidates, round_id) do
     IO.puts("Before delete")
 
-    :ets.file2tab(ets_votes)
+    :ets.tab2list(ets_votes)
     |> Enum.each(fn
       {{x, _, _} = k, _} when x <= round_id -> :ets.delete(ets_votes, k)
       {{x, _} = k, _} when x <= round_id -> :ets.delete(ets_votes, k)

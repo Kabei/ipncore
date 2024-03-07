@@ -141,29 +141,16 @@ defmodule RoundManager do
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
-      case retrieve_messages(ets_votes, new_state.round_id) do
-        nil ->
-          {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-          {:ok, rRef} = :timer.send_after(time_to_request, :request)
+      retrieve_messages(ets_votes, new_state.round_id)
 
-          if time_to_request != @min_time_to_request do
-            spawn_send_block(new_state)
-          end
+      {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+      {:ok, rRef} = :timer.send_after(time_to_request, :request)
 
-          {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
-
-        :ok ->
-          case check_votes(new_state) do
-            nil ->
-              {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-              {:ok, rRef} = :timer.send_after(time_to_request, :request)
-              {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
-
-            message ->
-              spawn_build_foreign_round(new_state, message)
-              {:noreply, new_state, :hibernate}
-          end
+      if time_to_request != @min_time_to_request do
+        spawn_send_block(new_state)
       end
+
+      {:noreply, %{new_state | rRef: rRef, tRef: tRef}, :hibernate}
     end
   end
 
@@ -455,7 +442,7 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast({"msg_round", msg_round, _node_id}, state) do
+  def handle_cast({"msg_round", _node_id, msg_round}, state) do
     Logger.debug("No match message")
     Logger.debug(inspect(msg_round))
     {:noreply, state}
@@ -1071,9 +1058,9 @@ defmodule RoundManager do
         Logger.debug("some data")
         pid = self()
 
-        Enum.each(data, fn {{_, node_id, _msg} = key, msg} ->
+        Enum.each(data, fn {{_, node_id, _msg} = key, msg_round} ->
           :ets.delete(ets_votes, key)
-          GenServer.cast(pid, {"msg_round", node_id, msg})
+          GenServer.cast(pid, {"msg_round", node_id, msg_round})
         end)
     end
   end

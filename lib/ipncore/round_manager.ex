@@ -1047,7 +1047,9 @@ defmodule RoundManager do
   end
 
   defp retrieve_messages(ets_votes, round_id) do
-    match = [{{{round_id, :_, :msg}, :_}, [], [:"$_"]}]
+    match =
+      [{{{:"$_", :_, :msg}, :_}, [{:==, :"$_", round_id}], [:"$_"]}]
+
     Logger.debug("Retrieve messages")
 
     case :ets.select(ets_votes, match) do

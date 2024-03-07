@@ -548,11 +548,17 @@ defmodule RoundManager do
   defp delete_old_votes(ets_votes, ets_candidates, round_id) do
     IO.puts("Before delete")
 
-    :ets.select_delete(ets_votes, [{{{:"$1", :_, :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
-    |> IO.inspect()
+    :ets.file2tab(ets_votes)
+    |> Enum.each(fn
+      {{x, _, _} = k, _} when x <= round_id -> :ets.delete(ets_votes, k)
+      {{x, _} = k, _} when x <= round_id -> :ets.delete(ets_votes, k)
+    end)
 
-    :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
-    |> IO.inspect()
+    # :ets.select_delete(ets_votes, [{{{:"$1", :_, :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
+    # |> IO.inspect()
+
+    # :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
+    # |> IO.inspect()
 
     :ets.delete_all_objects(ets_candidates)
   end
@@ -1075,7 +1081,7 @@ defmodule RoundManager do
 
     :ets.info(ets_votes, :size) |> IO.inspect()
 
-    case :ets.select(ets_votes, match) do
+    case :ets.tab2list(ets_votes) do
       [] ->
         nil
 

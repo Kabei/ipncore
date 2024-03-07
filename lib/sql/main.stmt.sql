@@ -90,7 +90,7 @@ INSERT INTO blockchain.block values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?
 SELECT 1 FROM blockchain.block WHERE id=? LIMIT 1;
 
 --name: exists_local_block
-SELECT 1 FROM blockchain.block WHERE creator=? AND height=? LIMIT 1;
+SELECT 1 FROM blockchain.block WHERE creator=?1 AND height=?2 LIMIT 1;
 
 --name: get_block
 SELECT * FROM blockchain.block WHERE id=? LIMIT 1;

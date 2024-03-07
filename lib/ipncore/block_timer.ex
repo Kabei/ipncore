@@ -7,7 +7,7 @@ defmodule BlockTimer do
   # @app Mix.Project.config()[:app]
   @module __MODULE__
   @min_time 750
-  @max_time 5_000
+  @max_time 2_000
 
   def start_link(args) do
     GenServer.start_link(@module, args, name: @module)

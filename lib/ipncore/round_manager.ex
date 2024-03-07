@@ -547,14 +547,8 @@ defmodule RoundManager do
   end
 
   defp delete_old_votes(ets_votes, ets_candidates, round_id) do
-    IO.puts("Before delete")
-
     :ets.select_delete(ets_votes, [{{{:"$1", :_, :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
-    |> IO.inspect()
-
     :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_, :_}, [{:"=<", :"$1", round_id}], [true]}])
-    |> IO.inspect()
-
     :ets.delete_all_objects(ets_candidates)
   end
 
@@ -696,6 +690,9 @@ defmodule RoundManager do
             BlockTimer.get_block(block_id)
             |> Kernel.++(
               :ets.tab2list(ets_candidates)
+              |> Enum.filter(fn {{creator_id, height}, _b} ->
+                Block.exists_local?(creator_id, height) == false
+              end)
               |> Enum.map(fn {_, b} -> b end)
             )
             |> Enum.take(limit)
@@ -1074,7 +1071,7 @@ defmodule RoundManager do
 
     Logger.debug("Retrieve messages #{round_id}")
 
-    :ets.info(ets_votes, :size) |> IO.inspect()
+    # :ets.info(ets_votes, :size) |> IO.inspect()
 
     case :ets.select(ets_votes, match) do
       [] ->
@@ -1089,8 +1086,8 @@ defmodule RoundManager do
             :ets.delete(ets_votes, key)
             GenServer.cast(pid, {"msg_round", msg_round, node_id})
 
-          x ->
-            IO.inspect(x)
+          _x ->
+            nil
         end)
     end
   end

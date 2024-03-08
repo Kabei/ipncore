@@ -558,7 +558,7 @@ defmodule RoundManager do
 
   @impl true
   def handle_call({:round, id}, _from, state = %{round_candidate: %{id: rid}}) when rid == id do
-    {:reply, state.round, state}
+    {:reply, state.round_candidate, state}
   end
 
   def handle_call({:round, _id}, _from, state) do

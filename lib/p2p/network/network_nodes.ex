@@ -70,6 +70,7 @@ defmodule Ippan.NetworkNodes do
   end
 
   def handle_message("round_off", data, %{id: from}) when is_map(data) do
+    IO.inspect("round Off network")
     GenServer.cast(RoundManager, {"round_off", Round.from_remote(data), from})
   end
 
@@ -77,5 +78,8 @@ defmodule Ippan.NetworkNodes do
     GenServer.cast(RoundManager, {"block_msg", Block.from_remote(data), from})
   end
 
-  def handle_message(_event, _from, _data), do: :ok
+  def handle_message(event, _from, data) do
+    IO.inspect("network not match #{event} #{inspect(data)}")
+    :ok
+  end
 end

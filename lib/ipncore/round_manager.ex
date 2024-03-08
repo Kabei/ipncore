@@ -414,8 +414,6 @@ defmodule RoundManager do
         } = state
       )
       when vote_round_id > id do
-    IO.inspect("vote_round_id > id")
-
     cond do
       round_candidate != nil and round_candidate.id == id and hash == round_candidate.hash ->
         NetworkNodes.cast(node_id, "round_off", round_candidate)
@@ -473,6 +471,7 @@ defmodule RoundManager do
     key2 = {id, node_id, :vote}
 
     Logger.debug("round_ok ##{id}")
+
     if :ets.member(ets_votes, key) == true and
          :ets.member(ets_votes, key2) == false do
       count = :ets.update_counter(ets_votes, key, {3, 1})

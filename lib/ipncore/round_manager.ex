@@ -462,7 +462,7 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {"round_accept", %{"id" => id, "hash" => hash}, node_id},
+        {"round_ok", %{"id" => id, "hash" => hash}, node_id},
         %{votes: ets_votes, total: total_players, vote_round_id: vote_round_id} = state
       )
       when vote_round_id == id do
@@ -491,7 +491,8 @@ defmodule RoundManager do
     end
   end
 
-  def handle_cast({"round_accept", _, _node_id}, state) do
+  def handle_cast({"round_ok", _, _node_id}, state) do
+    Logger.debug("round_ok not match")
     {:noreply, state}
   end
 
@@ -554,6 +555,7 @@ defmodule RoundManager do
   end
 
   def handle_cast({"round_off", _, _node_id}, state) do
+    Logger.debug("round_off not match")
     {:noreply, state}
   end
 
@@ -631,7 +633,7 @@ defmodule RoundManager do
       :timer.cancel(rRef)
     end
 
-    round_accept = %{"id" => id, "hash" => hash}
+    round_ok = %{"id" => id, "creator" => creator_id, "hash" => hash}
 
     if count == 1 do
       # Replicate message to rest of nodes except creator and sender
@@ -640,7 +642,7 @@ defmodule RoundManager do
     end
 
     if callback do
-      NetworkNodes.cast(node_id, "round_accept", round_accept)
+      NetworkNodes.cast(node_id, "round_ok", round_ok)
     end
 
     IO.puts("n = #{n} | count = #{count}")

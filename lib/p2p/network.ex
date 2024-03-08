@@ -439,6 +439,9 @@ defmodule Ippan.Network do
 
       @impl Network
       def broadcast_except(message, ids) do
+        # match = [{{:"$1", :_, :_}, [not: {:"=:=", :"$1", ids}], [:"$_"]}]
+        # :ets.select(@bag, match)
+
         all()
         |> Enum.uniq_by(fn {node_id, _, _} -> node_id end)
         # |> Enum.each(fn {id, %{sharedkey: sharedkey, socket: socket}} ->

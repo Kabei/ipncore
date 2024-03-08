@@ -403,7 +403,7 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {"msg_round", msg_round = %{id: id, hash: hash}, node_id},
+        {"msg_round", %{id: id}, node_id},
         %{db_ref: db_ref, round_candidate: round_candidate, vote_round_id: vote_round_id} = state
       )
       when vote_round_id > id do
@@ -414,11 +414,11 @@ defmodule RoundManager do
 
       true ->
         case Round.get(id) do
-          %{hash: rhash} when rhash == hash ->
-            NetworkNodes.cast(node_id, "msg_round", msg_round)
+          %{id: -1} ->
             {:noreply, state}
 
-          _ ->
+          round ->
+            NetworkNodes.cast(node_id, "msg_round", round)
             {:noreply, state}
         end
     end

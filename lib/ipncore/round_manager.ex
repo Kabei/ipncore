@@ -850,7 +850,7 @@ defmodule RoundManager do
 
       # send message pre-build
       pid = self()
-      :ets.insert(ets_votes, {{round_id, hash}, pre_round, 1})
+      :ets.insert(ets_votes, {{round_id, hash}, pre_round, 0})
       GenServer.cast(pid, {"round.candidate", pre_round})
       NetworkNodes.broadcast(%{"event" => "round_msg", "data" => pre_round})
 

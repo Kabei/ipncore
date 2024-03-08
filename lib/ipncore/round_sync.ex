@@ -164,6 +164,8 @@ defmodule RoundSync do
           false
         )
 
+        ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
+
         next_key = :ets.next(ets_queue, key)
         :ets.delete(ets_queue, key)
         new_state = %{state | block_id: last_block_id + length(round.blocks)}

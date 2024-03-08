@@ -372,7 +372,9 @@ defmodule RoundManager do
         } =
           state
       )
-      when vote_round_id == id and round_id == vote_round_id and creator_id == rcid do
+      when vote_round_id == id and
+             round_id == vote_round_id and
+             creator_id == rcid do
     Logger.debug(inspect(msg_round))
 
     cond do
@@ -414,7 +416,7 @@ defmodule RoundManager do
 
       true ->
         case Round.get(id) do
-          %{id: -1} ->
+          nil ->
             {:noreply, state}
 
           round ->
@@ -436,9 +438,9 @@ defmodule RoundManager do
 
   def handle_cast(
         {"msg_round", msg_round = %{id: id}, node_id},
-        state = %{round_id: round_id, votes: ets_votes}
+        state = %{vote_round_id: vote_round_id, votes: ets_votes}
       )
-      when id > round_id do
+      when id > vote_round_id do
     Logger.debug("Id is high")
     Logger.debug(inspect(msg_round))
     :ets.insert(ets_votes, {{id, node_id, :msg}, msg_round})

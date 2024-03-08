@@ -65,6 +65,14 @@ defmodule Ippan.NetworkNodes do
     GenServer.cast(RoundManager, {"round_msg", Round.from_remote(data), from})
   end
 
+  def handle_message("round_accept", data, %{id: from}) when is_map(data) do
+    GenServer.cast(RoundManager, {"round_accept", data, from})
+  end
+
+  def handle_message("round_off", data, %{id: from}) when is_map(data) do
+    GenServer.cast(RoundManager, {"round_off", Round.from_remote(data), from})
+  end
+
   def handle_message("block_msg", data, %{id: from}) when is_map(data) do
     GenServer.cast(RoundManager, {"block_msg", Block.from_remote(data), from})
   end

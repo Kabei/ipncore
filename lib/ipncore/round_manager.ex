@@ -418,7 +418,7 @@ defmodule RoundManager do
 
     cond do
       round_candidate != nil and round_candidate.id == id and hash == round_candidate.hash ->
-        NetworkNodes.cast(node_id, "round_accept", round_candidate)
+        NetworkNodes.cast(node_id, "round_off", round_candidate)
         {:noreply, state}
 
       true ->
@@ -496,16 +496,61 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {"round_off", %{id: id, hash: hash} = msg_round, node_id},
-        state = %{vote_round_id: vote_round_id, votes: ets_votes}
+        {
+          "round_off",
+          msg_round = %{
+            id: id,
+            blocks: blocks,
+            creator: creator_id,
+            hash: hash,
+            status: status,
+            signature: signature,
+            timestamp: timestamp,
+            prev: prev
+          },
+          node_id
+        },
+        %{
+          db_ref: db_ref,
+          players: ets_players,
+          votes: ets_votes,
+          round_hash: round_hash,
+          rcid: rcid,
+          status: :synced,
+          vote_round_id: vote_round_id
+        } =
+          state
       )
-      when id == vote_round_id do
-    if :ets.member(ets_votes, {id, hash}) do
-      IO.puts("#{id} = #{vote_round_id} | RoundOff")
-      do_vote(msg_round, node_id, state, false)
-    end
+      when vote_round_id == id and
+             creator_id == rcid do
+    Logger.debug("Round off")
+    Logger.debug(inspect(msg_round))
 
-    {:noreply, state}
+    cond do
+      :ets.member(ets_votes, {id, node_id, :vote}) ->
+        {:noreply, state}
+
+      :ets.member(ets_votes, {id, hash}) ->
+        IO.puts("#{id} = #{vote_round_id} | single")
+        do_vote(msg_round, node_id, state)
+
+      true ->
+        with true <- round_hash == prev,
+             true <- EnvStore.block_limit() >= length(blocks),
+             [{_, player}] <- :ets.lookup(ets_players, creator_id),
+             hashes <- Enum.map(blocks, & &1.hash),
+             true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
+             true <-
+               (status > 0 and signature == nil) or
+                 Cafezinho.Impl.verify(signature, hash, player.pubkey) == :ok,
+             true <- blocks_verificacion(blocks, db_ref) do
+          IO.puts("#{id} = #{vote_round_id} | first")
+          do_vote(msg_round, node_id, state, false)
+        else
+          _ ->
+            {:noreply, state}
+        end
+    end
   end
 
   def handle_cast({"round_off", _, _node_id}, state) do
@@ -574,7 +619,7 @@ defmodule RoundManager do
            total: total_players,
            vote_round_id: vote_round_id
          },
-         pubsub \\ true
+         callback \\ true
        ) do
     :ets.insert(ets_votes, {{id, node_id, :vote}, nil})
     count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
@@ -586,15 +631,15 @@ defmodule RoundManager do
       :timer.cancel(rRef)
     end
 
-    if pubsub do
-      round_accept = %{"id" => id, "hash" => hash}
+    round_accept = %{"id" => id, "hash" => hash}
 
-      if count == 1 do
-        # Replicate message to rest of nodes except creator and sender
-        # except = if node_id != creator_id, do: [node_id], else: []
-        NetworkNodes.broadcast_except(%{"event" => "round_msg", "data" => msg_round}, [node_id])
-      end
+    if count == 1 do
+      # Replicate message to rest of nodes except creator and sender
+      # except = if node_id != creator_id, do: [node_id], else: []
+      NetworkNodes.broadcast_except(%{"event" => "round_msg", "data" => msg_round}, [node_id])
+    end
 
+    if callback do
       NetworkNodes.cast(node_id, "round_accept", round_accept)
     end
 

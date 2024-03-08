@@ -502,7 +502,7 @@ defmodule RoundManager do
   end
 
   def handle_cast({"round.candidate", round}, state) do
-    {:reply, %{state | round_candidate: round}}
+    {:noreply, %{state | round_candidate: round}}
   end
 
   defp do_vote(

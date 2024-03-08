@@ -33,7 +33,7 @@ config :ipncore, :maintenance, 25_000
 config :ipncore, :reserve, 0.3
 config :ipncore, :max_services, 5_000
 # Only core
-config :ipncore, :max_peers_conn, 20
+config :ipncore, :max_peers_conn, 125
 
 # P2P client
 config :ipncore, :p2p_client, [

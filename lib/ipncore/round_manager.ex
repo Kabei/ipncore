@@ -469,7 +469,8 @@ defmodule RoundManager do
     key = {id, hash}
     key2 = {id, node_id, :vote}
 
-    unless :ets.member(ets_votes, key) and :ets.member(ets_votes, key2) do
+    if :ets.member(ets_votes, key) == true and
+         :ets.member(ets_votes, key2) == false do
       count = :ets.update_counter(ets_votes, key, {3, 1})
       :ets.insert(ets_votes, {key2, nil})
       n = NetworkNodes.count()

@@ -469,11 +469,13 @@ defmodule RoundManager do
     key = {id, hash}
     key2 = {id, node_id, :vote}
 
+    Logger.debug("round_ok ##{id}")
     if :ets.member(ets_votes, key) == true and
          :ets.member(ets_votes, key2) == false do
       count = :ets.update_counter(ets_votes, key, {3, 1})
       :ets.insert(ets_votes, {key2, nil})
       n = NetworkNodes.count()
+      Logger.debug("round_ok inside")
 
       cond do
         total_players == count or

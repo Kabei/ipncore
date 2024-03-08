@@ -409,6 +409,8 @@ defmodule RoundManager do
         %{db_ref: db_ref, round_candidate: round_candidate, vote_round_id: vote_round_id} = state
       )
       when vote_round_id > id do
+    IO.inspect("vote_round_id > id")
+
     cond do
       round_candidate != nil and round_candidate.id == id ->
         NetworkNodes.cast(node_id, "msg_round", round_candidate)

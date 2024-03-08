@@ -802,7 +802,8 @@ defmodule RoundManager do
          miner_pool: pool_pid,
          rcid: rcid,
          total: total_players,
-         vid: vid
+         vid: vid,
+         votes: ets_votes
        }) do
     if rcid == vid do
       IO.puts("RM: build_local_round #{round_id}")
@@ -849,6 +850,7 @@ defmodule RoundManager do
 
       # send message pre-build
       pid = self()
+      :ets.insert(ets_votes, {{round_id, hash}, pre_round, 1})
       GenServer.cast(pid, {"round.candidate", pre_round})
       NetworkNodes.broadcast(%{"event" => "round_msg", "data" => pre_round})
 

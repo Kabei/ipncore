@@ -486,9 +486,9 @@ defmodule RoundManager do
         true ->
           {:noreply, state}
       end
+    else
+      {:noreply, state}
     end
-
-    {:noreply, state}
   end
 
   def handle_cast({"round_accept", _, _node_id}, state) do

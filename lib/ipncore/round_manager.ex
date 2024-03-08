@@ -169,7 +169,7 @@ defmodule RoundManager do
 
       {:ok, response, node_id} ->
         IO.inspect("get data request")
-        GenServer.cast(self(), {"msg_round", response, node_id})
+        GenServer.cast(self(), {"round_msg", response, node_id})
 
         {:noreply, %{state | ttr: @min_time_to_request}}
     end
@@ -196,11 +196,11 @@ defmodule RoundManager do
 
         if turn do
           if round_candidate do
-            NetworkNodes.broadcast(%{"event" => "msg_round", "data" => round_candidate})
+            NetworkNodes.broadcast(%{"event" => "round_msg", "data" => round_candidate})
           end
         else
           round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
-          GenServer.cast(pid, {"msg_round", round_nulled, vid})
+          GenServer.cast(pid, {"round_msg", round_nulled, vid})
         end
 
         {:noreply, %{state | ttr: @min_time_to_request}, :hibernate}
@@ -344,7 +344,7 @@ defmodule RoundManager do
 
   def handle_cast(
         {
-          "msg_round",
+          "round_msg",
           msg_round = %{
             id: id,
             blocks: blocks,
@@ -405,15 +405,20 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {"msg_round", %{id: id}, node_id},
-        %{db_ref: db_ref, round_candidate: round_candidate, vote_round_id: vote_round_id} = state
+        {"round_msg", %{id: id}, node_id},
+        %{
+          db_ref: db_ref,
+          status: :synced,
+          round_candidate: round_candidate,
+          vote_round_id: vote_round_id
+        } = state
       )
       when vote_round_id > id do
     IO.inspect("vote_round_id > id")
 
     cond do
       round_candidate != nil and round_candidate.id == id ->
-        NetworkNodes.cast(node_id, "msg_round", round_candidate)
+        NetworkNodes.cast(node_id, "round_msg", round_candidate)
         {:noreply, state}
 
       true ->
@@ -422,14 +427,14 @@ defmodule RoundManager do
             {:noreply, state}
 
           round ->
-            NetworkNodes.cast(node_id, "msg_round", round)
+            NetworkNodes.cast(node_id, "round_msg", round)
             {:noreply, state}
         end
     end
   end
 
   def handle_cast(
-        {"msg_round", msg = %{id: id}, _node_id},
+        {"round_msg", msg = %{id: id}, _node_id},
         %{round_id: round_id, status: :startup} = state
       )
       when round_id >= id do
@@ -439,7 +444,7 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {"msg_round", msg_round = %{id: id}, node_id},
+        {"round_msg", msg_round = %{id: id}, node_id},
         state = %{vote_round_id: vote_round_id, votes: ets_votes}
       )
       when id > vote_round_id do
@@ -449,7 +454,7 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast({"msg_round", msg_round, _node_id}, state) do
+  def handle_cast({"round_msg", msg_round, _node_id}, state) do
     Logger.debug("No match message")
     Logger.debug(inspect(msg_round))
     IO.inspect(state)
@@ -457,7 +462,40 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {"msg_block", block = %{creator: creator_id, height: height}, _node_id},
+        {"round_accept", %{"id" => id, "hash" => hash}, node_id},
+        %{votes: ets_votes, total: total_players, vote_round_id: vote_round_id} = state
+      )
+      when vote_round_id == id do
+    key = {id, hash}
+    key2 = {id, node_id, :vote}
+
+    unless :ets.member(ets_votes, key) and :ets.member(ets_votes, key2) do
+      count = :ets.update_counter(ets_votes, key, {3, 1})
+      :ets.insert(ets_votes, {key2, nil})
+      n = NetworkNodes.count()
+
+      cond do
+        total_players == count or
+            count == div(n, 2) + 1 ->
+          IO.puts("Vote ##{id}")
+          [{_key, msg_round, _count}] = :ets.lookup(ets_votes, key)
+          spawn_build_foreign_round(state, msg_round)
+          {:noreply, %{state | vote_round_id: vote_round_id + 1}}
+
+        true ->
+          {:noreply, state}
+      end
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_cast({"round_accept", _, _node_id}, state) do
+    {:noreply, state}
+  end
+
+  def handle_cast(
+        {"block_msg", block = %{creator: creator_id, height: height}, _node_id},
         state = %{
           db_ref: db_ref,
           candidates: ets_candidates,
@@ -474,7 +512,7 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast({"msg_block", block, _node_id}, state) do
+  def handle_cast({"block_msg", block, _node_id}, state) do
     IO.inspect("block message no match")
     IO.inspect(block)
     {:noreply, state}
@@ -529,15 +567,15 @@ defmodule RoundManager do
       :timer.cancel(rRef)
     end
 
-    cond do
-      count == 1 ->
-        # Replicate message to rest of nodes except creator and sender
-        # except = if node_id != creator_id, do: [node_id], else: []
-        NetworkNodes.broadcast(%{"event" => "msg_round", "data" => msg_round})
+    round_accept = %{"id" => id, "hash" => hash}
 
-      true ->
-        NetworkNodes.cast(node_id, "msg_round", msg_round)
+    if count == 1 do
+      # Replicate message to rest of nodes except creator and sender
+      # except = if node_id != creator_id, do: [node_id], else: []
+      NetworkNodes.broadcast_except(%{"event" => "round_msg", "data" => msg_round}, [node_id])
     end
+
+    NetworkNodes.cast(node_id, "round_accept", round_accept)
 
     IO.puts("n = #{n} | count = #{count}")
 
@@ -742,7 +780,7 @@ defmodule RoundManager do
       # send message pre-build
       pid = self()
       GenServer.cast(pid, {"round.candidate", pre_round})
-      NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
+      NetworkNodes.broadcast(%{"event" => "round_msg", "data" => pre_round})
 
       if total_players == 1 do
         spawn_link(fn ->
@@ -1101,7 +1139,7 @@ defmodule RoundManager do
         Enum.each(data, fn
           {{_, node_id, _msg} = key, msg_round} ->
             :ets.delete(ets_votes, key)
-            GenServer.cast(pid, {"msg_round", msg_round, node_id})
+            GenServer.cast(pid, {"round_msg", msg_round, node_id})
 
           x ->
             Logger.debug("No recognized")
@@ -1125,7 +1163,7 @@ defmodule RoundManager do
             :error
 
           true ->
-            NetworkNodes.cast(node_id, "msg_block", candidate)
+            NetworkNodes.cast(node_id, "block_msg", candidate)
             # Disconnect if count is greater than max_peers_conn
             if NetworkNodes.count() > @max_peers_conn do
               node = NetworkNodes.info(node_id)
@@ -1166,7 +1204,7 @@ defmodule RoundManager do
             if status == :synced and notify do
               :ets.insert_new(ets_votes, {{round_id, vid, :vote}, nil})
               # Replicate message to rest of nodes except creator and sender
-              NetworkNodes.broadcast(%{"event" => "msg_round", "data" => msg_round})
+              # NetworkNodes.broadcast(%{"event" => "round_msg", "data" => msg_round})
             end
 
             msg_round

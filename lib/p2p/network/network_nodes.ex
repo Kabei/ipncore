@@ -61,12 +61,12 @@ defmodule Ippan.NetworkNodes do
   def handle_request(_method, _data, _state), do: {"error", "Not found"}
 
   @impl Network
-  def handle_message("msg_round", data, %{id: from}) when is_map(data) do
-    GenServer.cast(RoundManager, {"msg_round", Round.from_remote(data), from})
+  def handle_message("round_msg", data, %{id: from}) when is_map(data) do
+    GenServer.cast(RoundManager, {"round_msg", Round.from_remote(data), from})
   end
 
-  def handle_message("msg_block", data, %{id: from}) when is_map(data) do
-    GenServer.cast(RoundManager, {"msg_block", Block.from_remote(data), from})
+  def handle_message("block_msg", data, %{id: from}) when is_map(data) do
+    GenServer.cast(RoundManager, {"block_msg", Block.from_remote(data), from})
   end
 
   def handle_message(_event, _from, _data), do: :ok

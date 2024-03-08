@@ -428,7 +428,7 @@ defmodule Ippan.Network do
       def broadcast(message) do
         all()
         |> Enum.uniq_by(fn {node_id, _} -> node_id end)
-        |> Enum.each(fn {node_id, socket, sharedkey} ->
+        |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
           @adapter.send(socket, encode(message, sharedkey))
         end)
       end

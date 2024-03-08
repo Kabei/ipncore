@@ -405,7 +405,7 @@ defmodule RoundManager do
   end
 
   def handle_cast(
-        {"round_msg", %{id: id}, node_id},
+        {"round_msg", %{id: id, hash: hash}, node_id},
         %{
           db_ref: db_ref,
           status: :synced,
@@ -417,8 +417,8 @@ defmodule RoundManager do
     IO.inspect("vote_round_id > id")
 
     cond do
-      round_candidate != nil and round_candidate.id == id ->
-        NetworkNodes.cast(node_id, "round_msg", round_candidate)
+      round_candidate != nil and round_candidate.id == id and hash == round_candidate.hash ->
+        NetworkNodes.cast(node_id, "round_accept", round_candidate)
         {:noreply, state}
 
       true ->
@@ -427,7 +427,7 @@ defmodule RoundManager do
             {:noreply, state}
 
           round ->
-            NetworkNodes.cast(node_id, "round_msg", round)
+            NetworkNodes.cast(node_id, "round_off", round)
             {:noreply, state}
         end
     end
@@ -496,6 +496,23 @@ defmodule RoundManager do
   end
 
   def handle_cast(
+        {"round_off", %{id: id, hash: hash} = msg_round, node_id},
+        state = %{vote_round_id: vote_round_id, votes: ets_votes}
+      )
+      when id == vote_round_id do
+    if :ets.member(ets_votes, {id, hash}) do
+      IO.puts("#{id} = #{vote_round_id} | RoundOff")
+      do_vote(msg_round, node_id, state, false)
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_cast({"round_off", _, _node_id}, state) do
+    {:noreply, state}
+  end
+
+  def handle_cast(
         {"block_msg", block = %{creator: creator_id, height: height}, _node_id},
         state = %{
           db_ref: db_ref,
@@ -556,7 +573,8 @@ defmodule RoundManager do
            rRef: rRef,
            total: total_players,
            vote_round_id: vote_round_id
-         }
+         },
+         pubsub \\ true
        ) do
     :ets.insert(ets_votes, {{id, node_id, :vote}, nil})
     count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
@@ -568,15 +586,17 @@ defmodule RoundManager do
       :timer.cancel(rRef)
     end
 
-    round_accept = %{"id" => id, "hash" => hash}
+    if pubsub do
+      round_accept = %{"id" => id, "hash" => hash}
 
-    if count == 1 do
-      # Replicate message to rest of nodes except creator and sender
-      # except = if node_id != creator_id, do: [node_id], else: []
-      NetworkNodes.broadcast_except(%{"event" => "round_msg", "data" => msg_round}, [node_id])
+      if count == 1 do
+        # Replicate message to rest of nodes except creator and sender
+        # except = if node_id != creator_id, do: [node_id], else: []
+        NetworkNodes.broadcast_except(%{"event" => "round_msg", "data" => msg_round}, [node_id])
+      end
+
+      NetworkNodes.cast(node_id, "round_accept", round_accept)
     end
-
-    NetworkNodes.cast(node_id, "round_accept", round_accept)
 
     IO.puts("n = #{n} | count = #{count}")
 

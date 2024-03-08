@@ -430,7 +430,7 @@ defmodule RoundManager do
 
           round ->
             NetworkNodes.cast(node_id, "round_off", round)
-            IO.inspect("vote_round_id > id: one")
+            IO.inspect("vote_round_id > id: one #{inspect(round)}")
             {:noreply, state}
         end
     end

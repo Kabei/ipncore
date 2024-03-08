@@ -420,7 +420,7 @@ defmodule Ippan.Network do
       @impl Network
       def broadcast(message) do
         all()
-        |> Enum.uniq_by(fn {node_id, _, _} -> node_id end)
+        # |> Enum.uniq_by(fn {node_id, _, _} -> node_id end)
         |> Enum.each(fn {node_id, socket, sharedkey} ->
           @adapter.send(socket, encode(message, sharedkey))
         end)
@@ -431,7 +431,7 @@ defmodule Ippan.Network do
         data = :ets.select(@table, [{{:_, %{role: :"$1"}}, [{:==, :"$1", role}], [:"$_"]}])
 
         data
-        |> Enum.uniq_by(fn {node_id, _} -> node_id end)
+        # |> Enum.uniq_by(fn {node_id, _} -> node_id end)
         |> Enum.each(fn {_, %{sharedkey: sharedkey, socket: socket}} ->
           @adapter.send(socket, encode(message, sharedkey))
         end)
@@ -443,7 +443,7 @@ defmodule Ippan.Network do
         # :ets.select(@bag, match)
 
         all()
-        |> Enum.uniq_by(fn {node_id, _, _} -> node_id end)
+        # |> Enum.uniq_by(fn {node_id, _, _} -> node_id end)
         # |> Enum.each(fn {id, %{sharedkey: sharedkey, socket: socket}} ->
         |> Enum.each(fn {id, socket, sharedkey} ->
           if id not in ids do

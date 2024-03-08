@@ -1,7 +1,7 @@
 defmodule RoundSync do
   use GenServer, restart: :trasient
   require Ippan.Round
-  alias Ippan.{Round, Validator, NetworkNodes}
+  alias Ippan.{ClusterNodes, Round, Validator, NetworkNodes}
   require Logger
   require Round
   require Validator
@@ -114,6 +114,8 @@ defmodule RoundSync do
                   false,
                   false
                 )
+
+                ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
               end
 
               bid + length(round.blocks)

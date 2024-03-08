@@ -138,7 +138,7 @@ defmodule RoundManager do
 
     if new_state.turn do
       spawn_build_local_round(new_state)
-      # {:ok, tRef} = :timer.send_after(@timeout, :timeout)
+      {:ok, tRef} = :timer.send_after(@timeout - 5000, :timeout)
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
@@ -180,8 +180,10 @@ defmodule RoundManager do
         %{
           round_id: round_id,
           round_hash: prev_hash,
+          round_candidate: round_candidate,
           # db_ref: db_ref,
           rcid: rcid,
+          turn: turn,
           vid: vid
         } = state
       ) do
@@ -190,40 +192,18 @@ defmodule RoundManager do
     case check_votes(state) do
       nil ->
         IO.puts("no votes")
-
         pid = self()
 
-        # case RoundTask.sync_to_round_creator(state) do
-        #   {:ok, response, node_id} ->
-        #     GenServer.cast(pid, {"msg_round", response, node_id})
-
-        #   _error ->
-        #   end
-        round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
-        GenServer.cast(pid, {"msg_round", round_nulled, vid})
+        if turn do
+          if round_candidate do
+            NetworkNodes.broadcast(%{"event" => "msg_round", "data" => round_candidate})
+          end
+        else
+          round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
+          GenServer.cast(pid, {"msg_round", round_nulled, vid})
+        end
 
         {:noreply, %{state | ttr: @min_time_to_request}, :hibernate}
-
-      # IO.inspect(r)
-
-      # case r do
-      #   x when x in [:error, nil] ->
-      #     pid = self()
-
-      #     incomplete(round_nulled, pid, db_ref, true)
-      #     GenServer.cast(pid, {"msg_round", round_nulled})
-
-      #     {:noreply, state, :hibernate}
-
-      # if total_players > 1 do
-      # else
-      #   {:ok, tRef} = :timer.send_after(@timeout, :timeout)
-      #   {:noreply, %{state | tRef: tRef}, :hibernate}
-      # end
-
-      #   _ ->
-      #     {:noreply, state, :hibernate}
-      # end
 
       message ->
         IO.puts("sync_to_round_creator #{inspect(message)}")
@@ -424,26 +404,32 @@ defmodule RoundManager do
 
   def handle_cast(
         {"msg_round", msg_round = %{id: id, hash: hash}, node_id},
-        %{db_ref: db_ref, vote_round_id: vote_round_id} = state
+        %{db_ref: db_ref, round_candidate: round_candidate, vote_round_id: vote_round_id} = state
       )
       when vote_round_id > id do
-    case Round.get(id) do
-      %{hash: rhash} when rhash == hash ->
-        NetworkNodes.cast(node_id, "msg_round", msg_round)
+    cond do
+      round_candidate != nil and round_candidate.id == id ->
+        NetworkNodes.cast(node_id, "msg_round", round_candidate)
         {:noreply, state}
 
-      _ ->
-        {:noreply, state}
+      true ->
+        case Round.get(id) do
+          %{hash: rhash} when rhash == hash ->
+            NetworkNodes.cast(node_id, "msg_round", msg_round)
+            {:noreply, state}
+
+          _ ->
+            {:noreply, state}
+        end
     end
   end
 
   def handle_cast(
         {"msg_round", msg = %{id: id}, _node_id},
         %{round_id: round_id, status: :startup} = state
-      ) do
-    if round_id >= id do
-      RoundSync.add_queue(msg)
-    end
+      )
+      when round_id >= id do
+    RoundSync.add_queue(msg)
 
     {:noreply, state}
   end
@@ -750,12 +736,11 @@ defmodule RoundManager do
       }
 
       # send message pre-build
+      pid = self()
       GenServer.cast(pid, {"round.candidate", pre_round})
       NetworkNodes.broadcast(%{"event" => "msg_round", "data" => pre_round})
 
       if total_players == 1 do
-        pid = self()
-
         spawn_link(fn ->
           build_round(
             pre_round,

@@ -1,9 +1,11 @@
 defmodule Mempool do
   use GenServer
+  # alias Phoenix.PubSub
   alias Ippan.Account
   require Logger
 
   @name :mempool
+  # @pubsub :pubsub
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -74,6 +76,11 @@ defmodule Mempool do
               [_msg, sig] = msg_sig
               decode = [hash, type, from, nonce, args, sig, size]
               :ets.insert(ets_msg, {ix, 0, decode, msg_sig, return})
+
+              # if ix == 1 do
+              #   PubSub.local_broadcast(@pubsub, "block_timer", :check)
+              # end
+
               # IO.puts("The result")
               %{"index" => ix}
           end
@@ -120,6 +127,10 @@ defmodule Mempool do
                   [_msg, sig] = msg_sig
                   decode = [hash, type, key, from, nonce, args, sig, size]
                   :ets.insert(ets_msg, {ix, 1, decode, msg_sig, return})
+
+                  # if ix == 1 do
+                  #   PubSub.local_broadcast(@pubsub, "block_timer", :check)
+                  # end
 
                   # IO.puts("The result")
                   %{"index" => ix}

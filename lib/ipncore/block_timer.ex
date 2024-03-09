@@ -1,13 +1,15 @@
 defmodule BlockTimer do
   use GenServer
+  alias Phoenix.PubSub
   alias Ippan.{Block, BlockHandler, Round}
   require Block
   require Sqlite
 
   # @app Mix.Project.config()[:app]
   @module __MODULE__
-  @min_time 750
-  @max_time 2_000
+  @pubsub :pubsub
+  @time_to_wait 5_000
+  @interval_check 2_500
 
   def start_link(args) do
     GenServer.start_link(@module, args, name: @module)
@@ -23,11 +25,17 @@ defmodule BlockTimer do
     %{hash: prev, height: last_height} =
       Block.last_created(vid)
 
+    PubSub.subscribe(@pubsub, "block_timer")
+
+    :timer.send_interval(@interval_check, :check)
+
     {:ok,
      %{
        block_id: block_id,
+       from: nil,
        height: last_height + 1,
        prev: prev,
+       tRef: nil,
        vid: vid,
        candidate: nil
      }, :hibernate}
@@ -44,11 +52,16 @@ defmodule BlockTimer do
   @doc """
   Get a candidate with a dynamic time to wait
   """
-  @spec get_block(block_id :: integer()) :: [map()] | []
-  def get_block(block_id) do
-    case GenServer.call(@module, {:get, block_id}, :infinity) do
-      nil -> []
-      candidate -> [candidate]
+  @spec get_next(block_id :: integer()) :: [map()] | []
+  def get_next(block_id) do
+    try do
+      case GenServer.call(@module, {:get, block_id}, 7_000) do
+        nil -> []
+        candidate -> [candidate]
+      end
+    catch
+      :exit, _ ->
+        []
     end
   end
 
@@ -86,44 +99,19 @@ defmodule BlockTimer do
     end
   end
 
-  def handle_call({:get, current_block_id}, _from, %{block_id: block_id, candidate: nil} = state) do
-    diff = current_block_id - block_id
-
-    sleep =
-      cond do
-        diff > 5 ->
-          @min_time
-
-        diff == 0 ->
-          @max_time
-
-        true ->
-          @max_time - diff * @min_time
-      end
-
-    try do
-      task =
-        Task.async(fn -> do_check(%{state | block_id: current_block_id}, sleep) end)
-
-      new_state = Task.await(task, 10_000)
-      {:reply, new_state.candidate, new_state}
-    catch
-      :exit, _ ->
-        {:reply, nil, state}
-    end
-  end
-
   def handle_call({:get, _current_block_id}, _from, %{candidate: candidate} = state) do
     {:reply, candidate, state}
   end
 
-  @impl true
-  def handle_continue(:check, state = %{candidate: nil}) do
-    {:noreply, do_check(state), :hibernate}
-  end
+  def handle_call(
+        {:get_next, current_block_id},
+        from,
+        %{candidate: nil, tRef: tRef} = state
+      ) do
+    :timer.cancel(tRef)
+    {:ok, tRef} = :timer.send_after(@time_to_wait, :finished)
 
-  def handle_continue(:check, state) do
-    {:noreply, state, :hibernate}
+    {:noreply, %{state | block_id: current_block_id, from: from, tRef: tRef}}
   end
 
   @impl true
@@ -137,25 +125,83 @@ defmodule BlockTimer do
     end
   end
 
-  defp do_check(
-         %{candidate: nil, vid: vid, height: height, prev: prev} = state,
-         sleep \\ 0
-       ) do
-    case BlockHandler.generate_files(vid, height, prev) do
-      nil ->
-        if sleep > 0 do
-          IO.inspect("Wait to #{sleep} ms")
-          :timer.sleep(sleep)
-        end
+  @impl true
+  def handle_cast(:check, %{height: height, prev: prev, vid: vid, tRef: tRef, from: from} = state) do
+    if from != nil and tRef != nil do
+      case BlockHandler.generate_files(vid, height, prev) do
+        nil ->
+          {:noreply, state}
 
-        state
+        block ->
+          :timer.cancel(tRef)
+          GenServer.reply(from, [block])
 
-      block ->
-        new_height = height + 1
-
-        %{state | candidate: block, height: new_height, prev: block.hash}
+          {:noreply,
+           %{state | candidate: block, height: height + 1, prev: block.hash, tRef: nil, from: nil}}
+      end
+    else
+      {:noreply, state}
     end
   end
+
+  def handle_cast(:block, %{tRef: tRef, from: from} = state) do
+    if from != nil and tRef != nil do
+      :timer.cancel(tRef)
+      GenServer.reply(from, [])
+
+      {:noreply, %{state | tRef: nil, from: nil}}
+    else
+      {:noreply, state}
+    end
+  end
+
+  @impl true
+  def handle_info(:finished, %{candidate: candidate, from: from} = state) do
+    result =
+      case candidate do
+        nil -> []
+        candidate -> [candidate]
+      end
+
+    GenServer.reply(from, result)
+    {:noreply, %{state | tRef: nil}}
+  end
+
+  def handle_info(:check, %{candidate: candidate, vid: vid, height: height, prev: prev} = state) do
+    case candidate do
+      nil ->
+        case BlockHandler.generate_files(vid, height, prev) do
+          nil ->
+            {:reply, nil, state}
+
+          block ->
+            {:reply, block, %{state | candidate: block, height: height + 1, prev: block.hash}}
+        end
+
+      candidate ->
+        {:reply, candidate, state}
+    end
+  end
+
+  # defp do_check(
+  #        %{candidate: nil, vid: vid, height: height, prev: prev} = state,
+  #        sleep \\ 0
+  #      ) do
+  #   case BlockHandler.generate_files(vid, height, prev) do
+  #     nil ->
+  #       if sleep > 0 do
+  #         IO.inspect("Wait to #{sleep} ms")
+  #         :timer.sleep(sleep)
+  #       end
+
+  #       state
+
+  #     block ->
+  #       new_height = height + 1
+
+  #       %{state | candidate: block, height: new_height, prev: block.hash}
+  #   end
+  # end
 
   @impl true
   def terminate(_reason, _state) do

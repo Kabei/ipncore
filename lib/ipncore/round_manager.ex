@@ -30,7 +30,7 @@ defmodule RoundManager do
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
   @min_time_to_request 0
-  @max_time_to_request 4_000
+  @max_time_to_request 6_000
 
   def start_link(args) do
     case System.get_env("test") do
@@ -576,6 +576,7 @@ defmodule RoundManager do
          true <- Validator.exists?(creator_id),
          true <- block_verificacion(block, db_ref) do
       :ets.insert(ets_candidates, {{creator_id, height}, block})
+      GenServer.cast(BlockTimer, :block)
     end
 
     {:noreply, state}
@@ -815,7 +816,7 @@ defmodule RoundManager do
           :synced ->
             limit = EnvStore.block_limit()
 
-            BlockTimer.get_block(block_id)
+            BlockTimer.get_next(block_id)
             |> Kernel.++(
               :ets.tab2list(ets_candidates)
               |> Enum.filter(fn {{creator_id, height}, _b} ->
@@ -1089,7 +1090,7 @@ defmodule RoundManager do
               "data" => %{"id" => creator_id, "active" => false}
             }
 
-            PubSub.broadcast(@pubsub, @validator_topic, event)
+            PubSub.local_broadcast(@pubsub, @validator_topic, event)
           end
         end
 

@@ -618,7 +618,7 @@ defmodule RoundManager do
       spawn_send_block(block, state)
     end
 
-    {:reply, state}
+    {:noreply, state}
   end
 
   def handle_cast({:round_candidate, round}, state) do

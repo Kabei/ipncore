@@ -145,9 +145,9 @@ defmodule RoundManager do
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
       {:ok, rRef} = :timer.send_after(time_to_request, :request)
 
-      if time_to_request != @min_time_to_request do
-        spawn_send_block(new_state)
-      end
+      # if time_to_request != @min_time_to_request do
+      #   spawn_send_block(new_state)
+      # end
 
       {:noreply, %{new_state | rRef: rRef, tRef: tRef}, {:continue, :retrieve}}
     end
@@ -613,7 +613,15 @@ defmodule RoundManager do
     end
   end
 
-  def handle_cast({"round.candidate", round}, state) do
+  def handle_cast({:send_block, block}, state = %{turn: turn}) do
+    unless turn do
+      spawn_send_block(block, state)
+    end
+
+    {:reply, state}
+  end
+
+  def handle_cast({:round_candidate, round}, state) do
     {:noreply, %{state | round_candidate: round}}
   end
 
@@ -854,7 +862,7 @@ defmodule RoundManager do
       # send message pre-build
       pid = self()
       :ets.insert(ets_votes, {{round_id, hash}, pre_round, 0})
-      GenServer.cast(pid, {"round.candidate", pre_round})
+      GenServer.cast(pid, {:round_candidate, pre_round})
       NetworkNodes.broadcast(%{"event" => "round_msg", "data" => pre_round})
 
       if total_players == 1 do
@@ -1224,27 +1232,23 @@ defmodule RoundManager do
     end
   end
 
-  defp spawn_send_block(%{
+  defp spawn_send_block(candidate, %{
          rcid: node_id,
          rc_node: validator_node
        }) do
     spawn_link(fn ->
-      candidate = BlockTimer.get_block()
+      case NetworkNodes.connect(validator_node, retry: 1) do
+        false ->
+          Logger.warning("It was not possible to connect to the round creator (send_block)")
+          :error
 
-      if candidate do
-        case NetworkNodes.connect(validator_node, retry: 1) do
-          false ->
-            Logger.warning("It was not possible to connect to the round creator (send_block)")
-            :error
-
-          true ->
-            NetworkNodes.cast(node_id, "block_msg", candidate)
-            # Disconnect if count is greater than max_peers_conn
-            if NetworkNodes.count() > @max_peers_conn do
-              node = NetworkNodes.info(node_id)
-              NetworkNodes.disconnect(node)
-            end
-        end
+        true ->
+          NetworkNodes.cast(node_id, "block_msg", candidate)
+          # Disconnect if count is greater than max_peers_conn
+          if NetworkNodes.count() > @max_peers_conn do
+            node = NetworkNodes.info(node_id)
+            NetworkNodes.disconnect(node)
+          end
       end
     end)
   end

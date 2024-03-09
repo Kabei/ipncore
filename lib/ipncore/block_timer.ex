@@ -23,7 +23,7 @@ defmodule BlockTimer do
     %{hash: prev, height: last_height} =
       Block.last_created(vid)
 
-    :timer.send_interval(@interval_check, :check)
+    :timer.send_interval(@interval_check, :auto_check)
 
     {:ok,
      %{
@@ -169,7 +169,7 @@ defmodule BlockTimer do
   end
 
   def handle_info(
-        :check,
+        :auto_check,
         %{candidate: candidate, from: from, tRef: tRef, vid: vid, height: height, prev: prev} =
           state
       ) do
@@ -183,6 +183,8 @@ defmodule BlockTimer do
             if from != nil and tRef != nil do
               :timer.cancel(tRef)
               GenServer.reply(from, block)
+            else
+              GenServer.cast(RoundManager, {:send_block, block})
             end
 
             {:noreply,

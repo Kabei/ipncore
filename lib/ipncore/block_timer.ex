@@ -55,7 +55,7 @@ defmodule BlockTimer do
   @spec get_next(block_id :: integer()) :: [map()] | []
   def get_next(block_id) do
     try do
-      case GenServer.call(@module, {:get, block_id}, 7_000) do
+      case GenServer.call(@module, {:get_next, block_id}, 7_000) do
         nil -> []
         candidate -> [candidate]
       end
@@ -112,6 +112,17 @@ defmodule BlockTimer do
     {:ok, tRef} = :timer.send_after(@time_to_wait, :finished)
 
     {:noreply, %{state | block_id: current_block_id, from: from, tRef: tRef}}
+  end
+
+  def handle_call(
+        {:get_next, current_block_id},
+        from,
+        %{candidate: candidate, tRef: tRef} = state
+      ) do
+    :timer.cancel(tRef)
+
+    {:reply, candidate,
+     %{state | block_id: current_block_id, candidate: candidate, from: nil, tRef: nil}}
   end
 
   @impl true
@@ -178,7 +189,7 @@ defmodule BlockTimer do
             {:noreply, %{state | candidate: block, height: height + 1, prev: block.hash}}
         end
 
-      candidate ->
+      _candidate ->
         {:noreply, state}
     end
   end

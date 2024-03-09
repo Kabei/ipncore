@@ -172,14 +172,14 @@ defmodule BlockTimer do
       nil ->
         case BlockHandler.generate_files(vid, height, prev) do
           nil ->
-            {:reply, nil, state}
+            {:noreply, state}
 
           block ->
-            {:reply, block, %{state | candidate: block, height: height + 1, prev: block.hash}}
+            {:noreply, %{state | candidate: block, height: height + 1, prev: block.hash}}
         end
 
       candidate ->
-        {:reply, candidate, state}
+        {:noreply, state}
     end
   end
 

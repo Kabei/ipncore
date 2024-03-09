@@ -141,7 +141,7 @@ defmodule BlockTimer do
 
         block ->
           :timer.cancel(tRef)
-          GenServer.reply(from, [block])
+          GenServer.reply(from, block)
 
           {:noreply,
            %{state | candidate: block, height: height + 1, prev: block.hash, tRef: nil, from: nil}}
@@ -154,7 +154,7 @@ defmodule BlockTimer do
   def handle_cast(:block, %{tRef: tRef, from: from} = state) do
     if from != nil and tRef != nil do
       :timer.cancel(tRef)
-      GenServer.reply(from, [])
+      GenServer.reply(from, nil)
 
       {:noreply, %{state | tRef: nil, from: nil}}
     else
@@ -168,7 +168,11 @@ defmodule BlockTimer do
     {:noreply, %{state | tRef: nil}}
   end
 
-  def handle_info(:check, %{candidate: candidate, vid: vid, height: height, prev: prev} = state) do
+  def handle_info(
+        :check,
+        %{candidate: candidate, from: from, tRef: tRef, vid: vid, height: height, prev: prev} =
+          state
+      ) do
     case candidate do
       nil ->
         case BlockHandler.generate_files(vid, height, prev) do
@@ -176,7 +180,20 @@ defmodule BlockTimer do
             {:noreply, state}
 
           block ->
-            {:noreply, %{state | candidate: block, height: height + 1, prev: block.hash}}
+            if from != nil and tRef != nil do
+              :timer.cancel(tRef)
+              GenServer.reply(from, block)
+            end
+
+            {:noreply,
+             %{
+               state
+               | candidate: block,
+                 from: nil,
+                 height: height + 1,
+                 prev: block.hash,
+                 tRef: nil
+             }}
         end
 
       _candidate ->

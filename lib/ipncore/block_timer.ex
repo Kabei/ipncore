@@ -1,13 +1,11 @@
 defmodule BlockTimer do
   use GenServer
-  alias Phoenix.PubSub
   alias Ippan.{Block, BlockHandler, Round}
   require Block
   require Sqlite
 
   # @app Mix.Project.config()[:app]
   @module __MODULE__
-  @pubsub :pubsub
   @time_to_wait 5_000
   @interval_check 2_500
 
@@ -25,19 +23,17 @@ defmodule BlockTimer do
     %{hash: prev, height: last_height} =
       Block.last_created(vid)
 
-    PubSub.subscribe(@pubsub, "block_timer")
-
     :timer.send_interval(@interval_check, :check)
 
     {:ok,
      %{
        block_id: block_id,
+       candidate: nil,
        from: nil,
        height: last_height + 1,
        prev: prev,
        tRef: nil,
-       vid: vid,
-       candidate: nil
+       vid: vid
      }, :hibernate}
   end
 
@@ -116,7 +112,7 @@ defmodule BlockTimer do
 
   def handle_call(
         {:get_next, current_block_id},
-        from,
+        _from,
         %{candidate: candidate, tRef: tRef} = state
       ) do
     :timer.cancel(tRef)
@@ -168,13 +164,7 @@ defmodule BlockTimer do
 
   @impl true
   def handle_info(:finished, %{candidate: candidate, from: from} = state) do
-    result =
-      case candidate do
-        nil -> []
-        candidate -> [candidate]
-      end
-
-    GenServer.reply(from, result)
+    GenServer.reply(from, candidate)
     {:noreply, %{state | tRef: nil}}
   end
 

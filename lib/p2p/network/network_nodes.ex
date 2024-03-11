@@ -70,7 +70,6 @@ defmodule Ippan.NetworkNodes do
   end
 
   def handle_message("round_off", data, %{id: from}) when is_map(data) do
-    IO.inspect("round Off network")
     GenServer.cast(RoundManager, {"round_off", Round.from_remote(data), from})
   end
 

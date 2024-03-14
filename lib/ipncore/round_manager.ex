@@ -138,7 +138,7 @@ defmodule RoundManager do
 
     if new_state.turn do
       spawn_build_local_round(new_state)
-      {:ok, tRef} = :timer.send_after(@timeout - 5000, :timeout)
+      {:ok, tRef} = :timer.send_interval(@timeout - 5000, :timeout)
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else

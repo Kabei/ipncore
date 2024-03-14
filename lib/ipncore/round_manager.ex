@@ -31,6 +31,7 @@ defmodule RoundManager do
   @maintenance Application.compile_env(@app, :maintenance)
   @min_time_to_request 0
   @max_time_to_request 6_000
+  @max_confirmations Application.compile_env(@app, :max_confirmations, 30)
 
   def start_link(args) do
     case System.get_env("test") do
@@ -138,7 +139,7 @@ defmodule RoundManager do
 
     if new_state.turn do
       spawn_build_local_round(new_state)
-      {:ok, tRef} = :timer.send_interval(@timeout - 5000, :timeout)
+      {:ok, tRef} = :timer.send_after(@timeout - 5000, :timeout)
 
       {:noreply, %{new_state | tRef: tRef}, :hibernate}
     else
@@ -195,15 +196,16 @@ defmodule RoundManager do
         pid = self()
 
         if turn do
-          if round_candidate do
-            NetworkNodes.broadcast(%{"event" => "round_msg", "data" => round_candidate})
-          end
+          NetworkNodes.broadcast(%{"event" => "round_msg", "data" => round_candidate})
+
+          {:ok, tRef} = :timer.send_after(5000, :timeout)
+
+          {:noreply, %{state | tRef: tRef, ttr: @min_time_to_request}, :hibernate}
         else
           round_nulled = Round.cancel(round_id, prev_hash, rcid, 1)
           GenServer.cast(pid, {"round_msg", round_nulled, vid})
+          {:noreply, %{state | ttr: @min_time_to_request}, :hibernate}
         end
-
-        {:noreply, %{state | ttr: @min_time_to_request}, :hibernate}
 
       message ->
         IO.puts("sync_to_round_creator #{inspect(message)}")
@@ -476,12 +478,13 @@ defmodule RoundManager do
          :ets.member(ets_votes, key2) == false do
       count = :ets.update_counter(ets_votes, key, {3, 1})
       :ets.insert(ets_votes, {key2, nil})
-      n = NetworkNodes.count()
+      # n = NetworkNodes.count()
       Logger.debug("round_ok inside")
 
       cond do
-        total_players == count or
-            count == div(n, 2) + 1 ->
+        count == @max_confirmations or
+          total_players == count or
+            count == div(total_players, 2) + 1 ->
           IO.puts("Vote ##{id}")
           [{_key, msg_round, _count}] = :ets.lookup(ets_votes, key)
           spawn_build_foreign_round(state, msg_round)
@@ -638,7 +641,7 @@ defmodule RoundManager do
        ) do
     :ets.insert(ets_votes, {{id, node_id, :vote}, nil})
     count = :ets.update_counter(ets_votes, {id, hash}, {3, 1}, {{id, hash}, msg_round, 0})
-    n = NetworkNodes.count()
+    # n = NetworkNodes.count()
 
     is_creator = creator_id == node_id
 
@@ -658,11 +661,12 @@ defmodule RoundManager do
       NetworkNodes.cast(node_id, "round_ok", round_ok)
     end
 
-    IO.puts("n = #{n} | count = #{count}")
+    IO.puts("n = #{total_players} | count = #{count}")
 
     cond do
-      total_players == count or
-          count == div(n, 2) + 1 ->
+      count == @max_confirmations or
+        total_players == count or
+          count == div(total_players, 2) + 1 ->
         IO.puts("Vote ##{id}")
 
         spawn_build_foreign_round(state, msg_round)
@@ -1261,7 +1265,7 @@ defmodule RoundManager do
          votes: ets_votes
        }) do
     # check votes
-    n = NetworkNodes.count()
+    # n = NetworkNodes.count()
 
     :ets.select(ets_votes, [{{{:"$1", :"$2"}, :_, :_}, [{:==, :"$1", round_id}], [:"$_"]}])
     |> Enum.sort(fn {_, _, a}, {_, _, b} -> a >= b end)
@@ -1275,8 +1279,9 @@ defmodule RoundManager do
         IO.inspect("check votes: #{msg_round.id} #{count}")
 
         cond do
-          total_players == count or
-              count >= div(n, 2) + 1 ->
+          count >= @max_confirmations or
+            total_players == count or
+              count >= div(total_players, 2) + 1 ->
             notify =
               :ets.member(ets_votes, {round_id, vid, :vote}) == false
 

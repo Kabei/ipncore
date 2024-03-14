@@ -484,7 +484,8 @@ defmodule RoundManager do
       cond do
         count == @max_confirmations or
           total_players == count or
-            count == div(total_players, 2) + 1 ->
+          count == div(total_players, 2) + 1 or
+            (total_players == 2 and count == 1) ->
           IO.puts("Vote ##{id}")
           [{_key, msg_round, _count}] = :ets.lookup(ets_votes, key)
           spawn_build_foreign_round(state, msg_round)
@@ -666,7 +667,8 @@ defmodule RoundManager do
     cond do
       count == @max_confirmations or
         total_players == count or
-          count == div(total_players, 2) + 1 ->
+        count == div(total_players, 2) + 1 or
+          (total_players == 2 and count == 1) ->
         IO.puts("Vote ##{id}")
 
         spawn_build_foreign_round(state, msg_round)
@@ -1281,7 +1283,8 @@ defmodule RoundManager do
         cond do
           count >= @max_confirmations or
             total_players == count or
-              count >= div(total_players, 2) + 1 ->
+            count >= div(total_players, 2) + 1 or
+              (total_players == 2 and count >= 1) ->
             notify =
               :ets.member(ets_votes, {round_id, vid, :vote}) == false
 

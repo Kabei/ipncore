@@ -10,7 +10,13 @@ defmodule BlockTimer do
   @interval_check 2_500
 
   def start_link(args) do
-    GenServer.start_link(@module, args, name: @module)
+    case System.get_env("test") do
+      nil ->
+        GenServer.start_link(@module, args, name: @module)
+
+      _ ->
+        :ignore
+    end
   end
 
   @impl true

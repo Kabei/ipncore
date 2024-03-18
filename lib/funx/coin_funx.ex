@@ -183,7 +183,7 @@ defmodule Ippan.Funx.Coin do
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     %{env: env} = Token.get(token_id)
-    %{"reload.amount" => value, "reload.times" => times} = env
+    %{"reload.amount" => value, "reload.every" => times} = env
 
     target = DetsPlux.tuple(account_id, token_id)
     {balance, map} = DetsPlux.get_cache(db, tx, target, {0, %{}})

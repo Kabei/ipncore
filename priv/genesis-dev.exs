@@ -98,10 +98,10 @@ owner = "@ippan"
       updated_at: 0,
       env: %{
         "reload.amount" => 3125,
-        "reload.times" => 720,
+        "reload.every" => 720,
         "reload.expiry" => 103680,
         "service.tax" => 0.01,
-        "stream.times" => 12
+        "stream.every" => 12
       }
     }
   ],

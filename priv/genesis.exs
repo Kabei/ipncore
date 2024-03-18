@@ -98,9 +98,9 @@ owner = "@ippan"
       updated_at: 0,
       env: %{
         "reload.amount" => 75000,
-        "reload.times" => 15000,
+        "reload.every" => 15000,
         "reload.expiry" => 18250000,
-        "stream.times" => 12,
+        "stream.every" => 12,
         "service.tax" => 0.01,
         "auth" => true
       }

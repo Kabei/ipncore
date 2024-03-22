@@ -19,12 +19,16 @@ defmodule PayService do
     Sqlite.exists?("owner_paysrv", [id, owner])
   end
 
-  def create(db_ref, id, name, owner, image, extra, round_id) do
-    Sqlite.step("insert_paysrv", [id, name, owner, image, CBOR.encode(extra), round_id])
+  def create(db_ref, id, name, owner, image, descrip, extra, round_id) do
+    Sqlite.step("insert_paysrv", [id, name, owner, image, descrip, Jason.encode!(extra), round_id])
   end
 
   def update(db_ref, map, id) do
-    Sqlite.update("pay.serv", map, id: id)
+    Sqlite.update("srv.serv", map, id: id)
+  end
+
+  def count(db_ref, id, count) do
+    Sqlite.step("count_subs", [id, count])
   end
 
   def delete(db_ref, id) do
@@ -32,16 +36,19 @@ defmodule PayService do
     Sqlite.step("delete_all_subpay", [id])
   end
 
-  def to_map([id, name, owner, image, extra, created_at, updated_at]) do
-    extra = :erlang.element(1, CBOR.Decoder.decode(extra))
+  def to_map([id, name, owner, image, descrip, extra, subs, status, created_at, updated_at]) do
+    extra = :erlang.element(1, Jason.decode!(extra))
 
     %{
       id: id,
       image: image,
       name: name,
       owner: owner,
+      descrip: descrip,
+      status: status,
       created_at: created_at,
       extra: extra,
+      subs: subs,
       updated_at: updated_at
     }
   end

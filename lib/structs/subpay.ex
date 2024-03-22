@@ -1,8 +1,16 @@
 defmodule SubPay do
   require Sqlite
 
-  def subscribe(db_ref, id, payer, token, extra, created_at) do
-    Sqlite.step("insert_subpay", [id, payer, token, CBOR.encode(extra), created_at])
+  def subscribe(db_ref, id, payer, token, created_at, every, maxAmount, extra \\ %{}) do
+    Sqlite.step("insert_subpay", [
+      id,
+      payer,
+      token,
+      every,
+      maxAmount,
+      Jason.encode!(extra),
+      created_at
+    ])
   end
 
   def has?(db_ref, id, payer) do
@@ -20,8 +28,12 @@ defmodule SubPay do
     end
   end
 
-  def update(db_ref, id, payer, token, last_round) do
-    Sqlite.step("up_subpay", [id, payer, token, last_round])
+  def spent(db_ref, id, payer, token, div, spent, last_pay) do
+    Sqlite.step("up_subpay", [id, payer, token, div, spent, last_pay])
+  end
+
+  def reset_spent(db_ref, id, payer, token, div, spent, last_pay) do
+    Sqlite.step("reset_subpay", [id, payer, token, div, spent, last_pay])
   end
 
   def unsubscribe(db_ref, id, payer) do
@@ -36,8 +48,8 @@ defmodule SubPay do
     Sqlite.one("total_subpay_payer", [payer], 0)
   end
 
-  def to_map([id, payer, token, extra, created_at, last_round]) do
-    extra = :erlang.element(1, CBOR.Decoder.decode(extra))
+  def to_map([id, payer, token, lastPay, div, every, spent, extra, status, created_at]) do
+    extra = Jason.decode!(extra)
 
     %{
       id: id,
@@ -45,7 +57,11 @@ defmodule SubPay do
       token: token,
       created_at: created_at,
       extra: extra,
-      last_round: last_round
+      lastPay: lastPay,
+      div: div,
+      every: every,
+      spent: spent,
+      status: status
     }
   end
 end

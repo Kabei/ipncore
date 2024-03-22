@@ -30,54 +30,54 @@ SELECT COUNT(1) FROM assets.token;
 DELETE FROM assets.token WHERE id = ?1 AND owner = ?2;
 
 
---name: insert_domain
-INSERT INTO dns.domain VALUES(?1,?2,?3,?4,?5,?6,?7,?8);
+-- --name: insert_domain
+-- INSERT INTO dns.domain VALUES(?1,?2,?3,?4,?5,?6,?7,?8);
 
---name: get_domain
-SELECT * FROM dns.domain WHERE name = ? LIMIT 1;
+-- --name: get_domain
+-- SELECT * FROM dns.domain WHERE name = ? LIMIT 1;
 
---name: exists_domain
-SELECT 1 FROM dns.domain WHERE name = ? LIMIT 1;
+-- --name: exists_domain
+-- SELECT 1 FROM dns.domain WHERE name = ? LIMIT 1;
 
---name: owner_domain
-SELECT 1 FROM dns.domain WHERE name = ?1 AND owner = ?2 LIMIT 1;
+-- --name: owner_domain
+-- SELECT 1 FROM dns.domain WHERE name = ?1 AND owner = ?2 LIMIT 1;
 
---name: delete_domain
-DELETE FROM dns.domain WHERE name = ?1 AND owner =?2;
+-- --name: delete_domain
+-- DELETE FROM dns.domain WHERE name = ?1 AND owner =?2;
 
---name: renew_domain
-UPDATE dns.domain SET renewed_at = renewed_at + ?3, updated_at = ?4 WHERE name=?1 AND owner=?2;
+-- --name: renew_domain
+-- UPDATE dns.domain SET renewed_at = renewed_at + ?3, updated_at = ?4 WHERE name=?1 AND owner=?2;
 
---name: expiry_domain
-DELETE FROM dns.domain WHERE renewed_at < ?;
+-- --name: expiry_domain
+-- DELETE FROM dns.domain WHERE renewed_at < ?;
 
 
---name: insert_dns
-INSERT OR REPLACE INTO dns.dns VALUES(?1, ?2, ?3, ?4, ?5, ?6);
+-- --name: insert_dns
+-- INSERT OR REPLACE INTO dns.dns VALUES(?1, ?2, ?3, ?4, ?5, ?6);
 
---name: get_dns
-SELECT * FROM dns.dns WHERE domain=?1 AND hash=?2;
+-- --name: get_dns
+-- SELECT * FROM dns.dns WHERE domain=?1 AND hash=?2;
 
---name: exists_dns
-SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 LIMIT 1;
+-- --name: exists_dns
+-- SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 LIMIT 1;
 
---name: exists_dns_type
-SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 AND type=?3 LIMIT 1;
+-- --name: exists_dns_type
+-- SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 AND type=?3 LIMIT 1;
 
---name: exists_dns_hash
-SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 AND hash=?3 LIMIT 1;
+-- --name: exists_dns_hash
+-- SELECT 1 FROM dns.dns WHERE domain=?1 AND name=?2 AND hash=?3 LIMIT 1;
 
---name: delete_hash_dns
-DELETE FROM dns.dns WHERE domain = ?1 AND name=?2 AND hash=?3;
+-- --name: delete_hash_dns
+-- DELETE FROM dns.dns WHERE domain = ?1 AND name=?2 AND hash=?3;
 
---name: delete_type_dns
-DELETE FROM dns.dns WHERE domain = ?1 AND name=?2 AND type=?3;
+-- --name: delete_type_dns
+-- DELETE FROM dns.dns WHERE domain = ?1 AND name=?2 AND type=?3;
 
---name: delete_name_dns
-DELETE FROM dns.dns WHERE domain = ?1 AND name=?2;
+-- --name: delete_name_dns
+-- DELETE FROM dns.dns WHERE domain = ?1 AND name=?2;
 
---name: delete_dns
-DELETE FROM dns.dns WHERE domain = ?;
+-- --name: delete_dns
+-- DELETE FROM dns.dns WHERE domain = ?;
 
 
 --name: next_block_id
@@ -183,67 +183,73 @@ DELETE FROM assets.validator WHERE id = ?1;
 REPLACE INTO assets.refund VALUES(?1,?2,?3,?4,?5,?6);
 
 --name: exists_refund
-SELECT 1 FROM assets.refund WHERE hash = ?1 AND `to` = ?2;
+SELECT 1 FROM assets.refund WHERE sender = ?1 AND nonce = ?2 AND `to` = ?3 LIMIT 1;
 
 --name: get_refund
-SELECT sender, token, amount FROM assets.refund WHERE hash = ?1 AND `to` = ?2;
+SELECT sender, token, amount FROM assets.refund WHERE sender = ?1 AND nonce = ?2 AND `to` = ?3 LIMIT 1;
 
 --name: delete_refund
-DELETE FROM assets.refund WHERE hash = ?1 AND `to` = ?2;
+DELETE FROM assets.refund WHERE sender = ?1 AND nonce = ?2;
 
 --name: expiry_refund
 DELETE FROM assets.refund WHERE expiry_in < ?1;
 
 
---name: insert_jackpot
-INSERT INTO blockchain.jackpot VALUES(?1,?2,?3);
+-- --name: insert_jackpot
+-- INSERT INTO blockchain.jackpot VALUES(?1,?2,?3);
 
---name: get_jackpot
-SELECT winner, amount FROM blockchain.jackpot WHERE round_id=? LIMIT 1;
+-- --name: get_jackpot
+-- SELECT winner, amount FROM blockchain.jackpot WHERE round_id=? LIMIT 1;
 
 
 --name: insert_paysrv
-INSERT INTO pay.serv VALUES(?1,?2,?3,?4,?5,?6,?6);
+INSERT INTO srv.serv VALUES(?1,?2,?3,?4,?5,?6,0,1,?7,?7);
 
 --name: get_paysrv
-SELECT * FROM pay.serv WHERE id = ? LIMIT 1;
+SELECT * FROM srv.serv WHERE id = ? LIMIT 1;
 
 --name: exists_paysrv
-SELECT 1 FROM pay.serv WHERE id = ? LIMIT 1;
+SELECT 1 FROM srv.serv WHERE id = ? LIMIT 1;
 
 --name: owner_paysrv
-SELECT 1 FROM pay.serv WHERE id = ?1 AND owner = ?2 LIMIT 1;
+SELECT 1 FROM srv.serv WHERE id = ?1 AND owner = ?2 LIMIT 1;
 
 --name: delete_paysrv
-DELETE FROM pay.serv WHERE id = ?;
+DELETE FROM srv.serv WHERE id = ?;
+
+--name: count_subs
+UPDATE srv.serv SET subs = subs + ?2 WHERE id = ?1;
 
 
 --name: insert_subpay
-INSERT INTO pay.subpay VALUES(?1,?2,?3,?4,?5,0);
+INSERT INTO srv.subpay VALUES(?1,?2,?3,0,0,?4,?5,?6,1,?7);
 
 --name: exists_subpay
-SELECT 1 FROM pay.subpay WHERE id=?1 AND payer=?2 LIMIT 1;
+SELECT 1 FROM srv.subpay WHERE id=?1 AND payer=?2 LIMIT 1;
 
 --name: exists_subpay_token
-SELECT 1 FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
+SELECT 1 FROM srv.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
 
 --name: get_subpay
-SELECT id, payer, token, extra, created_at, last_round FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
+SELECT * FROM srv.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
 
 --name: total_subpay_payer
-SELECT count(1) FROM pay.subpay WHERE payer=?1;
+SELECT count(1) FROM srv.subpay WHERE payer=?1;
 
 --name: up_subpay
-UPDATE pay.subpay SET last_round=?4 WHERE id=?1 AND payer=?2 AND token=?3;
+UPDATE srv.subpay SET div=?4, spent=spent + ?4, lastPay=?5 WHERE id=?1 AND payer=?2 AND token=?3;
+
+--name: reset_subpay
+UPDATE srv.subpay SET div=?4, spent=?5, lastPay=?6 WHERE id=?1 AND payer=?2 AND token=?3;
 
 --name: delete_subpay
-DELETE FROM pay.subpay WHERE id=?1 AND payer=?2;
+DELETE FROM srv.subpay WHERE id=?1 AND payer=?2;
 
 --name: delete_subpay_token
-DELETE FROM pay.subpay WHERE id=?1 AND payer=?2 AND token=?3;
+DELETE FROM srv.subpay WHERE id=?1 AND payer=?2 AND token=?3;
 
 --name: delete_all_subpay
-DELETE FROM pay.subpay WHERE id = ?;
+DELETE FROM srv.subpay WHERE id = ?;
 
 --name: delete_payer_subpay
-DELETE FROM pay.subpay WHERE payer = ?;
+DELETE FROM srv.subpay WHERE payer = ?;

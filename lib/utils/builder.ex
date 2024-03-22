@@ -501,10 +501,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_refund(client, "21520DCFF38E79472E768E98A0FEFC901F4AADA2633E23E116E74181651290BA") |> Builder.print()
-  def coin_refund(client = %Client{id: account_id, nonce: nonce}, hash) do
+  # Builder.coin_refund(client, "@ippan", 15) |> Builder.print()
+  def coin_refund(client = %Client{id: account_id, nonce: nonce}, old_sender, old_nonce) do
     body =
-      [302, nonce, account_id, hash]
+      [302, nonce, account_id, old_sender, old_nonce]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -577,23 +577,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_stream(client, "s-ippan", "@ippan", "XPN", 500)
-  def coin_stream(client = %Client{id: account_id, nonce: nonce}, service_id, to, token, amount) do
-    body =
-      [308, nonce, account_id, service_id, to, token, amount]
-      |> encode_fun!()
-
-    hash = hash_fun(body)
-
-    sig = signature64(client, hash)
-
-    {Client.cont(client), body, sig}
-  end
-
   # Builder.coin_auth(client, client.id, "XPN", true)
   def coin_auth(client = %Client{id: account_id, nonce: nonce}, to, token, auth) do
     body =
-      [309, nonce, account_id, to, token, auth]
+      [308, nonce, account_id, to, token, auth]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -729,17 +716,18 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_new(client, "s-ippan", "title", "@ippan", "https://image.com", %{"summary" => "Watch movies", "min_amount" => 1500})
+  # service_new(client, "s-ippan", "title", "@ippan", "https://image.com", "description", %{"minAmount" => 500})
   def service_new(
         client = %Client{id: account_id, nonce: nonce},
         id,
         name,
         owner,
         image,
+        descrip,
         extra \\ %{}
       ) do
     body =
-      [600, nonce, account_id, id, name, owner, image, extra]
+      [600, nonce, account_id, id, name, owner, image, descrip, extra]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -775,15 +763,10 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_withdraw(client, "s-ippan", "XPN", 500)
-  def service_withdraw(
-        client = %Client{id: account_id, nonce: nonce},
-        service_id,
-        token_id,
-        amount
-      ) do
+  # Builder.service_pay(client, "s-ippan", "XPN", 500)
+  def service_pay(client = %Client{id: account_id, nonce: nonce}, service_id, token, amount) do
     body =
-      [603, nonce, account_id, service_id, token_id, amount]
+      [603, nonce, account_id, service_id, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -793,15 +776,53 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_subscribe(client, "s-ippan", "XPN", %{"max_amount" => 1500, "exp" => 1500000})
+  # Builder.service_stream(client, "s-ippan", "@ippan", "XPN", 500)
+  def service_stream(
+        client = %Client{id: account_id, nonce: nonce},
+        service_id,
+        to,
+        token,
+        amount
+      ) do
+    body =
+      [604, nonce, account_id, service_id, to, token, amount]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_withdraw(client, "s-ippan", "XPN", 500)
+  def service_withdraw(
+        client = %Client{id: account_id, nonce: nonce},
+        service_id,
+        token_id,
+        amount
+      ) do
+    body =
+      [605, nonce, account_id, service_id, token_id, amount]
+      |> encode_fun!()
+
+    hash = hash_fun(body)
+
+    sig = signature64(client, hash)
+
+    {Client.cont(client), body, sig}
+  end
+
+  # service_subscribe(client, "s-ippan", "XPN", 18000, %{"maxAmount" => 1500, "exp" => 1500000})
   def service_subscribe(
         client = %Client{id: account_id, nonce: nonce},
         service_id,
         token_id,
+        every,
         extra
       ) do
     body =
-      [610, nonce, account_id, service_id, token_id, extra]
+      [610, nonce, account_id, service_id, token_id, every, extra]
       |> encode_fun!()
 
     hash = hash_fun(body)

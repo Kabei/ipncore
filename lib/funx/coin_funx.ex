@@ -148,16 +148,15 @@ defmodule Ippan.Funx.Coin do
     BalanceStore.pay_burn(to, token_id, amount)
   end
 
-  def refund(%{id: from}, hash16) do
-    hash = Base.decode16!(hash16, case: :mixed)
+  def refund(%{id: account_id}, sender, nonce) do
     db_ref = :persistent_term.get(:main_conn)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
 
-    case Sqlite.step("get_refund", [hash, from]) do
+    case Sqlite.step("get_refund", [sender, nonce, account_id]) do
       {:row, [to, token_id, refund_amount]} ->
-        Sqlite.step("delete_refund", [hash, from])
-        BalanceStore.refund(from, to, token_id, refund_amount)
+        Sqlite.step("delete_refund", [sender, nonce])
+        BalanceStore.refund(account_id, to, token_id, refund_amount)
 
       _ ->
         :error
@@ -227,18 +226,6 @@ defmodule Ippan.Funx.Coin do
 
   defp calc_reload_mult(round_id, init_round, last_round, times) do
     div(round_id - init_round, times) - div(last_round - init_round, times)
-  end
-
-  def stream(%{round: round_id}, service_id, payer, token_id, amount) do
-    db = DetsPlux.get(:balance)
-    tx = DetsPlux.tx(db, :balance)
-
-    BalanceStore.pay payer, token_id, amount do
-      BalanceStore.stream(service_id, token_id, amount)
-
-      db_ref = :persistent_term.get(:main_conn)
-      SubPay.update(db_ref, service_id, payer, token_id, round_id)
-    end
   end
 
   def auth(

@@ -161,7 +161,8 @@ defmodule Ippan.Funcs do
       name: "token.delete",
       mod: Func.Token,
       modx: Funx.Token,
-      fun: :delete
+      fun: :delete,
+      deferred: true
     }
   end
 
@@ -304,17 +305,6 @@ defmodule Ippan.Funcs do
   def lookup(308) do
     %Func{
       id: 308,
-      name: "coin.stream",
-      mod: Func.Coin,
-      modx: Funx.Coin,
-      fun: :stream,
-      check: {:check, 0}
-    }
-  end
-
-  def lookup(309) do
-    %Func{
-      id: 309,
       name: "coin.auth",
       mod: Func.Coin,
       modx: Funx.Coin,
@@ -423,13 +413,35 @@ defmodule Ippan.Funcs do
       name: "service.delete",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :delete
+      fun: :delete,
+      deferred: true
     }
   end
 
   def lookup(603) do
     %Func{
       id: 603,
+      name: "service.pay",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :pay
+    }
+  end
+
+  def lookup(604) do
+    %Func{
+      id: 604,
+      name: "service.stream",
+      mod: Func.Service,
+      modx: Funx.Service,
+      fun: :stream,
+      check: {:check, 0}
+    }
+  end
+
+  def lookup(605) do
+    %Func{
+      id: 605,
       name: "service.withdraw",
       mod: Func.Service,
       modx: Funx.Service,

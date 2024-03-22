@@ -1178,10 +1178,10 @@ defmodule RoundManager do
                     account_id
                 end
 
-              jackpot = [round_id, winner_id, amount]
+              # jackpot = [round_id, winner_id, amount]
 
-              :done =
-                Sqlite.step("insert_jackpot", jackpot)
+              # :done =
+              #   Sqlite.step("insert_jackpot", jackpot)
 
               {winner_id, amount}
 

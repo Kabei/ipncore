@@ -9,7 +9,15 @@ defmodule Ippan.Funx.Service do
   @token Application.compile_env(@app, :token)
   @skey "services"
 
-  def new(%{id: account_id, round: round_id}, id, name, owner, image, extra) do
+  def new(
+        %{id: account_id, round: round_id},
+        id,
+        name,
+        owner,
+        image,
+        descrip,
+        extra \\ %{}
+      ) do
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     price = EnvStore.service_price()
@@ -24,7 +32,7 @@ defmodule Ippan.Funx.Service do
 
       true ->
         db_ref = :persistent_term.get(:main_conn)
-        PayService.create(db_ref, id, name, owner, image, extra, round_id)
+        PayService.create(db_ref, id, name, owner, image, descrip, extra, round_id)
         Stats.incr(stats, @skey, 1)
     end
   end
@@ -90,6 +98,39 @@ defmodule Ippan.Funx.Service do
     end
   end
 
+  def pay(%{id: account_id}, service_id, token_id, amount) do
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
+
+    BalanceStore.pay account_id, token_id, amount do
+      BalanceStore.send(service_id, token_id, amount)
+    end
+  end
+
+  def stream(%{round: round_id}, service_id, payer, token_id, amount) do
+    db = DetsPlux.get(:balance)
+    tx = DetsPlux.tx(db, :balance)
+    db_ref = :persistent_term.get(:main_conn)
+
+    subpay = SubPay.get(db_ref, service_id, payer, token_id)
+
+    if subpay do
+      BalanceStore.pay payer, token_id, amount do
+        interval = div(subpay.every, round_id)
+
+        if subpay.div != interval do
+          SubPay.spent(db_ref, service_id, payer, token_id, interval, amount, round_id)
+        else
+          SubPay.reset_spent(db_ref, service_id, payer, token_id, interval, amount, round_id)
+        end
+
+        BalanceStore.send(service_id, token_id, amount)
+      end
+    else
+      :error
+    end
+  end
+
   def withdraw(
         %{id: account_id, size: size, validator: %{fa: fa, fb: fb, owner: vOwner}},
         service_id,
@@ -113,11 +154,8 @@ defmodule Ippan.Funx.Service do
       reserve = Utils.calc_reserve(tfees)
       fees = tfees - reserve
 
-      validator_balance = BalanceStore.load(vOwner, @token)
-      BalanceStore.fees(validator_balance, fees)
+      BalanceStore.send(vOwner, @token, fees)
       BalanceStore.reserve(reserve)
-
-      BalanceStore.burn(service_id, token_id, tax)
     end
   end
 
@@ -130,6 +168,8 @@ defmodule Ippan.Funx.Service do
         },
         service_id,
         token_id,
+        every,
+        maxAmount,
         extra
       ) do
     db = DetsPlux.get(:balance)
@@ -148,15 +188,20 @@ defmodule Ippan.Funx.Service do
           service_id,
           account_id,
           token_id,
-          extra,
-          round_id
+          round_id,
+          every,
+          maxAmount,
+          extra
         )
+
+        PayService.count(db_ref, service_id, 1)
     end
   end
 
   def unsubscribe(%{id: account_id}, service_id) do
     db_ref = :persistent_term.get(:main_conn)
     SubPay.unsubscribe(db_ref, service_id, account_id)
+    PayService.count(db_ref, service_id, -1)
   end
 
   def unsubscribe(%{id: account_id}, service_id, token_id) do

@@ -32,15 +32,15 @@ CREATE TABLE IF NOT EXISTS round(
   extra BLOB
 ) WITHOUT ROWID;
 
-CREATE TABLE IF NOT EXISTS jackpot(
-  round_id BIGINT NOT NULL,
-  winner BLOB,
-  amount BIGINT DEFAULT 0,
-  PRIMARY KEY(round_id, winner)
-) WITHOUT ROWID;
+-- CREATE TABLE IF NOT EXISTS jackpot(
+--   round_id BIGINT NOT NULL,
+--   winner BLOB,
+--   amount BIGINT DEFAULT 0,
+--   PRIMARY KEY(round_id, winner)
+-- ) WITHOUT ROWID;
 
-CREATE TABLE IF NOT EXISTS snapshot(
-  round_id BIGINT PRIMARY KEY NOT NULL,
-  hash BLOB NOT NULL,
-  size BIGINT NOT NULL
-) WITHOUT ROWID;
+-- CREATE TABLE IF NOT EXISTS snapshot(
+--   round_id BIGINT PRIMARY KEY NOT NULL,
+--   hash BLOB NOT NULL,
+--   size BIGINT NOT NULL
+-- ) WITHOUT ROWID;

@@ -7,8 +7,8 @@ defmodule MainStore do
   @creations %{
     "assets" => SQL.readFile!("lib/sql/assets.sql"),
     "blockchain" => SQL.readFile!("lib/sql/blockchain.sql"),
-    "dns" => SQL.readFile!("lib/sql/dns.sql"),
-    "pay" => SQL.readFile!("lib/sql/pay.sql"),
+    # "dns" => SQL.readFile!("lib/sql/dns.sql"),
+    "srv" => SQL.readFile!("lib/sql/service.sql"),
     "main" => SQL.readFile!("lib/sql/main.sql")
   }
 
@@ -19,8 +19,8 @@ defmodule MainStore do
   # databases
   @attaches %{
     "assets" => "assets.db",
-    "pay" => "pay.db",
-    "dns" => "dns.db",
+    "srv" => "service.db",
+    # "dns" => "dns.db",
     "blockchain" => "blockchain.db"
   }
 

@@ -5,7 +5,7 @@ defmodule Ippan.Domain do
           name: String.t(),
           owner: binary(),
           email: String.t(),
-          avatar: String.t(),
+          image: String.t(),
           records: non_neg_integer(),
           created_at: non_neg_integer(),
           renewed_at: non_neg_integer(),
@@ -13,10 +13,10 @@ defmodule Ippan.Domain do
         }
 
   @impl true
-  def optionals, do: ~w(email avatar)
+  def optionals, do: ~w(email image)
 
   @impl true
-  def editable, do: ~w(owner email avatar)
+  def editable, do: ~w(owner email image)
 
   @doc "Return subdomain and domain in a tuple from hostname or list hostname"
   def split(hostname_parts) when is_list(hostname_parts) do
@@ -64,7 +64,7 @@ defmodule Ippan.Domain do
   defstruct name: nil,
             owner: nil,
             email: nil,
-            avatar: nil,
+            image: nil,
             records: 0,
             created_at: nil,
             renewed_at: nil,
@@ -81,7 +81,7 @@ defmodule Ippan.Domain do
       x.name,
       x.owner,
       x.email,
-      x.avatar,
+      x.image,
       x.records,
       x.created_at,
       x.renewed_at,
@@ -98,7 +98,7 @@ defmodule Ippan.Domain do
         name,
         owner,
         email,
-        avatar,
+        image,
         records,
         created_at,
         renewed_at,
@@ -108,7 +108,7 @@ defmodule Ippan.Domain do
       name: name,
       owner: owner,
       email: email,
-      avatar: avatar,
+      image: image,
       records: records,
       created_at: created_at,
       renewed_at: renewed_at,

@@ -10,7 +10,7 @@ defmodule Ippan.Validator do
           class: String.t(),
           pubkey: binary(),
           net_pubkey: binary(),
-          avatar: String.t() | nil,
+          image: String.t() | nil,
           fa: integer(),
           fb: integer(),
           active: boolean(),
@@ -28,7 +28,7 @@ defmodule Ippan.Validator do
     :owner,
     :pubkey,
     :net_pubkey,
-    :avatar,
+    :image,
     :fa,
     :fb,
     :created_at,
@@ -43,9 +43,9 @@ defmodule Ippan.Validator do
   @pad_number 6
 
   @impl true
-  def editable, do: ~w(hostname port name avatar fa fb owner pubkey net_pubkey class)
+  def editable, do: ~w(hostname port name image fa fb owner pubkey net_pubkey class)
   @impl true
-  def optionals, do: ~w(avatar env)
+  def optionals, do: ~w(image env)
 
   @impl true
   def to_list(x) do
@@ -58,7 +58,7 @@ defmodule Ippan.Validator do
       x.class,
       x.pubkey,
       x.net_pubkey,
-      x.avatar,
+      x.image,
       x.fa,
       x.fb,
       if(x.active == true, do: 1, else: 0),
@@ -89,7 +89,7 @@ defmodule Ippan.Validator do
         class,
         pubkey,
         net_pubkey,
-        avatar,
+        image,
         fa,
         fb,
         active,
@@ -105,7 +105,7 @@ defmodule Ippan.Validator do
       name: name,
       owner: owner,
       class: class,
-      avatar: avatar,
+      image: image,
       pubkey: pubkey,
       net_pubkey: net_pubkey,
       fb: fb,

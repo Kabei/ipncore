@@ -226,7 +226,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.validator_join(client, "ippan.net", 5815, account_id, "net core", pkv, 1, 5, %{"avatar" => "https://avatar.com"}) |> Builder.print()
+  # Builder.validator_join(client, "ippan.net", 5815, account_id, "net core", pkv, 1, 5, %{"image" => "https://image.com"}) |> Builder.print()
   def validator_join(
         client = %Client{id: account_id, nonce: nonce},
         hostname,
@@ -326,8 +326,8 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.token_new(client, "IPN", client2.id, "IPPAN", 9, "Þ", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]})
-  # Builder.token_new(client, "USD", client2.id, "DOLLAR", 5, "$", 0, %{"avatar" => "https://avatar.com", "props" => ["burn", "coinbase", "lock"]}) |> Builder.print
+  # Builder.token_new(client, "IPN", client2.id, "IPPAN", 9, "Þ", 0, %{"image" => "https://image.com", "props" => ["burn", "coinbase", "lock"]})
+  # Builder.token_new(client, "USD", client2.id, "DOLLAR", 5, "$", 0, %{"image" => "https://image.com", "props" => ["burn", "coinbase", "lock"]}) |> Builder.print
   def token_new(
         client = %Client{id: account_id, nonce: nonce},
         token_id,
@@ -337,7 +337,7 @@ defmodule Builder do
         symbol,
         max_supply,
         %{
-          "avatar" => _avatar_url,
+          "image" => _image_url,
           "props" => _props
         } = opts
       ) do
@@ -590,7 +590,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.domain_new(client, "example.ipn", account_id, 2, %{"email" => "asd@example.com", "avatar" => "https://avatar.com"}) |> Builder.print()
+  # Builder.domain_new(client, "example.ipn", account_id, 2, %{"email" => "asd@example.com", "image" => "https://image.com"}) |> Builder.print()
   def domain_new(
         client = %Client{id: account_id, nonce: nonce},
         domain_name,
@@ -598,7 +598,7 @@ defmodule Builder do
         days,
         %{
           "email" => _email,
-          "avatar" => _avatar
+          "image" => _image
         } = params
       ) do
     body =

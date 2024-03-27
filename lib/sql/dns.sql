@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS domain(
   name TEXT PRIMARY KEY NOT NULL,
   owner BLOB NOT NULL,
   email TEXT,
-  avatar TEXT,
+  image TEXT,
   records BIGINT DEFAULT 0,
   created_at BIGINT NOT NULL,
   renewed_at BIGINT NOT NULL,

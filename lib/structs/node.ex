@@ -9,7 +9,7 @@ defmodule Ippan.Node do
           class: [binary] | nil,
           pubkey: binary,
           net_pubkey: binary,
-          avatar: binary | nil,
+          image: binary | nil,
           created_at: integer(),
           updated_at: integer()
         }
@@ -20,7 +20,7 @@ defmodule Ippan.Node do
     :port,
     :pubkey,
     :net_pubkey,
-    :avatar,
+    :image,
     :created_at,
     :updated_at,
     class: ""
@@ -31,10 +31,10 @@ defmodule Ippan.Node do
   # def fields, do: @fields
 
   @impl true
-  def editable, do: ~w(hostname port class avatar)
+  def editable, do: ~w(hostname port class image)
 
   @impl true
-  def optionals, do: ~w(avatar)
+  def optionals, do: ~w(image)
 
   @impl true
   def to_list(x) do
@@ -45,7 +45,7 @@ defmodule Ippan.Node do
       x.class,
       x.pubkey,
       x.net_pubkey,
-      x.avatar,
+      x.image,
       x.created_at,
       x.updated_at
     ]
@@ -69,7 +69,7 @@ defmodule Ippan.Node do
         class,
         pubkey,
         net_pubkey,
-        avatar,
+        image,
         created_at,
         updated_at
       ]) do
@@ -80,7 +80,7 @@ defmodule Ippan.Node do
       class: class,
       pubkey: pubkey,
       net_pubkey: net_pubkey,
-      avatar: avatar,
+      image: image,
       created_at: created_at,
       updated_at: updated_at
     }

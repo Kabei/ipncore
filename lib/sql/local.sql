@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS nodes(
   class TEXT,
   pubkey BLOB,
   net_pubkey BLOB,
-  avatar TEXT,
+  image TEXT,
   created_at BIGINT,
   updated_at BIGINT
 ) WITHOUT ROWID;

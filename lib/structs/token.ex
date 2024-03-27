@@ -9,7 +9,7 @@ defmodule Ippan.Token do
           id: String.t(),
           name: String.t(),
           owner: binary(),
-          avatar: String.t(),
+          image: String.t(),
           decimal: non_neg_integer(),
           symbol: String.t(),
           max_supply: non_neg_integer(),
@@ -20,17 +20,17 @@ defmodule Ippan.Token do
         }
 
   @impl true
-  def optionals, do: ~w(avatar props env)
+  def optionals, do: ~w(image props env)
 
   @impl true
-  def editable, do: ~w(avatar name owner)
+  def editable, do: ~w(image name owner)
 
   def props, do: ~w(burn coinbase drop lock reload stream)
 
   defstruct id: nil,
             name: nil,
             owner: nil,
-            avatar: nil,
+            image: nil,
             decimal: 0,
             symbol: nil,
             max_supply: 0,
@@ -45,7 +45,7 @@ defmodule Ippan.Token do
       x.id,
       x.owner,
       x.name,
-      x.avatar,
+      x.image,
       x.decimal,
       x.symbol,
       BigNumber.to_bin(x.max_supply),
@@ -75,7 +75,7 @@ defmodule Ippan.Token do
         id,
         owner,
         name,
-        avatar,
+        image,
         decimal,
         symbol,
         max_supply,
@@ -88,7 +88,7 @@ defmodule Ippan.Token do
       id: id,
       name: name,
       owner: owner,
-      avatar: avatar,
+      image: image,
       decimal: decimal,
       symbol: symbol,
       max_supply: BigNumber.to_int(max_supply),

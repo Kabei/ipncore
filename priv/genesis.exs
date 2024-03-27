@@ -74,7 +74,7 @@ owner = "@ippan"
   ],
   "tokens" => [
     %Token{
-      avatar: "https://ippan.com/images/IPN.png",
+      image: "https://ippan.com/images/IPN.png",
       created_at: 0,
       decimal: 9,
       id: "IPN",
@@ -86,7 +86,7 @@ owner = "@ippan"
       updated_at: 0
     },
     %Token{
-      avatar: "https://ippan.com/images/XPN.png",
+      image: "https://ippan.com/images/XPN.png",
       created_at: 0,
       decimal: 9,
       id: "XPN",
@@ -107,7 +107,7 @@ owner = "@ippan"
   ],
   "validators" => [
     %Validator{
-      avatar: nil,
+      image: nil,
       created_at: 0,
       fa: 0,
       failures: 0,

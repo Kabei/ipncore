@@ -488,9 +488,9 @@ defmodule Builder do
   def coin_multisend(client = %Client{id: account_id, nonce: nonce}, token, outputs, note \\ "") do
     body =
       if String.length(note) == 0 do
-        [306, nonce, account_id, token, outputs]
+        [307, nonce, account_id, token, outputs]
       else
-        [306, nonce, account_id, token, outputs, note]
+        [307, nonce, account_id, token, outputs, note]
       end
       |> encode_fun!()
 
@@ -538,8 +538,8 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.coin_burn(client, "IPN", 1000) |> Builder.print()
-  def coin_burn(client = %Client{id: account_id, nonce: nonce}, token, amount) do
+  # Builder.coin_drop(client, "IPN", 1000) |> Builder.print()
+  def coin_drop(client = %Client{id: account_id, nonce: nonce}, token, amount) do
     body =
       [305, nonce, account_id, token, amount]
       |> encode_fun!()
@@ -554,7 +554,7 @@ defmodule Builder do
   # Builder.coin_burn(client, "IPN", client2.id, 1000) |> Builder.print()
   def coin_burn(client = %Client{id: account_id, nonce: nonce}, to, token, amount) do
     body =
-      [305, nonce, account_id, to, token, amount]
+      [306, nonce, account_id, to, token, amount]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -567,7 +567,7 @@ defmodule Builder do
   # Builder.coin_reload(client, "XPN") |> Builder.print()
   def coin_reload(client = %Client{id: account_id, nonce: nonce}, token) do
     body =
-      [307, nonce, account_id, token]
+      [308, nonce, account_id, token]
       |> encode_fun!()
 
     hash = hash_fun(body)
@@ -580,7 +580,7 @@ defmodule Builder do
   # Builder.coin_auth(client, client.id, "XPN", true)
   def coin_auth(client = %Client{id: account_id, nonce: nonce}, to, token, auth) do
     body =
-      [308, nonce, account_id, to, token, auth]
+      [309, nonce, account_id, to, token, auth]
       |> encode_fun!()
 
     hash = hash_fun(body)

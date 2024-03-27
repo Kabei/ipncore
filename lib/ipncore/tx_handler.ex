@@ -42,14 +42,14 @@ defmodule Ippan.TxHandler do
 
         # check validator from argument position and get data from FROM variable
         {:check, pos} ->
-          id = Enum.at(var!(args), pos)
-          {_, _sig_type, %{"vid" => v}} = DetsPlux.get_cache(dets, tx, var!(from))
+          from = Enum.at(var!(args), pos)
+          result = {_, _sig_type, %{"vid" => v}} = DetsPlux.get_cache(dets, tx, from)
 
           if vid != v do
             raise IppanRedirectError, "#{v}"
           end
 
-          DetsPlux.get_cache(dets, tx, var!(from))
+          result
       end
     end
   end

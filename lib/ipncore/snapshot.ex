@@ -40,12 +40,12 @@ defmodule Snapshot do
   def last do
     stats = Stats.cache()
 
-    Stats.get(stats, @key)
+    Stats.get(stats, @key, nil)
     |> to_map()
   end
 
   def last(stats) do
-    Stats.get(stats, @key)
+    Stats.get(stats, @key, nil)
     |> to_map()
   end
 

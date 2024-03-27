@@ -196,6 +196,8 @@ defmodule RoundSync do
 
   defp check(hostname, my_last_round) do
     try do
+      my_last_snap = Snapshot.last()
+
       case HTTPoison.get("https://#{hostname}/v1/info", [], hackney: [:insecure]) do
         {:ok, r1 = %{status_code: 200}} ->
           case HTTPoison.get("https://#{hostname}/v1/network/status", [],
@@ -205,12 +207,24 @@ defmodule RoundSync do
             {:ok, r2 = %{status_code: 200}} ->
               {:ok, validator} = @json.decode(r1.body)
 
-              {:ok, %{"id" => round_id, "name" => blockchain}} = @json.decode(r2.body)
+              {:ok, %{"id" => round_id, "name" => blockchain, "last_snap" => last_snap}} =
+                @json.decode(r2.body)
 
               cond do
                 blockchain != @blockchain ->
                   Logger.warning("Wrong blockchain \"#{blockchain}\" - My config: #{@blockchain}")
                   :error
+
+                last_snap > Map.get(my_last_snap, "id", -1) ->
+                  case Snapshot.download(hostname, last_snap) do
+                    :ok ->
+                      Snapshot.restore(last_snap)
+                      :idle
+
+                    :error ->
+                      Logger.warning("Error snapshot downloading or verification hash")
+                      :error
+                  end
 
                 round_id > my_last_round ->
                   # validator

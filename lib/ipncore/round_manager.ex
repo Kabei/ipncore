@@ -29,10 +29,10 @@ defmodule RoundManager do
   @timeout Application.compile_env(@app, :round_timeout)
   @max_peers_conn Application.compile_env(@app, :max_peers_conn)
   @maintenance Application.compile_env(@app, :maintenance)
-  @snap_round 350_000
   @min_time_to_request 0
   @max_time_to_request 6_000
   @max_confirmations Application.compile_env(@app, :max_confirmations, 30)
+  @snap_round Application.compile_env(@app, :snap_round, 350_000)
 
   def start_link(args) do
     case System.get_env("test") do
@@ -1205,8 +1205,12 @@ defmodule RoundManager do
   end
 
   defp run_maintenance(round_id, _db_ref) when rem(round_id, @snap_round) == 0 do
-    Snapshot.create(round_id)
-    Snapshot.restore(round_id)
+    fun = fn ->
+      Snapshot.create(round_id)
+      Snapshot.restore(round_id)
+    end
+
+    :persistent_term.put(:last_fun, fun)
   end
 
   defp run_maintenance(_, _), do: nil

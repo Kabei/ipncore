@@ -4,6 +4,8 @@ defmodule Snapshot do
   @app Mix.Project.config()[:app]
   @extension Application.compile_env(@app, :snap_extension, "snap")
 
+  @default %{hash: nil, id: -1, size: 0}
+
   def create(round_id) do
     before_create()
     filename = String.to_charlist("#{round_id}.#{@extension}")
@@ -15,16 +17,33 @@ defmodule Snapshot do
 
     to = :persistent_term.get(:save_dir)
 
+    # compress folder
     :zip.create(filename, files, cwd: to)
 
-    hash =
-      Path.join(to, filename)
-      |> compute_hashfile()
+    filepath = Path.join(to, filename)
 
+    # compute filehash
+    hash =
+      compute_hashfile(filepath)
+
+    # get filesize
+    {:ok, fstat} = File.stat(filepath)
+
+    # save record
     stats = Stats.new()
-    Stats.put(stats, "last_snap", round_id)
-    Stats.put(stats, "last_snap_hash", hash)
+    snapshot = %{"id" => round_id, "hash" => hash, "size" => fstat.size}
+    Stats.put(stats, "last_snap", snapshot)
     DetsPlux.start_sync(stats.db, stats.tx)
+  end
+
+  def last do
+    stats = Stats.cache()
+    Stats.get(stats, "last_snap")
+  end
+
+  def last(stats) do
+    Stats.get(stats, "last_snap")
+    |> to_map()
   end
 
   def restore(round_id) do
@@ -39,6 +58,35 @@ defmodule Snapshot do
     after_restore()
   end
 
+  # download and hash verification snapshot file
+  def download(hostname, snap) do
+    url = "https://#{hostname}/v1/dl/save/#{snap.id}"
+
+    filepath = :persistent_term.get(:save_dir) |> Path.join("#{snap.id}.#{@extension}")
+    DownloadTask.start(url, filepath, snap.size)
+
+    # snapshot hash verification
+    case compute_hashfile(filepath) == snap.hash do
+      true -> :ok
+      _ -> :error
+    end
+  end
+
+  def local_download(hostname, snap) do
+    port = Application.get_env(@app, :x_http_port)
+    url = "http://#{hostname}:#{port}/v1/dl/save/#{snap.id}"
+
+    filepath = :persistent_term.get(:save_dir) |> Path.join("#{snap.id}.#{@extension}")
+    DownloadTask.start(url, filepath, snap.size)
+
+    # snapshot hash verification
+    case compute_hashfile(filepath) == snap.hash do
+      true -> :ok
+      _ -> :error
+    end
+  end
+
+  # delete old rounds and blocks records
   defp before_create do
     db_ref = :persistent_term.get(:main_conn)
     Sqlite.step("delete_old_blocks")
@@ -46,15 +94,15 @@ defmodule Snapshot do
     Sqlite.sync(db_ref)
   end
 
+  # stop database processes
   defp before_restore do
     :persistent_term.put(:status, :sync)
     MainStore.terminate()
     Supervisor.stop(DetsSup)
   end
 
+  # reset system
   defp after_restore do
-    MainStore.init(nil)
-    DetsSup.init(nil)
     :init.restart()
   end
 
@@ -65,5 +113,15 @@ defmodule Snapshot do
     File.stream!(path, [], 2048)
     |> Enum.reduce(state, &@hash_module.update(&2, &1))
     |> @hash_module.finalize()
+  end
+
+  defp to_map(nil), do: @default
+
+  defp to_map(%{"id" => id, "hash" => hash, "size" => size}) do
+    %{
+      id: id,
+      hash: hash,
+      size: size
+    }
   end
 end

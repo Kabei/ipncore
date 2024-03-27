@@ -4,6 +4,7 @@ defmodule Snapshot do
   @app Mix.Project.config()[:app]
   @extension Application.compile_env(@app, :snap_extension, "snap")
 
+  @key "last_snap"
   @default %{hash: nil, id: -1, size: 0}
 
   def create(round_id) do
@@ -32,17 +33,19 @@ defmodule Snapshot do
     # save record
     stats = Stats.new()
     snapshot = %{"id" => round_id, "hash" => hash, "size" => fstat.size}
-    Stats.put(stats, "last_snap", snapshot)
+    Stats.put(stats, @key, snapshot)
     DetsPlux.start_sync(stats.db, stats.tx)
   end
 
   def last do
     stats = Stats.cache()
-    Stats.get(stats, "last_snap")
+
+    Stats.get(stats, @key)
+    |> to_map()
   end
 
   def last(stats) do
-    Stats.get(stats, "last_snap")
+    Stats.get(stats, @key)
     |> to_map()
   end
 

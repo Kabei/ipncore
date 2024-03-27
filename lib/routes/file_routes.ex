@@ -10,8 +10,8 @@ defmodule Ipncore.FileRoutes do
   plug(:dispatch)
 
   get "/save/:filename" do
-    store_dir = :persistent_term.get(:save_dir)
-    path = Path.join([store_dir, filename, ".zip"])
+    save_dir = :persistent_term.get(:save_dir)
+    path = Path.join([save_dir, filename])
 
     if File.regular?(path) do
       conn

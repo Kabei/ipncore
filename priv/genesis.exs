@@ -100,7 +100,6 @@ owner = "@ippan"
         "reload.amount" => 75000,
         "reload.every" => 15000,
         "reload.expiry" => 18250000,
-        "stream.every" => 12,
         "service.tax" => 0.01,
         "auth" => true
       }
@@ -114,7 +113,7 @@ owner = "@ippan"
       failures: 0,
       fb: 1,
       hostname: "ippan.co.uk",
-      id: 0,
+      id: "V-00000",
       name: "Master",
       net_pubkey: npk,
       owner: owner,

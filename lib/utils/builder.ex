@@ -123,7 +123,7 @@ defmodule Builder do
     {pk, sk, Address.hash(2, pk)}
   end
 
-  # Builder.account_new(client, 0, 0, 1) |> Builder.print
+  # Builder.account_new(client, "V-000000", 0, 1) |> Builder.print
   def account_new(
         client = %Client{
           id: account_id,
@@ -155,7 +155,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.account_sub(client, 0, 0, 1) |> Builder.print
+  # Builder.account_sub(client, "V-000001", 0, 1) |> Builder.print
   def account_sub(
         client = %Client{
           id: account_id,
@@ -716,7 +716,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_new(client, "s-ippan", "title", "@ippan", "https://image.com", "description", %{"minAmount" => 500})
+  # service_new(client, "S-ippan", "title", "@ippan", "https://image.com", "description", %{"minAmount" => 500})
   def service_new(
         client = %Client{id: account_id, nonce: nonce},
         id,
@@ -737,7 +737,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_update(client, "s-ippan", %{"name" => "movies-live", "summary" => "Watch movies 2"})
+  # service_update(client, "S-ippan", %{"name" => "movies-live", "summary" => "Watch movies 2"})
   def service_update(client = %Client{id: account_id, nonce: nonce}, service_id, map) do
     body =
       [601, nonce, account_id, service_id, map]
@@ -750,7 +750,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_delete(client, "s-ippan")
+  # service_delete(client, "S-ippan")
   def service_delete(client = %Client{id: account_id, nonce: nonce}, service_id) do
     body =
       [602, nonce, account_id, service_id]
@@ -763,7 +763,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.service_pay(client, "s-ippan", "XPN", 500)
+  # Builder.service_pay(client, "S-ippan", "XPN", 500)
   def service_pay(client = %Client{id: account_id, nonce: nonce}, service_id, token, amount) do
     body =
       [603, nonce, account_id, service_id, token, amount]
@@ -776,7 +776,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.service_stream(client, "s-ippan", "@ippan", "XPN", 500)
+  # Builder.service_stream(client, "S-ippan", "@ippan", "XPN", 500)
   def service_stream(
         client = %Client{id: account_id, nonce: nonce},
         service_id,
@@ -795,7 +795,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_withdraw(client, "s-ippan", "XPN", 500)
+  # service_withdraw(client, "S-ippan", "XPN", 500)
   def service_withdraw(
         client = %Client{id: account_id, nonce: nonce},
         service_id,
@@ -813,7 +813,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_subscribe(client, "s-ippan", "XPN", 18000, %{"maxAmount" => 1500, "exp" => 1500000})
+  # service_subscribe(client, "S-ippan", "XPN", 18000, %{"maxAmount" => 1500, "exp" => 1500000})
   def service_subscribe(
         client = %Client{id: account_id, nonce: nonce},
         service_id,
@@ -832,7 +832,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_unsubscribe(client, "s-ippan")
+  # service_unsubscribe(client, "S-ippan")
   def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id) do
     body =
       [611, nonce, account_id, service_id]
@@ -845,7 +845,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_unsubscribe(client, "s-ippan", "XPN")
+  # service_unsubscribe(client, "S-ippan", "XPN")
   def service_unsubscribe(client = %Client{id: account_id, nonce: nonce}, service_id, token_id) do
     body =
       [611, nonce, account_id, service_id, token_id]
@@ -858,7 +858,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_kick(client, "s-ippan", "@name")
+  # service_kick(client, "S-ippan", "@name")
   def service_kick(client = %Client{id: account_id, nonce: nonce}, service_id, to) do
     body =
       [612, nonce, account_id, service_id, to]
@@ -871,7 +871,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_kick(client, "s-ippan", "@name", "XPN")
+  # service_kick(client, "S-ippan", "@name", "XPN")
   def service_kick(client = %Client{id: account_id, nonce: nonce}, service_id, to, token_id) do
     body =
       [612, nonce, account_id, service_id, to, token_id]

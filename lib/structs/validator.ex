@@ -2,7 +2,7 @@ defmodule Ippan.Validator do
   alias Ippan.Utils
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
-          id: non_neg_integer(),
+          id: String.t(),
           hostname: String.t(),
           port: integer(),
           name: String.t(),
@@ -38,6 +38,9 @@ defmodule Ippan.Validator do
     env: %{},
     class: ""
   ]
+
+  @suffix "V-"
+  @pad_number 6
 
   @impl true
   def editable, do: ~w(hostname port name avatar fa fb owner pubkey net_pubkey class)
@@ -157,10 +160,13 @@ defmodule Ippan.Validator do
     end
   end
 
-  defmacro next_id do
-    quote location: :keep do
-      Sqlite.one("next_id_validator")
-    end
+  @spec next_id :: String.t()
+  def next_id do
+    stats = Stats.new()
+    n = Stats.get(stats, "seq_validators", 0)
+    Stats.put(stats, "seq_validators", n + 1)
+
+    [@suffix, String.pad_leading("#{n}", @pad_number, "0")] |> IO.iodata_to_binary()
   end
 
   defmacro exists?(id) do

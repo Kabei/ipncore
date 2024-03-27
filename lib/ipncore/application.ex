@@ -57,7 +57,7 @@ defmodule Ipncore.Application do
 
     name = System.get_env("NAME") || raise IppanStartUpError, "variable NAME is missing"
 
-    :persistent_term.put(:vid, String.to_integer(vid))
+    :persistent_term.put(:vid, vid)
     :persistent_term.put(:name, name)
     :persistent_term.put(:status, :startup)
   end

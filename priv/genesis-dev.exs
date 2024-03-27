@@ -100,8 +100,7 @@ owner = "@ippan"
         "reload.amount" => 3125,
         "reload.every" => 720,
         "reload.expiry" => 103680,
-        "service.tax" => 0.01,
-        "stream.every" => 12
+        "service.tax" => 0.01
       }
     }
   ],
@@ -113,7 +112,7 @@ owner = "@ippan"
       failures: 0,
       fb: 1,
       hostname: "opasy.com",
-      id: 0,
+      id: "V-000000",
       name: "Redbull | BU",
       net_pubkey: npk,
       owner: owner,
@@ -129,7 +128,7 @@ owner = "@ippan"
       failures: 0,
       fb: 1,
       hostname: "ippan.co.uk",
-      id: 1,
+      id: "V-000001",
       name: "Castle | UK",
       net_pubkey: npk,
       owner: owner,

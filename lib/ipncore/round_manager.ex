@@ -1184,7 +1184,7 @@ defmodule RoundManager do
               # :done =
               #   Sqlite.step("insert_jackpot", jackpot)
 
-              %{jackpot: {winner_id, amount}}
+              %{"jackpot" => {winner_id, amount}}
 
             true ->
               %{}

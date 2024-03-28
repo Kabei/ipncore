@@ -12,8 +12,6 @@ defmodule Ippan.BlockHandler do
 
   @app Mix.Project.config()[:app]
   @version Application.compile_env(@app, :version)
-  @block_extension Application.compile_env(@app, :block_extension)
-  @decode_extension Application.compile_env(@app, :decode_extension)
   @max_size Application.compile_env(@app, :max_block_data_size)
   @max_block_size Application.compile_env(@app, :block_max_size)
 

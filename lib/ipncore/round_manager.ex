@@ -900,12 +900,14 @@ defmodule RoundManager do
   defmacrop run_reward do
     quote location: :keep do
       computed = Round.calc_reward(var!(tx_count), var!(txs_rejected), var!(size))
-      current = TokenSupply.get(var!(supply))
+      supply = TokenSupply.new(@token)
+      %{max_supply: max_supply} = Token.get(@token)
+      current = TokenSupply.get(supply)
       total = current + computed
 
       reward =
         cond do
-          total > var!(max_supply) and var!(max_supply) > 0 ->
+          total > max_supply and max_supply > 0 ->
             0
 
           true ->
@@ -920,6 +922,8 @@ defmodule RoundManager do
           @token,
           reward
         )
+
+        TokenSupply.add(supply, reward)
       end
 
       reward
@@ -997,9 +1001,6 @@ defmodule RoundManager do
         # Calculate reward
         reward_task =
           Task.async(fn ->
-            # Get info native token and current supply
-            %{max_supply: max_supply} = Token.get(@token)
-            supply = TokenSupply.new(@token)
             run_reward()
           end)
 

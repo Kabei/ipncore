@@ -42,7 +42,7 @@ defmodule RoundTask do
     {rcid, rc_node} = get_round_creator(ets_players, position)
     turn = rcid == vid
 
-    IO.puts("RCID: #{rcid} | Position: #{position} | | MyTurn: #{turn}")
+    IO.puts("RCID: #{rcid} | Position: #{position} | MyTurn: #{turn}")
 
     new_state = %{state | position: position, rcid: rcid, rc_node: rc_node, turn: turn}
 

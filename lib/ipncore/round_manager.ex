@@ -419,7 +419,7 @@ defmodule RoundManager do
       )
       when vote_round_id > id do
     cond do
-      round_candidate != nil and round_candidate.id == id ->
+      round_candidate != nil and round_candidate.id == id and hash == round_candidate.hash ->
         NetworkNodes.cast(node_id, "round_off", round_candidate)
         IO.inspect("vote_round_id > id: candidate")
         {:noreply, state}
@@ -443,6 +443,7 @@ defmodule RoundManager do
         %{round_id: round_id, status: :startup} = state
       )
       when round_id >= id do
+    Logger.debug("Round to queue #{id}")
     RoundSync.add_queue(msg)
 
     {:noreply, state}

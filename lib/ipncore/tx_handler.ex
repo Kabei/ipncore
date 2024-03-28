@@ -329,7 +329,9 @@ defmodule Ippan.TxHandler do
            nonce,
            args,
            size
-         ]} ->
+         ] = body} ->
+          IO.inspect(body)
+
           %{modx: module, fun: fun} = Funcs.lookup(type)
 
           source = %{

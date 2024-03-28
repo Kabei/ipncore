@@ -128,7 +128,7 @@ owner = "@ippan"
       id: "@ippan",
       pubkey: pk,
       sig_type: 0,
-      vid: 0,
+      vid: "V-000000",
       fa: 0,
       fb: 1
     }

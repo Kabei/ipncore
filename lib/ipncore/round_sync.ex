@@ -217,7 +217,7 @@ defmodule RoundSync do
                   Logger.warning("Wrong blockchain \"#{blockchain}\" - My config: #{@blockchain}")
                   :error
 
-                last_snap > my_last_snap.id ->
+                last_snap.id > my_last_snap.id ->
                   Logger.warning("Snapshot downloading: ##{last_snap.id}")
 
                   case Snapshot.download(hostname, last_snap) do

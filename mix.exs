@@ -56,11 +56,11 @@ defmodule Ipncore.MixProject do
   defp deps do
     [
       {:benchee, "~> 1.0", only: [:dev, :test]},
-      {:poolboy, "~> 1.5.2"},
+      {:poolboy, "~> 1.5"},
       {:jason, "~> 1.4"},
       {:bandit, "~> 1.4"},
       {:phoenix_pubsub, "~> 2.1"},
-      {:httpoison, "~> 2.0"},
+      {:httpoison, "~> 2.2"},
       {:cafezinho, "~> 0.4.0"},
       {:ex_secp256k1, "~> 0.7.2"},
       {:blake3, git: "https://kabei@github.com/kabei/blake3.git", branch: "master"},

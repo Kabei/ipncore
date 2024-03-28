@@ -33,6 +33,7 @@ defmodule RoundManager do
   @max_time_to_request 6_000
   @max_confirmations Application.compile_env(@app, :max_confirmations, 30)
   @snap_round Application.compile_env(@app, :snap_round, 350_000)
+  @jackpot_round Application.compile_env(@app, :jackpot_round, 100)
 
   def start_link(args) do
     case System.get_env("test") do

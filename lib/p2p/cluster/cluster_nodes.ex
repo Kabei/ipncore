@@ -75,10 +75,10 @@ defmodule Ippan.ClusterNodes do
     Round.last() |> Map.merge(%{"snapshot" => snap})
   end
 
-  def handle_request("last_round", _params, _state) do
-    db_ref = :persistent_term.get(:main_conn)
-    Round.last()
-  end
+  # def handle_request("last_round", _params, _state) do
+  #   db_ref = :persistent_term.get(:main_conn)
+  #   Round.last()
+  # end
 
   def handle_request("get_round", id, _state) do
     db_ref = :persistent_term.get(:main_conn)

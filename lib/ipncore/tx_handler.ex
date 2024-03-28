@@ -49,7 +49,7 @@ defmodule Ippan.TxHandler do
             raise IppanRedirectError, "#{v}"
           end
 
-          result
+          DetsPlux.get_cache(dets, tx, var!(from))
       end
     end
   end

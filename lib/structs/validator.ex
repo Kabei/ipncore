@@ -40,7 +40,6 @@ defmodule Ippan.Validator do
   ]
 
   @suffix "V-"
-  @pad_number 6
 
   @impl true
   def editable, do: ~w(hostname port name image fa fb owner pubkey net_pubkey class)
@@ -123,6 +122,8 @@ defmodule Ippan.Validator do
     x
   end
 
+  def suffix, do: @suffix
+
   def to_text(x = %{pubkey: pk, net_pubkey: npk}) do
     %{x | pubkey: Utils.encode64(pk), net_pubkey: Utils.encode64(npk)}
   end
@@ -166,7 +167,7 @@ defmodule Ippan.Validator do
     n = Stats.get(stats, "seq_validators", 0)
     Stats.put(stats, "seq_validators", n + 1)
 
-    [@suffix, String.pad_leading("#{n}", @pad_number, "0")] |> IO.iodata_to_binary()
+    [@suffix, "#{n}"] |> IO.iodata_to_binary()
   end
 
   defmacro exists?(id) do

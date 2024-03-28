@@ -113,7 +113,7 @@ owner = "@ippan"
       failures: 0,
       fb: 1,
       hostname: "ippan.co.uk",
-      id: "V-00000",
+      id: "V-0",
       name: "Master",
       net_pubkey: npk,
       owner: owner,
@@ -128,7 +128,7 @@ owner = "@ippan"
       id: "@ippan",
       pubkey: pk,
       sig_type: 0,
-      vid: "V-000000",
+      vid: "V-0",
       fa: 0,
       fb: 1
     }

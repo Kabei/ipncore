@@ -61,7 +61,7 @@ defmodule RoundTask do
   # Get ValidatorID of round creator from PositionID or turnID
   defp get_round_creator(ets_players, position) do
     case :ets.slot(ets_players, position) do
-      [object] -> object
+      [{_id, object}] -> {object.id, object}
       _ -> raise RuntimeError, "Error not there round creator"
     end
   end
@@ -72,7 +72,7 @@ defmodule RoundTask do
 
     if take > 0 do
       :ets.tab2list(ets_players)
-      |> Enum.filter(fn {id, _} = x -> id != vid and x not in players_connected end)
+      |> Enum.filter(fn {_id, v} = x -> v.id != vid and x not in players_connected end)
       |> Enum.take_random(take)
       |> Enum.map(fn {_id, node} ->
         Task.async(fn -> NetworkNodes.connect(node) end)

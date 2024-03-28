@@ -17,7 +17,7 @@ defmodule Match do
   @username ~r/^@[a-z0-9]{1}([a-z0-9_]{2,20})$/
   @account ~r/^((\d+)x[1-9A-HJ-NP-Za-km-z]+$)|@[a-z0-9]{1}([a-z0-9_]{2,24})$/
   @service ~r/^S-[a-z0-9]{1}([a-z0-9_]{2,20})$/
-  @validator ~r/^v-[0-9]{6}$/
+  @validator ~r/^v-[0-9]+$/
   @token ~r/^[A-Z0-9]{1,10}$/
   @text ~r/^[\x20-\x26|\x28-\x7E]+$/
 

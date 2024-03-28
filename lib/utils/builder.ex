@@ -123,7 +123,7 @@ defmodule Builder do
     {pk, sk, Address.hash(2, pk)}
   end
 
-  # Builder.account_new(client, "V-000000", 0, 1) |> Builder.print
+  # Builder.account_new(client, "V-0", 0, 1) |> Builder.print
   def account_new(
         client = %Client{
           id: account_id,
@@ -155,7 +155,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # Builder.account_sub(client, "V-000001", 0, 1) |> Builder.print
+  # Builder.account_sub(client, "V-1", 0, 1) |> Builder.print
   def account_sub(
         client = %Client{
           id: account_id,

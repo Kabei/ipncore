@@ -80,7 +80,7 @@ defmodule RoundManager do
 
     # Fill data to table of players
     for v <- players do
-      :ets.insert(ets_players, Validator.list_to_tuple(v))
+      insert_player(ets_players, Validator.list_to_tuple(v))
     end
 
     {:ok,
@@ -222,10 +222,10 @@ defmodule RoundManager do
       ) do
     if active do
       # add player
-      :ets.insert(ets_players, {id, Validator.get(id)})
+      insert_player(ets_players, {id, Validator.get(id)})
     else
       # remove player
-      :ets.delete(ets_players, id)
+      delete_player(ets_players, id)
     end
 
     total_players = get_total_players(ets_players)
@@ -238,7 +238,7 @@ defmodule RoundManager do
         %{players: ets_players} = state
       ) do
     # delete player
-    :ets.delete(ets_players, validator_id)
+    delete_player(ets_players, validator_id)
     NetworkNodes.disconnect_all(validator_id)
     total_players = get_total_players(ets_players)
     {:noreply, %{state | total: total_players}}
@@ -250,7 +250,7 @@ defmodule RoundManager do
       ) do
     # update player
     new_data = Validator.get(validator_id)
-    :ets.insert(ets_players, {validator_id, new_data})
+    insert_player(ets_players, {validator_id, new_data})
     total_players = get_total_players(ets_players)
     {:noreply, %{state | total: total_players}}
   end
@@ -318,7 +318,7 @@ defmodule RoundManager do
 
     # Delete player
     if total_players > 2 and round_status in 1..2 do
-      :ets.delete(ets_players, creator_id)
+      delete_player(ets_players, creator_id)
       NetworkNodes.disconnect_all(creator_id)
     end
 
@@ -392,7 +392,7 @@ defmodule RoundManager do
       true ->
         with true <- round_hash == prev,
              true <- EnvStore.block_limit() >= length(blocks),
-             [{_, player}] <- :ets.lookup(ets_players, creator_id),
+             [{_, player}] <- get_player(ets_players, creator_id),
              hashes <- Enum.map(blocks, & &1.hash),
              true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
              true <-
@@ -549,7 +549,7 @@ defmodule RoundManager do
       true ->
         with true <- round_hash == prev,
              true <- EnvStore.block_limit() >= length(blocks),
-             [{_, player}] <- :ets.lookup(ets_players, creator_id),
+             [{_, player}] <- get_player(ets_players, creator_id),
              hashes <- Enum.map(blocks, & &1.hash),
              true <- hash == Round.compute_hash(id, prev, creator_id, hashes, timestamp),
              true <-
@@ -1214,6 +1214,24 @@ defmodule RoundManager do
   end
 
   defp run_maintenance(_, _), do: nil
+
+  # players
+  defp insert_player(ets, {id, validator}) do
+    :ets.insert(ets, {player_id(id), validator})
+  end
+
+  defp get_player(ets, id) do
+    :ets.lookup(ets, player_id(id))
+  end
+
+  defp delete_player(ets, id) do
+    :ets.delete(ets, player_id(id))
+  end
+
+  @suffix Validator.suffix()
+  defp player_id(@suffix <> id) do
+    String.to_integer(id)
+  end
 
   defp get_total_players(ets_players) do
     :ets.info(ets_players, :size)

@@ -112,7 +112,7 @@ owner = "@ippan"
       failures: 0,
       fb: 1,
       hostname: "opasy.com",
-      id: "V-000000",
+      id: "V-0",
       name: "Redbull | BU",
       net_pubkey: npk,
       owner: owner,
@@ -128,7 +128,7 @@ owner = "@ippan"
       failures: 0,
       fb: 1,
       hostname: "ippan.co.uk",
-      id: "V-000001",
+      id: "V-1",
       name: "Castle | UK",
       net_pubkey: npk,
       owner: owner,
@@ -143,9 +143,12 @@ owner = "@ippan"
       id: "@ippan",
       pubkey: pk,
       sig_type: 0,
-      vid: "V-000000",
+      vid: "V-0",
       fa: 1,
       fb: 1
-    }
+    },
+    "stats" => [
+      {"seq_validator" => 1}
+    ]
   ]
 }

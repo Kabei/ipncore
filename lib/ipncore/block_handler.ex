@@ -22,10 +22,10 @@ defmodule Ippan.BlockHandler do
           map() | nil
   def generate_files(creator_id, height, prev) do
     block_path =
-      Path.join(:persistent_term.get(:block_dir), "#{creator_id}.#{height}.#{@block_extension}")
+      Block.block_path(creator_id, height)
 
     decode_path =
-      Path.join(:persistent_term.get(:decode_dir), "#{creator_id}.#{height}.#{@decode_extension}")
+      Block.decode_path(creator_id, height)
 
     ets_msg = :ets.whereis(:msg)
 

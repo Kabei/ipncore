@@ -105,15 +105,7 @@ defmodule Ippan.ClusterNodes do
 
       data ->
         Enum.map(data, fn x ->
-          round = Round.list_to_map(x)
-
-          case Sqlite.fetch("get_jackpot") do
-            nil ->
-              Map.put(round, "jackpot", {nil, 0})
-
-            [winner, amount] ->
-              Map.put(round, "jackpot", {winner, amount})
-          end
+          Round.list_to_map(x)
         end)
     end
   end

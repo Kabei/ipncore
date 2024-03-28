@@ -1015,7 +1015,7 @@ defmodule RoundManager do
           end)
 
         reward = Task.await(reward_task, :infinity)
-        jackpot = Task.await(jackpot_task, :infinity)
+        jackpot_map = Task.await(jackpot_task, :infinity)
 
         # save round
         round = %{
@@ -1030,10 +1030,8 @@ defmodule RoundManager do
           status: 0,
           timestamp: timestamp,
           blocks: new_blocks,
-          extra: nil,
-          reward: reward,
-          # extra data
-          jackpot: jackpot
+          extra: Map.merge(%{}, jackpot_map),
+          reward: reward
         }
 
         :done = Round.to_list(round) |> Round.insert()
@@ -1133,7 +1131,7 @@ defmodule RoundManager do
          round_hash,
          total_blocks
        )
-       when rem(round_id, 100) == 0 do
+       when rem(round_id, @jackpot_round) == 0 do
     IO.inspect("jackpot")
     supply = TokenSupply.jackpot()
     amount = TokenSupply.get(supply)
@@ -1147,7 +1145,7 @@ defmodule RoundManager do
 
       case Block.get(b) do
         nil ->
-          {nil, 0}
+          %{}
 
         block_list ->
           block = Block.list_to_map(block_list)
@@ -1184,14 +1182,14 @@ defmodule RoundManager do
               # :done =
               #   Sqlite.step("insert_jackpot", jackpot)
 
-              {winner_id, amount}
+              %{jackpot: {winner_id, amount}}
 
             true ->
-              {nil, 0}
+              %{}
           end
       end
     else
-      {nil, 0}
+      %{}
     end
   end
 

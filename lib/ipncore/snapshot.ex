@@ -4,7 +4,7 @@ defmodule Snapshot do
   @app Mix.Project.config()[:app]
   @extension Application.compile_env(@app, :snap_extension, "snap")
 
-  @key "last_snap"
+  @key "snapshot"
   @default %{hash: nil, id: -1, size: 0}
 
   def create(round_id) do

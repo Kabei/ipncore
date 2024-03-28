@@ -207,7 +207,7 @@ defmodule RoundSync do
             {:ok, r2 = %{status_code: 200}} ->
               {:ok, validator} = @json.decode(r1.body)
 
-              {:ok, %{"id" => round_id, "name" => blockchain, "last_snap" => last_snap}} =
+              {:ok, %{"id" => round_id, "name" => blockchain, "snapshot" => last_snap}} =
                 @json.decode(r2.body)
 
               last_snap = Snapshot.to_map(last_snap)

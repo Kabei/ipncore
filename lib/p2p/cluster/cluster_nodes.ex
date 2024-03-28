@@ -72,7 +72,7 @@ defmodule Ippan.ClusterNodes do
 
     snap = Snapshot.last()
 
-    Round.last() |> Map.merge(%{"snap" => snap})
+    Round.last() |> Map.merge(%{"snapshot" => snap})
   end
 
   def handle_request("last_round", _params, _state) do

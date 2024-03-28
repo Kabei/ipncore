@@ -1,5 +1,5 @@
 defmodule Ippan.Block do
-  alias Ippan.Utils
+  alias Ippan.{Utils, Validator}
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
           id: non_neg_integer() | nil,
@@ -23,6 +23,7 @@ defmodule Ippan.Block do
   @decode_extension Application.compile_env(@app, :decode_extension)
   @hash_module Blake3.Native
   @fields ~w(id creator height round hash filehash prev signature timestamp count rejected size status vsn)
+  @validator_suffix Validator.suffix()
 
   defstruct [
     :id,
@@ -221,20 +222,20 @@ defmodule Ippan.Block do
     Path.join([decode_dir, "#{validator_id}.#{height}.#{@decode_extension}"])
   end
 
-  def url(hostname, creator_id, height) do
+  def url(hostname, @validator_suffix <> creator_id, height) do
     "https://#{hostname}/v1/dl/block/#{creator_id}/#{height}"
   end
 
-  def decode_url(hostname, creator_id, height) do
+  def decode_url(hostname, @validator_suffix <> creator_id, height) do
     "https://#{hostname}/v1/dl/decode/#{creator_id}/#{height}"
   end
 
-  def cluster_block_url(hostname, creator_id, height) do
+  def cluster_block_url(hostname, @validator_suffix <> creator_id, height) do
     port = Application.get_env(@app, :x_http_port)
     "http://#{hostname}:#{port}/v1/dl/block/#{creator_id}/#{height}"
   end
 
-  def cluster_decode_url(hostname, creator_id, height) do
+  def cluster_decode_url(hostname, @validator_suffix <> creator_id, height) do
     port = Application.get_env(@app, :x_http_port)
     "http://#{hostname}:#{port}/v1/dl/decode/#{creator_id}/#{height}"
   end

@@ -82,15 +82,7 @@ defmodule Ippan.ClusterNodes do
 
   def handle_request("get_round", id, _state) do
     db_ref = :persistent_term.get(:main_conn)
-    round = Round.get(id) || %{}
-
-    case Sqlite.fetch("get_jackpot") do
-      nil ->
-        Map.put(round, "jackpot", {nil, 0})
-
-      [winner, amount] ->
-        Map.put(round, "jackpot", {winner, amount})
-    end
+    Round.get(id) || %{}
   end
 
   def handle_request("get_rounds", params, _state) do

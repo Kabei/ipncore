@@ -67,7 +67,7 @@ owner = "@ippan"
 %{
   "env" => [
     %{name: "owner", value: owner},
-    %{name: "block.limit", value: 1},
+    %{name: "block.limit", value: 5},
     %{name: "token.price", value: 50_000},
     %{name: "validator.price", value: 100_000},
     %{name: "service.price", value: 100_000}

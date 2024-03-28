@@ -92,13 +92,8 @@ defmodule Ippan.ClusterNodes do
     offset = Map.get(params, "offset", 0)
 
     case Sqlite.fetch_all("get_rounds", [round_id, limit, offset]) do
-      [] ->
-        []
-
-      data ->
-        Enum.map(data, fn x ->
-          Round.list_to_map(x)
-        end)
+      [] -> []
+      data -> Enum.map(data, &Round.list_to_map(&1))
     end
   end
 

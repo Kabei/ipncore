@@ -37,7 +37,7 @@ defmodule PayService do
   end
 
   def to_map([id, name, owner, image, descrip, extra, subs, status, created_at, updated_at]) do
-    extra = :erlang.element(1, Jason.decode!(extra))
+    extra = Jason.decode!(extra)
 
     %{
       id: id,

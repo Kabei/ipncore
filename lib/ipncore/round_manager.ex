@@ -1194,7 +1194,7 @@ defmodule RoundManager do
     end
   end
 
-  defp run_jackpot(_, _, _, _, _, _), do: {nil, 0}
+  defp run_jackpot(_, _, _, _, _, _), do: %{}
 
   defp run_maintenance(0, _), do: nil
 

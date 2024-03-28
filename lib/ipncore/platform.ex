@@ -39,31 +39,23 @@ defmodule Platform do
       wallet_tx = DetsPlux.tx(wallet_db, :wallet)
       balance_tx = DetsPlux.tx(balance_db, :balance)
       nonce_tx = DetsPlux.tx(nonce_db, :nonce)
+      stats = Stats.new()
 
       for {key, values} <- data do
         case key do
           "accounts" ->
             Task.async(fn ->
-              Enum.each(values, fn x ->
-                DetsPlux.put(
-                  wallet_tx,
-                  {x.id, x.pubkey, x.sig_type, %{"vid" => x.vid, "fa" => x.fa, "fb" => x.fb}}
-                )
+              :ets.insert(wallet_tx, values)
+            end)
 
-                if Map.get(x, :nonce) do
-                  DetsPlux.put(
-                    nonce_tx,
-                    {x.id, x.nonce}
-                  )
-                end
-              end)
+          "nonce" ->
+            Task.async(fn ->
+              :ets.insert(nonce_tx, values)
             end)
 
           "balances" ->
             Task.async(fn ->
-              Enum.each(values, fn x ->
-                DetsPlux.put(balance_tx, x)
-              end)
+              :ets.insert(balance_tx, values)
             end)
 
           "tokens" ->
@@ -90,6 +82,11 @@ defmodule Platform do
                 EnvStore.put(db_ref, name, value)
               end)
             end)
+
+          "stats" ->
+            Task.async(fn ->
+              :ets.insert(stats.tx, values)
+            end)
         end
       end
       |> Task.await_many(:infinity)
@@ -99,7 +96,8 @@ defmodule Platform do
         Task.async(fn -> Sqlite.sync(db_ref) end),
         Task.async(fn -> DetsPlux.sync(wallet_db, wallet_tx) end),
         Task.async(fn -> DetsPlux.sync(nonce_db, nonce_tx) end),
-        Task.async(fn -> DetsPlux.sync(balance_db, balance_tx) end)
+        Task.async(fn -> DetsPlux.sync(balance_db, balance_tx) end),
+        Task.async(fn -> DetsPlux.sync(stats.db, stats.tx) end)
       ]
       |> Task.await_many(:infinity)
 

@@ -139,16 +139,9 @@ owner = "@ippan"
     }
     ],
   "accounts" => [
-    %Account{
-      id: "@ippan",
-      pubkey: pk,
-      sig_type: 0,
-      vid: "V-0",
-      fa: 1,
-      fb: 1
-    },
-    "stats" => [
-      {"seq_validator" => 1}
-    ]
+    {"@ippan", pk, 0, %{"vid" => "V-0", "fa" => 1, "fb" => 1}},
+  ],
+  "stats" => [
+    {"seq_validator", 2}
   ]
 }

@@ -212,12 +212,12 @@ defmodule Ippan.Block do
     Cafezinho.Impl.sign("#{hash} is valid", privkey)
   end
 
-  def block_path(validator_id, height) do
+  def block_path(@validator_suffix <> validator_id, height) do
     block_dir = :persistent_term.get(:block_dir)
     Path.join([block_dir, "#{validator_id}.#{height}.#{@block_extension}"])
   end
 
-  def decode_path(validator_id, height) do
+  def decode_path(@validator_suffix <> validator_id, height) do
     decode_dir = :persistent_term.get(:decode_dir)
     Path.join([decode_dir, "#{validator_id}.#{height}.#{@decode_extension}"])
   end

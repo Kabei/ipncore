@@ -49,9 +49,6 @@ config :ipncore, :http,
   plug: Ipncore.Endpoint,
   scheme: :http,
   port: http_port,
-  http_1_options: [
-    compress: false
-  ],
   thousand_island_options: [
     num_acceptors: 100,
     read_timeout: 60_000,

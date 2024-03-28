@@ -210,12 +210,16 @@ defmodule RoundSync do
               {:ok, %{"id" => round_id, "name" => blockchain, "last_snap" => last_snap}} =
                 @json.decode(r2.body)
 
+              last_snap = Snapshot.to_map(last_snap)
+
               cond do
                 blockchain != @blockchain ->
                   Logger.warning("Wrong blockchain \"#{blockchain}\" - My config: #{@blockchain}")
                   :error
 
-                last_snap > Map.get(my_last_snap, "id", -1) ->
+                last_snap > my_last_snap.id ->
+                  Logger.warning("Snapshot downloading: ##{last_snap.id}")
+
                   case Snapshot.download(hostname, last_snap) do
                     :ok ->
                       Snapshot.restore(last_snap.id)

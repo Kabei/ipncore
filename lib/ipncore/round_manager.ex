@@ -419,7 +419,7 @@ defmodule RoundManager do
       )
       when vote_round_id > id do
     cond do
-      round_candidate != nil and round_candidate.id == id and hash == round_candidate.hash ->
+      round_candidate != nil and round_candidate.id == id ->
         NetworkNodes.cast(node_id, "round_off", round_candidate)
         IO.inspect("vote_round_id > id: candidate")
         {:noreply, state}

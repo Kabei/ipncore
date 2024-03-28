@@ -62,32 +62,42 @@ defmodule Snapshot do
   end
 
   # download and hash verification snapshot file
-  def download(hostname, snap) do
-    url = "https://#{hostname}/v1/dl/save/#{snap.id}"
+  def download(hostname, snapshot) do
+    url = "https://#{hostname}/v1/dl/save/#{snapshot.id}"
 
-    filepath = :persistent_term.get(:save_dir) |> Path.join("#{snap.id}.#{@extension}")
-    DownloadTask.start(url, filepath, snap.size)
+    filepath = :persistent_term.get(:save_dir) |> Path.join("#{snapshot.id}.#{@extension}")
+    DownloadTask.start(url, filepath, snapshot.size)
 
     # snapshot hash verification
-    case compute_hashfile(filepath) == snap.hash do
+    case compute_hashfile(filepath) == snapshot.hash do
       true -> :ok
       _ -> :error
     end
   end
 
-  def local_download(hostname, snap) do
+  def local_download(hostname, snapshot) do
     port = Application.get_env(@app, :x_http_port)
-    url = "http://#{hostname}:#{port}/v1/dl/save/#{snap.id}"
+    url = "http://#{hostname}:#{port}/v1/dl/save/#{snapshot.id}"
 
-    filepath = :persistent_term.get(:save_dir) |> Path.join("#{snap.id}.#{@extension}")
-    DownloadTask.start(url, filepath, snap.size)
+    filepath = :persistent_term.get(:save_dir) |> Path.join("#{snapshot.id}.#{@extension}")
+    DownloadTask.start(url, filepath, snapshot.size)
 
     # snapshot hash verification
-    case compute_hashfile(filepath) == snap.hash do
+    case compute_hashfile(filepath) == snapshot.hash do
       true -> :ok
       _ -> :error
     end
   end
+
+  def to_map(%{"id" => id, "hash" => hash, "size" => size}) do
+    %{
+      id: id,
+      hash: hash,
+      size: size
+    }
+  end
+
+  def to_map(_), do: @default
 
   # delete old rounds and blocks records
   defp before_create do
@@ -116,15 +126,5 @@ defmodule Snapshot do
     File.stream!(path, [], 2048)
     |> Enum.reduce(state, &@hash_module.update(&2, &1))
     |> @hash_module.finalize()
-  end
-
-  defp to_map(nil), do: @default
-
-  defp to_map(%{"id" => id, "hash" => hash, "size" => size}) do
-    %{
-      id: id,
-      hash: hash,
-      size: size
-    }
   end
 end

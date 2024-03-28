@@ -218,7 +218,7 @@ defmodule RoundSync do
                 last_snap > Map.get(my_last_snap, "id", -1) ->
                   case Snapshot.download(hostname, last_snap) do
                     :ok ->
-                      Snapshot.restore(last_snap)
+                      Snapshot.restore(last_snap.id)
                       :idle
 
                     :error ->

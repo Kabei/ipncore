@@ -215,7 +215,7 @@ defmodule Ippan.TxHandler do
       case return do
         :error ->
           [
-            "error",
+            "err",
             var!(hash),
             var!(type),
             var!(from),
@@ -330,8 +330,6 @@ defmodule Ippan.TxHandler do
            args,
            size
          ] = body} ->
-          IO.inspect(body)
-
           %{modx: module, fun: fun} = Funcs.lookup(type)
 
           source = %{

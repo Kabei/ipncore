@@ -145,7 +145,7 @@ defmodule MinerWorker do
     cref = :counters.new(2, [])
 
     Enum.each(transactions, fn
-      ["error", _hash, _type, _from, _nonce, _args, _sig, _size] ->
+      ["err", _hash, _type, _from, _nonce, _args, _sig, _size] ->
         :counters.add(cref, 2, 1)
 
       [hash, type, from, nonce, args, _sig, size] ->

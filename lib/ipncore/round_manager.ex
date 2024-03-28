@@ -1143,16 +1143,15 @@ defmodule RoundManager do
       dv = min(total_blocks + 1, 20_000)
       b = rem(n, dv) + if(total_blocks >= 20_000, do: total_blocks, else: 0)
 
-      TokenSupply.put(supply, 0)
-
       case Block.get(b) do
         nil ->
+          IO.inspect("Jackpot block nil")
           %{}
 
         block_list ->
           block = Block.list_to_map(block_list)
           tx_count = block.count
-          # IO.inspect(tx_count)
+          IO.inspect("Block.count #{tx_count}")
 
           cond do
             tx_count > 0 ->
@@ -1160,30 +1159,23 @@ defmodule RoundManager do
               path = Block.decode_path(block.creator, block.height)
               {:ok, content} = File.read(path)
               %{"data" => data} = decode_file!(content)
+              TokenSupply.put(supply, 0)
 
               winner_id =
                 case Enum.at(data, tx_n) do
                   [_hash, _type, account_id, _nonce, _args, _sig, _size] ->
                     BalanceStore.income(balances, balance_tx, account_id, @token, amount)
-                    # Update Token Supply
-                    su = TokenSupply.new(@token)
-                    TokenSupply.add(su, amount)
-
                     account_id
 
                   [_hash, _type, _arg_key, account_id, _nonce, _args, _sig, _size] ->
                     BalanceStore.income(balances, balance_tx, account_id, @token, amount)
-                    # Update Token Supply
-                    su = TokenSupply.new(@token)
-                    TokenSupply.add(su, amount)
                     account_id
                 end
 
-              # jackpot = [round_id, winner_id, amount]
-
               # :done =
-              #   Sqlite.step("insert_jackpot", jackpot)
+              #   Sqlite.step("insert_jackpot", [round_id, winner_id, amount])
 
+              IO.inspect("jackpot winner: #{winner_id} | #{amount}")
               %{"jackpot" => {winner_id, amount}}
 
             true ->

@@ -222,7 +222,10 @@ defmodule Ippan.Block do
     Path.join([decode_dir, "#{validator_id}.#{height}.#{@decode_extension}"])
   end
 
-  def url(hostname, @validator_suffix <> creator_id, height) do
+  def url(hostname, @validator_suffix <> creator_id, height),
+    do: url(hostname, creator_id, height)
+
+  def url(hostname, creator_id, height) do
     "https://#{hostname}/v1/dl/block/#{creator_id}/#{height}"
   end
 
@@ -230,12 +233,18 @@ defmodule Ippan.Block do
     "https://#{hostname}/v1/dl/decode/#{creator_id}/#{height}"
   end
 
-  def cluster_block_url(hostname, @validator_suffix <> creator_id, height) do
+  def cluster_block_url(hostname, @validator_suffix <> creator_id, height),
+    do: cluster_block_url(hostname, creator_id, height)
+
+  def cluster_block_url(hostname, creator_id, height) do
     port = Application.get_env(@app, :x_http_port)
     "http://#{hostname}:#{port}/v1/dl/block/#{creator_id}/#{height}"
   end
 
-  def cluster_decode_url(hostname, @validator_suffix <> creator_id, height) do
+  def cluster_decode_url(hostname, @validator_suffix <> creator_id, height),
+    do: cluster_decode_url(hostname, creator_id, height)
+
+  def cluster_decode_url(hostname, creator_id, height) do
     port = Application.get_env(@app, :x_http_port)
     "http://#{hostname}:#{port}/v1/dl/decode/#{creator_id}/#{height}"
   end

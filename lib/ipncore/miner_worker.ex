@@ -126,8 +126,8 @@ defmodule MinerWorker do
         Logger.error(Exception.format(:error, error, __STACKTRACE__))
 
         # delete player
-        Validator.delete(creator_id)
-        ClusterNodes.broadcast(%{"event" => "validator.leave", "data" => creator_id})
+        # Validator.delete(creator_id)
+        # ClusterNodes.broadcast(%{"event" => "validator.leave", "data" => creator_id})
         b = Block.cancel(block, current_round_id, count, 1)
         :done = Block.insert(Block.to_list(b))
         {:reply, {:error, b}, state}

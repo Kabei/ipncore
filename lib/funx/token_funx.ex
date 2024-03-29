@@ -67,8 +67,6 @@ defmodule Ippan.Funx.Token do
     db_ref = :persistent_term.get(:main_conn)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
-
-    map_filter = Map.take(opts, Token.editable())
     fees = Utils.calc_fees(fa, fb, size)
 
     case BalanceStore.pay_fee(account_id, vOwner, fees) do
@@ -77,8 +75,7 @@ defmodule Ippan.Funx.Token do
 
       _ ->
         map =
-          MapUtil.to_atoms(map_filter)
-          |> Map.put(:updated_at, round_id)
+          Map.put(opts, "updated_at", round_id)
 
         Token.update(map, id)
     end

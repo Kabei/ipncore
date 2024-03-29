@@ -737,7 +737,7 @@ defmodule Builder do
     {Client.cont(client), body, sig}
   end
 
-  # service_update(client, "S-ippan", %{"name" => "movies-live", "summary" => "Watch movies 2"})
+  # service_update(client, "S-ippan", %{"name" => "movies-live", "descrip" => "Watch movies 2"})
   def service_update(client = %Client{id: account_id, nonce: nonce}, service_id, map) do
     body =
       [601, nonce, account_id, service_id, map]

@@ -88,6 +88,24 @@ defmodule MapUtil do
     map
   end
 
+  def validate(map, fun, error_message) do
+    if fun.(map) == false,
+      do: raise(ArgumentError, error_message)
+
+    map
+  end
+
+  def into(map, name, fun) do
+    case Map.get(map, name) do
+      nil ->
+        map
+
+      val ->
+        fun.(val)
+        map
+    end
+  end
+
   def validate_hostname(map, key) do
     val = Map.get(map, key)
 
@@ -147,6 +165,24 @@ defmodule MapUtil do
 
     if not is_nil(val) and not is_integer(val),
       do: raise(ArgumentError, "Invalid #{key} is not integer")
+
+    map
+  end
+
+  def validate_pos_integer(map, key) do
+    val = Map.get(map, key)
+
+    if (not is_nil(val) and not is_integer(val)) or not val <= 0,
+      do: raise(ArgumentError, "Invalid #{key} is not positive integer")
+
+    map
+  end
+
+  def validate_non_neg_integer(map, key) do
+    val = Map.get(map, key)
+
+    if (not is_nil(val) and not is_integer(val)) or not val < 0,
+      do: raise(ArgumentError, "Invalid #{key} is not non-negative integer")
 
     map
   end

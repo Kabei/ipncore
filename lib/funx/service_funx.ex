@@ -38,7 +38,7 @@ defmodule Ippan.Funx.Service do
   end
 
   def update(
-        %{
+        source = %{
           id: account_id,
           round: round_id,
           size: size,
@@ -52,35 +52,24 @@ defmodule Ippan.Funx.Service do
     fees = Utils.calc_fees(fa, fb, size)
     db_ref = :persistent_term.get(:main_conn)
 
-    case PayService.get(db_ref, id) do
-      nil ->
+    case BalanceStore.pay_fee(account_id, vOwner, fees) do
+      :error ->
         :error
 
-      %{name: current_name, owner: current_owner, image: current_image, extra: current_extra} ->
-        case BalanceStore.pay_fee(account_id, vOwner, fees) do
-          :error ->
-            :error
+      _ ->
+        fields =
+          MapUtil.transform(map, "extra", fn val ->
+            case PayService.get(db_ref, id) do
+              nil ->
+                Jason.encode!(val)
 
-          _ ->
-            name = Map.get(map, "name", current_name)
-            image = Map.get(map, "image", current_image)
-            owner = Map.get(map, "owner", current_owner)
+              %{extra: extra} ->
+                Map.merge(extra, val) |> Jason.encode!()
+            end
+          end)
+          |> Map.put("updated_at", round_id)
 
-            extra =
-              Map.drop(map, ["name", "image", "owner"])
-
-            PayService.update(
-              db_ref,
-              %{
-                "name" => name,
-                "image" => image,
-                "owner" => owner,
-                "extra" => CBOR.encode(Map.merge(current_extra, extra)),
-                "updated_at" => round_id
-              },
-              id
-            )
-        end
+        PayService.update(db_ref, fields, id)
     end
   end
 

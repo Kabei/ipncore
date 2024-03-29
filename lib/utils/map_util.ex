@@ -226,17 +226,28 @@ defmodule MapUtil do
   end
 
   def only(map, keys) when is_list(keys) do
-    result = Enum.any?(Map.keys(map), fn x -> x not in keys end)
+    Map.keys(map)
+    |> Enum.any?(&(&1 not in keys))
+    |> case do
+      true ->
+        raise(ArgumentError, "Only accepted: #{inspect(keys)}")
 
-    if result, do: raise(ArgumentError, "Only accepted: #{inspect(keys)}")
-    map
+      false ->
+        map
+    end
   end
 
   def require(map, keys) do
-    result = Enum.all?(Map.keys(map), fn x -> x in keys end)
+    fields = Map.keys(map)
 
-    if not result, do: raise(ArgumentError, "Error check require values")
-    map
+    Enum.all?(keys, fn x -> x in fields end)
+    |> case do
+      false ->
+        raise(ArgumentError, "Error check require values")
+
+      _ ->
+        map
+    end
   end
 
   def validate_bytes_range(map, key, range) do

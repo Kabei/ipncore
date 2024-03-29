@@ -38,7 +38,7 @@ defmodule Ippan.Funx.Service do
   end
 
   def update(
-        source = %{
+        %{
           id: account_id,
           round: round_id,
           size: size,

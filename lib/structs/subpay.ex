@@ -1,13 +1,12 @@
 defmodule SubPay do
   require Sqlite
 
-  def subscribe(db_ref, id, payer, token, created_at, every, maxAmount, extra \\ %{}) do
+  def subscribe(db_ref, id, payer, token, created_at, every, extra) do
     Sqlite.step("insert_subpay", [
       id,
       payer,
       token,
       every,
-      maxAmount,
       Jason.encode!(extra),
       created_at
     ])

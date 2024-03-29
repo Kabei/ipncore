@@ -219,7 +219,7 @@ UPDATE srv.serv SET subs = subs + ?2 WHERE id = ?1;
 
 
 --name: insert_subpay
-INSERT INTO srv.subpay VALUES(?1,?2,?3,0,0,?4,?5,?6,1,?7);
+INSERT INTO srv.subpay VALUES(?1,?2,?3,0,0,?4,0,?5,1,?6);
 
 --name: exists_subpay
 SELECT 1 FROM srv.subpay WHERE id=?1 AND payer=?2 LIMIT 1;

@@ -5,8 +5,8 @@ defmodule BlockTimer do
   require Sqlite
 
   @module __MODULE__
-  @time_to_wait 1_000
-  @retry 4
+  @time_to_wait 990
+  @retry 5
 
   def start_link(args) do
     case System.get_env("test") do

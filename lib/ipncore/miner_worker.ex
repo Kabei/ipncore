@@ -77,7 +77,7 @@ defmodule MinerWorker do
             case random_node_verify(block_check) do
               {:ok, node} ->
                 url = Block.cluster_decode_url(node.hostname, creator_id, height)
-                :ok = DownloadTask.start(url, decode_path, @download_options)
+                :ok = DownloadTask.start(url, decode_path, @download_cluster_options)
 
               :error ->
                 raise IppanError, "Error block verify"

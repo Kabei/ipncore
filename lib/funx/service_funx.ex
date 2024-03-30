@@ -107,7 +107,7 @@ defmodule Ippan.Funx.Service do
       BalanceStore.pay payer, token_id, amount do
         interval = div(subpay.every, round_id)
 
-        if subpay.div != interval do
+        if subpay.div == interval do
           SubPay.spent(db_ref, service_id, payer, token_id, interval, amount, round_id)
         else
           SubPay.reset_spent(db_ref, service_id, payer, token_id, interval, amount, round_id)

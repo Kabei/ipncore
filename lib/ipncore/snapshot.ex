@@ -66,7 +66,7 @@ defmodule Snapshot do
     url = "https://#{hostname}/v1/dl/save/#{snapshot.id}"
 
     filepath = :persistent_term.get(:save_dir) |> Path.join("#{snapshot.id}.#{@extension}")
-    DownloadTask.start(url, filepath, snapshot.size)
+    DownloadTask.start(url, filepath, max_size: snapshot.size)
 
     # snapshot hash verification
     case compute_hashfile(filepath) == snapshot.hash do
@@ -80,7 +80,7 @@ defmodule Snapshot do
     url = "http://#{hostname}:#{port}/v1/dl/save/#{snapshot.id}"
 
     filepath = :persistent_term.get(:save_dir) |> Path.join("#{snapshot.id}.#{@extension}")
-    DownloadTask.start(url, filepath, snapshot.size)
+    DownloadTask.start(url, filepath, max_size: snapshot.size)
 
     # snapshot hash verification
     case compute_hashfile(filepath) == snapshot.hash do

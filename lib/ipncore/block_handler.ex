@@ -13,7 +13,7 @@ defmodule Ippan.BlockHandler do
   @app Mix.Project.config()[:app]
   @version Application.compile_env(@app, :version)
   @max_size Application.compile_env(@app, :max_block_data_size)
-  @max_block_size Application.compile_env(@app, :block_max_size)
+  @max_block_size Application.compile_env(@app, :max_block_size)
 
   # Generate local block and decode block file
   @spec generate_files(creator_id :: integer(), height :: integer(), prev :: binary() | nil) ::
@@ -249,12 +249,12 @@ defmodule Ippan.BlockHandler do
 
         if filestat.size != size do
           File.rm(output_path)
-          DownloadTask.start(remote_url, output_path, @max_block_size)
+          DownloadTask.start(remote_url, output_path, max_size: @max_block_size)
         else
           :ok
         end
       else
-        DownloadTask.start(remote_url, output_path, @max_block_size)
+        DownloadTask.start(remote_url, output_path, max_size: @max_block_size)
       end
       |> case do
         :ok ->

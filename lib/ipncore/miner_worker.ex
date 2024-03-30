@@ -22,6 +22,9 @@ defmodule MinerWorker do
     GenServer.call(server, {:mine, block, creator, round_id, verify_block}, :infinity)
   end
 
+  @download_cluster_options [retry: :infinity, time_to_retry: 100]
+  @download_options [retry: 3, time_to_retry: 250]
+
   # Create a block file from decode block file (foreign block)
   @impl true
   def handle_call(
@@ -74,7 +77,7 @@ defmodule MinerWorker do
             case random_node_verify(block_check) do
               {:ok, node} ->
                 url = Block.cluster_decode_url(node.hostname, creator_id, height)
-                :ok = Download.from(url, decode_path)
+                :ok = DownloadTask.start(url, decode_path, @download_options)
 
               :error ->
                 raise IppanError, "Error block verify"
@@ -83,7 +86,7 @@ defmodule MinerWorker do
           false ->
             # download remote decode-file
             url = Block.decode_url(creator.hostname, creator_id, height)
-            :ok = DownloadTask.start(url, decode_path)
+            :ok = DownloadTask.start(url, decode_path, @download_options)
         end
       end
 

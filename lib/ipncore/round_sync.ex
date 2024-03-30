@@ -198,9 +198,9 @@ defmodule RoundSync do
     try do
       my_last_snap = Snapshot.last()
 
-      case HTTPoison.get("https://#{hostname}/v1/info", [], hackney: [:insecure]) do
+      case HTTPoison.get("https://#{hostname}/v1/info", %{}, hackney: [:insecure]) do
         {:ok, r1 = %{status_code: 200}} ->
-          case HTTPoison.get("https://#{hostname}/v1/network/status", [],
+          case HTTPoison.get("https://#{hostname}/v1/network/status", %{},
                  hackney: [:insecure],
                  timeout: 10_000
                ) do

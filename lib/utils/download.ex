@@ -30,15 +30,47 @@ defmodule Download do
   # 1 GB
   @max_file_size 1024 * 1024 * 1000
   @timeout 60_000
+  @retry 1
+  @time_to_retry 100
   @module __MODULE__
 
-  def from(url, path, max_file_size \\ @max_file_size, timeout \\ @timeout) do
+  def from(url, path, opts \\ []) do
+    timeout = Keyword.get(opts, :timeout, @timeout)
+    max_file_size = Keyword.get(opts, :max_size, @max_file_size)
+
     with {:ok, file} <- create_file(path),
          {:ok, response_parsing_pid} <- create_process(file, path, max_file_size, timeout),
          {:ok, _pid} <- start_download(url, response_parsing_pid, path),
-         :ok <- wait_for_download(),
-         do: :ok
+         :ok <- wait_for_download() do
+      :ok
+    else
+      error ->
+        retry = Keyword.get(opts, :retry, @retry)
+
+        cond do
+          retry == :infinity ->
+            sleep = Keyword.get(opts, :time_to_retry, @time_to_retry)
+            :timer.sleep(sleep)
+            from(url, path, Keyword.put(opts, :retry, retry))
+
+          retry > 0 ->
+            sleep = Keyword.get(opts, :time_to_retry, @time_to_retry)
+            :timer.sleep(sleep)
+            from(url, path, Keyword.put(opts, :retry, retry - 1))
+
+          true ->
+            error
+        end
+    end
   end
+
+  # def from(url, path, max_file_size \\ @max_file_size, timeout \\ @timeout) do
+  #   with {:ok, file} <- create_file(path),
+  #        {:ok, response_parsing_pid} <- create_process(file, path, max_file_size, timeout),
+  #        {:ok, _pid} <- start_download(url, response_parsing_pid, path),
+  #        :ok <- wait_for_download(),
+  #        do: :ok
+  # end
 
   defp create_file(path), do: File.open(path, [:write, :exclusive])
 
@@ -148,8 +180,6 @@ end
 defmodule DownloadTask do
   use GenServer
 
-  @max_file_size 1024 * 1024 * 1000
-  @timeout 60_000
   @module __MODULE__
 
   def start_link do
@@ -161,15 +191,15 @@ defmodule DownloadTask do
     {:ok, nil}
   end
 
-  def start(url, path, max_file_size \\ @max_file_size, timeout \\ @timeout) do
+  def start(url, path, opts \\ []) do
     {:ok, pid} = start_link()
 
-    :gen_server.call(pid, {:download, url, path, max_file_size, timeout}, :infinity)
+    :gen_server.call(pid, {:download, url, path, opts}, :infinity)
   end
 
   @impl true
-  def handle_call({:download, url, path, max_file_size, timeout}, _from, state) do
-    result = Download.from(url, path, max_file_size, timeout)
+  def handle_call({:download, url, path, opts}, _from, state) do
+    result = Download.from(url, path, opts)
     {:stop, :normal, result, state}
   end
 end

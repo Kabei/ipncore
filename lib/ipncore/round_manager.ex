@@ -1111,7 +1111,8 @@ defmodule RoundManager do
         end
 
       2 ->
-        Validator.delete(creator_id)
+        # Validator.delete(creator_id)
+        nil
 
       _ ->
         nil

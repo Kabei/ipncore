@@ -1,6 +1,6 @@
 defmodule BlockTimer do
   use GenServer
-  alias Ippan.{Block, BlockHandler, Round}
+  alias Ippan.{Block, BlockHandler}
   require Block
   require Sqlite
 
@@ -72,9 +72,9 @@ defmodule BlockTimer do
   # @doc """
   # Update block height, prev hash and candidate in state
   # """
-  @spec complete(blocks :: list()) :: :ok
-  def complete(blocks) do
-    GenServer.cast(@module, {:complete, blocks})
+  @spec complete(block_id :: integer()) :: :ok
+  def complete(block_id) do
+    GenServer.cast(@module, {:complete, block_id})
   end
 
   @spec stop :: :ok
@@ -86,22 +86,20 @@ defmodule BlockTimer do
   def handle_call(
         :get,
         _from,
-        %{candidate: candidate, vid: vid, height: height, prev: prev} = state
+        state = %{candidate: nil, vid: vid, height: height, prev: prev}
       ) do
-    case candidate do
+    case BlockHandler.generate_files(vid, height, prev) do
       nil ->
-        case BlockHandler.generate_files(vid, height, prev) do
-          nil ->
-            :timer.sleep(@time_to_wait)
-            {:reply, [], state}
+        :timer.sleep(@time_to_wait)
+        {:reply, [], state}
 
-          block ->
-            {:reply, [block], %{state | candidate: block, height: height + 1, prev: block.hash}}
-        end
-
-      candidate ->
-        {:reply, [candidate], state}
+      block ->
+        {:reply, [block], %{state | candidate: block, height: height + 1, prev: block.hash}}
     end
+  end
+
+  def handle_call(:get, _from, state = %{candidate: candidate}) do
+    {:reply, [candidate], state}
   end
 
   # def handle_call({:get, _current_block_id}, _from, %{candidate: candidate} = state) do
@@ -131,34 +129,34 @@ defmodule BlockTimer do
   # end
 
   @impl true
-  def handle_cast({:complete, blocks}, %{vid: vid} = state) do
-    if Round.is_some_block_mine?(blocks, vid) do
-      # {:noreply, %{state | candidate: nil, prev: hash}, {:continue, :check}}
-      {:noreply, %{state | candidate: nil}, :hibernate}
-    else
-      {:noreply, state, :hibernate}
-      # {:noreply, %{state | prev: hash}, {:continue, :check}}
-    end
+  def handle_cast({:complete, block_id}, state) do
+    {:noreply, %{state | block_id: block_id, candidate: nil}, :hibernate}
+    # if Round.is_some_block_mine?(blocks, vid) do
+    #   # {:noreply, %{state | candidate: nil, prev: hash}, {:continue, :check}}
+    # else
+    #   {:noreply, state, :hibernate}
+    #   # {:noreply, %{state | prev: hash}, {:continue, :check}}
+    # end
   end
 
-  @impl true
-  def handle_cast(:check, %{height: height, prev: prev, vid: vid, tRef: tRef, from: from} = state) do
-    if from != nil and tRef != nil do
-      case BlockHandler.generate_files(vid, height, prev) do
-        nil ->
-          {:noreply, state}
+  # @impl true
+  # def handle_cast(:check, %{height: height, prev: prev, vid: vid, tRef: tRef, from: from} = state) do
+  #   if from != nil and tRef != nil do
+  #     case BlockHandler.generate_files(vid, height, prev) do
+  #       nil ->
+  #         {:noreply, state}
 
-        block ->
-          :timer.cancel(tRef)
-          GenServer.reply(from, block)
+  #       block ->
+  #         :timer.cancel(tRef)
+  #         GenServer.reply(from, block)
 
-          {:noreply,
-           %{state | candidate: block, height: height + 1, prev: block.hash, tRef: nil, from: nil}}
-      end
-    else
-      {:noreply, state}
-    end
-  end
+  #         {:noreply,
+  #          %{state | candidate: block, height: height + 1, prev: block.hash, tRef: nil, from: nil}}
+  #     end
+  #   else
+  #     {:noreply, state}
+  #   end
+  # end
 
   # def handle_cast(:block, %{tRef: tRef, from: from} = state) do
   #   if from != nil and tRef != nil do

@@ -265,7 +265,7 @@ defmodule RoundManager do
   def handle_cast(
         {
           :complete,
-          round = %{id: the_round_id, hash: hash, blocks: blocks}
+          round = %{id: the_round_id, hash: hash}
         },
         %{
           candidates: ets_candidates,
@@ -283,14 +283,16 @@ defmodule RoundManager do
     # replicate data to cluster nodes
     ClusterNodes.broadcast(%{"event" => "round.new", "data" => round})
 
+    new_block_id = block_id + length(round.blocks)
+
     # Set last local height and prev hash and reset timer
-    BlockTimer.complete(blocks)
+    BlockTimer.complete(new_block_id)
     next_id = the_round_id + 1
 
     {:noreply,
      %{
        state
-       | block_id: block_id + length(round.blocks),
+       | block_id: new_block_id,
          round_id: next_id,
          vote_round_id: next_id,
          round_candidate: nil,
@@ -1004,6 +1006,8 @@ defmodule RoundManager do
             run_reward()
           end)
 
+        new_block_id = block_id + block_count
+
         # Run jackpot and events
         jackpot_task =
           Task.async(fn ->
@@ -1013,7 +1017,7 @@ defmodule RoundManager do
               balance_tx,
               round_id,
               prev_hash,
-              block_id + block_count
+              new_block_id
             )
           end)
 

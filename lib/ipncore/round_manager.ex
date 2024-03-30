@@ -265,7 +265,7 @@ defmodule RoundManager do
   def handle_cast(
         {
           :complete,
-          round = %{id: the_round_id, hash: hash}
+          round = %{id: the_round_id, hash: hash, blocks: blocks}
         },
         %{
           candidates: ets_candidates,
@@ -286,7 +286,7 @@ defmodule RoundManager do
     new_block_id = block_id + length(round.blocks)
 
     # Set last local height and prev hash and reset timer
-    BlockTimer.complete(new_block_id)
+    BlockTimer.complete(new_block_id, blocks)
     next_id = the_round_id + 1
 
     {:noreply,
@@ -835,7 +835,7 @@ defmodule RoundManager do
           :synced ->
             limit = EnvStore.block_limit()
 
-            BlockTimer.get_block()
+            BlockTimer.get_blocks()
             |> Kernel.++(
               :ets.tab2list(ets_candidates)
               |> Enum.filter(fn {{creator_id, height}, _b} ->

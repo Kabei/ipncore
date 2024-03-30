@@ -104,16 +104,22 @@ defmodule Ippan.Funx.Service do
     subpay = SubPay.get(db_ref, service_id, payer, token_id)
 
     if subpay do
-      BalanceStore.pay payer, token_id, amount do
-        interval = div(subpay.every, round_id)
+      max_spent = Map.get(subpay.extra, "maxSpent", 0)
 
-        if subpay.div == interval do
-          SubPay.spent(db_ref, service_id, payer, token_id, interval, amount, round_id)
-        else
-          SubPay.reset_spent(db_ref, service_id, payer, token_id, interval, amount, round_id)
+      if max_spent != 0 and subpay.spent + amount > max_spent do
+        BalanceStore.pay payer, token_id, amount do
+          interval = div(subpay.every, round_id)
+
+          if subpay.div == interval do
+            SubPay.spent(db_ref, service_id, payer, token_id, interval, amount, round_id)
+          else
+            SubPay.reset_spent(db_ref, service_id, payer, token_id, interval, amount, round_id)
+          end
+
+          BalanceStore.send(service_id, token_id, amount)
         end
-
-        BalanceStore.send(service_id, token_id, amount)
+      else
+        :error
       end
     else
       :error

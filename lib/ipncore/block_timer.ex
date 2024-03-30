@@ -7,7 +7,7 @@ defmodule BlockTimer do
   # @app Mix.Project.config()[:app]
   @module __MODULE__
   @time_to_wait 5_000
-  @interval_check 2_500
+  @interval_check 60_000
 
   def start_link(args) do
     case System.get_env("test") do
@@ -189,8 +189,8 @@ defmodule BlockTimer do
             if from != nil and tRef != nil do
               :timer.cancel(tRef)
               GenServer.reply(from, block)
-            else
-              GenServer.cast(RoundManager, {:send_block, block})
+              # else
+              # GenServer.cast(RoundManager, {:send_block, block})
             end
 
             {:noreply,

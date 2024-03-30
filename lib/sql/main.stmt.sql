@@ -234,7 +234,7 @@ SELECT * FROM srv.subpay WHERE id=?1 AND payer=?2 AND token=?3 LIMIT 1;
 SELECT count(1) FROM srv.subpay WHERE payer=?1;
 
 --name: up_subpay
-UPDATE srv.subpay SET div=?4, spent=spent + ?4, lastPay=?5 WHERE id=?1 AND payer=?2 AND token=?3;
+UPDATE srv.subpay SET div=?4, spent=spent + ?5, lastPay=?6 WHERE id=?1 AND payer=?2 AND token=?3;
 
 --name: reset_subpay
 UPDATE srv.subpay SET div=?4, spent=?5, lastPay=?6 WHERE id=?1 AND payer=?2 AND token=?3;

@@ -193,7 +193,7 @@ defmodule MinerWorker do
     case ClusterNodes.get_random_node() do
       nil ->
         IO.inspect("random_node_verify: nil")
-        :timer.sleep(500)
+        :timer.sleep(250)
         random_node_verify(block)
 
       {node_id, node} ->

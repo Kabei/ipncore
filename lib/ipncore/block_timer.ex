@@ -34,7 +34,6 @@ defmodule BlockTimer do
      %{
        block_id: block_id,
        candidate: [],
-       from: nil,
        height: last_height + 1,
        prev: prev,
        tRef: nil,
@@ -70,21 +69,21 @@ defmodule BlockTimer do
   end
 
   def handle_call(:get, _from, state = %{candidate: candidate}) do
-    {:reply, candidate, state}
+    {:reply, candidate, state, :hibernate}
   end
 
   defp do_check(state = %{vid: vid, height: height, prev: prev}, retry) do
     case BlockHandler.generate_files(vid, height, prev) do
       nil ->
         if retry == 0 do
-          {:reply, [], state}
+          {:reply, [], state, :hibernate}
         else
           :timer.sleep(@time_to_wait)
           do_check(state, retry - 1)
         end
 
       block ->
-        {:reply, [block], %{state | candidate: [block], height: height + 1, prev: block.hash}}
+        {:reply, [block], %{state | candidate: [block], height: height + 1, prev: block.hash}, :hibernate}
     end
   end
 
@@ -95,7 +94,7 @@ defmodule BlockTimer do
        state
        | block_id: last_block_id,
          candidate:
-           Map.filter(candidate, fn x ->
+           Enum.filter(candidate, fn x ->
              not Enum.any?(blocks, fn y -> y.creator == x.creator and y.height == x.height end)
            end)
      }, :hibernate}

@@ -361,7 +361,7 @@ defmodule Ippan.Funcs do
       mod: Func.Service,
       modx: Funx.Service,
       fun: :stream,
-      check: {:check, 0}
+      check: {:check, 1}
     }
   end
 

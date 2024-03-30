@@ -455,7 +455,7 @@ defmodule RoundManager do
         {"round_msg", msg_round = %{id: id}, node_id},
         state = %{vote_round_id: vote_round_id, votes: ets_votes}
       )
-      when id > vote_round_id do
+      when id >= vote_round_id do
     Logger.debug("Id is high")
     Logger.debug(inspect(msg_round))
     :ets.insert(ets_votes, {{id, node_id, :msg}, msg_round})

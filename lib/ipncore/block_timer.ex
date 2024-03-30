@@ -6,7 +6,7 @@ defmodule BlockTimer do
 
   @module __MODULE__
   @time_to_wait 1_000
-  @retry 5
+  @retry 4
 
   def start_link(args) do
     case System.get_env("test") do

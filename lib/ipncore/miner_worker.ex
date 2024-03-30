@@ -1,6 +1,6 @@
 defmodule MinerWorker do
   use GenServer
-  alias Ippan.{Account, Block, TxHandler, Validator}
+  alias Ippan.{Account, Block, TxHandler}
   alias Ippan.ClusterNodes
   require Ippan.{Block, Validator, TxHandler}
   require Sqlite

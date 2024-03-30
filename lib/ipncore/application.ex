@@ -31,7 +31,6 @@ defmodule Ipncore.Application do
         MainStore,
         {PubSub, [name: :pubsub]},
         Mempool,
-        BlockTimer,
         ClusterNodes,
         NetworkNodes,
         RoundManager,
@@ -112,7 +111,7 @@ defmodule Ipncore.Application do
             System.put_env(key, value)
 
           _ ->
-            :ignored
+            :ignore
         end
       end)
     end

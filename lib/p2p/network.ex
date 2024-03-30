@@ -140,6 +140,8 @@ defmodule Ippan.Network do
 
         state = %{sup: sup, server: server, ets: table, bag: bag_table}
         on_init(state)
+
+        Process.flag(:trap_exit, true)
         {:ok, state, {:continue, :init}}
       end
 

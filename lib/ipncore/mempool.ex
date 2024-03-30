@@ -27,6 +27,12 @@ defmodule Mempool do
      }}
   end
 
+  @impl true
+  def terminate(_reason, _state) do
+    :persistent_term.erase(@name)
+    :persistent_term.erase(:msg_counter)
+  end
+
   def regular(body, returns) do
     pid = :persistent_term.get(@name)
     GenServer.call(pid, {:regular, body, returns}, :infinity)

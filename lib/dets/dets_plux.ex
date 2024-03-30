@@ -265,6 +265,7 @@ defmodule DetsPlux do
 
   @impl true
   def init(state) do
+    Process.flag(:trap_exit, true)
     {:ok, state}
   end
 

@@ -1,4 +1,5 @@
 defmodule LocalStore do
+  use GenServer
   alias Ippan.Node
   alias Exqlite.Sqlite3NIF
   require Ippan.Node
@@ -23,14 +24,12 @@ defmodule LocalStore do
   @filename "local.db"
   @key_conn :local_conn
 
-  def child_spec(args) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :init, [args]}
-    }
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(_args) do
+  @impl true
+  def init(state) do
     filename = Path.join(:persistent_term.get(:store_dir), @filename)
 
     {:ok, db_ref} = Sqlite.open_setup(@name, filename, @creations, @attaches)
@@ -45,7 +44,9 @@ defmodule LocalStore do
 
     load_nodes(db_ref)
 
-    :ignore
+    Process.flag(:trap_exit, true)
+
+    {:ok, state, :hibernate}
   end
 
   @masterlist "masterlist"
@@ -119,7 +120,8 @@ defmodule LocalStore do
     end
   end
 
-  def terminate do
+  @impl true
+  def terminate(_reason, _state) do
     db_ref = :persistent_term.get(@key_conn)
     Sqlite.release_statements(db_ref, @statements, :stmt)
     Sqlite3NIF.close(db_ref)

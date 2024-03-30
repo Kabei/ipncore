@@ -9,13 +9,7 @@ defmodule BlockTimer do
   @retry 5
 
   def start_link(args) do
-    case System.get_env("test") do
-      nil ->
-        GenServer.start_link(@module, args, name: @module)
-
-      _ ->
-        :ignore
-    end
+    GenServer.start_link(@module, args, name: @module)
   end
 
   @impl true
@@ -83,7 +77,8 @@ defmodule BlockTimer do
         end
 
       block ->
-        {:reply, [block], %{state | candidate: [block], height: height + 1, prev: block.hash}, :hibernate}
+        {:reply, [block], %{state | candidate: [block], height: height + 1, prev: block.hash},
+         :hibernate}
     end
   end
 

@@ -83,6 +83,11 @@ defmodule RoundManager do
       insert_player(ets_players, Validator.list_to_tuple(v))
     end
 
+    # block timer start
+    BlockTimer.start_link(nil)
+
+    Process.flag(:trap_exit, true)
+
     {:ok,
      %{
        block_id: current_block_id,
@@ -711,6 +716,7 @@ defmodule RoundManager do
     :ets.delete(ets_candidates)
     PubSub.unsubscribe(@pubsub, "validator")
     PubSub.unsubscribe(@pubsub, "env")
+    BlockTimer.stop()
     :poolboy.stop(miner_pool_pid)
   end
 

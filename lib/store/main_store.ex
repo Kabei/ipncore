@@ -1,4 +1,5 @@
 defmodule MainStore do
+  use GenServer
   alias Exqlite.Sqlite3NIF
   require Sqlite
 
@@ -29,14 +30,13 @@ defmodule MainStore do
   @key_conn :main_conn
   @key_ro :main_ro
 
-  def child_spec(args) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :init, [args]}
-    }
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(_) do
+  @impl true
+  def init(state) do
+    IO.puts("start MainStore")
     filename = Path.join(:persistent_term.get(:store_dir), @filename)
 
     {:ok, db_ref} = Sqlite.open_setup(@name, filename, @creations, @attaches)
@@ -53,10 +53,14 @@ defmodule MainStore do
 
     Platform.start()
 
-    :ignore
+    Process.flag(:trap_exit, true)
+
+    {:ok, state, :hibernate}
   end
 
-  def terminate do
+  @impl true
+  def terminate(_, _) do
+    IO.puts("terminate MainStore")
     db_ref = :persistent_term.get(@key_conn)
     db_ro = :persistent_term.get(@key_ro)
     Sqlite.release_statements(db_ref, @statements, :stmt)

@@ -1,6 +1,5 @@
 defmodule Snapshot do
   require Sqlite
-  alias Ippan.DetsSup
   @app Mix.Project.config()[:app]
   @extension Application.compile_env(@app, :snap_extension, "snap")
 
@@ -110,13 +109,15 @@ defmodule Snapshot do
   # stop database processes
   defp before_restore do
     :persistent_term.put(:status, :sync)
-    MainStore.terminate()
-    Supervisor.stop(DetsSup)
+    Supervisor.terminate_child(Ipncore.Supervisor, Ippan.DetsSup)
+    Supervisor.terminate_child(Ipncore.Supervisor, MainStore)
   end
 
   # reset system
   defp after_restore do
-    :init.restart()
+    Supervisor.start_child(Ipncore.Supervisor, Ippan.DetsSup)
+    Supervisor.start_child(Ipncore.Supervisor, MainStore)
+    :persistent_term.put(:status, :synced)
   end
 
   @hash_module Blake3

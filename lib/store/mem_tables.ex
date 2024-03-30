@@ -1,4 +1,6 @@
 defmodule MemTables do
+  use GenServer
+
   @ordered_named_opts [
     :ordered_set,
     :named_table,
@@ -38,26 +40,24 @@ defmodule MemTables do
     env: @set_named_concurrent_opts
   }
 
-  @tables Map.to_list(@tables_name)
-
   @save_extension "save"
   # @tmp_extension "save.tmp"
 
-  def child_spec(args) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :init, [args]}
-    }
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(_args) do
+  @impl true
+  def init(state) do
     for {table, opts} <- @tables_opt do
       :ets.new(table, opts)
     end
 
     load_all()
 
-    :ignore
+    Process.flag(:trap_exit, true)
+
+    {:ok, state, :hibernate}
   end
 
   defmacrop default_dir(basename, extension) do
@@ -88,22 +88,22 @@ defmodule MemTables do
   end
 
   def delete_all do
-    for table <- @tables do
+    for {table, _name} <- @tables_name do
       :ets.delete(table)
     end
   end
 
   # def clear_cache do
-    # :ets.delete_all_objects(:hash)
-    # :ets.delete_all_objects(:dhash)
-    # :ets.delete_all_objects(:validator)
-    # :ets.delete_all_objects(:token)
+  # :ets.delete_all_objects(:hash)
+  # :ets.delete_all_objects(:dhash)
+  # :ets.delete_all_objects(:validator)
+  # :ets.delete_all_objects(:token)
   # end
 
-  def terminate do
+  @impl true
+  def terminate(_reason, _state) do
     save_all()
     delete_all()
     :persistent_term.erase(:save_dir)
-    :ok
   end
 end

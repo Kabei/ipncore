@@ -583,7 +583,7 @@ defmodule RoundManager do
          true <- Validator.exists?(creator_id),
          true <- block_verificacion(block, db_ref) do
       :ets.insert(ets_candidates, {{creator_id, height}, block})
-      GenServer.cast(BlockTimer, :block)
+      # GenServer.cast(BlockTimer, :block)
     end
 
     {:noreply, state}
@@ -833,7 +833,7 @@ defmodule RoundManager do
           :synced ->
             limit = EnvStore.block_limit()
 
-            BlockTimer.get_next(block_id)
+            BlockTimer.get_block()
             |> Kernel.++(
               :ets.tab2list(ets_candidates)
               |> Enum.filter(fn {{creator_id, height}, _b} ->

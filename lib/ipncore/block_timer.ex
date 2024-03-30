@@ -7,7 +7,7 @@ defmodule BlockTimer do
   # @app Mix.Project.config()[:app]
   @module __MODULE__
   @time_to_wait 5_000
-  @interval_check 60_000
+  # @interval_check 60_000
 
   def start_link(args) do
     case System.get_env("test") do
@@ -29,7 +29,7 @@ defmodule BlockTimer do
     %{hash: prev, height: last_height} =
       Block.last_created(vid)
 
-    :timer.send_interval(@interval_check, :auto_check)
+    # :timer.send_interval(@interval_check, :auto_check)
 
     {:ok,
      %{
@@ -46,7 +46,8 @@ defmodule BlockTimer do
   @doc """
   Get a candidate
   """
-  @spec get_block :: map() | nil
+  # @spec get_block :: map() | nil
+  @spec get_block :: [map()] | []
   def get_block do
     GenServer.call(@module, :get, :infinity)
   end
@@ -54,22 +55,23 @@ defmodule BlockTimer do
   @doc """
   Get a candidate with a dynamic time to wait
   """
-  @spec get_next(block_id :: integer()) :: [map()] | []
-  def get_next(block_id) do
-    try do
-      case GenServer.call(@module, {:get_next, block_id}, 7_000) do
-        nil -> []
-        candidate -> [candidate]
-      end
-    catch
-      :exit, _ ->
-        []
-    end
-  end
 
-  @doc """
-  Update block height, prev hash and candidate in state
-  """
+  # @spec get_next(block_id :: integer()) :: [map()] | []
+  # def get_next(block_id) do
+  #   try do
+  #     case GenServer.call(@module, {:get_next, block_id}, 7_000) do
+  #       nil -> []
+  #       candidate -> [candidate]
+  #     end
+  #   catch
+  #     :exit, _ ->
+  #       []
+  #   end
+  # end
+
+  # @doc """
+  # Update block height, prev hash and candidate in state
+  # """
   @spec complete(blocks :: list()) :: :ok
   def complete(blocks) do
     GenServer.cast(@module, {:complete, blocks})
@@ -90,42 +92,43 @@ defmodule BlockTimer do
       nil ->
         case BlockHandler.generate_files(vid, height, prev) do
           nil ->
-            {:reply, nil, state}
+            :timer.sleep(@time_to_wait)
+            {:reply, [], state}
 
           block ->
-            {:reply, block, %{state | candidate: block, height: height + 1, prev: block.hash}}
+            {:reply, [block], %{state | candidate: block, height: height + 1, prev: block.hash}}
         end
 
       candidate ->
-        {:reply, candidate, state}
+        {:reply, [candidate], state}
     end
   end
 
-  def handle_call({:get, _current_block_id}, _from, %{candidate: candidate} = state) do
-    {:reply, candidate, state}
-  end
+  # def handle_call({:get, _current_block_id}, _from, %{candidate: candidate} = state) do
+  #   {:reply, candidate, state}
+  # end
 
-  def handle_call(
-        {:get_next, current_block_id},
-        from,
-        %{candidate: nil, tRef: tRef} = state
-      ) do
-    :timer.cancel(tRef)
-    {:ok, tRef} = :timer.send_after(@time_to_wait, :finished)
+  # def handle_call(
+  #       {:get_next, current_block_id},
+  #       from,
+  #       %{candidate: nil, tRef: tRef} = state
+  #     ) do
+  #   :timer.cancel(tRef)
+  #   {:ok, tRef} = :timer.send_after(@time_to_wait, :finished)
 
-    {:noreply, %{state | block_id: current_block_id, from: from, tRef: tRef}}
-  end
+  #   {:noreply, %{state | block_id: current_block_id, from: from, tRef: tRef}}
+  # end
 
-  def handle_call(
-        {:get_next, current_block_id},
-        _from,
-        %{candidate: candidate, tRef: tRef} = state
-      ) do
-    :timer.cancel(tRef)
+  # def handle_call(
+  #       {:get_next, current_block_id},
+  #       _from,
+  #       %{candidate: candidate, tRef: tRef} = state
+  #     ) do
+  #   :timer.cancel(tRef)
 
-    {:reply, candidate,
-     %{state | block_id: current_block_id, candidate: candidate, from: nil, tRef: nil}}
-  end
+  #   {:reply, candidate,
+  #    %{state | block_id: current_block_id, candidate: candidate, from: nil, tRef: nil}}
+  # end
 
   @impl true
   def handle_cast({:complete, blocks}, %{vid: vid} = state) do
@@ -157,57 +160,57 @@ defmodule BlockTimer do
     end
   end
 
-  def handle_cast(:block, %{tRef: tRef, from: from} = state) do
-    if from != nil and tRef != nil do
-      :timer.cancel(tRef)
-      GenServer.reply(from, nil)
+  # def handle_cast(:block, %{tRef: tRef, from: from} = state) do
+  #   if from != nil and tRef != nil do
+  #     :timer.cancel(tRef)
+  #     GenServer.reply(from, nil)
 
-      {:noreply, %{state | tRef: nil, from: nil}}
-    else
-      {:noreply, state}
-    end
-  end
+  #     {:noreply, %{state | tRef: nil, from: nil}}
+  #   else
+  #     {:noreply, state}
+  #   end
+  # end
 
-  @impl true
-  def handle_info(:finished, %{candidate: candidate, from: from} = state) do
-    GenServer.reply(from, candidate)
-    {:noreply, %{state | tRef: nil}}
-  end
+  # @impl true
+  # def handle_info(:finished, %{candidate: candidate, from: from} = state) do
+  #   GenServer.reply(from, candidate)
+  #   {:noreply, %{state | tRef: nil}}
+  # end
 
-  def handle_info(
-        :auto_check,
-        %{candidate: candidate, from: from, tRef: tRef, vid: vid, height: height, prev: prev} =
-          state
-      ) do
-    case candidate do
-      nil ->
-        case BlockHandler.generate_files(vid, height, prev) do
-          nil ->
-            {:noreply, state}
+  # def handle_info(
+  #       :auto_check,
+  #       %{candidate: candidate, from: from, tRef: tRef, vid: vid, height: height, prev: prev} =
+  #         state
+  #     ) do
+  #   case candidate do
+  #     nil ->
+  #       case BlockHandler.generate_files(vid, height, prev) do
+  #         nil ->
+  #           {:noreply, state}
 
-          block ->
-            if from != nil and tRef != nil do
-              :timer.cancel(tRef)
-              GenServer.reply(from, block)
-              # else
-              # GenServer.cast(RoundManager, {:send_block, block})
-            end
+  #         block ->
+  #           if from != nil and tRef != nil do
+  #             :timer.cancel(tRef)
+  #             GenServer.reply(from, block)
+  #             # else
+  #             # GenServer.cast(RoundManager, {:send_block, block})
+  #           end
 
-            {:noreply,
-             %{
-               state
-               | candidate: block,
-                 from: nil,
-                 height: height + 1,
-                 prev: block.hash,
-                 tRef: nil
-             }}
-        end
+  #           {:noreply,
+  #            %{
+  #              state
+  #              | candidate: block,
+  #                from: nil,
+  #                height: height + 1,
+  #                prev: block.hash,
+  #                tRef: nil
+  #            }}
+  #       end
 
-      _candidate ->
-        {:noreply, state}
-    end
-  end
+  #     _candidate ->
+  #       {:noreply, state}
+  #   end
+  # end
 
   # defp do_check(
   #        %{candidate: nil, vid: vid, height: height, prev: prev} = state,

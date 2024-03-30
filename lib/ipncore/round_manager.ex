@@ -86,8 +86,6 @@ defmodule RoundManager do
     # block timer start
     BlockTimer.start_link(nil)
 
-    Process.flag(:trap_exit, true)
-
     {:ok,
      %{
        block_id: current_block_id,

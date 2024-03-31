@@ -415,5 +415,10 @@ defmodule Ippan.Funcs do
     }
   end
 
-  def lookup(_), do: :undefined
+  def lookup(type) do
+    IO.puts("type undefined #{type}")
+    :undefined
+  end
+
+  # def lookup(_), do: :undefined
 end

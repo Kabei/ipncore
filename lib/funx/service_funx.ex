@@ -106,7 +106,7 @@ defmodule Ippan.Funx.Service do
     if subpay do
       max_spent = Map.get(subpay.extra, "maxSpent", 0)
 
-      if max_spent != 0 and subpay.spent + amount > max_spent do
+      if max_spent == 0 or subpay.spent + amount < max_spent do
         BalanceStore.pay payer, token_id, amount do
           interval = div(subpay.every, round_id)
 

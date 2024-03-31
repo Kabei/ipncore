@@ -3,7 +3,7 @@ defmodule Ippan.Funx.Sys do
   @dev_mode Mix.env() == :dev
 
   if @dev_mode do
-    def upgrade(_, %{"reset" => "data"}, target) do
+    def upgrade(_, %{"reset" => "reset_data"}, target) do
       if @app in target do
         fun = fn ->
           sup = Ipncore.Supervisor

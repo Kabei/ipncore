@@ -9,6 +9,11 @@ defmodule Ippan.Funx.Sys do
           sup = Ipncore.Supervisor
           Supervisor.terminate_child(sup, Ippan.DetsSup)
           Supervisor.terminate_child(sup, MainStore)
+          Supervisor.terminate_child(sup, LocalStore)
+          Supervisor.terminate_child(sup, HttpServer)
+          Supervisor.terminate_child(sup, Ippan.ClusterNodes)
+          Supervisor.terminate_child(sup, Ippan.NetworkNodes)
+          Supervisor.terminate_child(sup, RoundManager)
           File.rm_rf(:persistent_term.get(:store_dir))
           :init.restart()
         end

@@ -1059,15 +1059,15 @@ defmodule RoundManager do
         # save all round
         RoundCommit.sync(db_ref, tx_count)
 
+        if rm_notify do
+          GenServer.cast(pid, {:complete, round})
+        end
+
         fun = :persistent_term.get(:last_fun, nil)
 
         if fun do
           :persistent_term.erase(:last_fun)
           fun.()
-        end
-
-        if rm_notify do
-          GenServer.cast(pid, {:complete, round})
         end
 
         {:ok, round}

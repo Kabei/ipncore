@@ -1,10 +1,10 @@
 defmodule Ipncore.Application do
   @moduledoc false
+  require Logger
   alias Phoenix.PubSub
   alias Ippan.{ClusterNodes, NetworkNodes, DetsSup}
   use Application
 
-  @app Mix.Project.config()[:app]
   @opts [strategy: :one_for_one, name: Ipncore.Supervisor]
 
   @impl true
@@ -17,7 +17,6 @@ defmodule Ipncore.Application do
 
   defp start_app do
     load_env_file()
-    check_install()
     start_node()
     make_folders()
     load_keys()
@@ -34,7 +33,7 @@ defmodule Ipncore.Application do
         ClusterNodes,
         NetworkNodes,
         RoundManager,
-        {Bandit, Application.get_env(@app, :http)}
+        HttpServer
       ]
 
     Supervisor.start_link(children, @opts)
@@ -42,13 +41,12 @@ defmodule Ipncore.Application do
 
   @impl true
   def stop(_state) do
-    IO.puts("Stopping application")
-    Mempool.save()
+    Logger.notice("Stopping application")
   end
 
-  defp check_install do
-    {_, 0} = System.cmd("git", ["version"])
-  end
+  # defp check_install do
+  #   {_, 0} = System.cmd("git", ["version"])
+  # end
 
   defp start_node do
     vid =
@@ -114,6 +112,28 @@ defmodule Ipncore.Application do
             :ignore
         end
       end)
+    end
+  end
+end
+
+defmodule HttpServer do
+  @app Mix.Project.config()[:app]
+
+  def child_spec(_args) do
+    config = Application.get_env(@app, :http)
+    port = Keyword.get(config, :port, 0)
+
+    cond do
+      port == 0 ->
+        :ignore
+
+      true ->
+        %{
+          id: __MODULE__,
+          start: {Bandit, :start_link, [config]},
+          type: :supervisor,
+          restart: :permanent
+        }
     end
   end
 end

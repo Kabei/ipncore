@@ -29,6 +29,7 @@ defmodule Mempool do
 
   @impl true
   def terminate(_reason, _state) do
+    save()
     :persistent_term.erase(@name)
     :persistent_term.erase(:msg_counter)
   end

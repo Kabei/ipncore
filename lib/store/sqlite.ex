@@ -6,7 +6,7 @@ defmodule Sqlite do
           location: :keep do
       stmt = :persistent_term.get({:stmt, name})
 
-      case Sqlite3NIF.bind_step(var!(db_ref), stmt, args) do
+      case Sqlite.bind_step(var!(db_ref), stmt, args) do
         {:row, [n]} ->
           n
 
@@ -41,7 +41,7 @@ defmodule Sqlite do
       {:ok, statement} =
         Sqlite3NIF.prepare(var!(db_ref), ~c"UPDATE #{table} SET #{set_fields} WHERE #{where}")
 
-      n = Sqlite3NIF.bind_step(var!(db_ref), statement, values ++ w_values)
+      n = Sqlite.bind_step(var!(db_ref), statement, values ++ w_values)
       Sqlite3NIF.release(var!(db_ref), statement)
       n
     end
@@ -50,14 +50,7 @@ defmodule Sqlite do
   defmacro step(name, args \\ []) do
     quote bind_quoted: [name: name, args: args], location: :keep do
       stmt = :persistent_term.get({:stmt, name})
-      Sqlite3NIF.bind_step(var!(db_ref), stmt, args)
-    end
-  end
-
-  defmacro step_change(name, args) do
-    quote bind_quoted: [name: name, args: args], location: :keep do
-      stmt = :persistent_term.get({:stmt, name})
-      Sqlite3NIF.bind_step_changes(var!(db_ref), stmt, args)
+      Sqlite.bind_step(var!(db_ref), stmt, args)
     end
   end
 
@@ -70,7 +63,7 @@ defmodule Sqlite do
   defmacro exists?(name, args) do
     quote bind_quoted: [name: name, args: args], location: :keep do
       stmt = :persistent_term.get({:stmt, name})
-      {:row, [1]} == Sqlite3NIF.bind_step(var!(db_ref), stmt, args)
+      {:row, [1]} == Sqlite.bind_step(var!(db_ref), stmt, args)
     end
   end
 
@@ -79,7 +72,7 @@ defmodule Sqlite do
           location: :keep do
       stmt = :persistent_term.get({:stmt, name})
 
-      case Sqlite3NIF.bind_step(var!(db_ref), stmt, args) do
+      case Sqlite.bind_step(var!(db_ref), stmt, args) do
         {:row, []} -> default
         {:row, data} -> data
         _ -> default
@@ -97,7 +90,7 @@ defmodule Sqlite do
         [] ->
           stmt = :persistent_term.get({:stmt, name})
 
-          case Sqlite3NIF.bind_step(var!(db_ref), stmt, [id]) do
+          case Sqlite.bind_step(var!(db_ref), stmt, [id]) do
             {:row, []} ->
               nil
 
@@ -297,5 +290,10 @@ defmodule Sqlite do
     Sqlite3NIF.execute(db_ref, ~c"PRAGMA query_only = 1")
     Sqlite3NIF.execute(db_ref, ~c"PRAGMA foreign_keys = OFF")
     Sqlite3NIF.execute(db_ref, ~c"PRAGMA case_sensitive_like = ON")
+  end
+
+  def bind_step(db_ref, stmt, args) do
+    Sqlite3NIF.bind(db_ref, stmt, args)
+    Sqlite3NIF.step(db_ref, stmt)
   end
 end

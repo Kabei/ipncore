@@ -23,7 +23,7 @@ defmodule MinerWorker do
   end
 
   @download_cluster_options [retry: :infinity, time_to_retry: 100]
-  @download_options [retry: 3, time_to_retry: 250]
+  @download_options [retry: 5, time_to_retry: 250]
 
   # Create a block file from decode block file (foreign block)
   @impl true

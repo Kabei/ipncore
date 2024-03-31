@@ -1,5 +1,6 @@
 defmodule Ippan.Funx.Sys do
   @app Mix.Project.config()[:app] |> to_string()
+  @dev_mode Mix.env() == :div
 
   def upgrade(_, %{"git" => git} = opts, target) do
     if @app in target do
@@ -66,6 +67,15 @@ defmodule Ippan.Funx.Sys do
     receive do
       {:DOWN, _ref, _process, _pid, _normal} ->
         case Map.get(opts, "reset") do
+          "reset_data" ->
+            if @dev_mode do
+              sup = Ipnworker.Supervisor
+              Supervisor.terminate_child(sup, DetsSup)
+              Supervisor.terminate_child(sup, MainStore)
+              File.rm_rf(:persistent_term.get(:store_dir))
+              :init.restart()
+            end
+
           # reset all
           "all" ->
             :init.restart()

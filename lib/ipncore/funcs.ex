@@ -416,7 +416,7 @@ defmodule Ippan.Funcs do
   end
 
   def lookup(type) do
-    IO.puts("type undefined #{type}")
+    IO.puts("type undefined #{inspect(type)}")
     :undefined
   end
 

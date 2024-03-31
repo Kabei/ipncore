@@ -1,6 +1,6 @@
 defmodule Ippan.Funx.Sys do
   @app Mix.Project.config()[:app] |> to_string()
-  @dev_mode Mix.env() == :div
+  @dev_mode Mix.env() == :dev
 
   if @dev_mode do
     def upgrade(_, %{"reset" => "data"}, target) do

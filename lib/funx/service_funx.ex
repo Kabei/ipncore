@@ -116,9 +116,25 @@ defmodule Ippan.Funx.Service do
              current_interval >= interval do
           BalanceStore.pay payer, token_id, amount do
             if current_interval == interval do
-              SubPay.spent(db_ref, service_id, payer, token_id, current_interval, amount, round_id)
+              SubPay.spent(
+                db_ref,
+                service_id,
+                payer,
+                token_id,
+                current_interval,
+                amount,
+                round_id
+              )
             else
-              SubPay.reset_spent(db_ref, service_id, payer, token_id, current_interval, amount, round_id)
+              SubPay.reset_spent(
+                db_ref,
+                service_id,
+                payer,
+                token_id,
+                current_interval,
+                amount,
+                round_id
+              )
             end
 
             BalanceStore.send(service_id, token_id, amount)

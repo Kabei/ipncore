@@ -112,9 +112,8 @@ defmodule Ippan.Funx.Service do
         current_interval = div(round_id, every)
 
         if max_spent == 0 or
-             (current_interval == interval and
-                spent + amount <= max_spent) or
-             current_interval > interval do
+             ((current_interval == interval and spent + amount <= max_spent) or
+                (current_interval > interval and amount <= max_spent)) do
           BalanceStore.pay payer, token_id, amount do
             if current_interval == interval do
               SubPay.spent(

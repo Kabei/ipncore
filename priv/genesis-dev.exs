@@ -119,7 +119,8 @@ owner = "@ippan"
       port: 5815,
       pubkey: pk,
       active: true,
-      updated_at: 0
+      updated_at: 0,
+      subs: 1
     },
     %Validator{
       image: nil,

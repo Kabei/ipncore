@@ -175,6 +175,9 @@ UPDATE assets.validator SET failures = failures + ?2, updated_at = ?3 WHERE id =
 --name: delete_validator
 DELETE FROM assets.validator WHERE id = ?1;
 
+--name: count_sub_validator
+UPDATE assets.validator SET subs = subs + ?2 WHERE id = ?1;
+
 
 --name: insert_refund
 REPLACE INTO assets.refund VALUES(?1,?2,?3,?4,?5,?6);

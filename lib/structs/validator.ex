@@ -17,7 +17,8 @@ defmodule Ippan.Validator do
           failures: integer(),
           env: map(),
           created_at: non_neg_integer(),
-          updated_at: non_neg_integer()
+          updated_at: non_neg_integer(),
+          subs: non_neg_integer()
         }
 
   defstruct [
@@ -36,7 +37,8 @@ defmodule Ippan.Validator do
     active: false,
     failures: 0,
     env: %{},
-    class: ""
+    class: "",
+    subs: 0
   ]
 
   @suffix "V-"
@@ -95,7 +97,8 @@ defmodule Ippan.Validator do
         failures,
         env,
         created_at,
-        updated_at
+        updated_at,
+        subs
       ]) do
     %{
       id: id,
@@ -113,7 +116,8 @@ defmodule Ippan.Validator do
       failures: failures,
       env: :erlang.element(1, CBOR.Decoder.decode(env)),
       created_at: created_at,
-      updated_at: updated_at
+      updated_at: updated_at,
+      subs: subs
     }
   end
 
@@ -204,6 +208,13 @@ defmodule Ippan.Validator do
     quote bind_quoted: [map: map, id: id], location: :keep do
       :ets.delete(:validator, id)
       Sqlite.update("assets.validator", map, id: id)
+    end
+  end
+
+  defmacro count_sub(id, value) do
+    quote bind_quoted: [id: id, value: value], location: :keep do
+      :ets.delete(:validator, id)
+      Sqlite.step("count_sub_validator", [id, value])
     end
   end
 

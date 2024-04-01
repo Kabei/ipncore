@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS validator(
   failures INTEGER,
   env BLOB,
   created_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL
+  updated_at BIGINT NOT NULL,
+  subs BIGINT
 ) WITHOUT ROWID;
 
 CREATE INDEX IF NOT EXISTS idx_val_class ON validator(class);

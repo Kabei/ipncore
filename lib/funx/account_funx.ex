@@ -1,15 +1,20 @@
 defmodule Ippan.Funx.Account do
+  alias Ippan.{Utils, Validator}
   require BalanceStore
-  alias Ippan.{Utils}
+  require Sqlite
+  require Validator
 
   def new(%{id: account_id}, pubkey, sig_type, validator_id, fa, fb) do
     pubkey = Fast64.decode64(pubkey)
     tx = DetsPlux.tx(:wallet)
+    db_ref = :persistent_term.get(:main_conn)
 
     DetsPlux.put(
       tx,
       {account_id, pubkey, sig_type, %{"fa" => fa, "fb" => fb, "vid" => validator_id}}
     )
+
+    Validator.count_sub(validator_id, 1)
   end
 
   def subscribe(
@@ -31,10 +36,13 @@ defmodule Ippan.Funx.Account do
         :error
 
       _ ->
+        db_ref = :persistent_term.get(:main_conn)
         wallet = DetsPlux.get(:wallet)
         wtx = DetsPlux.tx(wallet, :wallet)
-        DetsPlux.get_cache(wallet, wtx, from)
+        {_pk, _, %{"vid" => old_vid}} = DetsPlux.get_cache(wallet, wtx, "@ippan")
         DetsPlux.update_element(wtx, from, 4, %{"fa" => fa, "fb" => fb, "vid" => validator_id})
+        Validator.count_sub(validator_id, 1)
+        Validator.count_sub(old_vid, -1)
     end
   end
 

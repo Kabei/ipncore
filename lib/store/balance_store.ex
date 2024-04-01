@@ -107,10 +107,9 @@ defmodule BalanceStore do
         balance = BalanceStore.load(from, token)
 
         if DetsPlux.update_counter(var!(tx), balance, {2, -amount}) >= 0 do
-          DetsPlux.update_counter(var!(tx), balance, {2, amount})
-          Enum.each(acc, fn {b, a} -> DetsPlux.update_counter(var!(tx), b, {2, a}) end)
           {:cont, [{balance, amount} | acc]}
         else
+          Enum.each(acc, fn {b, a} -> DetsPlux.update_counter(var!(tx), b, {2, a}) end)
           {:halt, :error}
         end
       end)

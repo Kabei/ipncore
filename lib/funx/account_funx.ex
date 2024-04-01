@@ -39,7 +39,7 @@ defmodule Ippan.Funx.Account do
         db_ref = :persistent_term.get(:main_conn)
         wallet = DetsPlux.get(:wallet)
         wtx = DetsPlux.tx(wallet, :wallet)
-        {_pk, _, %{"vid" => old_vid}} = DetsPlux.get_cache(wallet, wtx, "@ippan")
+        {_pk, _, %{"vid" => old_vid}} = DetsPlux.get_cache(wallet, wtx, from)
         DetsPlux.update_element(wtx, from, 4, %{"fa" => fa, "fb" => fb, "vid" => validator_id})
         Validator.count_sub(validator_id, 1)
         Validator.count_sub(old_vid, -1)

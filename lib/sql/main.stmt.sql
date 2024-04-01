@@ -140,7 +140,7 @@ DELETE FROM blockchain.round WHERE id NOT IN (SELECT MAX(id) FROM blockchain.rou
 
 
 --name: insert_validator
-INSERT INTO assets.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16);
+INSERT INTO assets.validator values(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17);
 
 --name: total_players
 SELECT count(1) FROM assets.validator WHERE active = 1;

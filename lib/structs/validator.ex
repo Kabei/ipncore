@@ -66,7 +66,8 @@ defmodule Ippan.Validator do
       x.failures,
       CBOR.encode(x.env),
       x.created_at,
-      x.updated_at
+      x.updated_at,
+      x.subs
     ]
   end
 

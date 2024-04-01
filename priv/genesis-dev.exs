@@ -142,7 +142,9 @@ owner = "@ippan"
   "accounts" => [
     {"@ippan", pk, 0, %{"vid" => "V-0", "fa" => 1, "fb" => 1}},
   ],
+  "balances" => [{"@ippan|IPN", 1_000_000_000, %{}}],
   "stats" => [
-    {"seq_validator", 2}
+    {"seq_validator", 2},
+    {"IPN|supply", 1_000_000_000},
   ]
 }

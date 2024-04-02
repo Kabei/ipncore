@@ -44,10 +44,6 @@ defmodule Ipncore.Application do
     Logger.notice("Stopping application")
   end
 
-  # defp check_install do
-  #   {_, 0} = System.cmd("git", ["version"])
-  # end
-
   defp start_node do
     vid =
       System.get_env("VID") || raise IppanStartUpError, "variable VID (ValidatorID) is missing"
@@ -75,7 +71,7 @@ defmodule Ipncore.Application do
   # create all folders
   defp make_folders do
     # catch routes
-    data_dir = System.get_env("data_dir", "data")
+    data_dir = System.get_env("DATA_DIR", "data")
     block_dir = Path.join(data_dir, "blocks") |> String.to_charlist()
     decode_dir = Path.join(data_dir, "blocks/decoded") |> String.to_charlist()
     store_dir = Path.join(data_dir, "store") |> String.to_charlist()
@@ -98,20 +94,22 @@ defmodule Ipncore.Application do
     path = System.get_env("ENV_FILE", "env_file")
 
     if File.exists?(path) do
-      File.stream!(path, [], :line)
-      |> Enum.each(fn text ->
-        text
-        |> String.trim()
-        |> String.replace(~r/\n|\r|#.+/, "")
-        |> String.split("=", parts: 2)
-        |> case do
-          [key, value] ->
-            System.put_env(key, value)
+      case :fast_yaml.decode_from_file(path) do
+        {:ok, [config]} ->
+          Enum.each(config, fn
+            {varname, value} when is_binary(value) ->
+              System.put_env(String.upcase(varname), value)
 
-          _ ->
-            :ignore
-        end
-      end)
+            {varname, value} ->
+              System.put_env(String.upcase(varname), inspect(value))
+
+            _ ->
+              :none
+          end)
+
+        {:error, error} ->
+          raise IppanStartUpError, "env_file yaml failed: #{inspect(error)}"
+      end
     end
   end
 end

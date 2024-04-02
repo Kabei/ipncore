@@ -38,7 +38,7 @@ defmodule Ipncore.MixProject do
       do: raise(RuntimeError, "OTP invalid version. Required minimum v#{@min_otp}")
 
     [
-      extra_applications: [:crypto, :syntax_tools, :logger],
+      extra_applications: [:crypto, :syntax_tools, :logger, :fast_yaml],
       mod: {Ipncore.Application, []}
     ]
   end
@@ -58,6 +58,7 @@ defmodule Ipncore.MixProject do
       {:benchee, "~> 1.0", only: [:dev, :test]},
       {:poolboy, "~> 1.5"},
       {:jason, "~> 1.4"},
+      {:fast_yaml, "~> 1.0"},
       {:bandit, "~> 1.4"},
       {:phoenix_pubsub, "~> 2.1"},
       {:httpoison, "~> 2.2"},

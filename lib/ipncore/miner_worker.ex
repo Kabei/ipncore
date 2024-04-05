@@ -148,7 +148,8 @@ defmodule MinerWorker do
     cref = :counters.new(2, [])
 
     Enum.each(transactions, fn
-      ["err", _hash, _type, _from, _nonce, _args, _sig, _size] ->
+      ["err", _hash, _type, from, nonce, _args, _sig, _size] ->
+        Account.gte_nonce(nonce_dets, nonce_tx, from, nonce)
         :counters.add(cref, 2, 1)
 
       [hash, type, from, nonce, args, _sig, size] ->
@@ -169,7 +170,6 @@ defmodule MinerWorker do
 
       [hash, type, arg_key, from, nonce, args, _sig, size] ->
         ix = :counters.get(cref, 1)
-
         Account.gte_nonce(nonce_dets, nonce_tx, from, nonce)
 
         case TxHandler.insert_deferred(dtx, dtmp) do

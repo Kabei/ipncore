@@ -6,7 +6,7 @@ export PATH="/root/.cargo/bin:${PATH}"
 apt update -y
 
 # On debian
-apt install ca-certificates libyaml-dev erlang elixir curl git cmake -y
+apt install ca-certificates libyaml-dev erlang-dev elixir curl git cmake -y
 # On fedora / Red-Hat like
 # sudo dnf install ca-certificates libyaml-devel erlang elixir curl git cmake -y
 

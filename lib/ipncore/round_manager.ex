@@ -194,6 +194,11 @@ defmodule RoundManager do
         } = state
       ) do
     Logger.warning("Round ##{round_id} Timeout | ID: #{rcid}")
+    IO.inspect(Map.take(state, ~w(round_id vote_round_id rcid round_candidate round_hash)a))
+    IO.inspect("Network:")
+    IO.inspect(NetworkNodes.count())
+    IO.inspect(NetworkNodes.total())
+    IO.inspect(NetworkNodes.all())
 
     case check_votes(state) do
       nil ->

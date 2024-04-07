@@ -45,7 +45,13 @@ defmodule Ippan.NetworkNodes do
 
     case Round.get(id) do
       nil ->
-        GenServer.call(RoundManager, {:round, id}, 10_000)
+        case :ets.lookup(:g, :round_candidate) do
+          [%{id: rid} = round] when id == rid ->
+            round
+
+          _ ->
+            nil
+        end
 
       r ->
         r

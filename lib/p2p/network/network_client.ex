@@ -24,6 +24,7 @@ defmodule Ippan.NetworkClient do
 
   @impl true
   def init(args) do
+    Process.flag(:trap_exit, true)
     {:ok, args, {:continue, :init}}
   end
 
@@ -130,17 +131,26 @@ defmodule Ippan.NetworkClient do
     {:stop, :normal, state}
   end
 
-  if Mix.env() == :dev do
-    def handle_info({:tcp_error, _socket, reason}, %{id: id} = state) do
-      Logger.debug("tcp_error #{reason} | #{id}")
-      {:noreply, state}
-    end
+  def handle_info({:tcp_error, _socket, reason}, %{id: id} = state) do
+    Logger.debug("tcp_error #{reason} | #{id}")
+    {:noreply, state}
+  end
+
+  def handle_info({:EXIT, _pid, reason}, state) do
+    Logger.warning("#{inspect(reason)} in handle_info")
+    {:stop, reason, state}
   end
 
   @impl true
-  def terminate(_reason, %{tRef: tRef} = _state) do
+  def terminate(_reason, %{tRef: tRef, socket: socket} = state) do
+    @adapter.close(socket)
+    @node.on_disconnect(state, 1, @via)
     :timer.cancel(tRef)
     # @node.on_disconnect(state, 0, @via)
+  end
+
+  def terminate(_reason, %{tRef: tRef}) do
+    :timer.cancel(tRef)
   end
 
   def terminate(_reason, _state), do: :ok

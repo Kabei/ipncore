@@ -9,9 +9,11 @@ defmodule Ippan.Funcs do
       mod: Func.Account,
       modx: Funx.Account,
       fun: :new,
-      deferred: true,
-      check: {:arg, 0},
-      key: 1
+      origin: {:pk, :first},
+      index: {:arg, :first},
+      priority: 3,
+      unique: true,
+      deferred: true
     }
   end
 
@@ -22,7 +24,9 @@ defmodule Ippan.Funcs do
       mod: Func.Account,
       modx: Funx.Account,
       fun: :subscribe,
-      check: 2
+      origin: 2,
+      priority: 4,
+      index: 1
     }
   end
 
@@ -33,7 +37,8 @@ defmodule Ippan.Funcs do
       mod: Func.Account,
       modx: Funx.Account,
       fun: :edit_key,
-      key: 1
+      index: 1,
+      priority: 4
     }
   end
 
@@ -44,7 +49,10 @@ defmodule Ippan.Funcs do
       mod: Func.Env,
       modx: Funx.Env,
       fun: :set,
-      key: 2
+      priority: 4,
+      index: 1,
+      deferred: true,
+      parallel: false
     }
   end
 
@@ -55,7 +63,10 @@ defmodule Ippan.Funcs do
       mod: Func.Env,
       modx: Funx.Env,
       fun: :delete,
-      key: 2
+      priority: 3,
+      deferred: true,
+      parallel: false,
+      index: 1
     }
   end
 
@@ -67,7 +78,9 @@ defmodule Ippan.Funcs do
       modx: Funx.Validator,
       fun: :join,
       deferred: true,
-      key: 2
+      index: {:arg, :first},
+      unique: true,
+      priority: 2
     }
   end
 
@@ -78,7 +91,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :update,
-      key: 2
+      index: 1,
+      priority: 3
     }
   end
 
@@ -89,7 +103,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :leave,
-      key: 2
+      index: 1,
+      priority: 4
     }
   end
 
@@ -100,7 +115,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :env_put,
-      key: 1
+      index: 1,
+      priority: 3
     }
   end
 
@@ -111,7 +127,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :env_delete,
-      key: 1
+      index: 1,
+      priority: 4
     }
   end
 
@@ -122,7 +139,8 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :active,
-      key: 2
+      index: 1,
+      priority: 3
     }
   end
 
@@ -134,7 +152,9 @@ defmodule Ippan.Funcs do
       modx: Funx.Token,
       fun: :new,
       deferred: true,
-      key: 2
+      index: {:arg, :first},
+      priority: 3,
+      unique: true
     }
   end
 
@@ -144,7 +164,9 @@ defmodule Ippan.Funcs do
       name: "token.update",
       mod: Func.Token,
       modx: Funx.Token,
-      fun: :update
+      fun: :update,
+      index: {:type, :first},
+      priority: 3
     }
   end
 
@@ -154,7 +176,9 @@ defmodule Ippan.Funcs do
       name: "token.delete",
       mod: Func.Token,
       modx: Funx.Token,
-      fun: :delete
+      fun: :delete,
+      index: {:type, :first},
+      priority: 4
     }
   end
 
@@ -165,7 +189,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :prop_add,
-      key: 2
+      index: {:type, :first},
+      priority: 3
     }
   end
 
@@ -176,7 +201,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :prop_drop,
-      key: 2
+      index: {:type, :first},
+      priority: 4
     }
   end
 
@@ -187,7 +213,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :env_put,
-      key: 2
+      index: {:type, :first},
+      priority: 3
     }
   end
 
@@ -198,7 +225,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :env_delete,
-      key: 2
+      index: {:type, :first},
+      priority: 4
     }
   end
 
@@ -208,7 +236,9 @@ defmodule Ippan.Funcs do
       name: "coin.new",
       mod: Func.Coin,
       modx: Funx.Coin,
-      fun: :coinbase
+      fun: :coinbase,
+      index: {:type, :first},
+      priority: 2
     }
   end
 
@@ -218,7 +248,8 @@ defmodule Ippan.Funcs do
       name: "coin.send",
       mod: Func.Coin,
       modx: Funx.Coin,
-      fun: :send
+      fun: :send,
+      priority: 1
     }
   end
 
@@ -228,7 +259,8 @@ defmodule Ippan.Funcs do
       name: "coin.refund",
       mod: Func.Coin,
       modx: Funx.Coin,
-      fun: :refund
+      fun: :refund,
+      priority: 2
     }
   end
 
@@ -239,8 +271,9 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :lock,
-      check: {:check, 0},
-      key: 1
+      origin: {:check, 0},
+      priority: 0,
+      flag: {:arg, 0}
     }
   end
 
@@ -251,8 +284,9 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :unlock,
-      check: {:check, 0},
-      key: 1
+      origin: {:check, 0},
+      priority: 0,
+      flag: {:arg, 0}
     }
   end
 
@@ -263,7 +297,8 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :drop,
-      key: 1
+      index: 1,
+      priority: 3
     }
   end
 
@@ -274,8 +309,10 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :burn,
-      check: {:check, 0},
-      key: 1
+      origin: {:check, 0},
+      index: 1,
+      priority: 2,
+      flag: {:arg, 0}
     }
   end
 
@@ -285,7 +322,8 @@ defmodule Ippan.Funcs do
       name: "coin.multisend",
       mod: Func.Coin,
       modx: Funx.Coin,
-      fun: :multisend
+      fun: :multisend,
+      priority: 1
     }
   end
 
@@ -296,8 +334,8 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :reload,
-      deferred: true,
-      key: 1
+      index: 1,
+      priority: 2
     }
   end
 
@@ -308,7 +346,8 @@ defmodule Ippan.Funcs do
       mod: Func.Coin,
       modx: Funx.Coin,
       fun: :auth,
-      key: 1
+      index: {:type, :first, 2},
+      priority: 3
     }
   end
 
@@ -320,7 +359,9 @@ defmodule Ippan.Funcs do
       modx: Funx.Service,
       fun: :new,
       deferred: true,
-      key: 2
+      index: {:arg, :first},
+      unique: true,
+      priority: 3
     }
   end
 
@@ -330,7 +371,9 @@ defmodule Ippan.Funcs do
       name: "service.update",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :update
+      fun: :update,
+      index: 1,
+      priority: 3
     }
   end
 
@@ -340,7 +383,9 @@ defmodule Ippan.Funcs do
       name: "service.delete",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :delete
+      fun: :delete,
+      index: 1,
+      priority: 4
     }
   end
 
@@ -350,7 +395,8 @@ defmodule Ippan.Funcs do
       name: "service.pay",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :pay
+      fun: :pay,
+      priority: 2
     }
   end
 
@@ -361,7 +407,10 @@ defmodule Ippan.Funcs do
       mod: Func.Service,
       modx: Funx.Service,
       fun: :stream,
-      check: {:check, 1}
+      origin: {:check, 1},
+      index: {:arg, :fisrt, 2},
+      priority: 2,
+      flag: {:arg, 1}
     }
   end
 
@@ -371,7 +420,9 @@ defmodule Ippan.Funcs do
       name: "service.withdraw",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :withdraw
+      fun: :withdraw,
+      index: 1,
+      priority: 2
     }
   end
 
@@ -381,7 +432,8 @@ defmodule Ippan.Funcs do
       name: "service.subscribe",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :subscribe
+      fun: :subscribe,
+      index: {:from, :first}
     }
   end
 
@@ -391,7 +443,9 @@ defmodule Ippan.Funcs do
       name: "service.unsubscribe",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :unsubscribe
+      fun: :unsubscribe,
+      index: {:from, :first},
+      priority: 4
     }
   end
 
@@ -401,7 +455,8 @@ defmodule Ippan.Funcs do
       name: "service.kick",
       mod: Func.Service,
       modx: Funx.Service,
-      fun: :kick
+      fun: :kick,
+      priority: 4
     }
   end
 
@@ -411,7 +466,11 @@ defmodule Ippan.Funcs do
       name: "sys.upgrade",
       mod: Func.Sys,
       modx: Funx.Sys,
-      fun: :upgrade
+      fun: :upgrade,
+      parallel: false,
+      deferred: true,
+      index: 3,
+      priority: 5
     }
   end
 

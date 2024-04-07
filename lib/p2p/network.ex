@@ -230,6 +230,9 @@ defmodule Ippan.Network do
                 Logger.error(inspect(e))
                 bin = %{"_id" => id, "data" => {"error", e.message}}
                 @adapter.send(state.socket, encode(bin, sharedkey))
+            catch
+              :exit, e ->
+                IO.inspect(e)
             end
 
           # Receive answer
@@ -243,6 +246,9 @@ defmodule Ippan.Network do
             rescue
               x ->
                 Logger.error(inspect(x))
+            catch
+              :exit, e ->
+                IO.inspect(e)
             end
 
           m ->

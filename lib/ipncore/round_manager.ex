@@ -188,6 +188,8 @@ defmodule RoundManager do
           round_hash: prev_hash,
           round_candidate: round_candidate,
           # db_ref: db_ref,
+          # players: ets_players,
+          # total: total_players,
           rcid: rcid,
           turn: turn,
           vid: vid
@@ -199,6 +201,12 @@ defmodule RoundManager do
     IO.inspect(NetworkNodes.count())
     IO.inspect(NetworkNodes.total())
     IO.inspect(NetworkNodes.all())
+
+    # n = NetworkNodes.total()
+
+    # if n == 0 do
+    #   RoundTask.connect_to_peers(ets_players, vid, total_players)
+    # end
 
     case check_votes(state) do
       nil ->
@@ -638,7 +646,8 @@ defmodule RoundManager do
     {:noreply, state}
   end
 
-  def handle_cast({:round_candidate, round}, state) do
+  def handle_cast(x = {:round_candidate, round}, state) do
+    :ets.insert(:g, x)
     {:noreply, %{state | round_candidate: round}}
   end
 
@@ -696,15 +705,6 @@ defmodule RoundManager do
     :ets.select_delete(ets_votes, [{{{:"$1", :_, :_}, :_}, [{:"=<", :"$1", round_id}], [true]}])
     :ets.select_delete(ets_votes, [{{{:"$1", :_}, :_, :_}, [{:"=<", :"$1", round_id}], [true]}])
     :ets.delete_all_objects(ets_candidates)
-  end
-
-  @impl true
-  def handle_call({:round, id}, _from, state = %{round_candidate: %{id: rid}}) when rid == id do
-    {:reply, state.round_candidate, state}
-  end
-
-  def handle_call({:round, _id}, _from, state) do
-    {:reply, nil, state}
   end
 
   @impl true

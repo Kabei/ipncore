@@ -1,5 +1,5 @@
 defmodule Ippan.ClusterClient do
-  use GenServer, restart: :transient
+  use GenServer
   alias Ippan.P2P
   alias Ippan.Utils
   require Logger

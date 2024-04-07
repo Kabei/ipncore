@@ -37,7 +37,7 @@ defmodule MemTables do
     # cache
     validator: @set_named_concurrent_opts,
     token: @set_named_concurrent_opts,
-    env: @set_named_concurrent_opts
+    g: @set_named_concurrent_opts
   }
 
   @save_extension "save"

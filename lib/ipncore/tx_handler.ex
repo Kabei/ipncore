@@ -92,7 +92,7 @@ defmodule Ippan.TxHandler do
             DetsPlux.get_cache(dets, tx, from)
 
           if vid != v do
-            raise IppanRedirectError, "#{v}"
+            raise IppanRedirectError, v
           end
 
           {pk, sig_type, account_data}
@@ -105,7 +105,7 @@ defmodule Ippan.TxHandler do
           v = Map.get(account_data, "vid")
 
           if vid != v and Validator.exists?(v) do
-            raise IppanRedirectError, "#{v}"
+            raise IppanRedirectError, v
           end
 
           {pk, sig_type, account_data}
@@ -134,7 +134,7 @@ defmodule Ippan.TxHandler do
           result = {_, _sig_type, %{"vid" => v}} = DetsPlux.get_cache(dets, tx, from)
 
           if vid != v do
-            raise IppanRedirectError, "#{v}"
+            raise IppanRedirectError, v
           end
 
           DetsPlux.get_cache(dets, tx, from)

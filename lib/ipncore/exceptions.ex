@@ -19,5 +19,12 @@ defmodule IppanCriticalError do
 end
 
 defmodule IppanRedirectError do
-  defexception message: "Redirect to correct validator"
+  defexception [:message, :id]
+
+  @impl Exception
+  def exception(validator_id) do
+    message = "#{validator_id}"
+
+    %__MODULE__{message: message, id: validator_id}
+  end
 end

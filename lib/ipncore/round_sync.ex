@@ -37,7 +37,6 @@ defmodule RoundSync do
           block_id: _block_id,
           db_ref: _db_ref,
           balance: _balances,
-          miner_pool: _miner_pool_pid,
           pid: _pid
         }
       ) do
@@ -73,7 +72,6 @@ defmodule RoundSync do
           balance: balances,
           block_id: last_block_id,
           db_ref: db_ref,
-          miner_pool: miner_pool_pid,
           pid: round_manager_pid
         } =
           state
@@ -109,7 +107,6 @@ defmodule RoundSync do
                   %{creator | hostname: node.hostname},
                   db_ref,
                   balances,
-                  miner_pool_pid,
                   round_manager_pid,
                   false,
                   false
@@ -146,7 +143,6 @@ defmodule RoundSync do
           balance: balances,
           block_id: last_block_id,
           db_ref: db_ref,
-          miner_pool: miner_pool_pid,
           pid: round_manager_pid
         } = state
       ) do
@@ -160,7 +156,6 @@ defmodule RoundSync do
           %{creator | hostname: node.hostname},
           db_ref,
           balances,
-          miner_pool_pid,
           round_manager_pid,
           false,
           false

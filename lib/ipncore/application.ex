@@ -29,9 +29,10 @@ defmodule Ipncore.Application do
         LocalStore,
         MainStore,
         {PubSub, [name: :pubsub]},
-        Mempool,
+        MemPool,
         ClusterNodes,
         NetworkNodes,
+        {TxSupervisor, []},
         RoundManager,
         HttpServer
       ]

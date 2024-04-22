@@ -3,7 +3,7 @@ defmodule HashTest do
   doctest Ipncore
 
   test "hashes" do
-    data = :crypto.strong_rand_bytes(1024)
+    data = :crypto.strong_rand_bytes(256)
 
     Benchee.run(%{
       "blake3" => fn ->
@@ -18,9 +18,21 @@ defmodule HashTest do
       "blake2b" => fn ->
         :crypto.hash(:blake2b, data)
       end,
-      "xxhash" => fn ->
-        XXHash.xxh64(data, 2_148_456_111)
+      "phash" => fn ->
+        :erlang.phash(data, 1000)
+      end,
+      "phash2" => fn ->
+        :erlang.phash2(data)
+      end,
+      "phash2-range" => fn ->
+        :erlang.phash2(data, 1000)
       end
     })
   end
+
+  fun = fn ->
+    rem(:erlang.phash2(data), 8)
+  end
+
+  :timer.tc(fun)
 end

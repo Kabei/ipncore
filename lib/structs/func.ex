@@ -1,13 +1,30 @@
 defmodule Ippan.Func do
+  @moduledoc """
+  * Transaction is deferred when `unique` field is `True`
+
+  * Parallel: Execute functions with multi core
+
+  * Priority
+     0. Maximum
+     1. Very high
+     2. High
+     3. Normal
+     4. Low
+     5. Minimum
+  """
   @type t :: %__MODULE__{
           id: non_neg_integer(),
           name: String.t(),
           mod: module(),
           modx: module(),
           fun: atom() | function(),
-          deferred: boolean(),
-          check: integer(),
-          key: integer() | nil
+          index: term(),
+          # parallel: boolean(),
+          # deferred: boolean(),
+          priority: non_neg_integer() | binary(),
+          # unique: boolean(),
+          origin: integer(),
+          flag: integer()
         }
 
   @enforce_keys [:id, :mod, :modx, :fun]
@@ -17,8 +34,12 @@ defmodule Ippan.Func do
     :mod,
     :modx,
     :fun,
-    :key,
-    deferred: false,
-    check: 0
+    # deferred: false,
+    # parallel: true,
+    # unique: false,
+    origin: 0,
+    priority: 3,
+    index: 2,
+    flag: 0
   ]
 end

@@ -1,8 +1,9 @@
 defmodule Ippan.TxHandler do
-  alias __MODULE__
-  alias Ippan.{Funcs, Account, TxHandler, Validator}
+  alias Ippan.Validator
   require Sqlite
   require Validator
+
+  @compile {:inline, [get_part: 4, data_refs: 0]}
 
   def data_refs do
     :persistent_term.get(:data_refs)
@@ -168,7 +169,7 @@ defmodule Ippan.TxHandler do
     end
   end
 
-  @spec valid?(map()) :: true | false | no_return()
+  @spec valid?(map()) :: {binary, tuple()} | no_return()
   def valid?(%{
         type:
           %{
@@ -236,214 +237,39 @@ defmodule Ippan.TxHandler do
 
       _ ->
         result = {hash, type_id, from, nonce, return, size, signature}
-        :ets.insert(ets, {key, result})
+        {key, result}
     end
   end
 
-  # Dispute resolution in deferred transaction
-  def insert_deferred(
-        table,
-        {key, body = {hash, type_id, _from, _nonce, _args, _size, _signature}},
-        block_id
-      ) do
-    %{unique: unique} = Funcs.lookup(type_id)
-
-    cond do
-      unique == false ->
-        :ets.insert(table, {key, body})
-
-      true ->
-        deferred_key = {type_id, key}
-
-        case :ets.lookup(table, deferred_key) do
-          [] ->
-            :ets.insert(table, {deferred_key, body, block_id})
-
-          [{_def_key, body, xblock_id}] ->
-            xhash = :erlang.element(1, body)
-
-            if hash < xhash or (hash == xhash and block_id < xblock_id) do
-              :ets.insert(table, {deferred_key, body, block_id})
-            end
-        end
-    end
-  end
-
-  # defmacro decode_from_file! do
-  #   quote location: :keep do
-  #     %{deferred: deferred, mod: mod, fun: fun, check: type_of_verification, key: key_unique} =
-  #       Funcs.lookup(var!(type))
-
-  #     {wallet_pk, sig_type, account_data} =
-  #       TxHandler.get_public_key!(
-  #         var!(wallet_dets),
-  #         var!(wallet_tx),
-  #         type_of_verification,
-  #         var!(creator_id)
-  #       )
-
-  #     if account_data != nil do
-  #       %{"fa" => fa, "fb" => fb} = account_data
-  #       %{fa: vfa, fb: vfb} = var!(validator)
-
-  #       if type_of_verification != 2 and (fb != vfb or fa != vfa),
-  #         do: raise(IppanError, "Invalid fees")
-  #     end
-
-  #     TxHandler.check_signature!(sig_type, wallet_pk)
-
-  #     Account.update_nonce!(var!(nonce_dets), var!(nonce_tx), var!(from), var!(nonce))
-
-  #     source = %{
-  #       id: var!(from),
-  #       dets: var!(dets),
-  #       hash: var!(hash),
-  #       map: account_data,
-  #       nonce: var!(nonce),
-  #       size: var!(size),
-  #       type: var!(type),
-  #       validator: var!(validator)
-  #     }
-
-  #     return = apply(mod, fun, [source | var!(args)])
-
-  #     case return do
-  #       :error ->
-  #         [
-  #           "err",
-  #           var!(hash),
-  #           var!(type),
-  #           var!(from),
-  #           var!(nonce),
-  #           var!(args),
-  #           var!(signature),
-  #           var!(size)
-  #         ]
-
-  #       _ ->
-  #         case deferred do
-  #           false ->
-  #             [
-  #               var!(hash),
-  #               var!(type),
-  #               var!(from),
-  #               var!(nonce),
-  #               var!(args),
-  #               var!(signature),
-  #               var!(size)
-  #             ]
-
-  #           _true ->
-  #             key =
-  #               case key_unique do
-  #                 1 ->
-  #                   var!(from)
-
-  #                 2 ->
-  #                   hd(var!(args)) |> to_string()
-  #               end
-
-  #             [
-  #               var!(hash),
-  #               var!(type),
-  #               key,
-  #               var!(from),
-  #               var!(nonce),
-  #               var!(args),
-  #               var!(signature),
-  #               var!(size)
-  #             ]
-  #         end
-  #     end
-  #   end
-  # end
-
-  # @spec regular() :: any | :error
-  # defmacro regular do
-  #   quote location: :keep do
-  #     %{fun: fun, modx: module} = Funcs.lookup(var!(type))
-
-  #     source = %{
-  #       block: var!(block_id),
-  #       hash: var!(hash),
-  #       id: var!(from),
-  #       nonce: var!(nonce),
-  #       round: var!(round_id),
-  #       size: var!(size),
-  #       type: var!(type),
-  #       validator: var!(validator)
-  #     }
-
-  #     apply(module, fun, [source | var!(args)])
-  #   end
-  # end
-
-  # only deferred transactions
-  # defmacro run_deferred_txs do
-  #   quote location: :keep do
-  #     :ets.tab2list(:dtx)
-  #     |> Enum.each(fn
-  #       {{block_id, _ix},
-  #        [
-  #          hash,
-  #          type,
-  #          account_id,
-  #          validator,
-  #          nonce,
-  #          args,
-  #          size
-  #        ] = body} ->
-  #         %{modx: module, fun: fun} = Funcs.lookup(type)
-
-  #         source = %{
-  #           block: block_id,
-  #           hash: hash,
-  #           id: account_id,
-  #           nonce: nonce,
-  #           round: var!(round_id),
-  #           size: size,
-  #           type: type,
-  #           validator: validator
-  #         }
-
-  #         apply(module, fun, [source | args])
-
-  #       {_block_and_tx_hash, fun} ->
-  #         fun.()
-  #     end)
-
-  #     :ets.delete_all_objects(:dtx)
-  #   end
-  # end
-
-  @app Mix.Project.config()[:app]
-  @max_shards Application.compile_env(@app, :max_shards, 1000)
-
-  @spec get_flag(type_flag :: term(), from :: binary(), args :: list(), shard :: integer()) ::
+  @spec get_part(type_flag :: term(), from :: binary(), args :: list(), partition :: integer()) ::
           integer()
-  def get_flag(0, from, _args, shard) do
-    rem(:erlang.phash2(from, @max_shards), shard)
+  def get_part(0, from, _args, partition) do
+    rem(:erlang.phash2(from), partition)
   end
 
-  def get_flag({:arg, 0}, _from, [value | _], shard) do
-    rem(:erlang.phash2(value, @max_shards), shard)
+  def get_part({:arg, 0}, _from, [value | _], partition) do
+    rem(:erlang.phash2(value), partition)
   end
 
-  def get_flag({:arg, 1}, _from, [_, value | _], shard) do
-    rem(:erlang.phash2(value, @max_shards), shard)
+  def get_part({:arg, 1}, _from, [_, value | _], partition) do
+    rem(:erlang.phash2(value), partition)
   end
 
-  def get_flag({:arg, :first, 2}, _from, [a, b | _], shard) do
-    rem(:erlang.phash2({a, b}, @max_shards), shard)
+  def get_part({:arg, :first, 2}, _from, [a, b | _], partition) do
+    rem(:erlang.phash2({a, b}), partition)
   end
 
-  def check_flag(flag, from, args) do
-    shard = :persistent_term.get(:shard)
+  def check_part(flag, from, args) do
+    partition = :persistent_term.get(:partition)
 
-    get_flag(flag, from, args, shard) == shard - 1
+    get_part(flag, from, args, partition) == partition - 1
   end
 
-  def check_flag!(flag, from, args) do
-    if check_flag(flag, from, args), do: raise(IppanError, "Invalid shard")
+  def check_part!(flag, from, args) do
+    partition = :persistent_term.get(:partition)
+
+    if get_part(flag, from, args, partition) == partition - 1 do
+      raise(IppanError, "Invalid partition")
+    end
   end
 end

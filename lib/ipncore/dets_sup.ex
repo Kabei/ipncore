@@ -22,4 +22,22 @@ defmodule Ippan.DetsSup do
 
     Supervisor.init(children, strategy: :one_for_one)
   end
+
+  def dets do
+    %{
+      balance: DetsPlux.get(:balance),
+      nonce: DetsPlux.get(:nonce),
+      stats: DetsPlux.get(:stats),
+      wallet: DetsPlux.get(:wallet)
+    }
+  end
+
+  def txs do
+    %{
+      balance: DetsPlux.tx(:balance),
+      nonce: DetsPlux.tx(:nonce),
+      stats: DetsPlux.tx(:stats),
+      wallet: DetsPlux.tx(:wallet)
+    }
+  end
 end

@@ -1,5 +1,5 @@
 --name: insert_env
-REPLACE INTO main.env values(?1, ?2);
+INSERT OR REPLACE INTO main.env values(?1, ?2);
 
 --name: get_env
 SELECT value FROM main.env WHERE name=?1 LIMIT 1;

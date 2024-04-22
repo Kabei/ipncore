@@ -1,213 +1,168 @@
-defmodule Mempool do
+defmodule MemPool do
+  alias Ippan.Funcs
   use GenServer
-  # alias Phoenix.PubSub
-  alias Ippan.Account
-  require Logger
-
   @name :mempool
-  # @pubsub :pubsub
+  @compile {:inline, [get: 0, add: 3]}
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    GenServer.start_link(__MODULE__, args, name: @name)
   end
 
   @impl true
-  def init(_) do
-    :persistent_term.put(@name, self())
-    cref = :counters.new(1, [])
-    :persistent_term.put(:msg_counter, cref)
-
+  def init(args) do
+    Process.flag(:trap_exit, true)
     load()
-
-    {:ok,
-     %{
-       ets_msg: :ets.whereis(:msg),
-       ets_hash: :ets.whereis(:hash),
-       ets_dhash: :ets.whereis(:dhash)
-     }}
+    {:ok, args, :hibernate}
   end
 
   @impl true
   def terminate(_reason, _state) do
     save()
     :persistent_term.erase(@name)
-    :persistent_term.erase(:msg_counter)
   end
 
-  def regular(body, returns) do
-    pid = :persistent_term.get(@name)
-    GenServer.call(pid, {:regular, body, returns}, :infinity)
+  def new do
+    tid = :ets.new(:msg, [:set])
+    tid2 = :ets.new(:block, [:ordered_set])
+    cref = :counters.new(1, [:write_concurrency])
+    :persistent_term.put(@name, {tid, tid2, cref})
   end
 
-  def deferred(body, returns) do
-    pid = :persistent_term.get(@name)
-    GenServer.call(pid, {:deferred, body, returns}, :infinity)
+  def get do
+    :persistent_term.get(@name)
   end
 
-  def clear_cache do
-    pid = :persistent_term.get(@name)
-    GenServer.cast(pid, :clear)
+  def add({tid, tid2, cref}, tx, bs) do
+    :counters.add(cref, 1, 1)
+    ix = :counters.get(cref, 1)
+    key = :erlang.element(1, tx)
+    :ets.insert(tid2, {ix, key, bs})
+    :ets.insert(tid, tx)
   end
 
-  @impl true
-  def handle_call(
-        {
-          :regular,
-          [hash, type, from, nonce, args, msg_sig, size],
-          return
-        },
-        _from,
-        state = %{ets_hash: ets_hash, ets_msg: ets_msg}
-      ) do
-    nonce_key = {from, nonce}
-
-    result =
-      case :ets.insert_new(ets_hash, {nonce_key, nil}) do
-        true ->
-          dets = DetsPlux.get(:nonce)
-          cache = DetsPlux.tx(dets, :cache_nonce)
-
-          # IO.puts("The nonce")
-
-          case Account.update_nonce(dets, cache, from, nonce) do
-            :error ->
-              :ets.delete(ets_hash, nonce_key)
-              {"error", "Invalid nonce x1"}
-
-            _ ->
-              # IO.puts("The check return")
-              # IO.puts("The insert")
-              cref = :persistent_term.get(:msg_counter)
-              :counters.add(cref, 1, 1)
-              ix = :counters.get(cref, 1)
-              [_msg, sig] = msg_sig
-              decode = [hash, type, from, nonce, args, sig, size]
-              :ets.insert(ets_msg, {ix, 0, decode, msg_sig, return})
-
-              # if ix == 1 do
-              #   PubSub.local_broadcast(@pubsub, "block_timer", :check)
-              # end
-
-              # IO.puts("The result")
-              %{"index" => ix}
-          end
-
-        false ->
-          {"error", "Already exists (Core)"}
-      end
-
-    {:reply, result, state}
+  def size({tid, _, _}) do
+    :ets.info(tid, :size)
   end
 
-  def handle_call(
-        {:deferred, [hash, type, key, from, nonce | rest], return},
-        _from,
-        state = %{ets_dhash: ets_dhash, ets_hash: ets_hash, ets_msg: ets_msg}
-      ) do
-    nonce_key = {from, nonce}
+  def select({tid, tid2, _cref}, max_size) do
+    # 1. size count
+    # 2. tx count
+    cref = :counters.new(2, [])
+    first = :ets.first(tid2)
+    acc_block = :ets.new(:tmpa, [:duplicate_bag])
+    acc_txs = :ets.new(:tmpb, [:bag])
 
-    result =
-      case :ets.insert_new(ets_hash, {nonce_key, nil}) do
-        true ->
-          msg_key = {type, key}
-
-          dets = DetsPlux.get(:nonce)
-          cache = DetsPlux.tx(dets, :cache_nonce)
-
-          case :ets.insert_new(ets_dhash, {msg_key, nil}) do
-            true ->
-              [args, msg_sig, size] = rest
-
-              # IO.puts("The nonce")
-
-              case Account.update_nonce(dets, cache, from, nonce) do
-                :error ->
-                  :ets.delete(ets_hash, nonce_key)
-                  :ets.delete(ets_dhash, msg_key)
-                  {"error", "Invalid nonce x2"}
-
-                _ ->
-                  # IO.puts("The insert")
-                  cref = :persistent_term.get(:msg_counter)
-                  :counters.add(cref, 1, 1)
-                  ix = :counters.get(cref, 1)
-                  [_msg, sig] = msg_sig
-                  decode = [hash, type, key, from, nonce, args, sig, size]
-                  :ets.insert(ets_msg, {ix, 1, decode, msg_sig, return})
-
-                  # if ix == 1 do
-                  #   PubSub.local_broadcast(@pubsub, "block_timer", :check)
-                  # end
-
-                  # IO.puts("The result")
-                  %{"index" => ix}
-              end
-
-            false ->
-              :ets.delete(ets_hash, nonce_key)
-              Account.revert_nonce(cache, from)
-              {"error", "Deferred transaction already exists (Core)"}
-          end
-
-        false ->
-          {"error", "Already exists (Core) #{inspect(nonce_key)}"}
-      end
-
-    {:reply, result, state}
+    do_select(first, {tid2, tid}, {acc_block, acc_txs}, cref, max_size)
   end
 
-  @impl true
-  def handle_cast(:clear, state = %{ets_msg: ets_msg}) do
-    if :ets.info(ets_msg, :size) == 0 do
-      cache_wallet_tx = DetsPlux.tx(:wallet, :cache_wallet)
-      cache_balance_tx = DetsPlux.tx(:balance, :cache_balance)
-      cache_nonce_tx = DetsPlux.tx(:nonce, :cache_nonce)
-      cache_supply = DetsPlux.tx(:stats, :cache_supply)
-      DetsPlux.clear_tx(cache_wallet_tx)
-      DetsPlux.clear_tx(cache_balance_tx)
-      DetsPlux.clear_tx(cache_nonce_tx)
-      DetsPlux.clear_tx(cache_supply)
-      cref = :persistent_term.get(:msg_counter)
-      :counters.put(cref, 1, 0)
+  defp do_select(
+         :"$end_of_table",
+         _ets,
+         {acc_block, acc_txs},
+         cref,
+         _max_size
+       ) do
+    txs_task =
+      Task.async(fn ->
+        :ets.tab2list(acc_txs)
+        |> Enum.group_by(
+          fn {x, _y} -> x end,
+          fn {_x, y} -> y end
+        )
+      end)
+
+    block_task =
+      Task.async(fn ->
+        # :ets.fun2ms(fn {_, x} -> x end)
+        :ets.select(acc_block, [{{:_, :_, :"$1"}, [], [:"$1"]}])
+      end)
+
+    :ets.delete(acc_block)
+    :ets.delete(acc_txs)
+
+    {run_task(block_task), run_task(txs_task), cref}
+  end
+
+  defp do_select(
+         ix,
+         {ets_block, ets_txs} = a,
+         {acc_msg, acc_decode} = b,
+         cref,
+         max_size
+       ) do
+    [x = {_ix, key, _body_sig}] = :ets.lookup(ets_block, ix)
+    [{_key, tx}] = :ets.lookup(ets_txs, key)
+
+    size = :erlang.element(6, tx)
+    :counters.add(cref, 1, size)
+
+    cond do
+      :counters.get(cref, 1) > max_size ->
+        do_select(:"$end_of_table", a, b, cref, max_size)
+
+      true ->
+        type_id = :erlang.element(2, tx)
+        %{priority: priority} = Funcs.lookup(type_id)
+        :ets.insert(acc_msg, x)
+        :ets.insert(acc_decode, {priority, tx})
+
+        :ets.delete(ets_block, ix)
+        :ets.delete(ets_txs, key)
+
+        :counters.add(cref, 2, 1)
+        next = :ets.next(ets_block, ix)
+        do_select(next, a, b, cref, max_size)
     end
-
-    {:noreply, state}
   end
 
-  @filename "mem.data"
+  defp run_task(t) do
+    Task.await(t, :infinity)
+  end
+
+  @filename ~c"mempool.data"
+  @filename2 ~c"mempool_bs.data"
   # Create and load mempool table and counter
   defp load do
     dir = :persistent_term.get(:save_dir)
-    filepath = Path.join(dir, "mem.data")
-    cref = :persistent_term.get(:msg_counter)
+    filepath = :filename.join(dir, @filename)
+    filepath2 = :filename.join(dir, @filename2)
 
     if File.exists?(filepath) do
-      {:ok, content} = File.read(filepath)
+      Task.async(fn ->
+        with {:ok, tid} <- :ets.file2tab(filepath),
+             {:ok, tid2} <- :ets.file2tab(filepath2) do
+          cref = :counters.new(1, [:write_concurrency])
+          ix = :ets.last(tid)
 
-      case CBOR.Decoder.decode(content) do
-        {%{"data" => data, "ix" => ix}, _rest} ->
-          :ets.insert(:msg, data)
-          :counters.put(cref, 1, ix)
+          if is_number(ix) do
+            :counters.put(cref, 1, ix)
+          end
 
-        _other ->
-          Logger.error("Error decode mem.data")
-          {:error, :cbor_decoder_error}
-      end
+          :persistent_term.put(@name, {tid, tid2, cref})
+        else
+          _ ->
+            new()
+        end
 
-      File.rm(filepath)
+        File.rm(filepath)
+        File.rm(filepath2)
+      end)
+      |> run_task()
+    else
+      new()
     end
   end
 
-  def save do
-    size = :ets.info(:msg, :size)
+  # Save mempool in two files
+  defp save do
+    {tid, tid2, _cref} = get()
 
-    if size != 0 do
+    if :ets.info(tid, :size) != 0 do
       dir = :persistent_term.get(:save_dir)
-      filepath = Path.join(dir, @filename)
-      data = :ets.tab2list(:msg)
-      ix = :erlang.element(1, :lists.last(data))
-      content = %{"msg" => data, "ix" => ix, "size" => size} |> CBOR.encode()
-      File.write(filepath, content)
+      filepath = :filename.join(dir, @filename)
+      filepath2 = :filename.join(dir, @filename2)
+      :ets.tab2file(tid, filepath)
+      :ets.tab2file(tid2, filepath2)
     end
   end
 end

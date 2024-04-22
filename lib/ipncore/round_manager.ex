@@ -8,21 +8,19 @@ defmodule RoundManager do
     Block,
     Round,
     Token,
-    TxHandler,
     Validator,
     Round
   }
 
   alias Phoenix.PubSub
   import Ippan.Block, only: [decode_file!: 1]
-  require Ippan.{Block, Round, Token, TxHandler, Validator}
+  require Ippan.{Block, Round, Token, Validator}
   require Sqlite
   require BalanceStore
   require BigNumber
   require Logger
 
   @app Mix.Project.config()[:app]
-  @miner_pool :miner_pool
   @pubsub :pubsub
   @validator_topic "validator"
   @token Application.compile_env(@app, :token)
@@ -76,8 +74,6 @@ defmodule RoundManager do
     players = Sqlite.all("get_players")
     total_players = length(players)
 
-    miner_pool_pid = start_miner_pool()
-
     # Fill data to table of players
     for v <- players do
       insert_player(ets_players, Validator.list_to_tuple(v))
@@ -90,9 +86,9 @@ defmodule RoundManager do
      %{
        block_id: current_block_id,
        balance: DetsPlux.get(:balance),
+       busy: false,
        db_ref: db_ref,
        status: :startup,
-       miner_pool: miner_pool_pid,
        players: ets_players,
        votes: ets_votes,
        candidates: ets_candidates,
@@ -126,7 +122,6 @@ defmodule RoundManager do
       block_id: state.block_id,
       db_ref: state.db_ref,
       balance: state.balance,
-      miner_pool: state.miner_pool,
       pid: self()
     })
 
@@ -146,7 +141,7 @@ defmodule RoundManager do
       spawn_build_local_round(new_state)
       {:ok, tRef} = :timer.send_after(@timeout - 5000, :timeout)
 
-      {:noreply, %{new_state | tRef: tRef}, :hibernate}
+      {:noreply, %{new_state | busy: true, tRef: tRef}, :hibernate}
     else
       {:ok, tRef} = :timer.send_after(@timeout, :timeout)
       {:ok, rRef} = :timer.send_after(time_to_request, :request)
@@ -228,7 +223,7 @@ defmodule RoundManager do
       message ->
         IO.puts("sync_to_round_creator #{inspect(message)}")
         spawn_build_foreign_round(state, message)
-        {:noreply, %{state | ttr: @min_time_to_request}, :hibernate}
+        {:noreply, %{state | busy: true, ttr: @min_time_to_request}, :hibernate}
     end
   end
 
@@ -312,7 +307,8 @@ defmodule RoundManager do
          round_id: next_id,
          vote_round_id: next_id,
          round_candidate: nil,
-         round_hash: round.hash
+         round_hash: round.hash,
+         busy: false
      }, {:continue, :next}}
   end
 
@@ -360,7 +356,8 @@ defmodule RoundManager do
          vote_round_id: next_id,
          round_candidate: nil,
          round_hash: hash,
-         total: total_players
+         total: total_players,
+         busy: false
      }, {:continue, :next}}
   end
 
@@ -510,7 +507,7 @@ defmodule RoundManager do
           IO.puts("Vote ##{id}")
           [{_key, msg_round, _count}] = :ets.lookup(ets_votes, key)
           spawn_build_foreign_round(state, msg_round)
-          {:noreply, %{state | vote_round_id: vote_round_id + 1}}
+          {:noreply, %{state | busy: true, vote_round_id: vote_round_id + 1}}
 
         true ->
           {:noreply, state}
@@ -694,7 +691,7 @@ defmodule RoundManager do
         IO.puts("Vote ##{id}")
 
         spawn_build_foreign_round(state, msg_round)
-        {:noreply, %{state | vote_round_id: vote_round_id + 1}}
+        {:noreply, %{state | busy: true, vote_round_id: vote_round_id + 1}}
 
       true ->
         {:noreply, state}
@@ -711,8 +708,7 @@ defmodule RoundManager do
   def terminate(_reason, %{
         players: ets_players,
         candidates: ets_candidates,
-        votes: ets_votes,
-        miner_pool: miner_pool_pid
+        votes: ets_votes
       }) do
     :ets.delete(ets_players)
     :ets.delete(ets_votes)
@@ -720,7 +716,6 @@ defmodule RoundManager do
     PubSub.unsubscribe(@pubsub, "validator")
     PubSub.unsubscribe(@pubsub, "env")
     BlockTimer.stop()
-    :poolboy.stop(miner_pool_pid)
   end
 
   defp ets_start(name, opts) do
@@ -730,17 +725,17 @@ defmodule RoundManager do
     end
   end
 
-  defp start_miner_pool do
-    case Process.whereis(@miner_pool) do
-      nil ->
-        {:ok, pid} = :poolboy.start_link(worker_module: MinerWorker, size: 5, max_overflow: 2)
-        Process.register(pid, @miner_pool)
-        pid
+  # defp start_miner_pool do
+  #   case Process.whereis(@miner_pool) do
+  #     nil ->
+  #       {:ok, pid} = :poolboy.start_link(worker_module: MinerWorker, size: 5, max_overflow: 2)
+  #       Process.register(pid, @miner_pool)
+  #       pid
 
-      pid ->
-        pid
-    end
-  end
+  #     pid ->
+  #       pid
+  #   end
+  # end
 
   # defp auto_vote(ets_votes, id, hash, vid, msg_round) do
   #   :ets.insert_new(ets_votes, {{id, vid, :vote}, nil})
@@ -793,7 +788,6 @@ defmodule RoundManager do
            round_hash: prev_hash,
            db_ref: db_ref,
            balance: balance,
-           miner_pool: pool_pid,
            rRef: rRef,
            tRef: tRef
          },
@@ -815,7 +809,6 @@ defmodule RoundManager do
           creator,
           db_ref,
           balance,
-          pool_pid,
           pid
         )
       end
@@ -830,7 +823,6 @@ defmodule RoundManager do
          db_ref: db_ref,
          status: status,
          balance: balances,
-         miner_pool: pool_pid,
          rcid: rcid,
          total: total_players,
          vid: vid,
@@ -860,7 +852,7 @@ defmodule RoundManager do
         end
 
       creator = Validator.get(vid)
-      timestamp = :erlang.system_time(:millisecond)
+      timestamp = :os.system_time(:millisecond)
       {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
       hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
       {:ok, signature} = Cafezinho.Impl.sign(hash, :persistent_term.get(:privkey))
@@ -893,7 +885,6 @@ defmodule RoundManager do
             creator,
             db_ref,
             balances,
-            pool_pid,
             pid
           )
         end)
@@ -957,7 +948,7 @@ defmodule RoundManager do
         creator,
         db_ref,
         balance_pid,
-        pool_pid,
+        # pool_pid,
         pid,
         verify_block \\ true,
         rm_notify \\ true
@@ -977,111 +968,94 @@ defmodule RoundManager do
           {hash, tx_count, size}
         end
 
-      # Tasks to create blocks
-      result =
-        Enum.with_index(blocks, fn element, index -> {block_id + index, element} end)
-        |> Enum.map(fn {id, block} ->
-          Task.async(fn ->
-            :poolboy.transaction(
-              pool_pid,
-              fn worker ->
-                MinerWorker.mine(worker, Map.put(block, :id, id), creator, round_id, verify_block)
-              end,
-              :infinity
-            )
-          end)
-        end)
-        |> Task.await_many(:infinity)
+      # processing blocks
+      %{rejected: txs_rejected} =
+        Ipncore.MinerWorker.build(round_id, blocks, verify: verify_block)
 
-      # IO.puts("MinerWorker: " <> inspect(result))
-
-      # Count Blocks and txs rejected
-      {new_blocks, blocks_approved_count, txs_rejected} =
-        Enum.reduce(result, {[], 0, 0}, fn x, {acc, acc_ba, acc_txr} ->
-          case x do
-            {:ok, block} -> {acc ++ [block], acc_ba + 1, acc_txr + block.rejected}
-            {:error, block} -> {acc ++ [block], acc_ba, acc_txr + block.rejected}
-          end
+      # put in ID blocks
+      {new_blocks, _counter} =
+        Enum.reduce(blocks, {%{}, block_id}, fn block, {map, index} ->
+          i = index + 1
+          block = Map.put(block, :id, i)
+          {Map.put(map, i, block), i}
         end)
 
-      if blocks_approved_count > 0 or block_count == blocks_approved_count do
-        balance_tx = DetsPlux.tx(:balance)
-        # Run deferred txs
-        TxHandler.run_deferred_txs()
+      # if blocks_approved_count > 0 or block_count == blocks_approved_count do
+      balance_tx = DetsPlux.tx(:balance)
 
-        # Calculate reward
-        reward_task =
-          Task.async(fn ->
-            run_reward()
-          end)
+      # Calculate reward
+      reward_task =
+        Task.async(fn ->
+          run_reward()
+        end)
 
-        new_block_id = block_id + block_count
+      new_block_id = block_id + block_count
 
-        # Run jackpot and events
-        jackpot_task =
-          Task.async(fn ->
-            run_jackpot(
-              db_ref,
-              balance_pid,
-              balance_tx,
-              round_id,
-              prev_hash,
-              new_block_id
-            )
-          end)
+      # Run jackpot and events
+      jackpot_task =
+        Task.async(fn ->
+          run_jackpot(
+            db_ref,
+            balance_pid,
+            balance_tx,
+            round_id,
+            prev_hash,
+            new_block_id
+          )
+        end)
 
-        reward = Task.await(reward_task, :infinity)
-        jackpot_map = Task.await(jackpot_task, :infinity)
+      reward = Task.await(reward_task, :infinity)
+      jackpot_map = Task.await(jackpot_task, :infinity)
 
-        # save round
-        round = %{
-          id: round_id,
-          creator: creator_id,
-          hash: hash,
-          prev: prev_hash,
-          signature: signature,
-          count: block_count,
-          tx_count: tx_count,
-          size: size,
-          status: 0,
-          timestamp: timestamp,
-          blocks: new_blocks,
-          extra: Map.merge(%{}, jackpot_map),
-          reward: reward
-        }
+      # save round
+      round = %{
+        id: round_id,
+        creator: creator_id,
+        hash: hash,
+        prev: prev_hash,
+        signature: signature,
+        count: block_count,
+        tx_count: tx_count,
+        size: size,
+        status: 0,
+        timestamp: timestamp,
+        blocks: new_blocks,
+        extra: Map.merge(%{}, jackpot_map),
+        reward: reward
+      }
 
-        :done = Round.to_list(round) |> Round.insert()
+      :done = Round.to_list(round) |> Round.insert()
 
-        run_maintenance(round_id, db_ref)
+      run_maintenance(round_id, db_ref)
 
-        # update stats
-        stats = Stats.new()
-        Stats.incr(stats, "blocks", block_count)
-        Stats.incr(stats, "txs", tx_count)
-        Stats.put(stats, "last_round", round_id)
-        Stats.put(stats, "last_hash", hash)
+      # update stats
+      stats = Stats.new()
+      Stats.incr(stats, "blocks", block_count)
+      Stats.incr(stats, "txs", tx_count)
+      Stats.put(stats, "last_round", round_id)
+      Stats.put(stats, "last_hash", hash)
 
-        # save all round
-        RoundCommit.sync(db_ref, tx_count)
+      # save all round
+      RoundCommit.sync(db_ref, tx_count)
 
-        if rm_notify do
-          GenServer.cast(pid, {:complete, round})
-        end
-
-        fun = :persistent_term.get(:last_fun, nil)
-
-        if fun do
-          :persistent_term.erase(:last_fun)
-          fun.()
-        end
-
-        {:ok, round}
-      else
-        round_nulled =
-          Round.cancel(round_id, prev_hash, creator_id, 2)
-
-        incomplete(round_nulled, pid, db_ref, rm_notify)
+      if rm_notify do
+        GenServer.cast(pid, {:complete, round})
       end
+
+      fun = :persistent_term.get(:last_fun, nil)
+
+      if fun do
+        :persistent_term.erase(:last_fun)
+        fun.()
+      end
+
+      {:ok, round}
+      # else
+      #   round_nulled =
+      #     Round.cancel(round_id, prev_hash, creator_id, 2)
+
+      #   incomplete(round_nulled, pid, db_ref, rm_notify)
+      # end
     else
       round_nulled =
         Round.cancel(round_id, prev_hash, creator_id, status)
@@ -1208,7 +1182,6 @@ defmodule RoundManager do
 
   defp run_maintenance(round_id, db_ref) when rem(round_id, @maintenance) == 0 do
     Sqlite.step("expiry_refund", [round_id])
-    Sqlite.step("expiry_domain", [round_id])
   end
 
   defp run_maintenance(round_id, _db_ref) when rem(round_id, @snap_round) == 0 do

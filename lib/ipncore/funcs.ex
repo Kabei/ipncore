@@ -11,9 +11,7 @@ defmodule Ippan.Funcs do
       fun: :new,
       origin: {:pk, :first},
       index: {:arg, :first},
-      priority: 3,
-      unique: true,
-      deferred: true
+      priority: 3
     }
   end
 
@@ -49,10 +47,8 @@ defmodule Ippan.Funcs do
       mod: Func.Env,
       modx: Funx.Env,
       fun: :set,
-      priority: 4,
-      index: 1,
-      deferred: true,
-      parallel: false
+      priority: "d",
+      index: 1
     }
   end
 
@@ -63,9 +59,7 @@ defmodule Ippan.Funcs do
       mod: Func.Env,
       modx: Funx.Env,
       fun: :delete,
-      priority: 3,
-      deferred: true,
-      parallel: false,
+      priority: "d",
       index: 1
     }
   end
@@ -77,9 +71,7 @@ defmodule Ippan.Funcs do
       mod: Func.Validator,
       modx: Funx.Validator,
       fun: :join,
-      deferred: true,
       index: {:arg, :first},
-      unique: true,
       priority: 2
     }
   end
@@ -151,10 +143,8 @@ defmodule Ippan.Funcs do
       mod: Func.Token,
       modx: Funx.Token,
       fun: :new,
-      deferred: true,
       index: {:arg, :first},
-      priority: 3,
-      unique: true
+      priority: 3
     }
   end
 
@@ -358,9 +348,7 @@ defmodule Ippan.Funcs do
       mod: Func.Service,
       modx: Funx.Service,
       fun: :new,
-      deferred: true,
       index: {:arg, :first},
-      unique: true,
       priority: 3
     }
   end
@@ -467,10 +455,8 @@ defmodule Ippan.Funcs do
       mod: Func.Sys,
       modx: Funx.Sys,
       fun: :upgrade,
-      parallel: false,
-      deferred: true,
       index: 3,
-      priority: 5
+      priority: "d"
     }
   end
 

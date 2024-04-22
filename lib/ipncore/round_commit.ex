@@ -2,7 +2,7 @@ defmodule RoundCommit do
   require Sqlite
 
   def sync(db_ref, tx_count) do
-    Mempool.clear_cache()
+    # Mempool.clear_cache()
 
     if tx_count > 0 do
       [
@@ -54,6 +54,6 @@ defmodule RoundCommit do
     DetsPlux.rollback(wallet_tx)
     DetsPlux.rollback(balance_tx)
     DetsPlux.rollback(supply_tx)
-    Mempool.clear_cache()
+    # Mempool.clear_cache()
   end
 end

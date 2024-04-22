@@ -1,19 +1,22 @@
 defmodule TxSupervisor do
-  use DynamicSupervisor
+  use Supervisor
 
   def start_link(args) do
-    DynamicSupervisor.start_link(__MODULE__, args, name: __MODULE__)
+    Supervisor.start_link(__MODULE__, args, name: __MODULE__)
+  end
+
+  @partitions (System.schedulers_online() - 1) |> max(1)
+  def partitions do
+    @partitions
   end
 
   @impl true
   def init(_arg) do
-    cpu = (System.schedulers_online() - 2) |> max(1)
-    sup = DynamicSupervisor.init(strategy: :one_for_one)
+    children =
+      Enum.map(0..@partitions, fn id ->
+        {TxWorker, %{id: id}}
+      end)
 
-    Enum.each(0..cpu, fn n ->
-      DynamicSupervisor.start_child(__MODULE__, {TxWorker, %{num: n}})
-    end)
-
-    sup
+    Supervisor.init(children, strategy: :one_for_one)
   end
 end

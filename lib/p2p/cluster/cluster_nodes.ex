@@ -39,29 +39,11 @@ defmodule Ippan.ClusterNodes do
   end
 
   @impl Network
-  def handle_request(
-        "new_msg",
-        [false, body, return],
-        _state
-      ) do
-    status = :persistent_term.get(:status, nil)
-
-    if status == :synced do
-      Mempool.regular(body, return)
-    else
-      {:error, "Node waiting for synchronization"}
-    end
-  end
-
-  def handle_request(
-        "new_msg",
-        [true, body, return],
-        _state
-      ) do
-    status = :persistent_term.get(:status, nil)
-
-    if status == :synced do
-      Mempool.deferred(body, return)
+  # {_hash, _type_id, _from, _nonce, _args, _size, signature}
+  def handle_request("tx", %{"body" => body_and_signature, "tx" => transaction}, _state) do
+    if :persistent_term.get(:status, nil) == :synced do
+      pool = MemPool.get()
+      MemPool.add(pool, transaction, body_and_signature)
     else
       {"error", "Node waiting for synchronization"}
     end

@@ -1,7 +1,5 @@
 defmodule Ippan.Funx.Token do
   alias Ippan.{Token, Utils}
-  require Token
-  require Sqlite
   require BalanceStore
 
   @app Mix.Project.config()[:app]
@@ -23,7 +21,7 @@ defmodule Ippan.Funx.Token do
     tx = DetsPlux.tx(db, :balance)
 
     cond do
-      @max_tokens != 0 and @max_tokens <= Token.total() ->
+      @max_tokens != 0 and @max_tokens <= Token.total(db_ref) ->
         :error
 
       true ->
@@ -49,7 +47,7 @@ defmodule Ippan.Funx.Token do
               |> Map.merge(MapUtil.to_atoms(map_filter))
               |> Token.to_list()
 
-            Token.insert(token)
+            Token.insert(db_ref, token)
         end
     end
   end
@@ -77,7 +75,7 @@ defmodule Ippan.Funx.Token do
         map =
           Map.put(opts, "updated_at", round_id)
 
-        Token.update(map, id)
+        Token.update(db_ref, map, id)
     end
   end
 
@@ -86,7 +84,7 @@ defmodule Ippan.Funx.Token do
     supply = TokenSupply.new(id)
 
     if TokenSupply.get(supply) == 0 do
-      Token.delete(id, account_id)
+      Token.delete(db_ref, id, account_id)
       TokenSupply.delete(supply)
     end
   end
@@ -102,7 +100,7 @@ defmodule Ippan.Funx.Token do
         prop
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    token = Token.get(id)
+    token = Token.get(db_ref, id)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
@@ -120,7 +118,7 @@ defmodule Ippan.Funx.Token do
           _ ->
             result = :lists.append(token.props, props)
             map = %{props: @json.encode!(result), updated_at: round_id}
-            Token.update(map, id)
+            Token.update(db_ref, map, id)
         end
     end
   end
@@ -136,7 +134,7 @@ defmodule Ippan.Funx.Token do
         prop
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    token = Token.get(id)
+    token = Token.get(db_ref, id)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
@@ -154,7 +152,7 @@ defmodule Ippan.Funx.Token do
           _ ->
             result = token.props -- props
             map = %{props: @json.encode!(result), updated_at: round_id}
-            Token.update(map, id)
+            Token.update(db_ref, map, id)
         end
     end
   end
@@ -171,7 +169,7 @@ defmodule Ippan.Funx.Token do
         value
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    token = Token.get(id)
+    token = Token.get(db_ref, id)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
@@ -188,7 +186,7 @@ defmodule Ippan.Funx.Token do
           _ ->
             result = Map.put(token.env, name, value)
             map = %{env: CBOR.encode(result), updated_at: round_id}
-            Token.update(map, id)
+            Token.update(db_ref, map, id)
         end
     end
   end
@@ -204,7 +202,7 @@ defmodule Ippan.Funx.Token do
         name
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    token = Token.get(id)
+    token = Token.get(db_ref, id)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
@@ -221,7 +219,7 @@ defmodule Ippan.Funx.Token do
           _ ->
             result = Map.delete(token.env, name)
             map = %{env: CBOR.encode(result), updated_at: round_id}
-            Token.update(map, id)
+            Token.update(db_ref, map, id)
         end
     end
   end

@@ -2,7 +2,6 @@ defmodule Ippan.Funx.Coin do
   alias Ippan.{Token, Utils}
   require Sqlite
   require BalanceStore
-  require Token
 
   @app Mix.Project.config()[:app]
   @refund_timeout Application.compile_env(@app, :timeout_refund)
@@ -181,7 +180,7 @@ defmodule Ippan.Funx.Coin do
     db_ref = :persistent_term.get(:main_conn)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
-    %{env: env} = Token.get(token_id)
+    %{env: env} = Token.get(db_ref, token_id)
     %{"reload.amount" => value, "reload.every" => times} = env
 
     target = DetsPlux.tuple(account_id, token_id)

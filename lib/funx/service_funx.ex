@@ -1,8 +1,6 @@
 defmodule Ippan.Funx.Service do
   require BalanceStore
   alias Ippan.{Token, Utils}
-  require Ippan.Token
-  require Sqlite
 
   @app Mix.Project.config()[:app]
   @max_services Application.compile_env(@app, :max_services, 0)
@@ -158,7 +156,7 @@ defmodule Ippan.Funx.Service do
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     tfees = Utils.calc_fees(fa, fb, size)
-    %{env: env} = Token.get(token_id)
+    %{env: env} = Token.get(db_ref, token_id)
     tax = round(amount * Map.get(env, "service.tax", 0))
 
     BalanceStore.pay2 [{service_id, token_id, amount}, {account_id, @token, tfees}] do

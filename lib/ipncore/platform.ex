@@ -1,6 +1,5 @@
 defmodule Platform do
   alias Ippan.{Token, Validator}
-  require Token
   require Validator
   require Sqlite
 
@@ -65,7 +64,7 @@ defmodule Platform do
               end
 
               Enum.each(values, fn x ->
-                Token.insert(Token.to_list(x))
+                Token.insert(db_ref, Token.to_list(x))
               end)
             end)
 

@@ -14,7 +14,7 @@ defmodule RoundManager do
 
   alias Phoenix.PubSub
   import Ippan.Block, only: [decode_file!: 1]
-  require Ippan.{Block, Round, Token, Validator}
+  require Ippan.{Block, Round, Validator}
   require Sqlite
   require BalanceStore
   require BigNumber
@@ -903,7 +903,7 @@ defmodule RoundManager do
     quote location: :keep do
       computed = Round.calc_reward(var!(tx_count), var!(txs_rejected), var!(size))
       supply = TokenSupply.new(@token)
-      %{max_supply: max_supply} = Token.get(@token)
+      %{max_supply: max_supply} = Token.get(var!(db_ref), @token)
       current = TokenSupply.get(supply)
       total = current + computed
 

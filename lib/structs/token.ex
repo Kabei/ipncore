@@ -1,5 +1,6 @@
 defmodule Ippan.Token do
   require BigNumber
+  require Sqlite
 
   @behaviour Ippan.Struct
   @app Mix.Project.config()[:app]
@@ -103,47 +104,33 @@ defmodule Ippan.Token do
 
   def has_prop?(_, _), do: false
 
-  defmacro insert(args) do
-    quote location: :keep do
-      Sqlite.step("insert_token", unquote(args))
-    end
+  def insert(db_ref, args) do
+    Sqlite.step("insert_token", args)
   end
 
-  defmacro get(id) do
-    quote location: :keep do
-      Sqlite.get(:token, "get_token", unquote(id), Ippan.Token)
-    end
+  def get(db_ref, id) do
+    Sqlite.get(:token, "get_token", id, Token)
   end
 
-  defmacro exists?(id) do
-    quote location: :keep do
-      Sqlite.exists?("exists_token", [unquote(id)])
-    end
+  def exists?(db_ref, id) do
+    Sqlite.exists?("exists_token", [id])
   end
 
-  defmacro owner?(id, owner) do
-    quote bind_quoted: [id: id, owner: owner], location: :keep do
-      Sqlite.exists?("owner_token", [id, owner])
-    end
+  def owner?(db_ref, id, owner) do
+    Sqlite.exists?("owner_token", [id, owner])
   end
 
-  defmacro total do
-    quote location: :keep do
-      Sqlite.one("total_tokens", [], 0)
-    end
+  def total(db_ref) do
+    Sqlite.one("total_tokens", [], 0)
   end
 
-  defmacro update(map, id) do
-    quote bind_quoted: [map: map, id: id], location: :keep do
-      :ets.delete(:token, id)
-      Sqlite.update("assets.token", map, id: id)
-    end
+  def update(db_ref, map, id) do
+    :ets.delete(:token, id)
+    Sqlite.update("assets.token", map, id: id)
   end
 
-  defmacro delete(id, owner) do
-    quote bind_quoted: [id: id, owner: owner], location: :keep do
-      :ets.delete(:token, id)
-      Sqlite.step("delete_token", [id, owner])
-    end
+  def delete(db_ref, id, owner) do
+    :ets.delete(:token, id)
+    Sqlite.step("delete_token", [id, owner])
   end
 end

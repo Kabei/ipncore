@@ -4,15 +4,18 @@ defmodule Ipncore.MinerWorker do
   alias Ippan.TxHandler
   alias Ippan.Funcs
   alias Ippan.Validator
-  require Sqlite
-  require Ippan.Validator
 
   @download_cluster_options [retry: :infinity, time_to_retry: 100]
   # @download_options [retry: 5, time_to_retry: 250]
 
+  def build(_round_id, [], _verify) do
+    %{rejected: 0}
+  end
+
   def build(round_id, blocks, verify) do
     cref = :counters.new(2, [])
-    txd = :ets.new(:txd, [:duplicate_bag])
+    txd = :ets.new(:txd, [:duplicate_bag, :public])
+    workers = TxWorker.all()
 
     refs = %{
       db_ref: :persistent_term.get(:main_conn),
@@ -21,11 +24,18 @@ defmodule Ipncore.MinerWorker do
       txs: DetsSup.txs(),
       txd: txd,
       verify: verify,
-      error: :ets.new(:error, [:duplicate_bag, :protected])
+      workers: workers,
+      error: :ets.new(:error, [:duplicate_bag, :public])
     }
 
     do_mine(round_id, refs, blocks)
-    do_run_deferred(txd)
+    do_run_deferred(txd, workers)
+
+    # Wait for all workers to finish
+    workers
+    |> Enum.each(fn {_num, worker} ->
+      :gen_server.call(worker, :done, :infinity)
+    end)
 
     %{
       rejected: :counters.get(cref, 2)
@@ -46,15 +56,20 @@ defmodule Ipncore.MinerWorker do
            creator: creator_id,
            height: height
          },
-         %{db_ref: db_ref, cref: cref, error: _ets_error, txd: txd, verify: verify} = _refs
+         %{
+           db_ref: db_ref,
+           cref: cref,
+           error: _ets_error,
+           txd: txd,
+           verify: verify,
+           workers: workers
+         } = _refs
        ) do
     decode_path = Block.decode_path(creator_id, height)
-    creator = Validator.get(creator_id)
+    creator = Validator.get(db_ref, creator_id)
 
     {ptxs, errors} = get_transactions(creator, round_id, decode_path, block, verify)
     :counters.add(cref, 2, errors)
-
-    pids = TxWorker.all()
 
     Enum.each(ptxs, fn
       {"D", txs} ->
@@ -66,18 +81,17 @@ defmodule Ipncore.MinerWorker do
           fn tx = {_hash, type_id, from, _nonce, args, _size, _signature} ->
             type = %{flag: flag} = Funcs.lookup(type_id)
             pnum = TxHandler.get_part(flag, from, args, @partitions)
-            pid = Map.get(pids, pnum)
+            worker = Map.get(workers, pnum)
 
             # send transaction to process
-            :gen_server.cast(pid, {:run, tx, type})
+            :gen_server.cast(worker, {:run, tx, type})
           end
         )
     end)
   end
 
-  defp do_run_deferred(tid) do
-    pids = TxWorker.all()
-    do_run_deferred(:ets.first(tid), tid, pids)
+  defp do_run_deferred(tid, workers) do
+    do_run_deferred(:ets.first(tid), tid, workers)
   end
 
   defp do_run_deferred(:"$end_of_table", _tid, _pids), do: :ok
@@ -168,7 +182,7 @@ end
 #   alias Ippan.{Account, Block, TxHandler}
 #   alias Ippan.ClusterNodes
 #   require Ippan.{Block, Validator, TxHandler}
-#   require Sqlite
+#
 #   require Logger
 
 #   @app Mix.Project.config()[:app]

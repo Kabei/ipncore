@@ -45,7 +45,6 @@ defmodule Ippan.Funx.Token do
                 updated_at: round_id
               }
               |> Map.merge(MapUtil.to_atoms(map_filter))
-              |> Token.to_list()
 
             Token.insert(db_ref, token)
         end

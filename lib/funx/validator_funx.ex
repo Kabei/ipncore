@@ -1,8 +1,6 @@
 defmodule Ippan.Funx.Validator do
   alias Ippan.{Utils, Validator}
   alias Phoenix.PubSub
-  require Validator
-  require Sqlite
   require BalanceStore
   require Logger
 
@@ -24,10 +22,10 @@ defmodule Ippan.Funx.Validator do
         opts \\ %{}
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    total = Validator.total()
+    total = Validator.total(db_ref)
 
     cond do
-      Validator.exists_host?(hostname) ->
+      Validator.exists_host?(db_ref, hostname) ->
         :error
 
       @max_validators <= total ->
@@ -64,7 +62,7 @@ defmodule Ippan.Funx.Validator do
               }
               |> Map.merge(MapUtil.to_atoms(map_filter))
 
-            Validator.insert(Validator.to_list(validator))
+            Validator.insert(db_ref, validator)
 
             event = %{"event" => "validator.new", "data" => Validator.to_text(validator)}
             PubSub.broadcast(@pubsub, @topic, event)
@@ -100,7 +98,7 @@ defmodule Ippan.Funx.Validator do
           |> MapUtil.transform(:net_pubkey, fun)
 
         db_ref = :persistent_term.get(:main_conn)
-        Validator.update(map, id)
+        Validator.update(db_ref, map, id)
 
         event = %{"event" => "validator.update", "data" => %{"id" => id, "args" => prev_map}}
         PubSub.broadcast(@pubsub, @topic, event)
@@ -128,9 +126,9 @@ defmodule Ippan.Funx.Validator do
 
       _ ->
         if active do
-          Validator.enable(id, round_id)
+          Validator.enable(db_ref, id, round_id)
         else
-          Validator.disable(id, round_id)
+          Validator.disable(db_ref, id, round_id)
         end
 
         event = %{"event" => "validator.active", "data" => %{"id" => id, "active" => active}}
@@ -140,7 +138,7 @@ defmodule Ippan.Funx.Validator do
 
   def leave(_source, id) do
     db_ref = :persistent_term.get(:main_conn)
-    Validator.delete(id)
+    Validator.delete(db_ref, id)
 
     event = %{"event" => "validator.leave", "data" => id}
     PubSub.broadcast(@pubsub, @topic, event)
@@ -158,7 +156,7 @@ defmodule Ippan.Funx.Validator do
         value
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    validator = Validator.get(id)
+    validator = Validator.get(db_ref, id)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
@@ -175,7 +173,7 @@ defmodule Ippan.Funx.Validator do
           _ ->
             result = Map.put(validator.env, name, value)
             map = %{env: CBOR.encode(result), updated_at: round_id}
-            Validator.update(map, id)
+            Validator.update(db_ref, map, id)
         end
     end
   end
@@ -191,7 +189,7 @@ defmodule Ippan.Funx.Validator do
         name
       ) do
     db_ref = :persistent_term.get(:main_conn)
-    validator = Validator.get(id)
+    validator = Validator.get(db_ref, id)
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
     fees = Utils.calc_fees(fa, fb, size)
@@ -208,7 +206,7 @@ defmodule Ippan.Funx.Validator do
           _ ->
             result = Map.delete(validator.env, name)
             map = %{env: CBOR.encode(result), updated_at: round_id}
-            Validator.update(map, id)
+            Validator.update(db_ref, map, id)
         end
     end
   end

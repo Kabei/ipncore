@@ -1,5 +1,5 @@
 defmodule Ippan.Node do
-  require Sqlite
+
   @behaviour Ippan.Struct
 
   @type t :: %__MODULE__{
@@ -89,61 +89,43 @@ defmodule Ippan.Node do
   @impl true
   def to_map({_id, x}), do: x
 
-  defmacro insert(args) do
-    quote do
-      Sqlite.step("insert_node", unquote(args))
+  def insert(db_ref, map) do
+    Sqlite.step(db_ref, "insert_node", to_list(map))
+  end
+
+  def get(db_ref, id) do
+    Sqlite.fetch(db_ref, "get_node", [id])
+    |> case do
+      nil -> nil
+      x -> list_to_map(x)
     end
   end
 
-  defmacro get(id) do
-    quote location: :keep do
-      Sqlite.fetch("get_node", [unquote(id)])
-      |> case do
-        nil -> nil
-        x -> Ippan.Node.list_to_map(x)
-      end
-    end
+  def fetch(db_ref, id) do
+    Sqlite.fetch(db_ref, "get_node", [id])
   end
 
-  defmacro fetch(id) do
-    quote location: :keep do
-      Sqlite.fetch("get_node", [unquote(id)])
-    end
+  def exists?(db_ref, id) do
+    Sqlite.exists?(db_ref, "exists_node", [id])
   end
 
-  defmacro exists?(id) do
-    quote location: :keep do
-      Sqlite.exists?("exists_node", [unquote(id)])
-    end
+  def total(db_ref) do
+    Sqlite.one(db_ref, "total_nodes", [], 0)
   end
 
-  defmacro total do
-    quote location: :keep do
-      Sqlite.one("total_nodes", [])
-    end
+  def update(db_ref, map_fields, id) do
+    Sqlite.update(db_ref, "nodes", map_fields, id: id)
   end
 
-  defmacro update(map_fields, id) do
-    quote location: :keep do
-      Sqlite.update("nodes", unquote(map_fields), id: unquote(id))
-    end
+  def last_mod(db_ref) do
+    Sqlite.one(db_ref, "last_mod", [], nil)
   end
 
-  defmacro last_mod do
-    quote location: :keep do
-      Sqlite.one("last_mod", [])
-    end
+  def delete(db_ref, id) do
+    Sqlite.step(db_ref, "delete_node", [id])
   end
 
-  defmacro delete(id) do
-    quote location: :keep do
-      Sqlite.step("delete_node", [unquote(id)])
-    end
-  end
-
-  defmacro delete_all do
-    quote location: :keep do
-      Sqlite.step("delete_nodes", [])
-    end
+  def delete_all(db_ref) do
+    Sqlite.step(db_ref, "delete_nodes", [])
   end
 end

@@ -1,8 +1,8 @@
 defmodule MainStore do
   use GenServer
   alias Exqlite.Sqlite3NIF
-  require Sqlite
 
+  @compile {:inline, [get: 0, ro: 0]}
   @version 0
 
   @creations %{
@@ -56,6 +56,15 @@ defmodule MainStore do
     Process.flag(:trap_exit, true)
 
     {:ok, state, :hibernate}
+  end
+
+  def get do
+    :persistent_term.get(@key_conn)
+  end
+
+  # Read Only
+  def ro do
+    :persistent_term.get(@key_ro)
   end
 
   @impl true

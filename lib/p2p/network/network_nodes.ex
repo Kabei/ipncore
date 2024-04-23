@@ -1,8 +1,5 @@
 defmodule Ippan.NetworkNodes do
   alias Ippan.{Block, Network, Round, Validator}
-  require Round
-  require Validator
-  require Sqlite
 
   @app Mix.Project.config()[:app]
 
@@ -22,13 +19,13 @@ defmodule Ippan.NetworkNodes do
   @impl Network
   def fetch(id) do
     db_ref = :persistent_term.get(:main_conn)
-    Validator.get(id)
+    Validator.get(db_ref, id)
   end
 
   @impl Network
   def exists?(id) do
     db_ref = :persistent_term.get(:main_conn)
-    Validator.exists?(id)
+    Validator.exists?(db_ref, id)
   end
 
   @impl Network
@@ -37,13 +34,13 @@ defmodule Ippan.NetworkNodes do
     round_id = Map.get(data, "starts", 0)
     limit = Map.get(data, "limit", 50) |> min(200) |> trunc()
     offset = Map.get(data, "offset", 0)
-    Round.fetch_all(round_id, limit, offset)
+    Round.fetch_all(db_ref, round_id, limit, offset)
   end
 
   def handle_request("get_round", id, _state) when is_integer(id) do
     db_ref = :persistent_term.get(:main_conn)
 
-    case Round.get(id) do
+    case Round.get(db_ref, id) do
       nil ->
         case :ets.lookup(:g, :round_candidate) do
           [%{id: rid} = round] when id == rid ->
@@ -61,7 +58,7 @@ defmodule Ippan.NetworkNodes do
   def handle_request("last_round", _params, _state) do
     db_ref = :persistent_term.get(:main_conn)
 
-    Round.last()
+    Round.last(db_ref)
   end
 
   def handle_request(_method, _data, _state), do: {"error", "Not found"}

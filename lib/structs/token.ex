@@ -1,6 +1,6 @@
 defmodule Ippan.Token do
+  alias __MODULE__
   require BigNumber
-  require Sqlite
 
   @behaviour Ippan.Struct
   @app Mix.Project.config()[:app]
@@ -104,33 +104,33 @@ defmodule Ippan.Token do
 
   def has_prop?(_, _), do: false
 
-  def insert(db_ref, args) do
-    Sqlite.step("insert_token", args)
+  def insert(db_ref, map) do
+    Sqlite.step(db_ref, "insert_token", to_list(map))
   end
 
   def get(db_ref, id) do
-    Sqlite.get(:token, "get_token", id, Token)
+    Sqlite.get(db_ref, :token, "get_token", id, Token)
   end
 
   def exists?(db_ref, id) do
-    Sqlite.exists?("exists_token", [id])
+    Sqlite.has?(db_ref, :token, "exists_token", [id])
   end
 
   def owner?(db_ref, id, owner) do
-    Sqlite.exists?("owner_token", [id, owner])
+    Sqlite.exists?(db_ref, "owner_token", [id, owner])
   end
 
   def total(db_ref) do
-    Sqlite.one("total_tokens", [], 0)
+    Sqlite.one(db_ref, "total_tokens", [], 0)
   end
 
   def update(db_ref, map, id) do
     :ets.delete(:token, id)
-    Sqlite.update("assets.token", map, id: id)
+    Sqlite.update(db_ref, "assets.token", map, id: id)
   end
 
   def delete(db_ref, id, owner) do
     :ets.delete(:token, id)
-    Sqlite.step("delete_token", [id, owner])
+    Sqlite.step(db_ref, "delete_token", [id, owner])
   end
 end

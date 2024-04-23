@@ -1,6 +1,5 @@
 defmodule Ippan.Funx.Coin do
   alias Ippan.{Token, Utils}
-  require Sqlite
   require BalanceStore
 
   @app Mix.Project.config()[:app]
@@ -55,7 +54,7 @@ defmodule Ippan.Funx.Coin do
 
     db_ref = :persistent_term.get(:main_conn)
 
-    Sqlite.step("insert_refund", [
+    Sqlite.step(db_ref, "insert_refund", [
       hash,
       from,
       to,
@@ -152,9 +151,9 @@ defmodule Ippan.Funx.Coin do
     db = DetsPlux.get(:balance)
     tx = DetsPlux.tx(db, :balance)
 
-    case Sqlite.step("get_refund", [sender, nonce, account_id]) do
+    case Sqlite.step(db_ref, "get_refund", [sender, nonce, account_id]) do
       {:row, [to, token_id, refund_amount]} ->
-        Sqlite.step("delete_refund", [sender, nonce])
+        Sqlite.step(db_ref, "delete_refund", [sender, nonce])
         BalanceStore.refund(account_id, to, token_id, refund_amount)
 
       _ ->

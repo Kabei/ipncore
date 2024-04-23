@@ -1,6 +1,5 @@
 defmodule Ippan.Funx.Env do
   alias Phoenix.PubSub
-  require Sqlite
 
   def set(_, name, value) do
     db_ref = :persistent_term.get(:main_conn)

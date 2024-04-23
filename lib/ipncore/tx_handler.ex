@@ -1,7 +1,5 @@
 defmodule Ippan.TxHandler do
   alias Ippan.Validator
-  require Sqlite
-  require Validator
 
   @compile {:inline, [get_part: 4, data_refs: 0]}
 
@@ -104,7 +102,7 @@ defmodule Ippan.TxHandler do
 
           v = Map.get(account_data, "vid")
 
-          if vid != v and Validator.exists?(v) do
+          if vid != v and Validator.exists?(db_ref, v) do
             raise IppanRedirectError, v
           end
 

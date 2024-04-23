@@ -14,8 +14,6 @@ defmodule RoundManager do
 
   alias Phoenix.PubSub
   import Ippan.Block, only: [decode_file!: 1]
-  require Ippan.{Block, Round, Validator}
-  require Sqlite
   require BalanceStore
   require BigNumber
   require Logger
@@ -59,9 +57,9 @@ defmodule RoundManager do
     ets_candidates =
       ets_start(:candidates, [:set, :public])
 
-    %{id: round_id, hash: round_hash} = Round.last()
+    %{id: round_id, hash: round_hash} = Round.last(db_ref)
 
-    block_id = Sqlite.one("last_block_id", [], -1)
+    block_id = Sqlite.one(db_ref, "last_block_id", [], -1)
 
     current_block_id = block_id + 1
     current_round_id = round_id + 1
@@ -71,7 +69,7 @@ defmodule RoundManager do
     # PubSub.subscribe(@pubsub, "env")
 
     # Get all players
-    players = Sqlite.all("get_players")
+    players = Sqlite.all(db_ref, "get_players")
     total_players = length(players)
 
     # Fill data to table of players
@@ -233,7 +231,7 @@ defmodule RoundManager do
       ) do
     if active do
       # add player
-      insert_player(ets_players, {id, Validator.get(id)})
+      insert_player(ets_players, {id, Validator.get(db_ref, id)})
     else
       # remove player
       delete_player(ets_players, id)
@@ -260,7 +258,7 @@ defmodule RoundManager do
         %{db_ref: db_ref, players: ets_players} = state
       ) do
     # update player
-    new_data = Validator.get(validator_id)
+    new_data = Validator.get(db_ref, validator_id)
     insert_player(ets_players, {validator_id, new_data})
     total_players = get_total_players(ets_players)
     {:noreply, %{state | total: total_players}}
@@ -440,7 +438,7 @@ defmodule RoundManager do
         {:noreply, state}
 
       true ->
-        case Round.get(id) do
+        case Round.get(db_ref, id) do
           nil ->
             IO.inspect("vote_round_id > id: none")
             {:noreply, state}
@@ -593,9 +591,9 @@ defmodule RoundManager do
           status: :synced
         }
       ) do
-    with false <- Block.exists_local?(creator_id, height),
+    with false <- Block.exists_local?(db_ref, creator_id, height),
          true <- :ets.info(ets_candidates, :size) < 10,
-         true <- Validator.exists?(creator_id),
+         true <- Validator.exists?(db_ref, creator_id),
          true <- block_verificacion(block, db_ref) do
       :ets.insert(ets_candidates, {{creator_id, height}, block})
       # GenServer.cast(BlockTimer, :block)
@@ -616,8 +614,8 @@ defmodule RoundManager do
 
     if next do
       # update state
-      %{id: round_id, hash: round_hash} = Round.last()
-      block_id = Sqlite.one("last_block_id", [], -1)
+      %{id: round_id, hash: round_hash} = Round.last(db_ref)
+      block_id = Sqlite.one(db_ref, "last_block_id", [], -1)
       next_id = round_id + 1
 
       new_state = %{
@@ -800,9 +798,9 @@ defmodule RoundManager do
     IO.puts("RM: spawn_build_foreign_round #{round_id}")
 
     spawn_link(fn ->
-      creator = Validator.get(creator_id)
+      creator = Validator.get(db_ref, creator_id)
 
-      unless Round.exists?(round_id) do
+      unless Round.exists?(db_ref, round_id) do
         build_round(
           %{msg_round | prev: prev_hash},
           block_id,
@@ -840,7 +838,7 @@ defmodule RoundManager do
             |> Kernel.++(
               :ets.tab2list(ets_candidates)
               |> Enum.filter(fn {{creator_id, height}, _b} ->
-                Block.exists_local?(creator_id, height) == false
+                Block.exists_local?(db_ref, creator_id, height) == false
               end)
               |> Enum.map(fn {_, b} -> b end)
             )
@@ -851,7 +849,7 @@ defmodule RoundManager do
             []
         end
 
-      creator = Validator.get(vid)
+      creator = Validator.get(db_ref, vid)
       timestamp = :os.system_time(:millisecond)
       {hashes, tx_count, size} = Block.hashes_and_count_txs_and_size(blocks)
       hash = Round.compute_hash(round_id, prev_hash, creator.id, hashes, timestamp)
@@ -973,12 +971,14 @@ defmodule RoundManager do
         Ipncore.MinerWorker.build(round_id, blocks, verify: verify_block)
 
       # put in ID blocks
-      {new_blocks, _counter} =
+      new_blocks =
         Enum.reduce(blocks, {%{}, block_id}, fn block, {map, index} ->
           i = index + 1
           block = Map.put(block, :id, i)
           {Map.put(map, i, block), i}
         end)
+        |> elem(0)
+        |> :maps.to_list()
 
       # if blocks_approved_count > 0 or block_count == blocks_approved_count do
       balance_tx = DetsPlux.tx(:balance)
@@ -1024,7 +1024,8 @@ defmodule RoundManager do
         reward: reward
       }
 
-      :done = Round.to_list(round) |> Round.insert()
+      :done =
+        Round.insert(db_ref, round)
 
       run_maintenance(round_id, db_ref)
 
@@ -1075,18 +1076,17 @@ defmodule RoundManager do
     RoundCommit.rollback(db_ref)
 
     # round nulled
-    r = Round.to_list(round_nulled)
-    :done = Round.insert(r)
+    :done = Round.insert(db_ref, round_nulled)
 
     case status do
       1 ->
         max = EnvStore.max_failures()
 
         if max != 0 do
-          number = Validator.incr_failure(creator_id, 1, round_id)
+          number = Validator.incr_failure(db_ref, creator_id, 1, round_id)
 
           if number != nil and rem(number, max) == 0 do
-            Validator.disable(creator_id, round_id)
+            Validator.disable(db_ref, creator_id, round_id)
 
             event = %{
               "event" => "validator.active",
@@ -1098,7 +1098,7 @@ defmodule RoundManager do
         end
 
       2 ->
-        # Validator.delete(creator_id)
+        # Validator.delete(db_ref, creator_id)
         nil
 
       _ ->
@@ -1132,7 +1132,7 @@ defmodule RoundManager do
       dv = min(total_blocks + 1, 20_000)
       b = rem(n, dv) + if(total_blocks >= 20_000, do: total_blocks, else: 0)
 
-      case Block.get(b) do
+      case Block.get(db_ref, b) do
         nil ->
           IO.inspect("Jackpot block nil")
           %{}
@@ -1181,7 +1181,7 @@ defmodule RoundManager do
   defp run_maintenance(0, _), do: nil
 
   defp run_maintenance(round_id, db_ref) when rem(round_id, @maintenance) == 0 do
-    Sqlite.step("expiry_refund", [round_id])
+    Sqlite.step(db_ref, "expiry_refund", [round_id])
   end
 
   defp run_maintenance(round_id, _db_ref) when rem(round_id, @snap_round) == 0 do

@@ -260,55 +260,39 @@ defmodule Ippan.Block do
   defp normalize(nil), do: ""
   defp normalize(x), do: x
 
-  defmacro get(id) do
-    quote bind_quoted: [id: id], location: :keep do
-      Sqlite.fetch("get_block", [id])
+  def get(db_ref, id) do
+    Sqlite.fetch(db_ref, "get_block", [id])
+  end
+
+  def exists?(db_ref, id) do
+    Sqlite.exists?(db_ref, "exists_block", [id])
+  end
+
+  def exists_local?(db_ref, creator_id, height) do
+    Sqlite.exists?(db_ref, "exists_local_block", [creator_id, height])
+  end
+
+  def last_created(db_ref, creator_id) do
+    Sqlite.fetch(db_ref, "last_block_by_creator", [creator_id], nil)
+    |> case do
+      nil -> %{height: -1, hash: nil}
+      x -> list_to_map(x)
     end
   end
 
-  defmacro exists?(id) do
-    quote bind_quoted: [id: id], location: :keep do
-      Sqlite.exists?("exists_block", [id])
-    end
+  def last_id(db_ref) do
+    Sqlite.one(db_ref, "last_block_id", [], 0)
   end
 
-  defmacro exists_local?(creator_id, height) do
-    quote bind_quoted: [creator_id: creator_id, height: height], location: :keep do
-      Sqlite.exists?("exists_local_block", [creator_id, height])
-    end
+  def total(db_ref) do
+    Sqlite.one(db_ref, "last_block_id", [], -1) + 1
   end
 
-  defmacro last_created(creator_id) do
-    quote bind_quoted: [id: creator_id], location: :keep do
-      Sqlite.fetch("last_block_by_creator", [id])
-      |> case do
-        nil -> %{height: -1, hash: nil}
-        x -> Ippan.Block.list_to_map(x)
-      end
-    end
+  def total_created(db_ref, create_id) do
+    Sqlite.one(db_ref, "total_blocks_created", [create_id], 0)
   end
 
-  defmacro last_id do
-    quote location: :keep do
-      Sqlite.one("last_block_id", [], 0)
-    end
-  end
-
-  defmacro total do
-    quote location: :keep do
-      Sqlite.one("last_block_id", [], -1) + 1
-    end
-  end
-
-  defmacro total_created(create_id) do
-    quote location: :keep do
-      Sqlite.one("total_blocks_created", [unquote(create_id)], 0)
-    end
-  end
-
-  defmacro insert(args) do
-    quote location: :keep do
-      Sqlite.step("insert_block", unquote(args))
-    end
+  def insert(db_ref, map) do
+    Sqlite.step(db_ref, "insert_block", to_list(map))
   end
 end

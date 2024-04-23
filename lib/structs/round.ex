@@ -227,55 +227,43 @@ defmodule Ippan.Round do
   defp normalize(nil), do: ""
   defp normalize(x), do: x
 
-  defmacro exists?(id) do
-    quote bind_quoted: [id: id], location: :keep do
-      Sqlite.exists?("exists_round", [id])
+  def exists?(db_ref, id) do
+    Sqlite.exists?(db_ref, "exists_round", [id])
+  end
+
+  def insert(db_ref, map) do
+    Sqlite.step(db_ref, "insert_round", to_list(map))
+  end
+
+  def get(db_ref, id) do
+    Sqlite.fetch(db_ref, "get_round", [id], nil)
+    |> case do
+      nil -> nil
+      x -> list_to_map(x)
     end
   end
 
-  defmacro insert(args) do
-    quote location: :keep do
-      Sqlite.step("insert_round", unquote(args))
+  def last(db_ref) do
+    Sqlite.fetch(db_ref, "last_round", [], nil)
+    |> case do
+      nil -> %{hash: nil, id: -1}
+      x -> list_to_map(x)
     end
   end
 
-  defmacro get(id) do
-    quote bind_quoted: [id: id], location: :keep do
-      Sqlite.fetch("get_round", [id])
-      |> case do
-        nil -> nil
-        x -> Ippan.Round.list_to_map(x)
-      end
+  def last_created(db_ref, creator_id, default \\ nil) do
+    Sqlite.fetch(db_ref, "last_round_by_creator", [creator_id])
+    |> case do
+      nil -> default
+      x -> Ippan.Round.list_to_map(x)
     end
   end
 
-  defmacro last do
-    quote location: :keep do
-      Sqlite.fetch("last_round", [])
-      |> case do
-        nil -> %{hash: nil, id: -1}
-        x -> Ippan.Round.list_to_map(x)
-      end
-    end
-  end
-
-  defmacro last_created(creator_id, default \\ nil) do
-    quote bind_quoted: [id: creator_id, default: default], location: :keep do
-      Sqlite.fetch("last_round_by_creator", [id])
-      |> case do
-        nil -> default
-        x -> Ippan.Round.list_to_map(x)
-      end
-    end
-  end
-
-  defmacro fetch_all(starts, limit, offset) do
-    quote bind_quoted: [starts: starts, limit: limit, offset: offset], location: :keep do
-      Sqlite.fetch_all("get_rounds", [starts, limit, offset])
-      |> case do
-        nil -> []
-        data -> Enum.map(data, fn x -> Ippan.Round.list_to_map(x) end)
-      end
+  def fetch_all(db_ref, starts, limit, offset) do
+    Sqlite.fetch_all(db_ref, "get_rounds", [starts, limit, offset])
+    |> case do
+      nil -> []
+      data -> Enum.map(data, fn x -> Ippan.Round.list_to_map(x) end)
     end
   end
 end

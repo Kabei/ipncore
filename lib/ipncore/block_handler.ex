@@ -5,9 +5,6 @@ defmodule Ippan.BlockHandler do
     only: [decode_file!: 1, encode_file!: 1]
 
   require BalanceStore
-  require Sqlite
-  require Validator
-  require Block
   require Logger
 
   @app Mix.Project.config()[:app]
@@ -114,7 +111,7 @@ defmodule Ippan.BlockHandler do
         db_ref
       ) do
     try do
-      %{hostname: hostname, pubkey: pubkey} = Validator.get(creator_id)
+      %{hostname: hostname, pubkey: pubkey} = Validator.get(db_ref, creator_id)
       remote_url = Block.url(hostname, creator_id, height)
       output_path = Block.block_path(creator_id, height)
       file_exists = File.exists?(output_path)

@@ -2,8 +2,6 @@ defmodule LocalStore do
   use GenServer
   alias Ippan.Node
   alias Exqlite.Sqlite3NIF
-  require Ippan.Node
-  require Sqlite
 
   @version 0
 
@@ -60,7 +58,7 @@ defmodule LocalStore do
 
         # check last modification
         continue =
-          case Node.last_mod() do
+          case Node.last_mod(db_ref) do
             nil ->
               true
 
@@ -97,16 +95,15 @@ defmodule LocalStore do
                 created_at: timestamp,
                 updated_at: timestamp
               }
-              |> Node.to_list()
 
-            Node.insert(data)
+            Node.insert(db_ref, data)
           end)
 
           Sqlite.sync(db_ref)
         end
 
       _error ->
-        if Node.total() == 0 do
+        if Node.total(db_ref) == 0 do
           IO.puts(IO.ANSI.red() <> "ERROR: masterlist file is missing" <> IO.ANSI.reset())
           System.halt(1)
         end

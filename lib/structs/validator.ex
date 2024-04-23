@@ -1,4 +1,5 @@
 defmodule Ippan.Validator do
+  alias __MODULE__
   alias Ippan.Utils
   @behaviour Ippan.Struct
   @type t :: %__MODULE__{
@@ -135,28 +136,20 @@ defmodule Ippan.Validator do
 
   def calc_price(total), do: (total + 1) * EnvStore.validator_price()
 
-  require Sqlite
-
-  defmacro insert(args) do
-    quote location: :keep do
-      Sqlite.step("insert_validator", unquote(args))
-    end
+  def insert(db_ref, map) do
+    Sqlite.step(db_ref, "insert_validator", to_list(map))
   end
 
-  defmacro get(id) do
-    quote location: :keep do
-      Sqlite.get(:validator, "get_validator", unquote(id), Ippan.Validator)
-    end
+  def get(db_ref, id) do
+    Sqlite.get(db_ref, :validator, "get_validator", id, Validator)
   end
 
-  def get_host(hostname) do
+  def get_host(db_ref, hostname) do
     match = [{{:"$1", %{hostname: hostname}}, [], [:"$_"]}]
 
     case :ets.select(:validator, match) do
       [] ->
-        db_ref = :persistent_term.get(:main_conn)
-
-        case Sqlite.fetch("get_host_validator", [hostname]) do
+        case Sqlite.fetch(db_ref, "get_host_validator", [hostname]) do
           nil -> nil
           result -> list_to_map(result)
         end
@@ -175,87 +168,71 @@ defmodule Ippan.Validator do
     [@suffix, "#{n}"] |> IO.iodata_to_binary()
   end
 
-  defmacro exists?(id) do
-    quote location: :keep do
-      Sqlite.exists?("exists_validator", [unquote(id)])
+  def exists?(db_ref, id) do
+    Sqlite.has?(db_ref, :validator, "exists_validator", [id])
+  end
+
+  def active?(db_ref, id) do
+    Sqlite.exists?(db_ref, "exists_active_validator", [id])
+  end
+
+  def exists_host?(db_ref, hostname) do
+    Sqlite.exists?(db_ref, "exists_host_validator", [hostname])
+  end
+
+  def owner?(db_ref, id, owner) do
+    Sqlite.exists?(db_ref, "owner_validator", [id, owner])
+  end
+
+  def total(db_ref) do
+    Sqlite.one(db_ref, "total_validators", [], 0)
+  end
+
+  def update(db_ref, map, id) do
+    :ets.delete(:validator, id)
+    Sqlite.update(db_ref, "assets.validator", map, id: id)
+  end
+
+  def count_sub(db_ref, id, value) do
+    :ets.delete(:validator, id)
+    Sqlite.step(db_ref, "count_sub_validator", [id, value])
+  end
+
+  def enable(db_ref, id, round_id) do
+    :ets.delete(:validator, id)
+
+    Sqlite.update(db_ref, "assets.validator", %{"active" => false, "updated_at" => round_id},
+      id: id
+    )
+  end
+
+  def disable(db_ref, id, round_id) do
+    :ets.delete(:validator, id)
+
+    Sqlite.update(db_ref, "assets.validator", %{"active" => false, "updated_at" => round_id},
+      id: id
+    )
+  end
+
+  def incr_failure(db_ref, id, value, round_id) do
+    case get(db_ref, id) do
+      nil ->
+        nil
+
+      validator ->
+        :ets.delete(:validator, id)
+        Sqlite.step(db_ref, "inc_fail_validator", [id, value, round_id])
+        validator.failures + value
     end
   end
 
-  defmacro active?(id) do
-    quote location: :keep do
-      Sqlite.exists?("exists_active_validator", [unquote(id)])
-    end
-  end
+  def delete(db_ref, id) do
+    # if id == :persistent_term.get(:vid) do
+    # Logger.warning("Delete validator #{id}")
+    # System.halt()
+    # end
 
-  defmacro exists_host?(hostname) do
-    quote location: :keep do
-      Sqlite.exists?("exists_host_validator", [unquote(hostname)])
-    end
-  end
-
-  defmacro owner?(id, owner) do
-    quote bind_quoted: [id: id, owner: owner], location: :keep do
-      Sqlite.exists?("owner_validator", [id, owner])
-    end
-  end
-
-  defmacro total do
-    quote location: :keep do
-      Sqlite.one("total_validators", [], 0)
-    end
-  end
-
-  defmacro update(map, id) do
-    quote bind_quoted: [map: map, id: id], location: :keep do
-      :ets.delete(:validator, id)
-      Sqlite.update("assets.validator", map, id: id)
-    end
-  end
-
-  defmacro count_sub(id, value) do
-    quote bind_quoted: [id: id, value: value], location: :keep do
-      :ets.delete(:validator, id)
-      Sqlite.step("count_sub_validator", [id, value])
-    end
-  end
-
-  defmacro enable(id, round_id) do
-    quote bind_quoted: [id: id, round: round_id], location: :keep do
-      :ets.delete(:validator, id)
-      Sqlite.update("assets.validator", %{"active" => false, "updated_at" => round}, id: id)
-    end
-  end
-
-  defmacro disable(id, round_id) do
-    quote bind_quoted: [id: id, round: round_id], location: :keep do
-      :ets.delete(:validator, id)
-      Sqlite.update("assets.validator", %{"active" => false, "updated_at" => round}, id: id)
-    end
-  end
-
-  defmacro incr_failure(id, value, round_id) do
-    quote bind_quoted: [id: id, value: value, round: round_id], location: :keep do
-      case Ippan.Validator.get(id) do
-        nil ->
-          nil
-
-        validator ->
-          :ets.delete(:validator, id)
-          Sqlite.step("inc_fail_validator", [id, value, round])
-          validator.failures + value
-      end
-    end
-  end
-
-  defmacro delete(id) do
-    quote bind_quoted: [id: id], location: :keep do
-      if id == :persistent_term.get(:vid) do
-        Logger.warning("Delete validator #{id}")
-        # System.halt()
-      end
-
-      :ets.delete(:validator, id)
-      Sqlite.step("delete_validator", [id])
-    end
+    :ets.delete(:validator, id)
+    Sqlite.step(db_ref, "delete_validator", [id])
   end
 end

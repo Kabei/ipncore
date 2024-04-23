@@ -1,11 +1,7 @@
 defmodule RoundSync do
   use GenServer, restart: :trasient
-  require Ippan.Round
   alias Ippan.{ClusterNodes, Round, Validator, NetworkNodes}
   require Logger
-  require Round
-  require Validator
-  require Sqlite
 
   @ets_name :queue
   @ets_opts [
@@ -98,9 +94,9 @@ defmodule RoundSync do
           result_block_id =
             Enum.reduce(rounds, last_block_id, fn msg_round, bid ->
               %{id: id} = round = Round.sync_remote(msg_round)
-              creator = Validator.get(round.creator)
+              creator = Validator.get(db_ref, round.creator)
 
-              unless Round.exists?(id) do
+              unless Round.exists?(db_ref, id) do
                 RoundManager.build_round(
                   round,
                   bid,
@@ -148,7 +144,7 @@ defmodule RoundSync do
       ) do
     case :ets.lookup(ets_queue, key) do
       [{_id, round}] ->
-        creator = Validator.get(round.creator)
+        creator = Validator.get(db_ref, round.creator)
 
         RoundManager.build_round(
           round,

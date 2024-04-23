@@ -2,7 +2,7 @@ defmodule BlockTimer do
   use GenServer
   alias Ippan.{Block, BlockHandler}
   require Block
-  require Sqlite
+
 
   @module __MODULE__
   @time_to_wait 990
@@ -17,10 +17,10 @@ defmodule BlockTimer do
     vid = :persistent_term.get(:vid)
     db_ref = :persistent_term.get(:main_conn)
 
-    block_id = Sqlite.one("last_block_id", [], -1) + 1
+    block_id = Sqlite.one(db_ref, "last_block_id", [], -1) + 1
 
     %{hash: prev, height: last_height} =
-      Block.last_created(vid)
+      Block.last_created(db_ref, vid)
 
     # :timer.send_interval(@interval_check, :auto_check)
 

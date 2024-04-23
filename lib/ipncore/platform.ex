@@ -1,7 +1,5 @@
 defmodule Platform do
   alias Ippan.{Token, Validator}
-  require Validator
-  require Sqlite
 
   @app Mix.Project.config()[:app]
   @token Application.compile_env(@app, :token)
@@ -71,7 +69,7 @@ defmodule Platform do
           "validators" ->
             Task.async(fn ->
               Enum.each(values, fn x ->
-                Validator.insert(Validator.to_list(x))
+                Validator.insert(db_ref, x)
               end)
             end)
 

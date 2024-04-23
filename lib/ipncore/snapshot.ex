@@ -1,5 +1,4 @@
 defmodule Snapshot do
-  require Sqlite
   @app Mix.Project.config()[:app]
   @extension Application.compile_env(@app, :snap_extension, "snap")
 
@@ -101,8 +100,8 @@ defmodule Snapshot do
   # delete old rounds and blocks records
   defp before_create do
     db_ref = :persistent_term.get(:main_conn)
-    Sqlite.step("delete_old_blocks")
-    Sqlite.step("delete_old_rounds")
+    Sqlite.step(db_ref, "delete_old_blocks", [])
+    Sqlite.step(db_ref, "delete_old_rounds", [])
     Sqlite.sync(db_ref)
   end
 

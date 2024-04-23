@@ -57,21 +57,22 @@ defmodule TxWorker do
       size: size
     }
 
-    try do
-      case :erlang.apply(module, fun, [source | args]) do
-        :error ->
-          :counters.add(cref, 2, 1)
-
-        {:error, _} ->
-          :counters.add(cref, 2, 1)
-
-        _ ->
-          :counters.add(cref, 1, 1)
-      end
-    rescue
-      _err ->
+    # try do
+    case :erlang.apply(module, fun, [source | args]) do
+      :error ->
         :counters.add(cref, 2, 1)
+
+      {:error, _} ->
+        :counters.add(cref, 2, 1)
+
+      _ ->
+        :counters.add(cref, 1, 1)
     end
+
+    # rescue
+    #   _err ->
+    #     :counters.add(cref, 2, 1)
+    # end
 
     {:noreply, state}
   end
@@ -91,6 +92,11 @@ defmodule TxWorker do
 
   def handle_cast({:init, new_state}, state) do
     {:noreply, Map.merge(state, new_state)}
+  end
+
+  @impl true
+  def handle_call(:done, _from, state) do
+    {:reply, :done, state}
   end
 
   # @impl true

@@ -121,23 +121,23 @@ owner = "@ippan"
       active: true,
       updated_at: 0,
       subs: 1
-    },
-    %Validator{
-      image: nil,
-      created_at: 0,
-      fa: 1,
-      failures: 0,
-      fb: 1,
-      hostname: "ippan.co.uk",
-      id: "V-1",
-      name: "Castle | UK",
-      net_pubkey: npk,
-      owner: owner,
-      port: 5815,
-      pubkey: pk,
-      active: true,
-      updated_at: 0
     }
+    # %Validator{
+    #   image: nil,
+    #   created_at: 0,
+    #   fa: 1,
+    #   failures: 0,
+    #   fb: 1,
+    #   hostname: "ippan.co.uk",
+    #   id: "V-1",
+    #   name: "Castle | UK",
+    #   net_pubkey: npk,
+    #   owner: owner,
+    #   port: 5815,
+    #   pubkey: pk,
+    #   active: true,
+    #   updated_at: 0
+    # }
     ],
   "accounts" => [
     {"@ippan", pk, 0, %{"vid" => "V-0", "fa" => 1, "fb" => 1}},

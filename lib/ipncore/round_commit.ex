@@ -1,6 +1,4 @@
 defmodule RoundCommit do
-  require Sqlite
-
   def sync(db_ref, tx_count) do
     # Mempool.clear_cache()
 

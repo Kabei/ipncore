@@ -1,96 +1,116 @@
 defmodule Sqlite do
   alias Exqlite.{Sqlite3, Sqlite3NIF}
+  alias Ippan.Utils
 
-  defmacro one(name, args \\ [], default \\ nil) do
-    quote bind_quoted: [name: name, args: args, default: default],
-          location: :keep do
-      stmt = :persistent_term.get({:stmt, name})
+  def one({db_ref, thread}, name, args, default) do
+    stmt = :persistent_term.get({:stmt, name, thread})
 
-      case Sqlite.bind_step(var!(db_ref), stmt, args) do
-        {:row, [n]} ->
-          n
+    case Sqlite3NIF.bind_step(db_ref, stmt, args) do
+      {:row, [n]} ->
+        n
 
-        :done ->
-          default
+      :done ->
+        default
+    end
+  end
+
+  def one(db_ref, name, args, default) do
+    stmt = :persistent_term.get({:stmt, name, 0})
+
+    case Sqlite3NIF.bind_step(db_ref, stmt, args) do
+      {:row, [n]} ->
+        n
+
+      :done ->
+        default
+    end
+  end
+
+  def update(db_ref, table, map_fields, map_where) do
+    {fields, values} = Utils.rows_to_columns(map_fields)
+    {w_fields, w_values} = Utils.rows_to_columns(map_where)
+
+    set_fields =
+      for key <- fields do
+        "#{key}=?"
       end
+      |> Enum.join(", ")
+
+    where =
+      for key <- w_fields do
+        "#{key}=?"
+      end
+      |> Enum.join(" AND ")
+
+    {:ok, statement} =
+      Sqlite3NIF.prepare(db_ref, ~c"UPDATE #{table} SET #{set_fields} WHERE #{where}")
+
+    n = Sqlite3NIF.bind_step(db_ref, statement, values ++ w_values)
+    Sqlite3NIF.release(db_ref, statement)
+    n
+  end
+
+  def step({db_ref, thread}, name, args) do
+    stmt = :persistent_term.get({:stmt, name, thread})
+    Sqlite3NIF.bind_step(db_ref, stmt, args)
+  end
+
+  def step(db_ref, name, args) do
+    stmt = :persistent_term.get({:stmt, name, 0})
+    Sqlite3NIF.bind_step(db_ref, stmt, args)
+  end
+
+  def exists?({db_ref, thread}, name, args) do
+    stmt = :persistent_term.get({:stmt, name, thread})
+    {:row, [1]} == Sqlite3NIF.bind_step(db_ref, stmt, args)
+  end
+
+  def exists?(db_ref, name, args) do
+    sql = :persistent_term.get({:sql, name})
+    {:ok, stmt} = Sqlite3NIF.prepare(db_ref, sql)
+    res = {:row, [1]} == Sqlite3NIF.bind_step(db_ref, stmt, args)
+    Sqlite3NIF.release(db_ref, stmt)
+    res
+  end
+
+  def has?(db_ref, table, name, args) do
+    if :ets.member(table, args) do
+      true
+    else
+      sql = :persistent_term.get({:sql, name})
+      {:ok, stmt} = Sqlite3NIF.prepare(db_ref, sql)
+      res = {:row, [1]} == Sqlite3NIF.bind_step(db_ref, stmt, args)
+      Sqlite3NIF.release(db_ref, stmt)
+      res
     end
   end
 
-  defmacro update(table, map_fields, map_where) do
-    quote bind_quoted: [
-            map_fields: map_fields,
-            map_where: map_where,
-            table: table
-          ],
-          location: :keep do
-      {fields, values} = Ippan.Utils.rows_to_columns(map_fields)
-      {w_fields, w_values} = Ippan.Utils.rows_to_columns(map_where)
+  def fetch(db_ref, name, args \\ [], default \\ nil) do
+    sql = :persistent_term.get({:sql, name})
+    {:ok, stmt} = Sqlite3NIF.prepare(db_ref, sql)
 
-      set_fields =
-        for key <- fields do
-          "#{key}=?"
-        end
-        |> Enum.join(", ")
-
-      where =
-        for key <- w_fields do
-          "#{key}=?"
-        end
-        |> Enum.join(" AND ")
-
-      {:ok, statement} =
-        Sqlite3NIF.prepare(var!(db_ref), ~c"UPDATE #{table} SET #{set_fields} WHERE #{where}")
-
-      n = Sqlite.bind_step(var!(db_ref), statement, values ++ w_values)
-      Sqlite3NIF.release(var!(db_ref), statement)
-      n
-    end
-  end
-
-  defmacro step(name, args \\ []) do
-    quote bind_quoted: [name: name, args: args], location: :keep do
-      stmt = :persistent_term.get({:stmt, name})
-      Sqlite.bind_step(var!(db_ref), stmt, args)
-    end
-  end
-
-  defmacro execute(db_ref, sql) do
-    quote do
-      Sqlite3NIF.execute(unquote(db_ref), unquote(sql))
-    end
-  end
-
-  defmacro exists?(name, args) do
-    quote bind_quoted: [name: name, args: args], location: :keep do
-      stmt = :persistent_term.get({:stmt, name})
-      {:row, [1]} == Sqlite.bind_step(var!(db_ref), stmt, args)
-    end
-  end
-
-  defmacro fetch(name, args \\ [], default \\ nil) do
-    quote bind_quoted: [name: name, args: args, default: default],
-          location: :keep do
-      stmt = :persistent_term.get({:stmt, name})
-
-      case Sqlite.bind_step(var!(db_ref), stmt, args) do
+    res =
+      case Sqlite3NIF.bind_step(db_ref, stmt, args) do
         {:row, []} -> default
         {:row, data} -> data
         _ -> default
       end
-    end
+
+    Sqlite3NIF.release(db_ref, stmt)
+    res
   end
 
-  defmacro get(table, name, id, mod) do
-    quote bind_quoted: [table: table, name: name, id: id, mod: mod],
-          location: :keep do
-      case :ets.lookup(table, id) do
-        [{_, map}] ->
-          map
+  def get(db_ref, table, name, id, mod) do
+    case :ets.lookup(table, id) do
+      [{_, map}] ->
+        map
 
-        [] ->
-          stmt = :persistent_term.get({:stmt, name})
+      [] ->
+        sql = :persistent_term.get({:sql, name})
+        {:ok, stmt} = Sqlite3NIF.prepare(db_ref, sql)
 
-          case Sqlite.bind_step(var!(db_ref), stmt, [id]) do
+        res =
+          case Sqlite3NIF.bind_step(db_ref, stmt, [id]) do
             {:row, []} ->
               nil
 
@@ -103,85 +123,77 @@ defmodule Sqlite do
             _ ->
               nil
           end
-      end
+
+        Sqlite3NIF.release(db_ref, stmt)
+
+        res
     end
   end
 
-  defmacro query(db, sql, args) do
-    quote bind_quoted: [db: db, sql: sql, args: args] do
-      {:ok, stmt} = Sqlite3NIF.prepare(db, to_charlist(sql))
-      Sqlite3NIF.bind(db, stmt, args)
-      res = Sqlite3.fetch_all(db, stmt)
-      Sqlite3NIF.release(db, stmt)
-      res
-    end
+  def query(db, sql, args) do
+    {:ok, stmt} = Sqlite3NIF.prepare(db, to_charlist(sql))
+    Sqlite3NIF.bind(db, stmt, args)
+    res = Sqlite3.fetch_all(db, stmt)
+    Sqlite3NIF.release(db, stmt)
+    res
   end
 
-  defmacro fetch_all(name, args \\ []) do
-    quote bind_quoted: [name: name, args: args],
-          location: :keep do
-      stmt = :persistent_term.get({:stmt, name})
-      Sqlite3NIF.bind(var!(db_ref), stmt, args)
+  def fetch_all(db_ref, name, args \\ []) do
+    sql = :persistent_term.get({:sql, name})
+    {:ok, stmt} = Sqlite3NIF.prepare(db_ref, sql)
+    Sqlite3NIF.bind(db_ref, stmt, args)
 
-      case Sqlite3.fetch_all(var!(db_ref), stmt, 100) do
+    res =
+      case Sqlite3.fetch_all(db_ref, stmt, 100) do
         {:ok, data} -> data
         _ -> []
       end
-    end
+
+    Sqlite3NIF.release(db_ref, stmt)
+    res
   end
 
-  defmacro all(name) do
-    quote bind_quoted: [name: name], location: :keep do
-      stmt = :persistent_term.get({:stmt, name})
+  def all(db_ref, name) do
+    sql = :persistent_term.get({:sql, name})
+    {:ok, stmt} = Sqlite3NIF.prepare(db_ref, sql)
 
-      case Sqlite3.fetch_all(var!(db_ref), stmt, 100) do
+    res =
+      case Sqlite3.fetch_all(db_ref, stmt, 100) do
         {:ok, data} -> data
         _ -> []
       end
-    end
+
+    Sqlite3NIF.release(db_ref, stmt)
+    res
   end
 
-  defmacro savepoint(db_ref, id) do
-    quote do
-      Sqlite3NIF.execute(unquote(db_ref), ~c"SAVEPOINT #{unquote(id)}")
-    end
+  def savepoint(db_ref, id) do
+    Sqlite3NIF.execute(db_ref, ~c"SAVEPOINT #{id}")
   end
 
-  defmacro release(db_ref, id) do
-    quote do
-      Sqlite3NIF.execute(unquote(db_ref), ~c"RELEASE #{unquote(id)}")
-    end
+  def release(db_ref, id) do
+    Sqlite3NIF.execute(db_ref, ~c"RELEASE #{id}")
   end
 
-  defmacro rollback_to(db_ref, id) do
-    quote do
-      Sqlite3NIF.execute(unquote(db_ref), ~c"ROLLBACK TO #{unquote(id)}")
-    end
+  def rollback_to(db_ref, id) do
+    Sqlite3NIF.execute(db_ref, ~c"ROLLBACK TO #{id}")
   end
 
-  defmacro rollback(db_ref) do
-    quote do
-      Sqlite3NIF.execute(unquote(db_ref), ~c"ROLLBACK")
-    end
+  def rollback(db_ref) do
+    Sqlite3NIF.execute(db_ref, ~c"ROLLBACK")
   end
 
-  defmacro commit(db_ref) do
-    quote do
-      Sqlite3NIF.execute(unquote(db_ref), ~c"COMMIT")
-    end
+  def commit(db_ref) do
+    Sqlite3NIF.execute(db_ref, ~c"COMMIT")
   end
 
-  defmacro begin(db_ref) do
-    quote do
-      Sqlite3NIF.execute(unquote(db_ref), ~c"BEGIN")
-    end
+  def begin(db_ref) do
+    Sqlite3NIF.execute(db_ref, ~c"BEGIN")
   end
 
-  defmacro sync(db_ref) do
-    quote do
-      Sqlite3NIF.execute(unquote(db_ref), ~c"COMMIT")
-      Sqlite3NIF.execute(unquote(db_ref), ~c"BEGIN")
-    end
+  def sync(db_ref) do
+    Sqlite3NIF.execute(db_ref, ~c"COMMIT")
+    Sqlite3NIF.execute(db_ref, ~c"BEGIN")
   end
 
   @spec check_version(term(), list(), integer()) :: :ok | {:stop, term(), term()}
@@ -252,18 +264,30 @@ defmodule Sqlite do
   end
 
   def prepare_statements(db_ref, statements, prefix) do
+    cpus = System.schedulers_online() - 1
+
     Enum.each(statements, fn {name, sql} ->
-      {:ok, statement} = Sqlite3NIF.prepare(db_ref, sql)
-      :persistent_term.put({prefix, name}, statement)
+      for n <- 0..cpus do
+        {:ok, statement} = Sqlite3NIF.prepare(db_ref, sql)
+        :persistent_term.put({prefix, name, n}, statement)
+      end
+
+      :persistent_term.put({:sql, name}, sql)
     end)
   end
 
   def release_statements(db_ref, statements, prefix) do
+    cpus = System.schedulers_online() - 1
+
     Enum.each(statements, fn {name, _sql} ->
-      key = {prefix, name}
-      stmt = :persistent_term.get(key)
-      Sqlite3NIF.release(db_ref, stmt)
-      :persistent_term.erase(key)
+      for n <- 0..cpus do
+        key = {prefix, name, n}
+        stmt = :persistent_term.get(key)
+        Sqlite3NIF.release(db_ref, stmt)
+        :persistent_term.erase(key)
+      end
+
+      :persistent_term.erase({:sql, name})
     end)
   end
 
@@ -271,7 +295,7 @@ defmodule Sqlite do
     for {name, filename} <- map do
       Sqlite3NIF.execute(
         db_ref,
-        ~c"ATTACH DATABASE '#{Path.join(dirname, filename)}' AS '#{name}'"
+        ~c"ATTACH DATABASE '#{:filename.join(dirname, filename)}' AS '#{name}'"
       )
     end
   end
@@ -292,8 +316,5 @@ defmodule Sqlite do
     Sqlite3NIF.execute(db_ref, ~c"PRAGMA case_sensitive_like = ON")
   end
 
-  def bind_step(db_ref, stmt, args) do
-    Sqlite3NIF.bind(db_ref, stmt, args)
-    Sqlite3NIF.step(db_ref, stmt)
-  end
+  defdelegate execute(db_ref, sql), to: Sqlite3NIF
 end

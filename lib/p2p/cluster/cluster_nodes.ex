@@ -1,10 +1,8 @@
 defmodule Ippan.ClusterNodes do
-  require Ippan.Round
   alias Ippan.Round
   alias Ippan.{Node, Network}
-  require Ippan.{Node, TxHandler, Round}
   require BalanceStore
-  require Sqlite
+
   require Logger
 
   @app Mix.Project.config()[:app]
@@ -29,13 +27,13 @@ defmodule Ippan.ClusterNodes do
   @impl Network
   def fetch(id) do
     db_ref = :persistent_term.get(:local_conn)
-    Node.get(id)
+    Node.get(db_ref, id)
   end
 
   @impl Network
   def exists?(id) do
     db_ref = :persistent_term.get(:local_conn)
-    Node.exists?(id)
+    Node.exists?(db_ref, id)
   end
 
   @impl Network
@@ -54,7 +52,7 @@ defmodule Ippan.ClusterNodes do
 
     snap = Snapshot.last()
 
-    Round.last() |> Map.merge(%{"snapshot" => snap})
+    Round.last(db_ref) |> Map.merge(%{"snapshot" => snap})
   end
 
   # def handle_request("last_round", _params, _state) do
@@ -64,7 +62,7 @@ defmodule Ippan.ClusterNodes do
 
   def handle_request("get_round", id, _state) do
     db_ref = :persistent_term.get(:main_conn)
-    Round.get(id) || %{}
+    Round.get(db_ref, id) || %{}
   end
 
   def handle_request("get_rounds", params, _state) do
@@ -73,7 +71,7 @@ defmodule Ippan.ClusterNodes do
     limit = Map.get(params, "limit", 50) |> min(200) |> trunc()
     offset = Map.get(params, "offset", 0)
 
-    case Sqlite.fetch_all("get_rounds", [round_id, limit, offset]) do
+    case Sqlite.fetch_all(db_ref, "get_rounds", [round_id, limit, offset]) do
       [] -> []
       data -> Enum.map(data, &Round.list_to_map(&1))
     end
@@ -85,7 +83,7 @@ defmodule Ippan.ClusterNodes do
   def handle_message(event = "node.join", data, %{"id" => node_id}) do
     db_ref = :persistent_term.get(:local_conn)
 
-    if Node.insert(Node.to_list(data)) == :done do
+    if Node.insert(db_ref, data) == :done do
       broadcast_except(%{"event" => event, "data" => data}, [node_id])
     end
   end
@@ -95,7 +93,7 @@ defmodule Ippan.ClusterNodes do
       }) do
     db_ref = :persistent_term.get(:local_conn)
 
-    if Node.update(fields, id) == :done do
+    if Node.update(db_ref, fields, id) == :done do
       broadcast_except(%{"event" => event, "data" => data}, [node_id])
     end
   end
@@ -103,7 +101,7 @@ defmodule Ippan.ClusterNodes do
   def handle_message(event = "node.leave", id, %{"id" => node_id}) do
     db_ref = :persistent_term.get(:local_conn)
 
-    if Node.delete(id) == :done do
+    if Node.delete(db_ref, id) == :done do
       broadcast_except(%{"event" => event, "data" => id}, [node_id])
     end
   end

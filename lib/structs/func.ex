@@ -1,9 +1,5 @@
 defmodule Ippan.Func do
   @moduledoc """
-  * Transaction is deferred when `unique` field is `True`
-
-  * Parallel: Execute functions with multi core
-
   * Priority
      0. Maximum
      1. Very high
@@ -11,6 +7,7 @@ defmodule Ippan.Func do
      3. Normal
      4. Low
      5. Minimum
+     d. deferred
   """
   @type t :: %__MODULE__{
           id: non_neg_integer(),

@@ -1,6 +1,4 @@
 defmodule EnvStore do
-
-
   def all(db_ref) do
     data = Sqlite.all(db_ref, "all_env")
 

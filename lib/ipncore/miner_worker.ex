@@ -72,7 +72,7 @@ defmodule Ipncore.MinerWorker do
     :counters.add(cref, 2, errors)
 
     Enum.each(ptxs, fn
-      {"D", txs} ->
+      {"d", txs} ->
         :ets.insert(txd, txs)
 
       {_number, txs} ->

@@ -1210,14 +1210,14 @@ defmodule RoundManager do
     Sqlite.step("expiry_refund", [round_id])
   end
 
-  defp run_maintenance(round_id, _db_ref) when rem(round_id, @snap_round) == 0 do
-    fun = fn ->
-      Snapshot.create(round_id)
-      Snapshot.restore(round_id)
-    end
+  # defp run_maintenance(round_id, _db_ref) when rem(round_id, @snap_round) == 0 do
+  #   fun = fn ->
+  #     Snapshot.create(round_id)
+  #     Snapshot.restore(round_id)
+  #   end
 
-    :persistent_term.put(:last_fun, fun)
-  end
+  #   :persistent_term.put(:last_fun, fun)
+  # end
 
   defp run_maintenance(_, _), do: nil
 

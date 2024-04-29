@@ -68,7 +68,6 @@ defmodule DetsPlux do
             get: 2,
             put: 2,
             put: 3,
-            key_fun: 1,
             tuple: 2,
             tuple: 3,
             tx: 1,

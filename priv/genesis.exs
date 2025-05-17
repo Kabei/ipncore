@@ -97,9 +97,9 @@ owner = "@ippan"
       symbol: "xÞ",
       updated_at: 0,
       env: %{
-        "reload.amount" => 75000,
-        "reload.every" => 15000,
-        "reload.expiry" => 18250000,
+        "reload.amount" => 864_000_000,
+        "reload.every" => 17_280,
+        "reload.expiry" => 483_840,
         "service.tax" => 0.01,
         "auth" => true
       }

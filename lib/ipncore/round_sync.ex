@@ -191,6 +191,7 @@ defmodule RoundSync do
       |> Enum.map(fn text ->
         String.trim(text)
       end)
+      |> Enum.filter(fn host -> host != "" end)
     end || []
   end
 

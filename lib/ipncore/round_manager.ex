@@ -1343,13 +1343,13 @@ defmodule RoundManager do
 
   defp do_request_round(node_id, id, state) do
     case NetworkNodes.call(node_id, "get_round", id) do
-      nil ->
-        Logger.debug("Round not found")
-        {:noreply, state}
-
-      round ->
+      {:ok, round} ->
         Logger.debug("Round found")
         do_vote(round, node_id, state)
+
+      _ ->
+        Logger.debug("Round not found")
+        {:noreply, state}
     end
   end
 end

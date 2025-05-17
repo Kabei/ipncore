@@ -19,9 +19,7 @@ IPPAN blockchain transaction verification node.
 
 #### Download and execute script
 ```bash
-curl https://github.com/kabei/releases/download/0.5/ipncore-install.sh \
-&& chmod +x ipncore-install.sh \
-&& ./ipncore-install.sh
+curl -O https://raw.githubusercontent.com/Kabei/ipncore/refs/heads/v0.5/scripts/install.sh && chmod +x install.sh && ./install.sh
 ```
 ### Generate keys
 ```
@@ -36,11 +34,23 @@ mix run gen_keys.exs <secret-base-64> only
 ```bash
 echo "
 NAME=miner
-VID=<number-of-validator-register>
-SECRET_KEY=<secret-key-base-64>
-CLUSTER_KEY=<cluster-key-base-64>
-DATA_DIR=<custom-directory-path>
-NODES=<name@hostname>" > env_file
+VID: <number-of-validator-register>
+SECRET_KEY: <secret-key-base-64>
+CLUSTER_KEY: <cluster-key-base-64>
+DATA_DIR: <custom-directory-path-optional>
+NODES: <name@hostname>" > env_file
+```
+
+## Whitelist
+```bash
+echo "
+ippan.co.uk" > whitelist
+```
+
+## Masterlist
+```bash
+echo "
+worker@[worker-node-ip]" > masterlist
 ```
 
 ## Run

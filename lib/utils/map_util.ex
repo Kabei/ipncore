@@ -269,7 +269,7 @@ defmodule MapUtil do
     end
   end
 
-  def validate_length_range(map, key, _x.._y = range) do
+  def validate_length_range(map, key, _x.._y//_ = range) do
     val = Map.get(map, key)
 
     if not is_nil(val) and String.length(val) not in range,

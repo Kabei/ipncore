@@ -228,7 +228,7 @@ defmodule Ippan.Network do
             rescue
               e ->
                 Logger.error(inspect(e))
-                bin = %{"_id" => id, "data" => {"error", e.message}}
+                bin = %{"_id" => id, "data" => {"error", Exception.message(e)}}
                 @adapter.send(state.socket, encode(bin, sharedkey))
             catch
               :exit, e ->

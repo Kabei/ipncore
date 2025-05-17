@@ -64,7 +64,7 @@ defmodule Ipncore.MixProject do
       {:httpoison, "~> 2.2"},
       {:cafezinho, "~> 0.4.0"},
       {:ex_secp256k1, "~> 0.7.2"},
-      {:exqlite, "0.28.0"},
+      {:exqlite, "0.20.0"},
       {:blake3, "~> 1.0"},
       {:falcon, git: "https://kabei@github.com/kabei/falcon.git", branch: "master"},
       {:ntrukem, git: "https://kabei@github.com/kabei/ntrukem.git", branch: "master"},

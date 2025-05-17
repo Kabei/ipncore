@@ -110,7 +110,7 @@ defmodule Sqlite do
   defmacro query(db, sql, args) do
     quote bind_quoted: [db: db, sql: sql, args: args] do
       {:ok, stmt} = Sqlite3NIF.prepare(db, to_charlist(sql))
-      Sqlite3.bind(stmt, args)
+      Sqlite3NIF.bind(db, stmt, args)
       res = Sqlite3.fetch_all(db, stmt)
       Sqlite3NIF.release(db, stmt)
       res
@@ -121,7 +121,7 @@ defmodule Sqlite do
     quote bind_quoted: [name: name, args: args],
           location: :keep do
       stmt = :persistent_term.get({:stmt, name})
-      Sqlite3.bind(stmt, args)
+      Sqlite3NIF.bind(var!(db_ref), stmt, args)
 
       case Sqlite3.fetch_all(var!(db_ref), stmt, 100) do
         {:ok, data} -> data
@@ -293,7 +293,7 @@ defmodule Sqlite do
   end
 
   def bind_step(db_ref, stmt, args) do
-    Sqlite3.bind(stmt, args)
+    Sqlite3NIF.bind(db_ref, stmt, args)
     Sqlite3NIF.step(db_ref, stmt)
   end
 end

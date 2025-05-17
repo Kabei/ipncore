@@ -475,7 +475,8 @@ defmodule RoundManager do
     Logger.debug("Id is high")
     Logger.debug(inspect(msg_round))
     :ets.insert(ets_votes, {{id, node_id, :msg}, msg_round})
-    {:noreply, state}
+
+    do_request_round(node_id, id, state)
   end
 
   def handle_cast({"round_msg", msg_round, _node_id}, state) do
@@ -1337,6 +1338,18 @@ defmodule RoundManager do
           true ->
             nil
         end
+    end
+  end
+
+  defp do_request_round(node_id, id, state) do
+    case NetworkNodes.call(node_id, "get_round", id) do
+      nil ->
+        Logger.debug("Round not found")
+        {:noreply, state}
+
+      round ->
+        Logger.debug("Round found")
+        do_vote(round, node_id, state)
     end
   end
 end

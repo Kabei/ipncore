@@ -166,11 +166,9 @@ defmodule Ippan.Validator do
     end
   end
 
-  @spec next_id :: String.t()
-  def next_id do
-    stats = Stats.new()
-    n = Stats.get(stats, "seq_validators", 0)
-    Stats.put(stats, "seq_validators", n + 1)
+  @spec next_id(reference()) :: String.t()
+  def next_id(db_ref) do
+    n = Sqlite.one("next_validator_id", [], 0) + 1
 
     [@suffix, "#{n}"] |> IO.iodata_to_binary()
   end

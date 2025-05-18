@@ -46,7 +46,7 @@ defmodule Ippan.Funx.Validator do
             :error
 
           _ ->
-            next_id = Validator.next_id()
+            next_id = Validator.next_id(db_ref)
 
             validator =
               %Validator{

@@ -179,7 +179,7 @@ DELETE FROM assets.validator WHERE id = ?1;
 UPDATE assets.validator SET subs = subs + ?2 WHERE id = ?1;
 
 --name: last_validator_id
-SELECT id FROM assets.validator ORDER BY CAST(SUBSTR(id, 3) AS BIGINT) DESC;
+SELECT id FROM assets.validator ORDER BY CAST(SUBSTR(id, 3) AS BIGINT) DESC LIMIT 1;
 
 
 --name: insert_refund

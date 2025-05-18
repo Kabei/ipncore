@@ -33,7 +33,7 @@ mix run gen_keys.exs <secret-base-64> only
 #### Generate env_file
 ```bash
 echo "
-NAME:miner
+NAME: miner
 VID: <number-of-validator-register>
 SECRET_KEY: <secret-key-base-64>
 CLUSTER_KEY: <cluster-key-base-64>

@@ -476,7 +476,7 @@ defmodule RoundManager do
     Logger.debug(inspect(msg_round))
     :ets.insert(ets_votes, {{id, node_id, :msg}, msg_round})
 
-    do_request_round(node_id, id, state)
+    do_request_round(node_id, vote_round_id, state)
   end
 
   def handle_cast({"round_msg", msg_round, _node_id}, state) do

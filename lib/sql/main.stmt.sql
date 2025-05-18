@@ -178,6 +178,9 @@ DELETE FROM assets.validator WHERE id = ?1;
 --name: count_sub_validator
 UPDATE assets.validator SET subs = subs + ?2 WHERE id = ?1;
 
+--name: last_validator_id
+SELECT id FROM assets.validator ORDER BY CAST(SUBSTR(id, 3) AS BIGINT) DESC;
+
 
 --name: insert_refund
 REPLACE INTO assets.refund VALUES(?1,?2,?3,?4,?5,?6);

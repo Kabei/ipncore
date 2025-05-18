@@ -168,7 +168,9 @@ defmodule Ippan.Validator do
 
   @spec next_id(reference()) :: String.t()
   def next_id(db_ref) do
-    n = Sqlite.one("total_validators", [], 0) + 1
+    last_id = Sqlite.one("last_validator_id", [], @suffix <> "0")
+    next_id = last_id |> String.replace(@suffix, "") |> String.to_integer()
+    n = next_id + 1
 
     [@suffix, "#{n}"] |> IO.iodata_to_binary()
   end
